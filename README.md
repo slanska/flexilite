@@ -35,7 +35,16 @@ Flexilite can help you as a developer to deal with both major cases mentioned ab
 - make database schema evolution process for developer as easy as possible
 - allow end-users make their own changes in database schema.
  
-
+## Features of Flexilite
+- create tables similar to ordinary RDBMS tables: with plain list of scalar typed columns
+- define indexes on those columns (single column indeces only)
+- define full text search indexes on any column and do full text search
+- enable tracking all changes (enabled by default) for full traceability
+- convert scalar column or group columns to array, or extract it to a separate table
+- create columns with special types: geospatial, for example, with ability to perform efficient lookup on these columns using reversed indexes.
+ 
+## How does Flexilite work?
+In order to make schema refactoring 
 
 ## Why SQLite?
 SQLite is widely used - from smartphones, to moderately used websites, from embedded devices, to rich desktop applications. It is reliable, fast and fun to use. And most importantly, SQLite has all features needed for achieving of Flexilite goals. 
