@@ -20,6 +20,22 @@ Typical cycle of relational database design can be described in the following st
 - splitting table to 2 or more tables. Example: you created table called Customers, with Phone column. At some point you realize that customer may have multiple phones, so you need to a) create a new tables, called CustomerPhones, b) extract existing Phone data from Customers to CustomerPhones, c) setup foreign key relation.
 - then you need to do similar job for Employees table, Suppliers table etc.
 - then you decide to combine all common data from Customers, Employees and Suppliers table into a new table, called Persons or Entities. And you need to go through the same boring, error-prone, routine procedure again.
+ 
+These are just few examples of schema refactoring that a database developer needs to cope with.
+Database schema design is similar to constructing class model in object-oriented library. With one fundamental difference - you are often required to apply all this refactoring on existing production data in the field. With all risks to loose or corrupt real customer previous data.
+
+But it is not just data refactoring from a developer standpoint.
+
+What if your end-users need to have some flexibility of defining their own schema changes? Adding new columns? New tables? Maybe. even moving data from one table to another? 
+How about maintaining user defined list of columns depending on, e.g. product category? 'Laptops' category should have column 'RAM', but category 'TV sets' does not need it. ANd both need attribute 'Screen size'.
+
+What if end user needs to store data in flexible way, without sticking to a hard data schema? This is what NoSQL databases were initially designed for. To store arbitrary objects, or "documents". What it you want to provide semi-flexible capabilities when part of your table schema is defined by developer and fixed, but user still can extend it with... well, pretty much anything?
+
+Flexilite can help you as a developer to deal with both major cases mentioned above:
+- make database schema evolution process for developer as easy as possible
+- allow end-users make their own changes in database schema.
+ 
+
 
 ## Why SQLite?
 SQLite is widely used - from smartphones, to moderately used websites, from embedded devices, to rich desktop applications. It is reliable, fast and fun to use. And most importantly, SQLite has all features needed for achieving of Flexilite goals. 
