@@ -43,7 +43,11 @@ Flexilite can help you as a developer to deal with both major cases mentioned ab
 - define full text search indexes on any column and do full text search
 - enable tracking all changes (enabled by default) for full traceability
 - convert scalar column or group columns to array, or extract it to a separate table
-- create columns with special types: geospatial, for example, with ability to perform efficient lookup on these columns using reversed indexes.
+- create columns with special types: geospatial, for example, with ability to perform efficient lookup on these columns using reversed indexes
+- related data (like order and its details) may be grouped together and stored physically in the same area of data file. Such data can be retrieved all in the single request reducing loading time   
+- role based access rules, table-, row- and column-level  
+- import documents in XML, JSON, Yaml, CSV format
+- convert existing RDBMS databases into Flexilite format
  
 ## Schema refactoring patterns
 -Extract 1 or more fields from existing table to a new table (or merge to existing one) and convert it to reference (with name)
@@ -62,7 +66,26 @@ Flexilite can help you as a developer to deal with both major cases mentioned ab
 -Change class and property settings
  
 ## How does Flexilite work?
-In order to make schema refactoring 
+In order to make schema refactoring smooth, flexible and fast, Flexilite utilizes special database design. In fact, this design is based on Entity-Attribute-Value (EAV) concept, with some improvements to avoid performance degradaion associated with traditional EAV implementation.
+All actual data is stored in the fixed set of tables. 
+####Objects
+This table holds 1 row per custom table row. Custom table is indicated by ClassID field. ObjectID (8 byte integer) consists of 2 pieces and is defined by the formula: (HostID << 31) | AutoID (<auto-incremented-ID>). HostID is an AutoID of another object ID, which in this case becomes master (or host) object. 
+
+Example:
+Order has HostID = 2 and AutoID = 2, so ObjectID = 4294967298 (so this is a self-hosted object). Nested Order Detail will have HostID = 2, and AutoID = 3, thus giving ObjectID = 4294967298. Since ObjectID is a primary key for table Objects, Order abd OrderDetail rows will be stored together and can be loaded at once.
+
+Maximum object AutoID is (1 << 31) - 1.
+
+There are 16 data columns, named A to P. They are used for 'fixed' mapping to the custom table columns. In this case, there is no any performance penalty comparing to traditional relational table design, but there is a small storage penalty as if not used, every data column takes 1 byte of file storage. 
+
+[ctlo] column. This is control object attribute that holds information about indexing, full text and range search  
+
+####Values
+This table is detail table to Objects, it is related to the latter by ObjectID. It implements canocial Entity-Attribute-Value model, via ObjectID, PropertyID and Value columns. Plus it extends EAV model with support of arrays (via PropertyIndex column) and references to other objects (special type of value).
+
+[ctlv] column is a value control attribute, it holds settings for role of value (reference, scalar etc.), indexing, full text and range search configuration (similar to Objects.[ctol]). 
+
+##Is it alternative to NoSQL?
 
 ## Why SQLite?
 SQLite is widely used - from smartphones, to moderately used websites, from embedded devices, to rich desktop applications. It is reliable, fast and fun to use. And most importantly, SQLite has all features needed for achieving of Flexilite goals. 
