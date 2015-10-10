@@ -1,0 +1,30 @@
+{
+  "name": "Flexilite",
+  "description": "SQLite-based EAV ORM with flexible DB schema",
+  "version": "0.0.1",
+  "author": "slanska",
+  "private": false,
+  "dependencies": {
+    "orm": "^2.1.27",
+    "shortid": "^2.2.2",
+    "sql-ddl-sync": "^0.3.11",
+    "sql-query": "^0.1.26",
+    "sqlite3": "^3.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/slanska/flexilite.git"
+  },
+  "main": "app.js",
+  "engines": {
+    "node": ">=0.8",
+    "npm": ">=1.0"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "^3.3.0",
+    "mocha": "^2.3.3",
+    "should": "^7.1.0",
+    "supertest": "^1.1.0"
+  }
+}
