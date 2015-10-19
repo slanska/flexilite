@@ -184,6 +184,15 @@ CREATE TABLE IF NOT EXISTS [ClassProperties] (
   [MaxLength]          INTEGER NOT NULL DEFAULT (-1),
   [TempColumnAssigned] CHAR,
 
+  /*
+  These 2 properties define 'reference' property.
+  ReversePropertyID is optional and used for reversed access from referenced class.
+  If not null, ClassProperties table must contain record with combination ClassID=ReferencedClassID
+  and PropertyID=ReversePropertyID
+  */
+  [ReferencedClassID] INTEGER NULL,
+  [ReversePropertyID] INTEGER NULL,
+
 /*
 ctlv is used for indexing and processing control. Possible values (the same as Values.ctlv):
   0 - Index
@@ -247,6 +256,8 @@ BEGIN
     '"ctlo": ' || quote(old.[ctlo]) ||
     '"ctloMask": ' || quote(old.[ctloMask]) ||
     '"ctlv": ' || quote(old.[ctlv]) ||
+    '"ReferencedClassID": ' || quote(old.ReferencedClassID) ||
+    '"ReversePropertyID": ' || quote(old.ReversePropertyID) ||
     ' }'
   );
 
@@ -346,6 +357,8 @@ BEGIN
     '"ctlo": ' || quote(new.[ctlo]) || ', ' ||
     '"ctloMask": ' || quote(new.[ctloMask]) || ', ' ||
     '"ctlv": ' || quote(new.[ctlv]) ||
+    '"ReferencedClassID": ' ||  quote(new.ReferencedClassID) ||
+    '"ReversePropertyID": ' || quote(new.ReversePropertyID) ||
     ' }'
   );
 
@@ -507,6 +520,8 @@ BEGIN
                 ', ',
                 '"ctlo": ' || nullif(quote(old.ctlo), quote(new.ctlo)) || ', ',
                 '"ctloMask": ' || nullif(quote(old.ctloMask), quote(new.ctloMask)) || ', ',
+                '"ReferencedClassID": ' || nullif(quote(old.ReferencedClassID), quote(new.ReferencedClassID)) || ', ',
+                '"ReversePropertyID": ' || nullif(quote(old.ReversePropertyID), quote(new.ReversePropertyID)) || ', ',
                 '"ctlv": ' || nullif(quote(old.ctlv), quote(new.ctlv))) AS [OldValue],
 
          printf('@%s/%s', new.ClassID, new.PropertyID)                  AS [Key],
@@ -524,6 +539,9 @@ BEGIN
                 '"MaxLength": ' || nullif(quote(new.MaxLength), quote(old.MaxLength)) || ', ',
                 '"TempColumnAssigned": ' || nullif(quote(new.TempColumnAssigned), quote(old.TempColumnAssigned)) ||
                 ', ',
+                '"ReferencedClassID": ' || nullif(quote(new.ReferencedClassID), quote(old.ReferencedClassID)) || ', ',
+                '"ReversePropertyID": ' || nullif(quote(new.ReversePropertyID), quote(old.ReversePropertyID)) || ', ',
+
                 '"ctlo": ' || nullif(quote(new.ctlo), quote(old.ctlo)) || ', ',
                 '"ctloMask": ' || nullif(quote(new.ctloMask), quote(old.ctloMask)) || ', ',
                 '"ctlv": ' || nullif(quote(new.ctlv), quote(old.ctlv))) AS [Value]
@@ -1375,6 +1393,10 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [RangeData] USING rtree (
 
 ------------------------------------------------------------------------------------------
 -- Values
+-- This table stores EAV individual values in a canonical form - one DB row per value
+-- Also, this table keeps list of object-to-object references. Direct reference is ObjectID.PropertyID -> Value
+-- where Value is ID of referenced object.
+-- Reversed reference is from Value -> ObjectID.PropertyID
 ------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [Values] (
   [ObjectID]   INTEGER NOT NULL,
@@ -1400,12 +1422,12 @@ ctlv is used for index control. Possible values (the same as ClassProperties.ctl
     64 - DON'T track changes
 */
   [ctlv]       INTEGER,
-  CONSTRAINT [] PRIMARY KEY ([ObjectID], [PropertyID], [PropIndex])
+  CONSTRAINT [] PRIMARY KEY ([ObjectID], [ClassID], [PropertyID], [PropIndex])
 ) WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS [idxClassReversedRefs] ON [Values] ([Value], [PropertyID]) WHERE [ctlv] & 14;
 
-CREATE INDEX IF NOT EXISTS [idxValuesByClassPropValue] ON [Values] ([ClassID], [PropertyID], [Value]) WHERE ([ctlv] & 1);
+CREATE INDEX IF NOT EXISTS [idxValuesByClassPropValue] ON [Values] ([PropertyID], [ClassID], [Value]) WHERE ([ctlv] & 1);
 
 CREATE TRIGGER IF NOT EXISTS [trigValuesAfterInsert]
 AFTER INSERT
@@ -1514,11 +1536,6 @@ BEGIN
 
 -- Process range data based on ctlv
 END;
-
---------------------------------------------------------------------------------------------
--- ValuesEasy
---------------------------------------------------------------------------------------------
-
 
 --------------------------------------------------------------------------------------------
 -- ValuesEasy
@@ -1638,6 +1655,11 @@ INSERT INTO Classes ([ClassName], [SystemClass]) VALUES ('Culture', 1);
 INSERT INTO Classes ([ClassName], [SystemClass]) VALUES ('TextID', 1);
 
 INSERT INTO Classes ([ClassName], [SystemClass]) VALUES ('$TranslatedText', 1);
+
+-- Other system classes
+-- $Users
+-- $Roles
+
 
 INSERT INTO ClassProperties ([ClassID], [PropertyID], [ColumnAssigned])
   SELECT

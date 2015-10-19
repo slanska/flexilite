@@ -24,3 +24,4 @@ describe(' Create new empty database:', function () {
         });
     });
 });
+//# sourceMappingURL=test.js.map
