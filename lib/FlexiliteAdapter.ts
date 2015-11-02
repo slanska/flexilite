@@ -499,13 +499,13 @@ module.exports = Driver;
     };
 
     // TODO Implement drop
-    Driver.prototype.drop = function (opts, cb)
+    Driver.prototype.drop = function (opts, callback)
     {
         //table - The name of the table
         //properties
         //one_associations
         //many_associations
-        cb();
+        callback();
     };
 
     Driver.prototype.hasMany = function (Model, association)
