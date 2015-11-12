@@ -2,6 +2,10 @@
  * Created by Ruslan Skorynin on 04.10.2015.
  */
 
+/// <reference path="../typings/tsd.d.ts" />
+/// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts"/>
+/// <reference path="../node_modules/orm/lib/TypeScript/sql-query.d.ts"/>
+
 'use strict';
 
 import chai = require('chai');
@@ -15,14 +19,12 @@ import path =require("path");
 var shortid = require("shortid");
 var faker = require("faker");
 
-export function ConnectAndSave()
+export function ConnectAndSave(done:Function)
 {
-
     var orm2:any = orm;
     orm2.addAdapter('flexilite', flexilite);
 
-    //var connString = util.format("sqlite://%s", path.join(__dirname, "data", "test.db"));
-    var connString = util.format("flexilite://%s", path.join(__dirname, "data", "test.db"));
+    var connString = util.format("flexilite://%s", path.join(__dirname, "data", "test1.db"));
     orm.connect(connString, function (err, db)
     {
         if (err)
@@ -53,7 +55,6 @@ export function ConnectAndSave()
             // add a row to the person table
 
             Person.create({
-
                 name: faker.name.firstName(1),
                 surname: faker.name.lastName(1),
                 age: faker.random.number({min: 15, max: 60}),
@@ -80,7 +81,7 @@ export function ConnectAndSave()
                         // err.msg = "under-age";
                         db.close(function ()
                         {
-
+                            done();
                         });
 
                     });

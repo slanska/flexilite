@@ -1,6 +1,8 @@
 /**
- * Created by Ruslan Skorynin on 04.10.2015.
+ * Created by slanska on 04.10.2015.
  */
+
+/// <reference path="../../typings/tsd.d.ts"/>
 
 module Flexilite.models
 {
@@ -9,18 +11,20 @@ module Flexilite.models
      */
     export interface IClass
     {
-        ClassID : number;
+        ClassID? : number;
         ClassName: string;
-        SchemaID: number;
-        SystemClass: boolean;
+        SchemaID?: number;
+        SystemClass?: boolean;
         DefaultScalarType: string;
-        TitlePropertyID: number;
-        SubTitleProperty: number;
-        SchemaXML: string;
-        SchemaOutdated: boolean;
-        MinOccurences: number;
-        MaxOccurences: number;
+        TitlePropertyID?: number;
+        SubTitleProperty?: number;
+        SchemaXML?: string;
+        SchemaOutdated?: boolean;
+        MinOccurences?: number;
+        MaxOccurences?: number;
         DBViewName: string;
-        ctloMask: number;
+        ctloMask?: number;
+
+        Properties: [IClassProperty];
     }
 }

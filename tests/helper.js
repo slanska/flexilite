@@ -1,6 +1,9 @@
 /**
  * Created by Ruslan Skorynin on 04.10.2015.
  */
+/// <reference path="../typings/tsd.d.ts" />
+/// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts"/>
+/// <reference path="../node_modules/orm/lib/TypeScript/sql-query.d.ts"/>
 'use strict';
 var chai = require('chai');
 var expect = chai.expect;
@@ -11,11 +14,10 @@ var util = require("util");
 var path = require("path");
 var shortid = require("shortid");
 var faker = require("faker");
-function ConnectAndSave() {
+function ConnectAndSave(done) {
     var orm2 = orm;
     orm2.addAdapter('flexilite', flexilite);
-    //var connString = util.format("sqlite://%s", path.join(__dirname, "data", "test.db"));
-    var connString = util.format("flexilite://%s", path.join(__dirname, "data", "test.db"));
+    var connString = util.format("flexilite://%s", path.join(__dirname, "data", "test1.db"));
     orm.connect(connString, function (err, db) {
         if (err)
             throw err;
@@ -63,6 +65,7 @@ function ConnectAndSave() {
                             throw err;
                         // err.msg = "under-age";
                         db.close(function () {
+                            done();
                         });
                     });
                 });

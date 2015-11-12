@@ -16,7 +16,10 @@ var sqlite3 = require("sqlite3");
 import util = require("util");
 import path =require("path");
 import helper = require("./helper");
+var wait = require('wait.for');
 
+//wait.launchFiber(function ()
+//{
 /**
  * Unit tests
  */
@@ -28,13 +31,13 @@ describe(' Create new empty database:',
         //sqlite.cached.Database();
 
         beforeEach(
-            function ()
+            function (done)
             {
+                helper.ConnectAndSave(done);
             });
 
         describe('open sqlite db', () =>
         {
-            helper.ConnectAndSave();
 
             it('opens', (done) =>
             {
@@ -42,7 +45,15 @@ describe(' Create new empty database:',
                 done();
             });
 
-        });
-    });
+            //it('create model', (done) =>
+            //{
+            //    //helper.
+            //    done();
+            //});
 
+        });
+
+
+        //});
+    });
 

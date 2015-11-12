@@ -1,7 +1,9 @@
 # flexilite
 node.js library for SQLite-based flexible data schema. Combines entity-attribute-value and pre-allocated table columns. 
-The goal of this project is to provide easy-to-use, feature rich and flexible solution to deal with uncertainties of database schema design.
-Flexilite is based on SQLite as a storage engine and thus is usable in any type of application where SQLite is a good fit.
+The goal of this project is to provide easy-to-use, feature rich and flexible solution to deal with uncertainties 
+of database schema design.
+Flexilite is based on SQLite as a storage engine and thus is usable in any type of application where SQLite 
+is a good fit.
 The main idea of Flexilite is to provide API to deal with database schema in an evolutional and easy way.
 
 ## Why Flexilite?
@@ -66,8 +68,11 @@ Flexilite can help you as a developer to deal with both major cases mentioned ab
 -Change class and property settings
  
 ## How does Flexilite work?
-In order to make schema refactoring smooth, flexible and fast, Flexilite utilizes special database design. In fact, this design is based on Entity-Attribute-Value (EAV) concept, with some improvements to avoid performance degradaion associated with traditional EAV implementation.
+In order to make schema refactoring smooth, flexible and fast, Flexilite utilizes special database design. 
+In fact, this design is based on Entity-Attribute-Value (EAV) concept, with some improvements to 
+avoid performance degradaion associated with traditional EAV implementation.
 All actual data is stored in the fixed set of tables. 
+
 ####Objects
 This table holds 1 row per custom table row. Custom table is indicated by ClassID field. ObjectID (8 byte integer) consists of 2 pieces and is defined by the formula: (HostID << 31) | AutoID (<auto-incremented-ID>). HostID is an AutoID of another object ID, which in this case becomes master (or host) object. 
 
@@ -85,10 +90,51 @@ This table is detail table to Objects, it is related to the latter by ObjectID. 
 
 [ctlv] column is a value control attribute, it holds settings for role of value (reference, scalar etc.), indexing, full text and range search configuration (similar to Objects.[ctol]). 
 
+##How data are stored?
+I am a big fun of micro optimization, even though this approach has been criticized a lot. In scope of Flexilite 
+micro-optimization means that every possible option is used to provide the best performance.
+These options are following:
+**WITHOUT ROWID indexes.** This SQLite feature allows to store related rows _physically_ adjacent to each other. It means
+that value records for the same entity will most likely be stored on the same page (or 2 adjacent pages, in the worse scenario).
+ It also means related entities, if their IDs are assigned in a special way, can be also stored _physically_ together. 
+ What it gives at the end? It gives possibility to load all values for the given entity and also all related entities with 
+ all their values in one SQL query.
+ 
+**Partial indexes** allow selective indexting of specific attributes for the fast lookup. Indexing is controlled 
+by bit masks.
+  
+**For data with schema** Flexilite creates and maintains updatable _views_. These views serve purpose of regular tables and allow 
+transparent access to data, identical to normal SQL queries.
+
+Here is an example of such a view:
+
+```
+create view if not exists Orders as
+ select o.A as OrderID,
+ o.B as CustomerID, 
+ o.C as OrderDate,
+ (select Value from v where PropertyID = 123 and PropIndex = 0) as CommentLine1
+ from Objects o, (select * from Values vv where vv.ObjectID = o.ObjectID) v
+```
+
+
+
 ##Is it alternative to NoSQL?
 
+Short answer - yes and no. Long answer: Flexilite can definitely be used as a document oriented database (**"yes"**), 
+but its approach and underlying database engine serve different purpose. It is not designed to replace big guys like Mongo
+or PostgreSQL (**"no"**). It is good fit for small to medium size database. And unlike well known NoSQL databases,
+SQLite supports metadata natively. It means that it combines schema and schemaless types of storage.
+ 
+
 ## Why SQLite?
-SQLite is widely used - from smartphones, to moderately used websites, from embedded devices, to rich desktop applications. It is reliable, fast and fun to use. And most importantly, SQLite has all features needed for achieving of Flexilite goals. 
+SQLite is widely used - from smartphones, to moderately used websites, from embedded devices, 
+to rich desktop applications. It is reliable, fast and fun to use. 
+And most importantly, SQLite has all features needed for achieving of Flexilite goals. 
+When properly configured, SQLite can be a perfect database storage for small workgroups (8-10 simultaneous users 
+creating new content). By proper configuration we mean: use larger page sizes (8KB is default for Flexilite),
+use memory for temporary storage, use WAL for journaling mode, and use shared cache. Optimal configuration will be 
+covered in a separate article.
 
 ## Are other databases supported?
 Currently it is SQLite only. We also have plans and ideas about implementing Flexilite on PostgreSQL.

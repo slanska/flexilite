@@ -9,10 +9,10 @@
       "commit": "ab3cc82066805007cbf0db233ddb5879f42be4d2"
     },
     "sqlite3/sqlite3.d.ts": {
-      "commit": "3b7f250dcf631f1c3c545e28d9ff25920c60b5f7"
+      "commit": "421d6610bdb09e1015b71f5991d7a68d079eca21"
     },
     "node/node.d.ts": {
-      "commit": "3b7f250dcf631f1c3c545e28d9ff25920c60b5f7"
+      "commit": "421d6610bdb09e1015b71f5991d7a68d079eca21"
     },
     "mocha/mocha.d.ts": {
       "commit": "3b7f250dcf631f1c3c545e28d9ff25920c60b5f7"

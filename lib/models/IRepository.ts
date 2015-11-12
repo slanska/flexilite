@@ -1,5 +1,5 @@
 /**
- * Created by Ruslan Skorynin on 04.10.2015.
+ * Created by slanska on 04.10.2015.
  */
 
 module Flexilite.models
