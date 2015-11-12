@@ -17,6 +17,7 @@ import util = require("util");
 import path =require("path");
 import helper = require("./helper");
 var wait = require('wait.for');
+var fs = require('fs');
 
 //wait.launchFiber(function ()
 //{
@@ -30,10 +31,38 @@ describe(' Create new empty database:',
 
         //sqlite.cached.Database();
 
+        //before(function (done)
+        //{
+        //    wait.launchFiber(function ()
+        //    {
+        //        var db = wait.forMethod(sqlite3, "Database", path.join(__dirname, "data", "test1.db"));
+        //        var qry = fs.readFileSync('../lib/sqlite-schema.sql');
+        //        wait.forMethod(db, "run", qry);
+        //    });
+        //
+        //    done();
+        //});
+
         beforeEach(
             function (done)
             {
-                helper.ConnectAndSave(done);
+                console.log('beforeEach ---');
+                //wait.launchFiber(function ()
+                //{
+
+                var dbFile = path.join(__dirname, "data", "test1.db");
+                var db = new sqlite3.Database(dbFile);
+                var qry = fs.readFileSync('/Users/ruslanskorynin/flexilite/lib/sqlite-schema.sql').toString();
+                db.run(qry, function (err)
+                {
+                    if (err)
+                        throw err;
+                    done();
+                });
+                //done();
+                //});
+
+
             });
 
         describe('open sqlite db', () =>
@@ -41,7 +70,7 @@ describe(' Create new empty database:',
 
             it('opens', (done) =>
             {
-
+                //helper.ConnectAndSave(done);
                 done();
             });
 

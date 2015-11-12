@@ -74,5 +74,5 @@ function ConnectAndSave(done) {
     });
 }
 exports.ConnectAndSave = ConnectAndSave;
-ConnectAndSave();
+//ConnectAndSave(); 
 //# sourceMappingURL=helper.js.map

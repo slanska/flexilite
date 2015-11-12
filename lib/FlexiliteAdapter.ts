@@ -549,9 +549,9 @@ Driver.prototype.syncProperties = function (opts:ISyncOptions, classID:number, c
 {
     var self = this;
 
-    var selCPStmt = self.db.prepare(`insert or ignore into [Classes] ([ClassName]) values (?);`);
-
-    var insCPStmt = self.db.prepare(`insert or replace into [ClassProperties] ([ClassID], [PropertyID],
+    var insCStmt = self.db.prepare(`insert or ignore into [Classes] ([ClassName]) values (?);`);
+var selCPStmt = self.db.prepare(`select [ClassID] from [Classes] where [ClassName] = ? limit 1`);
+    var insCPStmt = self.db.prepare(`insert  into [ClassProperties] ([ClassID], [PropertyID],
      [PropertyName], [TrackChanges], [DefaultValue], [DefaultDataType],
      [MinOccurences], [MaxOccurences], [Unique], [MaxLength], [ReferencedClassID],
      [ReversePropertyID]) values (?,
@@ -563,7 +563,9 @@ Driver.prototype.syncProperties = function (opts:ISyncOptions, classID:number, c
     {
         var pd:Flexilite.models.IPropertyDef = opts.allProperties[key];
         var propName = (pd.ext && pd.ext.mappedTo) || pd.name;
-        wait.forMethod(selCPStmt, "run", [propName]);
+        wait.forMethod(insCStmt, "run", [propName]);
+        var clsProp = wait.forMethod(selCPStmt, "get", [propName]);
+        console.log(`ClassID: ${classID}, PropertyID: ${clsProp.ClassID}, Name: ${propName}`);
         wait.forMethod(insCPStmt, "run", [
             classID,
             propName,
@@ -587,77 +589,63 @@ Driver.prototype.syncProperties = function (opts:ISyncOptions, classID:number, c
 
 Driver.prototype.sync = function (opts:ISyncOptions, callback)
 {
-
     var self = this;
 
-    if (self.alreadySync)
-    return callback();
+    if (global.alreadyInSync === true)
+        return ;
 
-
-
-// https://github.com/luciotato/waitfor/issues/27
-//    if (!self.fiberInjected)
-//    {
-//        self.fiberInjected = true;
-//        self.old_sync = self.sync;
-//        self.sync = function (opts:ISyncOptions, callback)
-//        {
-//            var newargs = Array.prototype.slice.call(arguments);
-//            newargs.unshift(callback);
-//            wait.launchFiber.apply(wait, newargs);
-//        };
-//    }
+    global.alreadyInSync = true;
 
     wait.launchFiber(function ()
     {
-        self.alreadySync = true;
-        //
-        // Process data and save in Classes and ClassProperties
-        // Set Flag SchemaOutdated
-        // Run view regeneration process
+        try
+        {
+            //
+            // Process data and save in Classes and ClassProperties
+            // Set Flag SchemaOutdated
+            // Run view regeneration process
 
-        var classDef = {
-            ClassID: 0, // TODO
-            ClassName: opts.table,
-            SchemaID: 0, // TODO
-            SystemClass: false,
-            DefaultScalarType: "string",
-            //TitlePropertyID: number;
-            //SubTitleProperty: number;
-            //SchemaXML: string;
-            SchemaOutdated: true,
-            MinOccurences: 0,
-            MaxOccurences: 1 << 31,
-            DBViewName: `vw_${opts.table}`,
-            ctloMask: 0,
+            var classDef = {
+                ClassID: 0, // TODO
+                ClassName: opts.table,
+                SchemaID: 0, // TODO
+                SystemClass: false,
+                DefaultScalarType: "string",
+                //TitlePropertyID: number;
+                //SubTitleProperty: number;
+                //SchemaXML: string;
+                SchemaOutdated: true,
+                MinOccurences: 0,
+                MaxOccurences: 1 << 31,
+                DBViewName: `vw_${opts.table}`,
+                ctloMask: 0,
 
-            Properties: []
-        };
+                Properties: []
+            };
 
-        var getClassSQL = `select * from [Classes] where [ClassName] = '${opts.table}';`;
-        var getClsStmt = self.db.prepare('select * from [Classes] where [ClassName] = ?;');
-        var insClsStmt = self.db.prepare(
-            `insert or replace into [Classes] ([ClassName],
+            var getClassSQL = `select * from [Classes] where [ClassName] = '${opts.table}';`;
+            var getClsStmt = self.db.prepare('select * from [Classes] where [ClassName] = ?;');
+            var insClsStmt = self.db.prepare(
+                `insert or replace into [Classes] ([ClassName],
     [SchemaOutdated], [DBViewName])
     values (?, ?, ?);`);
-        var cls = wait.forMethod(self.db, "get", getClassSQL);
+            var cls = wait.forMethod(self.db, "get", getClassSQL);
 
-        if (!cls)
-        // Class not found. Insert new record
-        {
-            var rslt = wait.forMethod(insClsStmt, "run", [opts.table, true, `vw_${opts.table}`]);
-            cls = wait.forMethod(self.db, "get", getClassSQL);
-        }
+            if (!cls)
+            // Class not found. Insert new record
+            {
+                var rslt = wait.forMethod(insClsStmt, "run", [opts.table, true, `vw_${opts.table}`]);
+                cls = wait.forMethod(self.db, "get", getClassSQL);
+            }
 
-        wait.forMethod(self, "syncProperties", opts, cls.ClassID);
+            wait.forMethod(self, "syncProperties", opts, cls.ClassID);
 
-
-        // Regenerate view
-        var viewSQL = `create view if not exists ${classDef.DBViewName} as select `;
+            // Regenerate view
+            var viewSQL = `create view if not exists ${classDef.DBViewName} as select `;
 // Process properties
-        viewSQL += ` from [Objects] where [ClassID] = ${classDef.ClassID} and
+            viewSQL += ` from [Objects] where [ClassID] = ${classDef.ClassID} and
     ([]);`;
-        viewSQL += `-- Insert trigger
+            viewSQL += `-- Insert trigger
     create trigger [trig_${classDef.DBViewName}_insert] instead of insert
     begin
         insert or replace into [Objects] ([ClassID], [ctlo]) values (${classDef.ClassID}, );
@@ -667,20 +655,28 @@ Driver.prototype.sync = function (opts:ISyncOptions, callback)
         [ctlv], [Value]) values ();
     end;`;
 
-        viewSQL += `create trigger [trig_${classDef.DBViewName}_update] instead of update
+            viewSQL += `create trigger [trig_${classDef.DBViewName}_update] instead of update
     begin
     end;`;
 
-        viewSQL += `create trigger [trig_${classDef.DBViewName}_delete] instead of delete
+            viewSQL += `create trigger [trig_${classDef.DBViewName}_delete] instead of delete
     begin
     end;`;
 
-        self.alreadySync = false;
-        callback();
+
+            callback();
+        }
+        catch (err)
+        {
+            console.log(err);
+            callback(err);
+        }
+        finally
+        {
+            global.alreadyInSync = false;
+        }
 
     });
-
-
 };
 
 interface IDropOptions
