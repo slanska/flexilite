@@ -13,10 +13,9 @@ import sqlite3 = require("sqlite3");
 var Query = require("sql-query").Query;
 var shared = require("./_shared");
 var DDL = require("./DDL/SQL");
-//var wait = require('wait.for');
 var Sync = require("syncho");
+import path = require('path');
 
-//exports = Driver;
 module.exports = Driver;
 
 class _Driver
@@ -29,8 +28,6 @@ class _Driver
     constructor(public config, connection, public opts)
     {
         this.db = connection;
-
-
     }
 }
 
@@ -59,24 +56,12 @@ function Driver(config, connection:sqlite3.Database, opts)
         // it's the drive letter and add ":"
         var win32 = process.platform == "win32" && config.host && config.host.match(/^[a-z]$/i);
 
-        // TODO Test how cached works
-        // TODO new??
+        console.log(config);
+        var fn = ((config.host ? (win32 ? config.host + ":" : config.host) : "") + (config.pathname || "")) || ':memory:';
 
-        this.db = sqlite3.cached.Database(((config.host ? (win32 ? config.host + ":" : config.host) : "") + (config.pathname || "")) || ':memory:');
+        // SQLITE_OPEN_SHAREDCACHE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_WAL
+        this.db = sqlite3.cached.Database(fn, 0x00020000 | sqlite3.OPEN_READWRITE | 0x00080000);
     }
-
-    // TODO Remove
-    //// Add special version of prepare function to confirm wait.for declaration
-    //if (!this.db.__proto__.prepareStatement)
-    //{
-    //    this.db.__proto__.prepareStatement = function (sql, stdCallback)
-    //    {
-    //        var stmt = this.prepare(sql, function (err)
-    //        {
-    //            return stdCallback(err, stmt);
-    //        });
-    //    };
-    //}
 
     this.aggregate_functions = ["ABS", "ROUND",
         "AVG", "MIN", "MAX",
@@ -550,8 +535,10 @@ Driver.prototype.syncProperties = function (opts:ISyncOptions, classID:number, c
 {
     var self = this;
 
+    var items = self.db.all.sync(self.db, 'select * from [ClassProperties]');
+    console.log(`BEFORE: ${items.length}, ${JSON.stringify(items)}`);
+
     var insCStmt = self.db.prepare(`insert or ignore into [Classes] ([ClassName]) values (?);`);
-    var selCPStmt = self.db.prepare(`select [ClassID] from [Classes] where [ClassName] = ? limit 1`);
     var insCPStmt = self.db.prepare(`insert or replace into [ClassProperties] ([ClassID], [PropertyID],
      [PropertyName], [TrackChanges], [DefaultValue], [DefaultDataType],
      [MinOccurences], [MaxOccurences], [Unique], [MaxLength], [ReferencedClassID],
@@ -565,8 +552,6 @@ Driver.prototype.syncProperties = function (opts:ISyncOptions, classID:number, c
         var pd:Flexilite.models.IPropertyDef = opts.allProperties[key];
         var propName = (pd.ext && pd.ext.mappedTo) || pd.name;
         insCStmt.run.sync(insCStmt, [propName]);
-        var clsProp = selCPStmt.get.sync(selCPStmt, [propName]);
-        console.log(`ClassID: ${classID}, PropertyID: ${clsProp.ClassID}, Name: ${propName}`);
         insCPStmt.run.sync(insCPStmt, [
             classID,
             propName,
@@ -584,6 +569,9 @@ Driver.prototype.syncProperties = function (opts:ISyncOptions, classID:number, c
 
         console.log(`${pd.name} processed`);
     }
+
+    var items = self.db.all.sync(self.db, 'select * from [ClassProperties]');
+    console.log(`AFTER: ${items.length}, ${JSON.stringify(items)}`);
 
     callback();
 };

@@ -29,7 +29,9 @@ export function ConnectAndSave(done:Function)
             var orm2:any = orm;
             orm2.addAdapter('flexilite', flexilite);
 
-            var connString = util.format("flexilite://%s", path.join(__dirname, "data", "test1.db"));
+            // Use URI file name with shared cache mode
+            var fname = `${path.join(__dirname, "data", "test1.db")}`;
+            var connString = util.format("flexilite://%s", fname);
             var db = (<any>orm.connect).sync(orm, connString);
 
             console.log('DB opened\n');
