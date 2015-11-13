@@ -566,6 +566,9 @@ Driver.prototype.syncProperties = function (opts:ISyncOptions, classID:number, c
         ]);
     }
 
+    insCStmt.finalize.sync(insCStmt);
+    insCPStmt.finalize.sync(insCPStmt);
+
     var classDef = self.db.get.sync(self.db, 'select * from [Classes] where [ClassID] = ?', classID);
     classDef.Properties = self.db.all.sync(self.db, 'select * from [ClassProperties] where [ClassID] = ?', classID);
 
@@ -586,18 +589,18 @@ Driver.prototype.sync = function (opts:ISyncOptions, callback)
             // Run view regeneration process
 
             var getClassSQL = `select * from [Classes] where [ClassName] = '${opts.table}';`;
-            var getClsStmt = self.db.prepare('select * from [Classes] where [ClassName] = ?;');
-            var insClsStmt = self.db.prepare(
-                `insert or replace into [Classes] ([ClassName],
-    [SchemaOutdated], [DBViewName])
-    values (?, ?, ?);`);
+
             var cls = self.db.get.sync(self.db, getClassSQL);
 
             if (!cls)
             // Class not found. Insert new record
-            {
+            {            var insClsStmt = self.db.prepare(
+                `insert or replace into [Classes] ([ClassName],
+    [SchemaOutdated], [DBViewName])
+    values (?, ?, ?);`);
                 var rslt = insClsStmt.run.sync(insClsStmt, [opts.table, true, `vw_${opts.table}`]);
                 cls = self.db.get.sync(self.db, getClassSQL);
+                insClsStmt.finalize.sync(insClsStmt);
             }
 
             var classDef:Flexilite.models.IClass = self.syncProperties.sync(self, opts, cls.ClassID);

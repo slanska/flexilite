@@ -26,11 +26,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="FlexiliteAdapter.ts" pinned="false" current-in-tab="true">
+      <file leaf-file-name="FlexiliteAdapter.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.054176074">
-              <caret line="632" column="47" selection-start-line="632" selection-start-column="47" selection-end-line="632" selection-end-column="47" />
+            <state vertical-scroll-proportion="0.0">
+              <caret line="569" column="39" selection-start-line="569" selection-start-column="39" selection-end-line="569" selection-end-column="39" />
               <folding />
             </state>
           </provider>
@@ -66,11 +66,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="helper.ts" pinned="false" current-in-tab="false">
+      <file leaf-file-name="helper.ts" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/tests/helper.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="32" column="0" selection-start-line="32" selection-start-column="0" selection-end-line="32" selection-end-column="0" />
+            <state vertical-scroll-proportion="1.023913">
+              <caret line="82" column="12" selection-start-line="82" selection-start-column="12" selection-end-line="82" selection-end-column="12" />
               <folding />
             </state>
           </provider>
@@ -426,31 +426,16 @@
       <option name="project" value="LOCAL" />
       <updated>1447381844486</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="view generation">
+      <created>1447385378870</created>
+      <option name="number" value="00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1447385378870</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="Tests - 2015.11.12 at 21h 54m 37s.xml">
-      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 21h 55m 27s.xml">
-      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 22h 06m 32s.xml">
-      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 22h 07m 25s.xml">
-      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 22h 09m 34s.xml">
-      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 22h 14m 14s.xml">
-      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 22h 17m 43s.xml">
-      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
     <history-entry file="Tests - 2015.11.12 at 22h 18m 33s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
@@ -458,6 +443,27 @@
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
     <history-entry file="Tests - 2015.11.12 at 22h 22m 10s.xml">
+      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="Tests - 2015.11.12 at 22h 35m 27s.xml">
+      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="Tests - 2015.11.12 at 22h 36m 03s.xml">
+      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="Tests - 2015.11.12 at 22h 37m 27s.xml">
+      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="Tests - 2015.11.12 at 22h 43m 36s.xml">
+      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="Tests - 2015.11.12 at 22h 43m 50s.xml">
+      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="Tests - 2015.11.12 at 22h 43m 56s.xml">
+      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="Tests - 2015.11.12 at 22h 44m 07s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
   </component>
@@ -468,21 +474,21 @@
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2171875" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32599726" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32934928" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4951857" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.35213205" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.35213205" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
@@ -504,7 +510,8 @@
     <MESSAGE value="started implementing sync. Using wait.for" />
     <MESSAGE value="started implementing sync. Using syncho" />
     <MESSAGE value="open db connection in shared cache mode" />
-    <option name="LAST_COMMIT_MESSAGE" value="open db connection in shared cache mode" />
+    <MESSAGE value="view generation" />
+    <option name="LAST_COMMIT_MESSAGE" value="view generation" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -518,7 +525,7 @@
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
-      <option name="time" value="91" />
+      <option name="time" value="92" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="NodeJSConfigurationType">
@@ -822,14 +829,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/helper.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="32" column="0" selection-start-line="32" selection-start-column="0" selection-end-line="32" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/typings/sqlite3/sqlite3.d.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.33628318">
@@ -932,8 +931,16 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.054176074">
-          <caret line="632" column="47" selection-start-line="632" selection-start-column="47" selection-end-line="632" selection-end-column="47" />
+        <state vertical-scroll-proportion="0.0">
+          <caret line="569" column="39" selection-start-line="569" selection-start-column="39" selection-end-line="569" selection-end-column="39" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/helper.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="1.023913">
+          <caret line="82" column="12" selection-start-line="82" selection-start-column="12" selection-end-line="82" selection-end-column="12" />
           <folding />
         </state>
       </provider>
