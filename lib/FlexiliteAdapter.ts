@@ -13,7 +13,8 @@ import sqlite3 = require("sqlite3");
 var Query = require("sql-query").Query;
 var shared = require("./_shared");
 var DDL = require("./DDL/SQL");
-var wait = require('wait.for');
+//var wait = require('wait.for');
+var Sync = require("syncho");
 
 //exports = Driver;
 module.exports = Driver;
@@ -62,20 +63,20 @@ function Driver(config, connection:sqlite3.Database, opts)
         // TODO new??
 
         this.db = sqlite3.cached.Database(((config.host ? (win32 ? config.host + ":" : config.host) : "") + (config.pathname || "")) || ':memory:');
-
     }
 
-    // Add special version of prepare function to confirm wait.for declaration
-    if (!this.db.__proto__.prepareStatement)
-    {
-        this.db.__proto__.prepareStatement = function (sql, stdCallback)
-        {
-            var stmt = this.prepare(sql, function (err)
-            {
-                return stdCallback(err, stmt);
-            });
-        };
-    }
+    // TODO Remove
+    //// Add special version of prepare function to confirm wait.for declaration
+    //if (!this.db.__proto__.prepareStatement)
+    //{
+    //    this.db.__proto__.prepareStatement = function (sql, stdCallback)
+    //    {
+    //        var stmt = this.prepare(sql, function (err)
+    //        {
+    //            return stdCallback(err, stmt);
+    //        });
+    //    };
+    //}
 
     this.aggregate_functions = ["ABS", "ROUND",
         "AVG", "MIN", "MAX",
@@ -84,7 +85,7 @@ function Driver(config, connection:sqlite3.Database, opts)
         "DISTINCT"];
 }
 
-// TODO DDL defines standard SQL sync and drop. Flexilite has custom
+// TODO DDL defines standard SQLite sync and drop. Flexilite has custom
 // logic for these operations, so DDL should be exluded
 // TODO _.extend(Driver.prototype, shared, DDL);
 _.extend(Driver.prototype, shared);
@@ -550,8 +551,8 @@ Driver.prototype.syncProperties = function (opts:ISyncOptions, classID:number, c
     var self = this;
 
     var insCStmt = self.db.prepare(`insert or ignore into [Classes] ([ClassName]) values (?);`);
-var selCPStmt = self.db.prepare(`select [ClassID] from [Classes] where [ClassName] = ? limit 1`);
-    var insCPStmt = self.db.prepare(`insert  into [ClassProperties] ([ClassID], [PropertyID],
+    var selCPStmt = self.db.prepare(`select [ClassID] from [Classes] where [ClassName] = ? limit 1`);
+    var insCPStmt = self.db.prepare(`insert or replace into [ClassProperties] ([ClassID], [PropertyID],
      [PropertyName], [TrackChanges], [DefaultValue], [DefaultDataType],
      [MinOccurences], [MaxOccurences], [Unique], [MaxLength], [ReferencedClassID],
      [ReversePropertyID]) values (?,
@@ -563,10 +564,10 @@ var selCPStmt = self.db.prepare(`select [ClassID] from [Classes] where [ClassNam
     {
         var pd:Flexilite.models.IPropertyDef = opts.allProperties[key];
         var propName = (pd.ext && pd.ext.mappedTo) || pd.name;
-        wait.forMethod(insCStmt, "run", [propName]);
-        var clsProp = wait.forMethod(selCPStmt, "get", [propName]);
+        insCStmt.run.sync(insCStmt, [propName]);
+        var clsProp = selCPStmt.get.sync(selCPStmt, [propName]);
         console.log(`ClassID: ${classID}, PropertyID: ${clsProp.ClassID}, Name: ${propName}`);
-        wait.forMethod(insCPStmt, "run", [
+        insCPStmt.run.sync(insCPStmt, [
             classID,
             propName,
             pd.name,
@@ -584,19 +585,14 @@ var selCPStmt = self.db.prepare(`select [ClassID] from [Classes] where [ClassNam
         console.log(`${pd.name} processed`);
     }
 
-    //callback();
+    callback();
 };
 
 Driver.prototype.sync = function (opts:ISyncOptions, callback)
 {
     var self = this;
 
-    if (global.alreadyInSync === true)
-        return ;
-
-    global.alreadyInSync = true;
-
-    wait.launchFiber(function ()
+    Sync(function ()
     {
         try
         {
@@ -629,16 +625,16 @@ Driver.prototype.sync = function (opts:ISyncOptions, callback)
                 `insert or replace into [Classes] ([ClassName],
     [SchemaOutdated], [DBViewName])
     values (?, ?, ?);`);
-            var cls = wait.forMethod(self.db, "get", getClassSQL);
+            var cls = self.db.get.sync(self.db, getClassSQL);
 
             if (!cls)
             // Class not found. Insert new record
             {
-                var rslt = wait.forMethod(insClsStmt, "run", [opts.table, true, `vw_${opts.table}`]);
-                cls = wait.forMethod(self.db, "get", getClassSQL);
+                var rslt = insClsStmt.run.sync(insClsStmt, [opts.table, true, `vw_${opts.table}`]);
+                cls = self.db.get.sync(self.db, getClassSQL);
             }
 
-            wait.forMethod(self, "syncProperties", opts, cls.ClassID);
+            self.syncProperties.sync(self, opts, cls.ClassID);
 
             // Regenerate view
             var viewSQL = `create view if not exists ${classDef.DBViewName} as select `;
@@ -671,10 +667,7 @@ Driver.prototype.sync = function (opts:ISyncOptions, callback)
             console.log(err);
             callback(err);
         }
-        finally
-        {
-            global.alreadyInSync = false;
-        }
+
 
     });
 };

@@ -12,7 +12,7 @@
     "sql-ddl-sync": "^0.3.11",
     "sql-query": "^0.1.26",
     "sqlite3": "^3.1.0",
-    "wait.for": "^0.6.6"
+    "syncho": "^0.2.5"
   },
   "repository": {
     "type": "git",
