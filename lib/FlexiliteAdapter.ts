@@ -535,17 +535,14 @@ Driver.prototype.syncProperties = function (opts:ISyncOptions, classID:number, c
 {
     var self = this;
 
-    var items = self.db.all.sync(self.db, 'select * from [ClassProperties]');
-    console.log(`BEFORE: ${items.length}, ${JSON.stringify(items)}`);
-
     var insCStmt = self.db.prepare(`insert or ignore into [Classes] ([ClassName]) values (?);`);
     var insCPStmt = self.db.prepare(`insert or replace into [ClassProperties] ([ClassID], [PropertyID],
      [PropertyName], [TrackChanges], [DefaultValue], [DefaultDataType],
      [MinOccurences], [MaxOccurences], [Unique], [MaxLength], [ReferencedClassID],
-     [ReversePropertyID]) values (?,
+     [ReversePropertyID], [ColumnAssigned]) values (?,
      (select [ClassID] from [Classes] where [ClassName] = ? limit 1),
       ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?);`);
+      ?, ?, ?, ?, ?, ?, ?);`);
 
     for (var key in opts.allProperties)
     {
@@ -564,16 +561,15 @@ Driver.prototype.syncProperties = function (opts:ISyncOptions, classID:number, c
             pd.unique || false,
             (pd.ext && pd.ext.maxLength) || -1,
             null,
+            null,
             null
         ]);
-
-        console.log(`${pd.name} processed`);
     }
 
-    var items = self.db.all.sync(self.db, 'select * from [ClassProperties]');
-    console.log(`AFTER: ${items.length}, ${JSON.stringify(items)}`);
+    var classDef = self.db.get.sync(self.db, 'select * from [Classes] where [ClassID] = ?', classID);
+    classDef.Properties = self.db.all.sync(self.db, 'select * from [ClassProperties] where [ClassID] = ?', classID);
 
-    callback();
+    callback(null, classDef);
 };
 
 Driver.prototype.sync = function (opts:ISyncOptions, callback)
@@ -588,24 +584,6 @@ Driver.prototype.sync = function (opts:ISyncOptions, callback)
             // Process data and save in Classes and ClassProperties
             // Set Flag SchemaOutdated
             // Run view regeneration process
-
-            var classDef = {
-                ClassID: 0, // TODO
-                ClassName: opts.table,
-                SchemaID: 0, // TODO
-                SystemClass: false,
-                DefaultScalarType: "string",
-                //TitlePropertyID: number;
-                //SubTitleProperty: number;
-                //SchemaXML: string;
-                SchemaOutdated: true,
-                MinOccurences: 0,
-                MaxOccurences: 1 << 31,
-                DBViewName: `vw_${opts.table}`,
-                ctloMask: 0,
-
-                Properties: []
-            };
 
             var getClassSQL = `select * from [Classes] where [ClassName] = '${opts.table}';`;
             var getClsStmt = self.db.prepare('select * from [Classes] where [ClassName] = ?;');
@@ -622,24 +600,56 @@ Driver.prototype.sync = function (opts:ISyncOptions, callback)
                 cls = self.db.get.sync(self.db, getClassSQL);
             }
 
-            self.syncProperties.sync(self, opts, cls.ClassID);
+            var classDef:Flexilite.models.IClass = self.syncProperties.sync(self, opts, cls.ClassID);
 
             // Regenerate view
-            var viewSQL = `create view if not exists ${classDef.DBViewName} as select `;
-// Process properties
-            viewSQL += ` from [Objects] where [ClassID] = ${classDef.ClassID} and
-    ([]);`;
-            viewSQL += `-- Insert trigger
-    create trigger [trig_${classDef.DBViewName}_insert] instead of insert
+            var viewSQL = `drop view if exists ${classDef.DBViewName};
+            \ncreate view if not exists ${classDef.DBViewName} as select
+            [ObjectID] >> 31 as HostID,
+    ([ObjectID] & 2147483647) as ObjectID,`;
+            // Process properties
+            for (var propIdx = 0; propIdx < classDef.Properties.length; propIdx++)
+            {
+                if (propIdx > 0)
+                    viewSQL += ', ';
+                var p:Flexilite.models.IClassProperty = classDef.Properties[propIdx];
+                if (p.ColumnAssigned && p.ColumnAssigned !== null)
+                // This property is stored directly in Objects table
+                {
+                    viewSQL += `o.[${p.ColumnAssigned}] as [${p.PropertyName}]\n`;
+                }
+                else
+                // This property is stored in Values table. Need to use subquery for access
+                {
+                    viewSQL += `\n(select v.[Value] from [Values] v
+                    where v.[ObjectID] = o.[ObjectID]
+    and v.[PropIndex] = 0 and v.[PropertyID] = ${p.PropertyID}`;
+                    if ((p.ctlv & 1) === 1)
+                        viewSQL += ` and (v.[ctlv] & 1 = 1)`;
+                    viewSQL += `) as [${p.PropertyName}]`;
+                }
+            }
+            viewSQL += ` from [Objects] o
+    where o.[ClassID] = ${classDef.ClassID} and
+    ((o.[ctlo] & ${classDef.ctloMask}) = ${classDef.ctloMask});`;
+
+            console.log(viewSQL);
+            self.db.exec.sync(self.db, viewSQL);
+
+            viewSQL += `-- Insert trigger\n
+            drop trigger if exists [trig_${classDef.DBViewName}_insert];
+    create trigger if not exists [trig_${classDef.DBViewName}_insert] instead of insert on [${classDef.DBViewName}]
+    for each row
     begin
-        insert or replace into [Objects] ([ClassID], [ctlo]) values (${classDef.ClassID}, );
+        insert or replace into [Objects] ([ClassID], [ctlo]) values (${classDef.ClassID}, ${classDef.ctloMask});
 
 -- Loop on properties
         insert or replace into [Values] ([ClassID], [ObjectID], [PropertyID], [PropIndex],
         [ctlv], [Value]) values ();
     end;`;
 
-            viewSQL += `create trigger [trig_${classDef.DBViewName}_update] instead of update
+            viewSQL += `-- Update trigger\n
+            create trigger if not exists [trig_${classDef.DBViewName}_update] instead of update
     begin
     end;`;
 

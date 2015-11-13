@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
+    <list default="true" readonly="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.js" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.js.map" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.js.map" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js" afterPath="$PROJECT_DIR$/tests/helper.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js.map" afterPath="$PROJECT_DIR$/tests/helper.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.ts" afterPath="$PROJECT_DIR$/tests/helper.ts" />
     </list>
     <ignored path="flexilite.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -32,8 +29,8 @@
       <file leaf-file-name="FlexiliteAdapter.ts" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.5225">
-              <caret line="61" column="61" selection-start-line="61" selection-start-column="61" selection-end-line="61" selection-end-column="61" />
+            <state vertical-scroll-proportion="0.054176074">
+              <caret line="632" column="47" selection-start-line="632" selection-start-column="47" selection-end-line="632" selection-end-column="47" />
               <folding />
             </state>
           </provider>
@@ -42,7 +39,7 @@
       <file leaf-file-name="sqlite3.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/node_modules/sqlite3/lib/sqlite3.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-5.259259">
+            <state vertical-scroll-proportion="0.0">
               <caret line="49" column="13" selection-start-line="49" selection-start-column="13" selection-end-line="49" selection-end-column="13" />
               <folding />
             </state>
@@ -63,7 +60,7 @@
         <entry file="file://$PROJECT_DIR$/lib/sqlite-schema.sql">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="1606" column="0" selection-start-line="1606" selection-start-column="0" selection-end-line="1606" selection-end-column="0" />
+              <caret line="207" column="21" selection-start-line="207" selection-start-column="21" selection-end-line="207" selection-end-column="21" />
               <folding />
             </state>
           </provider>
@@ -92,33 +89,9 @@
       <file leaf-file-name="ORM.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/node_modules/orm/lib/ORM.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-9.851851">
+            <state vertical-scroll-proportion="0.0">
               <caret line="169" column="25" selection-start-line="169" selection-start-column="25" selection-end-line="169" selection-end-column="25" />
               <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="IClassProperty.ts" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/lib/models/IClassProperty.ts">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="11" column="0" selection-start-line="11" selection-start-column="0" selection-end-line="28" selection-end-column="20" />
-              <folding>
-                <element signature="n#!!doc" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="IClass.ts" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/lib/models/IClass.ts">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="25" column="26" selection-start-line="14" selection-start-column="8" selection-end-line="25" selection-end-column="26" />
-              <folding>
-                <element signature="n#!!doc" expanded="true" />
-              </folding>
             </state>
           </provider>
         </entry>
@@ -155,12 +128,12 @@
         <option value="$PROJECT_DIR$/lib/models/IClass.ts" />
         <option value="$PROJECT_DIR$/tests/config.js" />
         <option value="$PROJECT_DIR$/lib/models/IPropertyDef.ts" />
-        <option value="$PROJECT_DIR$/lib/sqlite-schema.sql" />
         <option value="$PROJECT_DIR$/lib/SQLite/init_default_data.sql" />
         <option value="$PROJECT_DIR$/tests/test.js" />
         <option value="$PROJECT_DIR$/tests/test.ts" />
         <option value="$PROJECT_DIR$/tests/helper.ts" />
         <option value="$PROJECT_DIR$/node_modules/orm/lib/ORM.js" />
+        <option value="$PROJECT_DIR$/lib/sqlite-schema.sql" />
         <option value="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
       </list>
     </option>
@@ -202,6 +175,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -318,8 +293,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -447,38 +420,44 @@
       <option name="project" value="LOCAL" />
       <updated>1447377665772</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="open db connection in shared cache mode">
+      <created>1447381844486</created>
+      <option name="number" value="00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1447381844486</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="Tests - 2015.11.12 at 20h 54m 09s.xml">
+    <history-entry file="Tests - 2015.11.12 at 21h 54m 37s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 21h 02m 01s.xml">
+    <history-entry file="Tests - 2015.11.12 at 21h 55m 27s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 21h 04m 54s.xml">
+    <history-entry file="Tests - 2015.11.12 at 22h 06m 32s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 21h 07m 28s.xml">
+    <history-entry file="Tests - 2015.11.12 at 22h 07m 25s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 21h 08m 34s.xml">
+    <history-entry file="Tests - 2015.11.12 at 22h 09m 34s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 21h 10m 08s.xml">
+    <history-entry file="Tests - 2015.11.12 at 22h 14m 14s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 21h 11m 47s.xml">
+    <history-entry file="Tests - 2015.11.12 at 22h 17m 43s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 21h 12m 52s.xml">
+    <history-entry file="Tests - 2015.11.12 at 22h 18m 33s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 21h 23m 37s.xml">
+    <history-entry file="Tests - 2015.11.12 at 22h 19m 20s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.11.12 at 21h 27m 36s.xml">
+    <history-entry file="Tests - 2015.11.12 at 22h 22m 10s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
   </component>
@@ -489,21 +468,21 @@
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2171875" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32599726" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32934928" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4951857" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.41127923" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.35213205" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
@@ -524,16 +503,12 @@
     <MESSAGE value="documentation, formatting etc." />
     <MESSAGE value="started implementing sync. Using wait.for" />
     <MESSAGE value="started implementing sync. Using syncho" />
-    <option name="LAST_COMMIT_MESSAGE" value="started implementing sync. Using syncho" />
+    <MESSAGE value="open db connection in shared cache mode" />
+    <option name="LAST_COMMIT_MESSAGE" value="open db connection in shared cache mode" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>537</line>
-          <option name="timeStamp" value="84" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/node_modules/orm/lib/ORM.js</url>
           <line>170</line>
@@ -543,7 +518,7 @@
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
-      <option name="time" value="89" />
+      <option name="time" value="91" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="NodeJSConfigurationType">
@@ -565,34 +540,34 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
-      <provider editor-type-id="MultiMarkdownFxHtmlEditor">
-        <state />
-      </provider>
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="5" column="0" selection-start-line="5" selection-start-column="0" selection-end-line="5" selection-end-column="0" />
         </state>
       </provider>
-      <provider editor-type-id="MarkdownPreviewEditor">
+      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
         <state />
       </provider>
-      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
+      <provider editor-type-id="MultiMarkdownFxHtmlEditor">
+        <state />
+      </provider>
+      <provider editor-type-id="MarkdownPreviewEditor">
         <state />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/concept.md">
-      <provider editor-type-id="MultiMarkdownFxHtmlEditor">
-        <state />
-      </provider>
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
         </state>
       </provider>
-      <provider editor-type-id="MarkdownPreviewEditor">
+      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
         <state />
       </provider>
-      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
+      <provider editor-type-id="MultiMarkdownFxHtmlEditor">
+        <state />
+      </provider>
+      <provider editor-type-id="MarkdownPreviewEditor">
         <state />
       </provider>
     </entry>
@@ -730,34 +705,34 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/concept.md">
-      <provider editor-type-id="MultiMarkdownFxHtmlEditor">
-        <state />
-      </provider>
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-24.310345">
           <caret line="66" column="45" selection-start-line="66" selection-start-column="45" selection-end-line="66" selection-end-column="45" />
         </state>
       </provider>
-      <provider editor-type-id="MarkdownPreviewEditor">
+      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
         <state />
       </provider>
-      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
+      <provider editor-type-id="MultiMarkdownFxHtmlEditor">
+        <state />
+      </provider>
+      <provider editor-type-id="MarkdownPreviewEditor">
         <state />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
-      <provider editor-type-id="MultiMarkdownFxHtmlEditor">
-        <state />
-      </provider>
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-8.5172415">
           <caret line="115" column="62" selection-start-line="115" selection-start-column="62" selection-end-line="115" selection-end-column="62" />
         </state>
       </provider>
-      <provider editor-type-id="MarkdownPreviewEditor">
+      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
         <state />
       </provider>
-      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
+      <provider editor-type-id="MultiMarkdownFxHtmlEditor">
+        <state />
+      </provider>
+      <provider editor-type-id="MarkdownPreviewEditor">
         <state />
       </provider>
     </entry>
@@ -831,47 +806,11 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/SQLite/init_default_data.sql">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.9173913">
-          <caret line="114" column="0" selection-start-line="114" selection-start-column="0" selection-end-line="114" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/sqlite-schema.sql">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="1606" column="0" selection-start-line="1606" selection-start-column="0" selection-end-line="1606" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/node_modules/orm/lib/Model.js">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="227" column="16" selection-start-line="227" selection-start-column="16" selection-end-line="227" selection-end-column="16" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/models/IClassProperty.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="11" column="0" selection-start-line="11" selection-start-column="0" selection-end-line="28" selection-end-column="20" />
-          <folding>
-            <element signature="n#!!doc" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/models/IClass.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="25" column="26" selection-start-line="14" selection-start-column="8" selection-end-line="25" selection-end-column="26" />
-          <folding>
-            <element signature="n#!!doc" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -891,14 +830,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/node_modules/orm/lib/ORM.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-9.851851">
-          <caret line="169" column="25" selection-start-line="169" selection-start-column="25" selection-end-line="169" selection-end-column="25" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/typings/sqlite3/sqlite3.d.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.33628318">
@@ -911,7 +842,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -919,7 +849,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -927,7 +856,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-1.0737463">
           <caret line="6" column="35" selection-start-line="6" selection-start-column="35" selection-end-line="6" selection-end-column="35" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -935,7 +863,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-8.79941">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -943,13 +870,12 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-1.0088495">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/node_modules/sqlite3/lib/sqlite3.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-5.259259">
+        <state vertical-scroll-proportion="0.0">
           <caret line="49" column="13" selection-start-line="49" selection-start-column="13" selection-end-line="49" selection-end-column="13" />
           <folding />
         </state>
@@ -963,10 +889,51 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/lib/models/IClass.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.54565215">
+          <caret line="25" column="16" selection-start-line="25" selection-start-column="8" selection-end-line="25" selection-end-column="16" />
+          <folding>
+            <element signature="n#!!doc" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/models/IClassProperty.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.6695652">
+          <caret line="28" column="8" selection-start-line="28" selection-start-column="8" selection-end-line="28" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/node_modules/orm/lib/ORM.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="169" column="25" selection-start-line="169" selection-start-column="25" selection-end-line="169" selection-end-column="25" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/SQLite/init_default_data.sql">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.25959367">
+          <caret line="72" column="40" selection-start-line="71" selection-start-column="4" selection-end-line="72" selection-end-column="40" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/sqlite-schema.sql">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="207" column="21" selection-start-line="207" selection-start-column="21" selection-end-line="207" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.5225">
-          <caret line="61" column="61" selection-start-line="61" selection-start-column="61" selection-end-line="61" selection-end-column="61" />
+        <state vertical-scroll-proportion="0.054176074">
+          <caret line="632" column="47" selection-start-line="632" selection-start-column="47" selection-end-line="632" selection-end-column="47" />
           <folding />
         </state>
       </provider>
