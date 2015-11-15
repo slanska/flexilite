@@ -8,6 +8,7 @@
     "faker": "^3.0.1",
     "lodash": "^3.10.1",
     "orm": "^2.1.27",
+    "orm-transaction": "0.0.2",
     "shortid": "^2.2.2",
     "sql-ddl-sync": "^0.3.11",
     "sql-query": "^0.1.26",
