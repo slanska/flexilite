@@ -12,6 +12,7 @@ var orm = require("orm");
 var sqlite3 = require("sqlite3");
 var util = require("util");
 var path = require("path");
+var helper = require("./helper");
 var fs = require('fs');
 var Sync = require("syncho");
 var faker = require('faker');
@@ -39,12 +40,12 @@ describe(' Create new empty database:', function () {
         //
         //});
         it('opens', function (done) {
-            //helper.ConnectAndSave(done);
-            done();
+            helper.ConnectAndSave(done);
+            //done();
         });
         it('generate 10000 persons', function (done) {
-            //done();
-            //return;
+            done();
+            return;
             Sync(function () {
                 var orm2 = orm;
                 orm2.addAdapter('flexilite', flexilite);
@@ -82,7 +83,12 @@ describe(' Create new empty database:', function () {
                     }
                     trn.commit();
                 }
+                catch (err) {
+                    trn.rollback();
+                    throw err;
+                }
                 finally {
+                    db.close.sync(db);
                     done();
                 }
                 console.timeEnd('insert Persons');

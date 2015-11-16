@@ -56,14 +56,14 @@ describe(' Create new empty database:',
 
             it('opens', (done) =>
             {
-                //helper.ConnectAndSave(done);
-                done();
+                helper.ConnectAndSave(done);
+                //done();
             });
 
             it('generate 10000 persons', (done)=>
             {
-                //done();
-                //return;
+                done();
+                return;
 
                 Sync(function ()
                 {
@@ -96,6 +96,7 @@ describe(' Create new empty database:',
                     });
 
                     console.time('insert Persons');
+
                     var trn = db.transaction.sync(db);
                     try
                     {
@@ -111,15 +112,19 @@ describe(' Create new empty database:',
 
                         trn.commit();
                     }
+                    catch (err)
+                    {
+                        trn.rollback();
+                        throw err;
+                    }
                     finally
                     {
+                        db.close.sync(db);
                         done();
                     }
                     console.timeEnd('insert Persons');
                 });
             });
-
-
         });
 
 

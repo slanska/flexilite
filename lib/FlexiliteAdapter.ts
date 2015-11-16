@@ -122,7 +122,7 @@ Driver.prototype.find = function (fields, table, conditions, opts, cb)
 {
     // TODO Generate query based on arguments
     var q = this.query.select()
-        .from(table).select(fields);
+        .from(`vw_${table}`).select(fields);
 
     //var tableName = 'Orders';
     //this.query.select().from('Objects').where();
@@ -187,10 +187,10 @@ Driver.prototype.find = function (fields, table, conditions, opts, cb)
     this.db.all(q, cb);
 };
 
-Driver.prototype.count = function (table, conditions, opts, cb)
+Driver.prototype.count = function (table:string, conditions, opts, cb)
 {
     var q = this.query.select()
-        .from(table)
+        .from(`vw_${table}`)
         .count(null, 'c');
 
     if (opts.merge)
@@ -290,7 +290,7 @@ Driver.prototype.update = function (table, changes, conditions, cb)
     // Non-schema props are updated/inserted as one batch to Values table
     // TODO Alter where clause to add classID
     var q = this.query.update()
-        .into(table)
+        .into(`vw_{table}`)
         .set(changes)
         .where(conditions)
         .build();
@@ -327,11 +327,11 @@ Driver.prototype.clear = function (table, cb)
 {
     var debug = this.opts.debug;
 
-    this.execQuery("DELETE FROM ??", [table], function (err)
+    this.execQuery("DELETE FROM ??", [`vw_${table}`], function (err)
     {
         if (err) return cb(err);
 
-        this.execQuery("DELETE FROM ?? WHERE NAME = ?", ['sqlite_sequence', table], cb);
+        this.execQuery("DELETE FROM ?? WHERE NAME = ?", ['sqlite_sequence', `vw_${table}`], cb);
     }.bind(this));
 };
 
@@ -854,15 +854,24 @@ Driver.prototype.drop = function (opts:IDropOptions, callback)
     //one_associations
     //many_associations
 
-    var qry = `select * from [Classes] where [ClassName] = ${opts.table}`;
+    var qry = `select * from [Classes] where [ClassName] = ${opts.table};
+    `;
     this.db.exec(qry);
-    var sql = `delete from [Classes] where [ClassName]='${opts.table}'`;
+    //var sql = `delete from [Classes] where [ClassName]='${opts.table}'`;
 
+    // TODO Delete objects?
     callback();
 };
 
-Driver.prototype.hasMany = function (Model, association)
+// TODO Handle hasOne and extend association
+
+interface IHasManyAssociation
 {
+}
+
+Driver.prototype.hasMany = function (Model, association:IHasManyAssociation)
+{
+    // TODO Process relations
     return {
         has: function (Instance, Associations, conditions, cb)
         {
