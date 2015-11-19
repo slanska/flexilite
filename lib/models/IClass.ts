@@ -4,27 +4,34 @@
 
 /// <reference path="../../typings/tsd.d.ts"/>
 
-module Flexilite.models
+
+
+/*
+
+ */
+declare interface IClass
 {
-    /*
+    ClassID? : number;
+    ClassName: string;
+    SchemaID?: number;
+    SystemClass?: boolean;
+    DefaultScalarType: string;
+    TitlePropertyID?: number;
+    SubTitleProperty?: number;
 
-     */
-    export interface IClass
-    {
-        ClassID? : number;
-        ClassName: string;
-        SchemaID?: number;
-        SystemClass?: boolean;
-        DefaultScalarType: string;
-        TitlePropertyID?: number;
-        SubTitleProperty?: number;
-        SchemaXML?: string;
-        SchemaOutdated?: boolean;
-        MinOccurences?: number;
-        MaxOccurences?: number;
-        DBViewName: string;
-        ctloMask?: number;
+    // TODO Needed?
+    SchemaXML?: string;
 
-        Properties: [IClassProperty];
-    }
+    SchemaOutdated?: boolean;
+    MinOccurences?: number;
+    MaxOccurences?: number;
+    DBViewName: string;
+    ctloMask?: number;
+    Unique?: boolean;
+    Indexed?:boolean;
+    ExtData?:any;
+    ValidationRegex: string;
+    StrictSchema:boolean;
+
+    Properties: {[propName: string]: IClassProperty};
 }

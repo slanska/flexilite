@@ -7,7 +7,8 @@
 'use strict';
 var chai = require('chai');
 var expect = chai.expect;
-var flexilite = require('../lib/FlexiliteAdapter');
+//var Driver = require('../lib/FlexiliteAdapter')._Driver;
+var FlexiliteAdapter_1 = require('../lib/FlexiliteAdapter');
 var orm = require("orm");
 var sqlite3 = require("sqlite3");
 var util = require("util");
@@ -19,7 +20,8 @@ function ConnectAndSave(done) {
     Sync(function () {
         try {
             var orm2 = orm;
-            orm2.addAdapter('flexilite', flexilite);
+            console.log(FlexiliteAdapter_1.Driver.toString());
+            orm2.addAdapter('flexilite', FlexiliteAdapter_1.Driver);
             // Use URI file name with shared cache mode
             var fname = "" + path.join(__dirname, "data", "test1.db");
             var connString = util.format("flexilite://%s", fname);
@@ -58,6 +60,10 @@ function ConnectAndSave(done) {
             console.log("First person: %s, age %d", people[0].fullName(), people[0].age);
             people[0].age = 16;
             people[0].save.sync(people[0]);
+        }
+        catch (err) {
+            console.log(err);
+            throw err;
         }
         finally {
             db.close.sync(db);

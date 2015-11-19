@@ -11,7 +11,8 @@
 import chai = require('chai');
 
 var expect = chai.expect;
-var flexilite = require('../lib/FlexiliteAdapter');
+//var Driver = require('../lib/FlexiliteAdapter')._Driver;
+import {Driver} from '../lib/FlexiliteAdapter';
 import orm = require("orm");
 var sqlite3 = require("sqlite3");
 import util = require("util");
@@ -27,7 +28,9 @@ export function ConnectAndSave(done:Function)
         try
         {
             var orm2:any = orm;
-            orm2.addAdapter('flexilite', flexilite);
+            console.log(Driver.toString());
+
+            orm2.addAdapter('flexilite', Driver);
 
             // Use URI file name with shared cache mode
             var fname = `${path.join(__dirname, "data", "test1.db")}`;
@@ -75,6 +78,11 @@ export function ConnectAndSave(done:Function)
             people[0].age = 16;
             people[0].save.sync(people[0]);
 
+        }
+        catch(err)
+        {
+            console.log(err);
+            throw err;
         }
         finally
         {

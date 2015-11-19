@@ -22,13 +22,13 @@ CREATE INDEX IF NOT EXISTS [idxAccessRulesByItemID] ON [AccessRules] ([ItemID]);
 ------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [ChangeLog] (
   [ID]        INTEGER  NOT NULL PRIMARY KEY AUTOINCREMENT,
-  [TimeStamp] DATETIME NOT NULL DEFAULT (julianday('now')),
+  [TimeStamp] DATETIME NOT NULL             DEFAULT (julianday('now')),
   [OldKey],
   [OldValue],
   [Key],
   [Value],
 
--- TODO Implement function
+  -- TODO Implement function
   [ChangedBy] GUID              -- DEFAULT (GetCurrentUserID())
 );
 
@@ -44,22 +44,24 @@ CREATE INDEX IF NOT EXISTS [idxChangeLogByChangedBy] ON [ChangeLog] ([ChangedBy]
 CREATE TABLE IF NOT EXISTS [Classes] (
   [ClassID]           INTEGER  NOT NULL PRIMARY KEY AUTOINCREMENT,
   [ClassName]         TEXT(64) NOT NULL,
--- [ClassTitle] TEXT NOT NULL,
-  [SchemaID]          GUID     NOT NULL DEFAULT (randomblob(16)),
-  [SystemClass]       BOOL     NOT NULL DEFAULT 0,
-  [DefaultScalarType] TEXT     NOT NULL DEFAULT 'String',
+  -- [ClassTitle] TEXT NOT NULL,
+  [SchemaID]          GUID     NOT NULL             DEFAULT (randomblob(16)),
+  [SystemClass]       BOOL     NOT NULL             DEFAULT 0,
+  [DefaultScalarType] TEXT     NOT NULL             DEFAULT 'String',
   [TitlePropertyID]   INTEGER CONSTRAINT [fkClassesTitleToClasses] REFERENCES [Classes] ([ClassID]) ON DELETE RESTRICT ON UPDATE RESTRICT,
   [SubTitleProperty]  INTEGER CONSTRAINT [fkClassesSubTitleToClasses] REFERENCES [Classes] ([ClassID]) ON DELETE RESTRICT ON UPDATE RESTRICT,
   [SchemaXML]         TEXT,
-  [SchemaOutdated]    BOOLEAN  NOT NULL DEFAULT 0,
-  [MinOccurences]     INTEGER  NOT NULL DEFAULT 0,
-  [MaxOccurences]     INTEGER  NOT NULL DEFAULT ((1 << 32) - 1),
+  [SchemaOutdated]    BOOLEAN  NOT NULL             DEFAULT 0,
+  [MinOccurences]     INTEGER  NOT NULL             DEFAULT 0,
+  [MaxOccurences]     INTEGER  NOT NULL             DEFAULT ((1 << 32) - 1),
   [DBViewName]        TEXT,
-  [ctloMask]          INTEGER  NOT NULL DEFAULT (0), -- Aggregated value for all indexing for assigned columns (A-P). Updated by trigger on ClassProperty update
+  [ctloMask]          INTEGER  NOT NULL             DEFAULT (0), -- Aggregated value for all indexing for assigned columns (A-P). Updated by trigger on ClassProperty update
+  /* Additional custom data*/
+  [ExtData]           TEXT,
 
   CONSTRAINT [chkClasses_DefaultScalarType] CHECK (DefaultScalarType IN
                                                    ('String', 'Integer', 'Number', 'Boolean', 'Date', 'DateTime', 'Time', 'Guid',
-                                                    'BLOB', 'Timespan', 'RangeOfIntegers', 'RangeOfNumbers', 'RangeOfDateTimes'))
+                                                              'BLOB', 'Timespan', 'RangeOfIntegers', 'RangeOfNumbers', 'RangeOfDateTimes'))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClasses_byClassName] ON [Classes] ([ClassName]);
@@ -190,40 +192,46 @@ CREATE TABLE IF NOT EXISTS [ClassProperties] (
   If not null, ClassProperties table must contain record with combination ClassID=ReferencedClassID
   and PropertyID=ReversePropertyID
   */
-  [ReferencedClassID] INTEGER NULL,
-  [ReversePropertyID] INTEGER NULL,
+  [ReferencedClassID]  INTEGER NULL,
+  [ReversePropertyID]  INTEGER NULL,
+  [Indexed]            BOOLEAN NOT NULL DEFAULT 0,
+  [ValidationRegex]    TEXT    NOT NULL DEFAULT '',
 
-/*
-ctlv is used for indexing and processing control. Possible values (the same as Values.ctlv):
-  0 - Index
-  1-3 - reference
-      2(3 as bit 0 is set) - regular ref
-      4(5) - ref: A -> B. When A deleted, delete B
-      6(7) - when B deleted, delete A
-      8(9) - when A or B deleted, delete counterpart
-      10(11) - cannot delete A until this reference exists
-      12(13) - cannot delete B until this reference exists
-      14(15) - cannot delete A nor B until this reference exist
+  /* Additional custom data*/
+  [ExtData]            TEXT,
 
-  16 - full text data
-  32 - range data
-  64 - DON'T track changes
-*/
+  /*
+  ctlv is used for indexing and processing control. Possible values (the same as Values.ctlv):
+    0 - Index
+    1-3 - reference
+        2(3 as bit 0 is set) - regular ref
+        4(5) - ref: A -> B. When A deleted, delete B
+        6(7) - when B deleted, delete A
+        8(9) - when A or B deleted, delete counterpart
+        10(11) - cannot delete A until this reference exists
+        12(13) - cannot delete B until this reference exists
+        14(15) - cannot delete A nor B until this reference exist
+
+    16 - full text data
+    32 - range data
+    64 - DON'T track changes
+  */
   [ctlv]               INTEGER NOT NULL DEFAULT (0),
+
   CONSTRAINT [chkClassPropertiesColumnAssigned] CHECK (ColumnAssigned IS NULL OR ColumnAssigned BETWEEN 'A' AND 'P'),
   CONSTRAINT [chkClassPropertiesAutoValue] CHECK (
     [AutoValue] IS NULL /* No auto value*/
     OR
     [AutoValue] IN (
-/* These values are used as instructions for view regeneration */
-'G', /* New Guid on insert */
-'T', /* CURRENT_TIMESTAMP on insert*/
-'N', /* CURRENT_TIMESTAMP on insert and update*/
-'I', /* Counter - increment on every update*/
-'U' /* Current user ID */
+      /* These values are used as instructions for view regeneration */
+      'G', /* New Guid on insert */
+      'T', /* CURRENT_TIMESTAMP on insert*/
+      'N', /* CURRENT_TIMESTAMP on insert and update*/
+      'I', /* Counter - increment on every update*/
+      'U' /* Current user ID */
     )
     OR instr([AutoValue], 'H:') = 1
-/* 'H:column_chars' - Hash value (32-bit REAL) of 1 or more columns, specified by letters A - P. Normally used for indexing and fast lookup by group of columns. Example: H:CFJ */
+    /* 'H:column_chars' - Hash value (32-bit REAL) of 1 or more columns, specified by letters A - P. Normally used for indexing and fast lookup by group of columns. Example: H:CFJ */
   ),
   CONSTRAINT [sqlite_autoindex_ClassProperties_1] PRIMARY KEY ([ClassID], [PropertyID])
 ) WITHOUT ROWID;
@@ -261,8 +269,8 @@ BEGIN
     ' }'
   );
 
--- ColumnAssigned is set to null from letter.
--- Need to copy data to Values table and reset column in Objects
+  -- ColumnAssigned is set to null from letter.
+  -- Need to copy data to Values table and reset column in Objects
   INSERT OR REPLACE INTO [Values] ([ClassID], [ObjectID], [PropertyID], [PropIndex], [ctlv], [Value])
     SELECT
       old.[ClassID],
@@ -273,22 +281,38 @@ BEGIN
       0,
       old.ctlv,
       CASE
-      WHEN old.ColumnAssigned = 'A' THEN A
-      WHEN old.ColumnAssigned = 'B' THEN B
-      WHEN old.ColumnAssigned = 'C' THEN C
-      WHEN old.ColumnAssigned = 'D' THEN D
-      WHEN old.ColumnAssigned = 'E' THEN E
-      WHEN old.ColumnAssigned = 'F' THEN F
-      WHEN old.ColumnAssigned = 'G' THEN G
-      WHEN old.ColumnAssigned = 'H' THEN H
-      WHEN old.ColumnAssigned = 'I' THEN I
-      WHEN old.ColumnAssigned = 'J' THEN J
-      WHEN old.ColumnAssigned = 'K' THEN K
-      WHEN old.ColumnAssigned = 'L' THEN L
-      WHEN old.ColumnAssigned = 'M' THEN M
-      WHEN old.ColumnAssigned = 'N' THEN N
-      WHEN old.ColumnAssigned = 'O' THEN O
-      WHEN old.ColumnAssigned = 'P' THEN P
+      WHEN old.ColumnAssigned = 'A'
+        THEN A
+      WHEN old.ColumnAssigned = 'B'
+        THEN B
+      WHEN old.ColumnAssigned = 'C'
+        THEN C
+      WHEN old.ColumnAssigned = 'D'
+        THEN D
+      WHEN old.ColumnAssigned = 'E'
+        THEN E
+      WHEN old.ColumnAssigned = 'F'
+        THEN F
+      WHEN old.ColumnAssigned = 'G'
+        THEN G
+      WHEN old.ColumnAssigned = 'H'
+        THEN H
+      WHEN old.ColumnAssigned = 'I'
+        THEN I
+      WHEN old.ColumnAssigned = 'J'
+        THEN J
+      WHEN old.ColumnAssigned = 'K'
+        THEN K
+      WHEN old.ColumnAssigned = 'L'
+        THEN L
+      WHEN old.ColumnAssigned = 'M'
+        THEN M
+      WHEN old.ColumnAssigned = 'N'
+        THEN N
+      WHEN old.ColumnAssigned = 'O'
+        THEN O
+      WHEN old.ColumnAssigned = 'P'
+        THEN P
       ELSE NULL
       END
     FROM [Objects]
@@ -296,37 +320,53 @@ BEGIN
 
   UPDATE [Objects]
   SET
-    A = CASE WHEN old.ColumnAssigned = 'A' THEN NULL
+    A = CASE WHEN old.ColumnAssigned = 'A'
+      THEN NULL
         ELSE A END,
-    B = CASE WHEN old.ColumnAssigned = 'B' THEN NULL
+    B = CASE WHEN old.ColumnAssigned = 'B'
+      THEN NULL
         ELSE A END,
-    C = CASE WHEN old.ColumnAssigned = 'C' THEN NULL
+    C = CASE WHEN old.ColumnAssigned = 'C'
+      THEN NULL
         ELSE A END,
-    D = CASE WHEN old.ColumnAssigned = 'D' THEN NULL
+    D = CASE WHEN old.ColumnAssigned = 'D'
+      THEN NULL
         ELSE A END,
-    E = CASE WHEN old.ColumnAssigned = 'E' THEN NULL
+    E = CASE WHEN old.ColumnAssigned = 'E'
+      THEN NULL
         ELSE A END,
-    F = CASE WHEN old.ColumnAssigned = 'F' THEN NULL
+    F = CASE WHEN old.ColumnAssigned = 'F'
+      THEN NULL
         ELSE A END,
-    G = CASE WHEN old.ColumnAssigned = 'G' THEN NULL
+    G = CASE WHEN old.ColumnAssigned = 'G'
+      THEN NULL
         ELSE A END,
-    H = CASE WHEN old.ColumnAssigned = 'H' THEN NULL
+    H = CASE WHEN old.ColumnAssigned = 'H'
+      THEN NULL
         ELSE A END,
-    I = CASE WHEN old.ColumnAssigned = 'I' THEN NULL
+    I = CASE WHEN old.ColumnAssigned = 'I'
+      THEN NULL
         ELSE A END,
-    J = CASE WHEN old.ColumnAssigned = 'J' THEN NULL
+    J = CASE WHEN old.ColumnAssigned = 'J'
+      THEN NULL
         ELSE A END,
-    K = CASE WHEN old.ColumnAssigned = 'K' THEN NULL
+    K = CASE WHEN old.ColumnAssigned = 'K'
+      THEN NULL
         ELSE A END,
-    L = CASE WHEN old.ColumnAssigned = 'L' THEN NULL
+    L = CASE WHEN old.ColumnAssigned = 'L'
+      THEN NULL
         ELSE A END,
-    M = CASE WHEN old.ColumnAssigned = 'M' THEN NULL
+    M = CASE WHEN old.ColumnAssigned = 'M'
+      THEN NULL
         ELSE A END,
-    N = CASE WHEN old.ColumnAssigned = 'N' THEN NULL
+    N = CASE WHEN old.ColumnAssigned = 'N'
+      THEN NULL
         ELSE A END,
-    O = CASE WHEN old.ColumnAssigned = 'O' THEN NULL
+    O = CASE WHEN old.ColumnAssigned = 'O'
+      THEN NULL
         ELSE A END,
-    P = CASE WHEN old.ColumnAssigned = 'P' THEN NULL
+    P = CASE WHEN old.ColumnAssigned = 'P'
+      THEN NULL
         ELSE A END
   WHERE [ClassID] = old.[ClassID];
 END;
@@ -357,13 +397,13 @@ BEGIN
     '"ctlo": ' || quote(new.[ctlo]) || ', ' ||
     '"ctloMask": ' || quote(new.[ctloMask]) || ', ' ||
     '"ctlv": ' || quote(new.[ctlv]) ||
-    '"ReferencedClassID": ' ||  quote(new.ReferencedClassID) ||
+    '"ReferencedClassID": ' || quote(new.ReferencedClassID) ||
     '"ReversePropertyID": ' || quote(new.ReversePropertyID) ||
     ' }'
   );
 
--- Determine last unused column (A to P), if any
--- This update might fire trigClassPropertiesColumnAssignedBecameNotNull
+  -- Determine last unused column (A to P), if any
+  -- This update might fire trigClassPropertiesColumnAssignedBecameNotNull
   UPDATE ClassProperties
   SET TempColumnAssigned = coalesce([ColumnAssigned],
                                     nullif(char((SELECT coalesce(unicode(max(ColumnAssigned)), unicode('A') - 1)
@@ -377,7 +417,7 @@ BEGIN
   WHERE ClassID = new.ClassID AND PropertyID = new.PropertyID AND new.[ColumnAssigned] IS NULL
         AND new.[MaxLength] BETWEEN 0 AND 255;
 
--- Restore ColumnAssigned to refactor existing data (from Values to Objects)
+  -- Restore ColumnAssigned to refactor existing data (from Values to Objects)
   UPDATE ClassProperties
   SET ColumnAssigned = TempColumnAssigned, TempColumnAssigned = NULL
   WHERE ClassID = new.ClassID AND PropertyID = new.PropertyID AND new.[MaxLength] BETWEEN 0 AND 255;
@@ -393,8 +433,8 @@ BEGIN
   SET SchemaOutdated = 1
   WHERE ClassID = new.ClassID;
 
--- ColumnAssigned is set to null from letter.
--- Need to copy data to Values table and reset column in Objects
+  -- ColumnAssigned is set to null from letter.
+  -- Need to copy data to Values table and reset column in Objects
   INSERT OR REPLACE INTO [Values] ([ClassID], [ObjectID], [PropertyID], [PropIndex], [ctlv], [Value])
     SELECT
       new.[ClassID],
@@ -405,22 +445,38 @@ BEGIN
       0,
       new.ctlv,
       CASE
-      WHEN old.ColumnAssigned = 'A' THEN A
-      WHEN old.ColumnAssigned = 'B' THEN B
-      WHEN old.ColumnAssigned = 'C' THEN C
-      WHEN old.ColumnAssigned = 'D' THEN D
-      WHEN old.ColumnAssigned = 'E' THEN E
-      WHEN old.ColumnAssigned = 'F' THEN F
-      WHEN old.ColumnAssigned = 'G' THEN G
-      WHEN old.ColumnAssigned = 'H' THEN H
-      WHEN old.ColumnAssigned = 'I' THEN I
-      WHEN old.ColumnAssigned = 'J' THEN J
-      WHEN old.ColumnAssigned = 'K' THEN K
-      WHEN old.ColumnAssigned = 'L' THEN L
-      WHEN old.ColumnAssigned = 'M' THEN M
-      WHEN old.ColumnAssigned = 'N' THEN N
-      WHEN old.ColumnAssigned = 'O' THEN O
-      WHEN old.ColumnAssigned = 'P' THEN P
+      WHEN old.ColumnAssigned = 'A'
+        THEN A
+      WHEN old.ColumnAssigned = 'B'
+        THEN B
+      WHEN old.ColumnAssigned = 'C'
+        THEN C
+      WHEN old.ColumnAssigned = 'D'
+        THEN D
+      WHEN old.ColumnAssigned = 'E'
+        THEN E
+      WHEN old.ColumnAssigned = 'F'
+        THEN F
+      WHEN old.ColumnAssigned = 'G'
+        THEN G
+      WHEN old.ColumnAssigned = 'H'
+        THEN H
+      WHEN old.ColumnAssigned = 'I'
+        THEN I
+      WHEN old.ColumnAssigned = 'J'
+        THEN J
+      WHEN old.ColumnAssigned = 'K'
+        THEN K
+      WHEN old.ColumnAssigned = 'L'
+        THEN L
+      WHEN old.ColumnAssigned = 'M'
+        THEN M
+      WHEN old.ColumnAssigned = 'N'
+        THEN N
+      WHEN old.ColumnAssigned = 'O'
+        THEN O
+      WHEN old.ColumnAssigned = 'P'
+        THEN P
       ELSE NULL
       END
     FROM [Objects]
@@ -428,37 +484,53 @@ BEGIN
 
   UPDATE [Objects]
   SET
-    A = CASE WHEN old.ColumnAssigned = 'A' THEN NULL
+    A = CASE WHEN old.ColumnAssigned = 'A'
+      THEN NULL
         ELSE A END,
-    B = CASE WHEN old.ColumnAssigned = 'B' THEN NULL
+    B = CASE WHEN old.ColumnAssigned = 'B'
+      THEN NULL
         ELSE A END,
-    C = CASE WHEN old.ColumnAssigned = 'C' THEN NULL
+    C = CASE WHEN old.ColumnAssigned = 'C'
+      THEN NULL
         ELSE A END,
-    D = CASE WHEN old.ColumnAssigned = 'D' THEN NULL
+    D = CASE WHEN old.ColumnAssigned = 'D'
+      THEN NULL
         ELSE A END,
-    E = CASE WHEN old.ColumnAssigned = 'E' THEN NULL
+    E = CASE WHEN old.ColumnAssigned = 'E'
+      THEN NULL
         ELSE A END,
-    F = CASE WHEN old.ColumnAssigned = 'F' THEN NULL
+    F = CASE WHEN old.ColumnAssigned = 'F'
+      THEN NULL
         ELSE A END,
-    G = CASE WHEN old.ColumnAssigned = 'G' THEN NULL
+    G = CASE WHEN old.ColumnAssigned = 'G'
+      THEN NULL
         ELSE A END,
-    H = CASE WHEN old.ColumnAssigned = 'H' THEN NULL
+    H = CASE WHEN old.ColumnAssigned = 'H'
+      THEN NULL
         ELSE A END,
-    I = CASE WHEN old.ColumnAssigned = 'I' THEN NULL
+    I = CASE WHEN old.ColumnAssigned = 'I'
+      THEN NULL
         ELSE A END,
-    J = CASE WHEN old.ColumnAssigned = 'J' THEN NULL
+    J = CASE WHEN old.ColumnAssigned = 'J'
+      THEN NULL
         ELSE A END,
-    K = CASE WHEN old.ColumnAssigned = 'K' THEN NULL
+    K = CASE WHEN old.ColumnAssigned = 'K'
+      THEN NULL
         ELSE A END,
-    L = CASE WHEN old.ColumnAssigned = 'L' THEN NULL
+    L = CASE WHEN old.ColumnAssigned = 'L'
+      THEN NULL
         ELSE A END,
-    M = CASE WHEN old.ColumnAssigned = 'M' THEN NULL
+    M = CASE WHEN old.ColumnAssigned = 'M'
+      THEN NULL
         ELSE A END,
-    N = CASE WHEN old.ColumnAssigned = 'N' THEN NULL
+    N = CASE WHEN old.ColumnAssigned = 'N'
+      THEN NULL
         ELSE A END,
-    O = CASE WHEN old.ColumnAssigned = 'O' THEN NULL
+    O = CASE WHEN old.ColumnAssigned = 'O'
+      THEN NULL
         ELSE A END,
-    P = CASE WHEN old.ColumnAssigned = 'P' THEN NULL
+    P = CASE WHEN old.ColumnAssigned = 'P'
+      THEN NULL
         ELSE A END
   WHERE [ClassID] = new.[ClassID];
 END;
@@ -469,12 +541,12 @@ ON [ClassProperties]
 FOR EACH ROW
   WHEN old.[ColumnAssigned] IS NOT NULL AND new.[ColumnAssigned] IS NOT NULL
 BEGIN
--- Force ColumnAssigned to be NULL to refactor existing data (from Objects to Values)
+  -- Force ColumnAssigned to be NULL to refactor existing data (from Objects to Values)
   UPDATE ClassProperties
   SET TempColumnAssigned = new.[ColumnAssigned], ColumnAssigned = NULL
   WHERE ClassID = new.ClassID AND PropertyID = new.PropertyID;
 
--- Restore ColumnAssigned to refactor existing data (from Values to Objects)
+  -- Restore ColumnAssigned to refactor existing data (from Values to Objects)
   UPDATE ClassProperties
   SET ColumnAssigned = TempColumnAssigned, TempColumnAssigned = NULL
   WHERE ClassID = new.ClassID AND PropertyID = new.PropertyID;
@@ -559,158 +631,174 @@ BEGIN
   SET SchemaOutdated = 1
   WHERE ClassID = new.ClassID;
 
--- Copy attributes from Values table to Objects table, based on ColumnAssigned
--- Only primitive values (not references: ctlv = 0) and (XML) attributes (PropIndex = 0) are processed
--- Copy attributes from Values table to Objects table, based on ColumnAssigned
--- Only primitive values (not references: ctlv = 0) and attributes (PropIndex = 0) are processed
+  -- Copy attributes from Values table to Objects table, based on ColumnAssigned
+  -- Only primitive values (not references: ctlv = 0) and (XML) attributes (PropIndex = 0) are processed
+  -- Copy attributes from Values table to Objects table, based on ColumnAssigned
+  -- Only primitive values (not references: ctlv = 0) and attributes (PropIndex = 0) are processed
   UPDATE Objects
   SET
-    A = CASE WHEN new.[ColumnAssigned] = 'A' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    A = CASE WHEN new.[ColumnAssigned] = 'A'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE A END,
 
-    B = CASE WHEN new.[ColumnAssigned] = 'B' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    B = CASE WHEN new.[ColumnAssigned] = 'B'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE B END,
 
-    C = CASE WHEN new.[ColumnAssigned] = 'C' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    C = CASE WHEN new.[ColumnAssigned] = 'C'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE C END,
 
-    D = CASE WHEN new.[ColumnAssigned] = 'D' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    D = CASE WHEN new.[ColumnAssigned] = 'D'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE D END,
 
-    E = CASE WHEN new.[ColumnAssigned] = 'E' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    E = CASE WHEN new.[ColumnAssigned] = 'E'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE E END,
 
-    F = CASE WHEN new.[ColumnAssigned] = 'F' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    F = CASE WHEN new.[ColumnAssigned] = 'F'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE F END,
 
-    G = CASE WHEN new.[ColumnAssigned] = 'G' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    G = CASE WHEN new.[ColumnAssigned] = 'G'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE G END,
 
-    H = CASE WHEN new.[ColumnAssigned] = 'H' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    H = CASE WHEN new.[ColumnAssigned] = 'H'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE H END,
 
-    I = CASE WHEN new.[ColumnAssigned] = 'I' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    I = CASE WHEN new.[ColumnAssigned] = 'I'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE I END,
 
-    J = CASE WHEN new.[ColumnAssigned] = 'J' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    J = CASE WHEN new.[ColumnAssigned] = 'J'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE J END,
 
-    K = CASE WHEN new.[ColumnAssigned] = 'K' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    K = CASE WHEN new.[ColumnAssigned] = 'K'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE K END,
 
-    L = CASE WHEN new.[ColumnAssigned] = 'L' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    L = CASE WHEN new.[ColumnAssigned] = 'L'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE L END,
 
-    M = CASE WHEN new.[ColumnAssigned] = 'M' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    M = CASE WHEN new.[ColumnAssigned] = 'M'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE M END,
 
-    N = CASE WHEN new.[ColumnAssigned] = 'N' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    N = CASE WHEN new.[ColumnAssigned] = 'N'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE N END,
 
-    O = CASE WHEN new.[ColumnAssigned] = 'O' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    O = CASE WHEN new.[ColumnAssigned] = 'O'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE O END,
 
-    P = CASE WHEN new.[ColumnAssigned] = 'P' THEN (SELECT [Value]
-                                                   FROM [Values] v
-                                                   WHERE
-                                                     v.ObjectID = Objects.ObjectID AND
-                                                     v.PropertyID = new.PropertyID
-                                                     AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
-                                                   LIMIT 1)
+    P = CASE WHEN new.[ColumnAssigned] = 'P'
+      THEN (SELECT [Value]
+            FROM [Values] v
+            WHERE
+              v.ObjectID = Objects.ObjectID AND
+              v.PropertyID = new.PropertyID
+              AND v.PropIndex = 0 AND (v.ctlv & 14) = 0
+            LIMIT 1)
         ELSE P END
   WHERE ClassID = new.ClassID;
 
--- Indirectly update aggregated control settings on class level (through ctloMask)
+  -- Indirectly update aggregated control settings on class level (through ctloMask)
   UPDATE [ClassProperties]
   SET
     ctlo     = (SELECT (1 << idx) | (1 << (idx + 16)) << (1 << (idx + 32))
@@ -721,7 +809,7 @@ BEGIN
                 FROM (SELECT (unicode(new.[ColumnAssigned]) - unicode('A') + 1) AS idx))
   WHERE [ClassID] = new.[ClassID] AND [PropertyID] = new.[PropertyID];
 
--- Delete copied attributes from Values table
+  -- Delete copied attributes from Values table
   DELETE FROM [Values]
   WHERE ObjectID = (SELECT ObjectID
                     FROM [Objects]
@@ -742,7 +830,7 @@ CREATE VIEW IF NOT EXISTS ClassPropertiesEasy AS
     cp.ctlv,
     cp.ColumnAssigned,
 
-/* Computed PropertyName */
+    /* Computed PropertyName */
     coalesce(PropertyName, (SELECT ClassName
                             FROM Classes
                             WHERE ClassID = cp.PropertyID
@@ -763,7 +851,7 @@ CREATE TRIGGER IF NOT EXISTS [trigClassPropertiesEasyInsert]
 INSTEAD OF INSERT ON [ClassPropertiesEasy]
 FOR EACH ROW
 BEGIN
--- Note that we do not set ColumnAssigned on insert for the sake of performance
+  -- Note that we do not set ColumnAssigned on insert for the sake of performance
   INSERT INTO [ClassProperties] ([ClassID], [PropertyID], [PropertyName], [ctlv], [DefaultValue], [AutoValue])
   VALUES (
     new.[ClassID], new.[PropertyID], nullif(new.[PropertyName],
@@ -772,18 +860,22 @@ BEGIN
                                              WHERE [ClassID] = new.[PropertyID]
                                              LIMIT 1)),
     new.[Indexed] |
-    (CASE WHEN new.[ReferenceKind] <> 0 THEN 1 | new.[ReferenceKind]
+    (CASE WHEN new.[ReferenceKind] <> 0
+      THEN 1 | new.[ReferenceKind]
      ELSE 0 END)
-    | (CASE WHEN new.[FullTextData] THEN 16
+    | (CASE WHEN new.[FullTextData]
+      THEN 16
        ELSE 0 END)
-    | (CASE WHEN new.[RangeData] THEN 32
+    | (CASE WHEN new.[RangeData]
+      THEN 32
        ELSE 0 END)
-    | (CASE WHEN new.[TrackChanges] THEN 0
+    | (CASE WHEN new.[TrackChanges]
+      THEN 0
        ELSE 64 END),
     new.[DefaultValue], new.[AutoValue]
   );
 
--- Set ColumnAssigned if it is not yet set and new value is not null
+  -- Set ColumnAssigned if it is not yet set and new value is not null
   UPDATE [ClassProperties]
   SET [ColumnAssigned] = new.[ColumnAssigned]
   WHERE [ClassID] = new.[ClassID] AND [PropertyID] = new.[PropertyID] AND new.[ColumnAssigned] IS NOT NULL
@@ -804,13 +896,17 @@ BEGIN
                                                                                                 new.[PropertyID]
                                                                                               LIMIT 1)),
     [ctlv]         = new.[Indexed] |
-                     (CASE WHEN new.[ReferenceKind] <> 0 THEN 1 | new.[ReferenceKind]
+                     (CASE WHEN new.[ReferenceKind] <> 0
+                       THEN 1 | new.[ReferenceKind]
                       ELSE 0 END)
-                     | (CASE WHEN new.[FullTextData] THEN 16
+                     | (CASE WHEN new.[FullTextData]
+      THEN 16
                         ELSE 0 END)
-                     | (CASE WHEN new.[RangeData] THEN 32
+                     | (CASE WHEN new.[RangeData]
+      THEN 32
                         ELSE 0 END)
-                     | (CASE WHEN new.[TrackChanges] THEN 0
+                     | (CASE WHEN new.[TrackChanges]
+      THEN 0
                         ELSE 64 END),
     [DefaultValue] = new.[DefaultValue],
     [AutoValue]    = new.[AutoValue]
@@ -830,13 +926,13 @@ END;
 ------------------------------------------------------------------------------------------
 CREATE VIRTUAL TABLE IF NOT EXISTS [FullTextData] USING fts4 (
 
-[PropertyID],
-[ClassID],
-[ObjectID],
-[PropertyIndex],
-[Value],
+  [PropertyID],
+  [ClassID],
+  [ObjectID],
+  [PropertyIndex],
+  [Value],
 
-tokenize=unicode61
+  tokenize=unicode61
 );
 
 ------------------------------------------------------------------------------------------
@@ -874,7 +970,7 @@ CREATE TRIGGER IF NOT EXISTS [trigDummyObjectColumnDataUpdate]
 INSTEAD OF UPDATE ON [DummyObjectColumnData]
 FOR EACH ROW
 BEGIN
--- Process full text data based on ctlo
+  -- Process full text data based on ctlo
   DELETE FROM FullTextData
   WHERE
     new.[ColumnAssigned] IS NOT NULL AND
@@ -899,7 +995,7 @@ CREATE TRIGGER IF NOT EXISTS [trigDummyObjectColumnDataDelete]
 INSTEAD OF DELETE ON [DummyObjectColumnData]
 FOR EACH ROW
 BEGIN
--- Process full text data based on ctlo
+  -- Process full text data based on ctlo
   DELETE FROM FullTextData
   WHERE
     old.[ColumnAssigned] IS NOT NULL AND
@@ -916,14 +1012,14 @@ CREATE TABLE IF NOT EXISTS [Objects] (
   [ObjectID] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   [ClassID]  INTEGER NOT NULL CONSTRAINT [fkObjectsClassIDToClasses] REFERENCES [Classes] ([ClassID]) ON DELETE CASCADE ON UPDATE CASCADE,
 
-/*
-This is bit mask which regulates index storage.
-Bit 0: this object is a WEAK object and must be auto deleted after last reference to this object gets deleted.
-Bits 1-16: columns A-P should be indexed for fast lookup. These bits are checked by partial indexes
-Bits 17-32: columns A-P should be indexed for full text search
-Bits 33-48: columns A-P should be treated as range values and indexed for range (spatial search) search
-Bit 49: DON'T track changes
-*/
+  /*
+  This is bit mask which regulates index storage.
+  Bit 0: this object is a WEAK object and must be auto deleted after last reference to this object gets deleted.
+  Bits 1-16: columns A-P should be indexed for fast lookup. These bits are checked by partial indexes
+  Bits 17-32: columns A-P should be indexed for full text search
+  Bits 33-48: columns A-P should be treated as range values and indexed for range (spatial search) search
+  Bit 49: DON'T track changes
+  */
   [ctlo]     INTEGER,
   [A],
   [B],
@@ -982,7 +1078,7 @@ AFTER INSERT
 ON [Objects]
 FOR EACH ROW
 BEGIN
--- ??? force ctlo. WIll it work?
+  -- ??? force ctlo. WIll it work?
   UPDATE Objects
   SET ctlo = coalesce(new.ctlo, (SELECT [ctlo]
                                  FROM [Classes]
@@ -993,43 +1089,60 @@ BEGIN
     SELECT
       printf('@%s.%s', new.[ClassID], new.[ObjectID]),
       printf('{ %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s }',
-             '"A": ' || CASE WHEN new.A IS NULL THEN NULL
+             '"A": ' || CASE WHEN new.A IS NULL
+               THEN NULL
                         ELSE quote(new.A) END || ', ',
-             '"B": ' || CASE WHEN new.B IS NULL THEN NULL
+             '"B": ' || CASE WHEN new.B IS NULL
+               THEN NULL
                         ELSE quote(new.B) END || ', ',
-             '"C": ' || CASE WHEN new.C IS NULL THEN NULL
+             '"C": ' || CASE WHEN new.C IS NULL
+               THEN NULL
                         ELSE quote(new.C) END || ', ',
-             '"D": ' || CASE WHEN new.D IS NULL THEN NULL
+             '"D": ' || CASE WHEN new.D IS NULL
+               THEN NULL
                         ELSE quote(new.D) END || ', ',
-             '"E": ' || CASE WHEN new.E IS NULL THEN NULL
+             '"E": ' || CASE WHEN new.E IS NULL
+               THEN NULL
                         ELSE quote(new.E) END || ', ',
-             '"F": ' || CASE WHEN new.F IS NULL THEN NULL
+             '"F": ' || CASE WHEN new.F IS NULL
+               THEN NULL
                         ELSE quote(new.F) END || ', ',
-             '"G": ' || CASE WHEN new.G IS NULL THEN NULL
+             '"G": ' || CASE WHEN new.G IS NULL
+               THEN NULL
                         ELSE quote(new.G) END || ', ',
-             '"H": ' || CASE WHEN new.H IS NULL THEN NULL
+             '"H": ' || CASE WHEN new.H IS NULL
+               THEN NULL
                         ELSE quote(new.H) END || ', ',
-             '"I": ' || CASE WHEN new.I IS NULL THEN NULL
+             '"I": ' || CASE WHEN new.I IS NULL
+               THEN NULL
                         ELSE quote(new.I) END || ', ',
-             '"J": ' || CASE WHEN new.J IS NULL THEN NULL
+             '"J": ' || CASE WHEN new.J IS NULL
+               THEN NULL
                         ELSE quote(new.J) END || ', ',
-             '"K": ' || CASE WHEN new.K IS NULL THEN NULL
+             '"K": ' || CASE WHEN new.K IS NULL
+               THEN NULL
                         ELSE quote(new.K) END || ', ',
-             '"L": ' || CASE WHEN new.L IS NULL THEN NULL
+             '"L": ' || CASE WHEN new.L IS NULL
+               THEN NULL
                         ELSE quote(new.L) END || ', ',
-             '"M": ' || CASE WHEN new.M IS NULL THEN NULL
+             '"M": ' || CASE WHEN new.M IS NULL
+               THEN NULL
                         ELSE quote(new.M) END || ', ',
-             '"N": ' || CASE WHEN new.N IS NULL THEN NULL
+             '"N": ' || CASE WHEN new.N IS NULL
+               THEN NULL
                         ELSE quote(new.N) END || ', ',
-             '"O": ' || CASE WHEN new.O IS NULL THEN NULL
+             '"O": ' || CASE WHEN new.O IS NULL
+               THEN NULL
                         ELSE quote(new.O) END || ', ',
-             '"P": ' || CASE WHEN new.P IS NULL THEN NULL
+             '"P": ' || CASE WHEN new.P IS NULL
+               THEN NULL
                         ELSE quote(new.P) END || ', ',
-             '"ctlo": ' || CASE WHEN new.ctlo IS NULL THEN NULL
+             '"ctlo": ' || CASE WHEN new.ctlo IS NULL
+               THEN NULL
                            ELSE quote(new.ctlo) END)
     WHERE new.[ctlo] IS NULL OR new.[ctlo] & (1 << 49);
 
--- Full text and range data using INSTEAD OF triggers of dummy view
+  -- Full text and range data using INSTEAD OF triggers of dummy view
   INSERT INTO [DummyObjectColumnData] ([ClassID], [ObjectID], [ctlo], [ColumnAssigned], [Value]) VALUES
     (
       new.[ClassID], new.[ObjectID], new.[ctlo], 'A', new.[A]
@@ -1155,7 +1268,7 @@ BEGIN
     WHERE (new.[ctlo] IS NULL OR new.[ctlo] & (1 << 49))
           AND ([OldValue] <> [Value] OR (nullif([OldKey], [Key])) IS NOT NULL);
 
--- Update columns' full text and range data using dummy view with INSTEAD OF triggers
+  -- Update columns' full text and range data using dummy view with INSTEAD OF triggers
   UPDATE [DummyObjectColumnData]
   SET [oldClassID] = old.[ClassID], [oldObjectID] = old.[ObjectID], [ColumnAssigned] = 'A', [oldValue] = old.[A],
     [ClassID]      = new.[ClassID], [ObjectID] = new.[ObjectID], [ColumnAssigned] = 'A', [Value] = new.[A],
@@ -1228,24 +1341,24 @@ AFTER UPDATE OF [ClassID], [ObjectID]
 ON [Objects]
 FOR EACH ROW
 BEGIN
--- Force updating indexes for direct columns
+  -- Force updating indexes for direct columns
   UPDATE Objects
   SET ctlo = new.ctlo
   WHERE ObjectID = new.[ObjectID];
 
--- Cascade update values
+  -- Cascade update values
   UPDATE [Values]
   SET ObjectID = new.[ObjectID], ClassID = new.ClassID
   WHERE ObjectID = old.ObjectID
         AND (new.[ObjectID] <> old.ObjectID OR new.ClassID <> old.ClassID);
 
--- and shifted values
+  -- and shifted values
   UPDATE [Values]
   SET ObjectID = (1 << 62) | new.[ObjectID], ClassID = new.ClassID
   WHERE ObjectID = (1 << 62) | old.ObjectID
         AND (new.[ObjectID] <> old.ObjectID OR new.ClassID <> old.ClassID);
 
--- Update back references
+  -- Update back references
   UPDATE [Values]
   SET [Value] = new.[ObjectID]
   WHERE [Value] = old.ObjectID AND ctlv IN (0, 10) AND new.[ObjectID] <> old.ObjectID;
@@ -1276,58 +1389,75 @@ BEGIN
     SELECT
       printf('@%s.%s', old.[ClassID], old.[ObjectID]),
       printf('{%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s}',
-             ' "A": ' || CASE WHEN old.A IS NULL THEN NULL
+             ' "A": ' || CASE WHEN old.A IS NULL
+               THEN NULL
                          ELSE quote(old.A) END || ', ',
-             ' "B": ' || CASE WHEN old.B IS NULL THEN NULL
+             ' "B": ' || CASE WHEN old.B IS NULL
+               THEN NULL
                          ELSE quote(old.B) END || ', ',
-             ' "C": ' || CASE WHEN old.C IS NULL THEN NULL
+             ' "C": ' || CASE WHEN old.C IS NULL
+               THEN NULL
                          ELSE quote(old.C) END || ', ',
-             ' "D": ' || CASE WHEN old.D IS NULL THEN NULL
+             ' "D": ' || CASE WHEN old.D IS NULL
+               THEN NULL
                          ELSE quote(old.D) END || ', ',
-             ' "E": ' || CASE WHEN old.E IS NULL THEN NULL
+             ' "E": ' || CASE WHEN old.E IS NULL
+               THEN NULL
                          ELSE quote(old.E) END || ', ',
-             ' "F": ' || CASE WHEN old.F IS NULL THEN NULL
+             ' "F": ' || CASE WHEN old.F IS NULL
+               THEN NULL
                          ELSE quote(old.F) END || ', ',
-             ' "G": ' || CASE WHEN old.G IS NULL THEN NULL
+             ' "G": ' || CASE WHEN old.G IS NULL
+               THEN NULL
                          ELSE quote(old.G) END || ', ',
-             ' "H": ' || CASE WHEN old.H IS NULL THEN NULL
+             ' "H": ' || CASE WHEN old.H IS NULL
+               THEN NULL
                          ELSE quote(old.H) END || ', ',
-             ' "I": ' || CASE WHEN old.I IS NULL THEN NULL
+             ' "I": ' || CASE WHEN old.I IS NULL
+               THEN NULL
                          ELSE quote(old.I) END || ', ',
-             ' "J": ' || CASE WHEN old.J IS NULL THEN NULL
+             ' "J": ' || CASE WHEN old.J IS NULL
+               THEN NULL
                          ELSE quote(old.J) END || ', ',
-             ' "K": ' || CASE WHEN old.K IS NULL THEN NULL
+             ' "K": ' || CASE WHEN old.K IS NULL
+               THEN NULL
                          ELSE quote(old.K) END || ', ',
-             ' "L": ' || CASE WHEN old.L IS NULL THEN NULL
+             ' "L": ' || CASE WHEN old.L IS NULL
+               THEN NULL
                          ELSE quote(old.L) END || ', ',
-             ' "M": ' || CASE WHEN old.M IS NULL THEN NULL
+             ' "M": ' || CASE WHEN old.M IS NULL
+               THEN NULL
                          ELSE quote(old.M) END || ', ',
-             ' "N": ' || CASE WHEN old.N IS NULL THEN NULL
+             ' "N": ' || CASE WHEN old.N IS NULL
+               THEN NULL
                          ELSE quote(old.N) END || ', ',
-             ' "O": ' || CASE WHEN old.O IS NULL THEN NULL
+             ' "O": ' || CASE WHEN old.O IS NULL
+               THEN NULL
                          ELSE quote(old.O) END || ', ',
-             ' "P": ' || CASE WHEN old.P IS NULL THEN NULL
+             ' "P": ' || CASE WHEN old.P IS NULL
+               THEN NULL
                          ELSE quote(old.P) END || ', ',
-             ' "ctlo": ' || CASE WHEN old.ctlo IS NULL THEN NULL
+             ' "ctlo": ' || CASE WHEN old.ctlo IS NULL
+               THEN NULL
                             ELSE quote(old.ctlo) END
       )
     WHERE old.[ctlo] IS NULL OR old.[ctlo] & (1 << 49);
 
--- Delete all objects that are referenced from this object and marked for cascade delete (ctlv = 10)
+  -- Delete all objects that are referenced from this object and marked for cascade delete (ctlv = 10)
   DELETE FROM Objects
   WHERE ObjectID IN (SELECT Value
                      FROM [Values]
                      WHERE ObjectID IN (old.ObjectID, (1 << 62) | old.ObjectID) AND ctlv = 10);
 
--- Delete all reversed references
+  -- Delete all reversed references
   DELETE FROM [Values]
   WHERE [Value] = ObjectID AND [ctlv] IN (0, 10);
 
--- Delete all Values
+  -- Delete all Values
   DELETE FROM [Values]
   WHERE ObjectID IN (old.ObjectID, (1 << 62) | old.ObjectID);
 
--- Delete full text and range data using dummy view with INSTEAD OF triggers
+  -- Delete full text and range data using dummy view with INSTEAD OF triggers
   DELETE FROM [DummyObjectColumnData]
   WHERE [oldClassID] = old.[ClassID] AND [oldObjectID] = old.[ObjectID] AND [oldctlo] = old.[ctlo]
         AND [ColumnAssigned] = 'A';
@@ -1383,12 +1513,12 @@ END;
 -- RangeData
 ------------------------------------------------------------------------------------------
 CREATE VIRTUAL TABLE IF NOT EXISTS [RangeData] USING rtree (
-[id],
-[ClassID0], [ClassID1],
-[ObjectID0], [ObjectID1],
-[PropertyID0], [PropertyID1],
-[PropertyIndex0], [PropertyIndex1],
-[StartValue], [EndValue]
+  [id],
+  [ClassID0], [ClassID1],
+  [ObjectID0], [ObjectID1],
+  [PropertyID0], [PropertyID1],
+  [PropertyIndex0], [PropertyIndex1],
+  [StartValue], [EndValue]
 );
 
 ------------------------------------------------------------------------------------------
@@ -1405,22 +1535,22 @@ CREATE TABLE IF NOT EXISTS [Values] (
   [Value]              NOT NULL,
   [ClassID]    INTEGER NOT NULL,
 
-/*
-ctlv is used for index control. Possible values (the same as ClassProperties.ctlv):
-    0 - Index
-    1-3 - reference
-        2(3 as bit 0 is set) - regular ref
-        4(5) - ref: A -> B. When A deleted, delete B
-        6(7) - when B deleted, delete A
-        8(9) - when A or B deleted, delete counterpart
-        10(11) - cannot delete A until this reference exists
-        12(13) - cannot delete B until this reference exists
-        14(15) - cannot delete A nor B until this reference exist
+  /*
+  ctlv is used for index control. Possible values (the same as ClassProperties.ctlv):
+      0 - Index
+      1-3 - reference
+          2(3 as bit 0 is set) - regular ref
+          4(5) - ref: A -> B. When A deleted, delete B
+          6(7) - when B deleted, delete A
+          8(9) - when A or B deleted, delete counterpart
+          10(11) - cannot delete A until this reference exists
+          12(13) - cannot delete B until this reference exists
+          14(15) - cannot delete A nor B until this reference exist
 
-    16 - full text data
-    32 - range data
-    64 - DON'T track changes
-*/
+      16 - full text data
+      32 - range data
+      64 - DON'T track changes
+  */
   [ctlv]       INTEGER,
   CONSTRAINT [] PRIMARY KEY ([ObjectID], [ClassID], [PropertyID], [PropIndex])
 ) WITHOUT ROWID;
@@ -1451,7 +1581,7 @@ BEGIN
       new.[Value]
     WHERE new.ctlv & 16 AND typeof(new.[Value]) = 'text';
 
--- process range data
+  -- process range data
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigValuesAfterUpdate]
@@ -1467,8 +1597,8 @@ BEGIN
       [Value]
     FROM
       (SELECT
-/* Each piece of old key is formatted independently so that for cases when old and new value is the same,
-result will be null and will be placed to OldKey as empty string */
+         /* Each piece of old key is formatted independently so that for cases when old and new value is the same,
+         result will be null and will be placed to OldKey as empty string */
          printf('%s%s%s%s%s',
                 '@' || cast(nullif(old.[ClassID], new.[ClassID]) AS TEXT),
                 '.' || cast(nullif(old.[ObjectID], new.[ObjectID]) AS TEXT),
@@ -1483,7 +1613,7 @@ result will be null and will be placed to OldKey as empty string */
          new.[Value]                                               AS [Value])
     WHERE (new.[ctlv] & 64) <> 64 AND ([OldValue] <> [Value] OR (nullif([OldKey], [Key])) IS NOT NULL);
 
--- Process full text data based on ctlv
+  -- Process full text data based on ctlv
   DELETE FROM FullTextData
   WHERE
     old.ctlv & 16 AND typeof(old.[Value]) = 'text'
@@ -1501,7 +1631,7 @@ result will be null and will be placed to OldKey as empty string */
       new.[Value]
     WHERE new.ctlv & 16 AND typeof(new.[Value]) = 'text';
 
--- Process range data based on ctlv
+  -- Process range data based on ctlv
 
 END;
 
@@ -1518,14 +1648,14 @@ BEGIN
       old.[Value]
     WHERE (old.[ctlv] & 64) <> 64;
 
--- Delete weak referenced object in case this Value record was last reference to that object
+  -- Delete weak referenced object in case this Value record was last reference to that object
   DELETE FROM Objects
   WHERE old.ctlv IN (3) AND ObjectID = old.Value AND
         (ctlo & 1) = 1 AND (SELECT count(*)
                             FROM [Values]
                             WHERE [Value] = ObjectID AND ctlv IN (3)) = 0;
 
--- Process full text data based on ctlv
+  -- Process full text data based on ctlv
   DELETE FROM FullTextData
   WHERE
     old.[ctlv] & 16 AND typeof(old.[Value]) = 'text'
@@ -1534,7 +1664,7 @@ BEGIN
     AND [ObjectID] MATCH printf('#%s#', old.[ObjectID])
     AND [PropertyIndex] MATCH printf('#%s#', old.[PropIndex]);
 
--- Process range data based on ctlv
+  -- Process range data based on ctlv
 END;
 
 --------------------------------------------------------------------------------------------
@@ -1560,52 +1690,68 @@ BEGIN
 
       ctlo = c.ctloMask,
 
-      A = (CASE WHEN p.[ColumnAssigned] = 'A' THEN new.[Value]
+      A = (CASE WHEN p.[ColumnAssigned] = 'A'
+        THEN new.[Value]
            ELSE A END),
 
-      B = (CASE WHEN p.[ColumnAssigned] = 'B' THEN new.[Value]
+      B = (CASE WHEN p.[ColumnAssigned] = 'B'
+        THEN new.[Value]
            ELSE B END),
 
-      C = (CASE WHEN p.[ColumnAssigned] = 'C' THEN new.[Value]
+      C = (CASE WHEN p.[ColumnAssigned] = 'C'
+        THEN new.[Value]
            ELSE C END),
 
-      D = (CASE WHEN p.[ColumnAssigned] = 'D' THEN new.[Value]
+      D = (CASE WHEN p.[ColumnAssigned] = 'D'
+        THEN new.[Value]
            ELSE D END),
 
-      E = (CASE WHEN p.[ColumnAssigned] = 'E' THEN new.[Value]
+      E = (CASE WHEN p.[ColumnAssigned] = 'E'
+        THEN new.[Value]
            ELSE E END),
 
-      F = (CASE WHEN p.[ColumnAssigned] = 'F' THEN new.[Value]
+      F = (CASE WHEN p.[ColumnAssigned] = 'F'
+        THEN new.[Value]
            ELSE F END),
 
-      G = (CASE WHEN p.[ColumnAssigned] = 'G' THEN new.[Value]
+      G = (CASE WHEN p.[ColumnAssigned] = 'G'
+        THEN new.[Value]
            ELSE G END),
 
-      H = (CASE WHEN p.[ColumnAssigned] = 'H' THEN new.[Value]
+      H = (CASE WHEN p.[ColumnAssigned] = 'H'
+        THEN new.[Value]
            ELSE H END),
 
-      I = (CASE WHEN p.[ColumnAssigned] = 'I' THEN new.[Value]
+      I = (CASE WHEN p.[ColumnAssigned] = 'I'
+        THEN new.[Value]
            ELSE I END),
 
-      J = (CASE WHEN p.[ColumnAssigned] = 'J' THEN new.[Value]
+      J = (CASE WHEN p.[ColumnAssigned] = 'J'
+        THEN new.[Value]
            ELSE J END),
 
-      K = (CASE WHEN p.[ColumnAssigned] = 'K' THEN new.[Value]
+      K = (CASE WHEN p.[ColumnAssigned] = 'K'
+        THEN new.[Value]
            ELSE K END),
 
-      L = (CASE WHEN p.[ColumnAssigned] = 'L' THEN new.[Value]
+      L = (CASE WHEN p.[ColumnAssigned] = 'L'
+        THEN new.[Value]
            ELSE L END),
 
-      M = (CASE WHEN p.[ColumnAssigned] = 'M' THEN new.[Value]
+      M = (CASE WHEN p.[ColumnAssigned] = 'M'
+        THEN new.[Value]
            ELSE M END),
 
-      N = (CASE WHEN p.[ColumnAssigned] = 'N' THEN new.[Value]
+      N = (CASE WHEN p.[ColumnAssigned] = 'N'
+        THEN new.[Value]
            ELSE N END),
 
-      O = (CASE WHEN p.[ColumnAssigned] = 'O' THEN new.[Value]
+      O = (CASE WHEN p.[ColumnAssigned] = 'O'
+        THEN new.[Value]
            ELSE O END),
 
-      P = (CASE WHEN p.[ColumnAssigned] = 'P' THEN new.[Value]
+      P = (CASE WHEN p.[ColumnAssigned] = 'P'
+        THEN new.[Value]
            ELSE P END)
     FROM Classes c, ClassPropertiesEasy p
     WHERE c.[ClassID] = p.[ClassID] AND c.ClassName = new.ClassName AND p.PropertyName = new.PropertyName
@@ -1613,7 +1759,8 @@ BEGIN
 
   INSERT OR REPLACE INTO [Values] (ObjectID, ClassID, PropertyID, PropIndex, [Value], ctlv)
     SELECT
-      CASE WHEN new.PropertyIndex > 20 THEN new.[ObjectID] | (1 << 62)
+      CASE WHEN new.PropertyIndex > 20
+        THEN new.[ObjectID] | (1 << 62)
       ELSE new.[ObjectID] END,
       c.ClassID,
       p.PropertyID,
