@@ -2,26 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" readonly="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/lib/models/ClassDef.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/lib/models/ClassDef.js.map" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/lib/models/ClassDef.ts" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/lib/models/index.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/lib/models/index.js.map" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/lib/models/index.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/typescript-compiler.xml" afterPath="$PROJECT_DIR$/.idea/typescript-compiler.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.js" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.js.map" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.js.map" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/models/IClass.js.map" afterPath="$PROJECT_DIR$/lib/models/IClass.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/models/IClass.ts" afterPath="$PROJECT_DIR$/lib/models/IClass.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/models/IClassProperty.js.map" afterPath="$PROJECT_DIR$/lib/models/IClassProperty.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/models/IClassProperty.ts" afterPath="$PROJECT_DIR$/lib/models/IClassProperty.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/sqlite-schema.sql" afterPath="$PROJECT_DIR$/lib/sqlite-schema.sql" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js" afterPath="$PROJECT_DIR$/tests/helper.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js.map" afterPath="$PROJECT_DIR$/tests/helper.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.ts" afterPath="$PROJECT_DIR$/tests/helper.ts" />
     </list>
     <ignored path="flexilite.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -42,11 +25,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="FlexiliteAdapter.ts" pinned="false" current-in-tab="true">
+      <file leaf-file-name="FlexiliteAdapter.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.43548387">
-              <caret line="778" column="22" selection-start-line="778" selection-start-column="22" selection-end-line="778" selection-end-column="22" />
+            <state vertical-scroll-proportion="-4.5925927">
+              <caret line="819" column="16" selection-start-line="819" selection-start-column="16" selection-end-line="819" selection-end-column="16" />
               <folding />
             </state>
           </provider>
@@ -95,11 +78,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="helper.ts" pinned="false" current-in-tab="false">
+      <file leaf-file-name="helper.ts" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/tests/helper.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="32" column="12" selection-start-line="32" selection-start-column="12" selection-end-line="32" selection-end-column="12" />
+            <state vertical-scroll-proportion="4.0">
+              <caret line="84" column="22" selection-start-line="84" selection-start-column="22" selection-end-line="84" selection-end-column="22" />
               <folding />
             </state>
           </provider>
@@ -111,7 +94,7 @@
             <state vertical-scroll-proportion="0.0">
               <caret line="348" column="1" selection-start-line="348" selection-start-column="1" selection-end-line="348" selection-end-column="1" />
               <folding>
-                <marker date="1447905951000" expanded="true" signature="0:44" placeholder="/** Created by slanska on 03.10.2015. ...*/" />
+                <marker date="1447906472000" expanded="true" signature="0:44" placeholder="/** Created by slanska on 03.10.2015. ...*/" />
               </folding>
             </state>
           </provider>
@@ -155,10 +138,10 @@
         <option value="$PROJECT_DIR$/lib/models/index.ts" />
         <option value="$PROJECT_DIR$/lib/FlexiliteAdapter.js" />
         <option value="$PROJECT_DIR$/lib/models/IClassProperty.ts" />
-        <option value="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
         <option value="$PROJECT_DIR$/lib/models/IClass.ts" />
         <option value="$PROJECT_DIR$/lib/models/ClassDef.ts" />
         <option value="$PROJECT_DIR$/tests/helper.ts" />
+        <option value="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
       </list>
     </option>
   </component>
@@ -574,16 +557,16 @@
       <option name="project" value="LOCAL" />
       <updated>1447647381719</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="refactored Driver to use TypeScript class">
+      <created>1447906083586</created>
+      <option name="number" value="00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1447906083587</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="Tests - 2015.11.18 at 21h 48m 49s.xml">
-      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="Tests - 2015.11.18 at 21h 51m 14s.xml">
-      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
     <history-entry file="Tests - 2015.11.18 at 21h 52m 23s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
@@ -608,6 +591,12 @@
     <history-entry file="Tests - 2015.11.18 at 23h 04m 52s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
+    <history-entry file="Tests - 2015.11.18 at 23h 08m 11s.xml">
+      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="Tests - 2015.11.18 at 23h 14m 35s.xml">
+      <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1280" height="800" extended-state="0" />
@@ -616,6 +605,7 @@
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2171875" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32599726" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32934928" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
@@ -625,7 +615,6 @@
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.41265476" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
@@ -655,7 +644,8 @@
     <MESSAGE value="view generation" />
     <MESSAGE value="fixed issue with not finalized DB statement" />
     <MESSAGE value="first working version of view generation" />
-    <option name="LAST_COMMIT_MESSAGE" value="first working version of view generation" />
+    <MESSAGE value="refactored Driver to use TypeScript class" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactored Driver to use TypeScript class" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -710,11 +700,21 @@
           <line>781</line>
           <option name="timeStamp" value="124" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
+          <line>658</line>
+          <option name="timeStamp" value="125" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
+          <line>819</line>
+          <option name="timeStamp" value="126" />
+        </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
-      <option name="time" value="125" />
+      <option name="time" value="127" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="NodeJSConfigurationType">
@@ -1046,7 +1046,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="348" column="1" selection-start-line="348" selection-start-column="1" selection-end-line="348" selection-end-column="1" />
           <folding>
-            <marker date="1447905951000" expanded="true" signature="0:44" placeholder="/** Created by slanska on 03.10.2015. ...*/" />
+            <marker date="1447906472000" expanded="true" signature="0:44" placeholder="/** Created by slanska on 03.10.2015. ...*/" />
           </folding>
         </state>
       </provider>
@@ -1107,18 +1107,18 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/helper.ts">
+    <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="32" column="12" selection-start-line="32" selection-start-column="12" selection-end-line="32" selection-end-column="12" />
+        <state vertical-scroll-proportion="-4.5925927">
+          <caret line="819" column="16" selection-start-line="819" selection-start-column="16" selection-end-line="819" selection-end-column="16" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
+    <entry file="file://$PROJECT_DIR$/tests/helper.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.43548387">
-          <caret line="778" column="22" selection-start-line="778" selection-start-column="22" selection-end-line="778" selection-end-column="22" />
+        <state vertical-scroll-proportion="4.0">
+          <caret line="84" column="22" selection-start-line="84" selection-start-column="22" selection-end-line="84" selection-end-column="22" />
           <folding />
         </state>
       </provider>

@@ -817,7 +817,7 @@ export class Driver
 
                 // Insert trigger when ObjectID or HostID is null.
                 // In this case, recursively call insert statement with newly obtained ObjectID
-                viewSQL += this.generateTriggerBegin(classDef.DBViewName, 'insert', 'whenNull',
+                viewSQL += self.generateTriggerBegin(classDef.DBViewName, 'insert', 'whenNull',
                     'when new.[ObjectID] is null or new.[HostID] is null');
                 viewSQL += `insert into [${classDef.DBViewName}] ([ObjectID], [HostID]`;
 
@@ -848,9 +848,9 @@ export class Driver
                 viewSQL += `end;\n`;
 
                 // Insert trigger when ObjectID is not null
-                viewSQL += this.generateTriggerBegin(classDef.DBViewName, 'insert', 'whenNotNull',
+                viewSQL += self.generateTriggerBegin(classDef.DBViewName, 'insert', 'whenNotNull',
                     'when not (new.[ObjectID] is null or new.[HostID] is null)');
-                viewSQL += this.generateConstraintsForTrigger(classDef);
+                viewSQL += self.generateConstraintsForTrigger(classDef);
 
                 viewSQL += `insert into [Objects] ([ObjectID], [ClassID], [ctlo]`;
                 cols = '';
@@ -869,12 +869,12 @@ export class Driver
                 viewSQL += `) values (new.HostID << 31 | (new.ObjectID & 2147483647),
              ${classDef.ClassID}, ${classDef.ctloMask}${cols});\n`;
 
-                viewSQL += this.generateInsertValues(classDef);
+                viewSQL += self.generateInsertValues(classDef);
                 viewSQL += 'end;\n';
 
                 // Update trigger
-                viewSQL += this.generateTriggerBegin(classDef.DBViewName, 'update');
-                viewSQL += this.generateConstraintsForTrigger(classDef);
+                viewSQL += self.generateTriggerBegin(classDef.DBViewName, 'update');
+                viewSQL += self.generateConstraintsForTrigger(classDef);
 
                 var columns = '';
                 for (var propName in classDef.Properties)
@@ -894,12 +894,12 @@ export class Driver
                     viewSQL += `update [Objects] set ${columns} where [ObjectID] = new.[ObjectID];\n`;
                 }
 
-                viewSQL += this.generateInsertValues(classDef);
-                viewSQL += this.generateDeleteNullValues(classDef);
+                viewSQL += self.generateInsertValues(classDef);
+                viewSQL += self.generateDeleteNullValues(classDef);
                 viewSQL += 'end;\n';
 
                 // Delete trigger
-                viewSQL += this.generateTriggerBegin(classDef.DBViewName, 'delete');
+                viewSQL += self.generateTriggerBegin(classDef.DBViewName, 'delete');
                 viewSQL += `delete from [Objects] where [ObjectID] = new.[ObjectID] and [ClassID] = ${classDef.ClassID};\n`;
                 viewSQL += 'end;\n';
 
