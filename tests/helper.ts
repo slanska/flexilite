@@ -11,8 +11,8 @@
 import chai = require('chai');
 
 var expect = chai.expect;
-//var Driver = require('../lib/FlexiliteAdapter')._Driver;
-import {Driver} from '../lib/FlexiliteAdapter';
+var Driver = require('../lib/FlexiliteAdapter').Driver;
+
 import orm = require("orm");
 var sqlite3 = require("sqlite3");
 import util = require("util");
@@ -27,11 +27,6 @@ export function ConnectAndSave(done:Function)
     {
         try
         {
-            var orm2:any = orm;
-            console.log(Driver.toString());
-
-            orm2.addAdapter('flexilite', Driver);
-
             // Use URI file name with shared cache mode
             var fname = `${path.join(__dirname, "data", "test1.db")}`;
             var connString = util.format("flexilite://%s", fname);

@@ -6,8 +6,8 @@
 /// <reference path="chai/chai.d.ts" />
 /// <reference path="faker/faker.d.ts" />
 
-/// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts"/>
-/// <reference path="../node_modules/orm/lib/TypeScript/sql-query.d.ts"/>
+/// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
+/// <reference path="../node_modules/orm/lib/TypeScript/sql-query.d.ts" />
 
 /// <reference path="../lib/models/IClassProperty.ts" />
 /// <reference path="../lib/models/IClass.ts" />
@@ -17,3 +17,4 @@
 /// <reference path="../lib/models/IRepository.ts" />
 /// <reference path="../lib/models/IValue.ts" />
 /// <reference path="../lib/models/IPropertyDef.ts" />
+/// <reference path="thrift/thrift.d.ts" />

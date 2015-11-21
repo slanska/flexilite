@@ -12,6 +12,9 @@ module Flexilite.models
             minOccurences?: number;
             maxOccurences?: number;
             maxLength?: number;
+            titleSingle?: string;
+            titlePlural?: string;
+            validateRegex?: string;
         };
         klass?: string;
         mapsTo?: string;

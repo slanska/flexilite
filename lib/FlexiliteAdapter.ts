@@ -1,3 +1,4 @@
+import IPropertyDef = Flexilite.models.IPropertyDef;
 /**
  * Created by slanska on 03.10.2015.
  */
@@ -7,7 +8,7 @@
 var _ = require("lodash");
 import util = require("util");
 import sqlite3 = require("sqlite3");
-//import sqlquery = require("sql-query");
+// TODO import sqlquery = require("sql-query");
 var Query = require("sql-query").Query;
 // TODO var shared = require("./_shared");
 // TODO var DDL = require("./DDL/SQL");
@@ -15,6 +16,7 @@ var Sync = require("syncho");
 import path = require('path');
 import ClassDef = require('./models/ClassDef');
 import flex = require('./models/index');
+import orm = require("orm");
 
 interface IDropOptions
 {
@@ -40,7 +42,10 @@ interface IHasManyAssociation
 {
 }
 
-
+/*
+ Implements Flexilite driver for node-orm.
+ Uses SQLite as a backend storage
+ */
 export class Driver
 {
     dialect:string;
@@ -82,6 +87,8 @@ export class Driver
             // SQLITE_OPEN_SHAREDCACHE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_WAL
             this.db = sqlite3.cached.Database(fn, 0x00020000 | sqlite3.OPEN_READWRITE | 0x00080000);
         }
+
+        // TODO var js = (<any>this.db.all).sync(this.db, "select json_set('{}', '$.a', 99, '$.c', 'sdsd', '$.ff', 100, null, 4);");
 
         this.aggregate_functions = ["ABS", "ROUND",
             "AVG", "MIN", "MAX",
@@ -153,7 +160,7 @@ export class Driver
 
         // TODO Process query
         this.db.all(query, cb);
-    };
+    }
 
     find(fields, table, conditions, opts, cb)
     {
@@ -220,6 +227,9 @@ export class Driver
         this.db.all(q, cb);
     }
 
+    /*
+
+     */
     count(table:string, conditions, opts, cb)
     {
         var q = this.query.select()
@@ -591,14 +601,26 @@ export class Driver
      */
     OrmModelToClassDef(model:ISyncOptions):IClass
     {
+
         var result = new ClassDef.Flexilite.models.ClassDef();
         result.ClassName = model.table;
         result.DBViewName = this.getViewName(model.table);
         result.Properties = {};
-        for (var propName in model)
+        for (var propName in model.allProperties)
         {
-
-            // result.Properties[propName] = {};
+            var pd:IPropertyDef = model.allProperties[propName];
+            var cp:IClassProperty = {};
+            cp.DefaultDataType = pd.type;
+            cp.Indexed = pd.indexed;
+            cp.PropertyName = pd.name;
+            cp.Unique = pd.unique;
+            cp.DefaultValue = pd.defaultValue;
+            cp.ColumnAssigned = pd.ext.mappedTo;
+            cp.MaxLength = pd.ext.maxLength;
+            cp.MaxOccurences = pd.ext.maxOccurences || (1 << 31);
+            cp.MinOccurences = pd.ext.minOccurences || 0;
+            cp.ValidationRegex = pd.ext.validateRegex;
+            result.Properties[propName] = cp;
         }
         return result;
     }
@@ -606,11 +628,11 @@ export class Driver
     /*
      Internal method for synchronizing class properties
      */
-    syncProperties(opts:ISyncOptions, classID:number, callback)
+    private  syncProperties(opts:ISyncOptions, classID:number):IClass
     {
         var self = this;
 
-        var existingClassDef = this.getClassDef(self, classID);
+        var existingClassDef = self.getClassDef(self, classID);
 
         var insCStmt = self.db.prepare(`insert or ignore into [Classes] ([ClassName]) values (?);`);
         var insCPStmt = self.db.prepare(`insert or replace into [ClassProperties] ([ClassID], [PropertyID],
@@ -646,9 +668,7 @@ export class Driver
         (<any>insCStmt.finalize).sync(insCStmt);
         (<any>insCPStmt.finalize).sync(insCPStmt);
 
-        var classDef = this.getClassDef(self, classID);
-
-        callback(null, classDef);
+        return self.getClassDef(self, classID);
     }
 
     /*
@@ -771,12 +791,12 @@ export class Driver
                         `insert or replace into [Classes] ([ClassName],
     [SchemaOutdated], [DBViewName])
     values (?, ?, ?);`);
-                    var rslt = (<any>insClsStmt.run).sync(insClsStmt, [opts.table, true, this.getViewName(opts.table)]);
+                    var rslt = (<any>insClsStmt.run).sync(insClsStmt, [opts.table, true, self.getViewName(opts.table)]);
                     cls = (<any>self.db.get).sync(self.db, getClassSQL);
                     (<any>insClsStmt.finalize).sync(insClsStmt);
                 }
 
-                var classDef:IClass = (<any>self.syncProperties).sync(self, opts, cls.ClassID);
+                var classDef:IClass = self.syncProperties(opts, cls.ClassID);
 
                 // Regenerate view
                 var viewSQL = `drop view if exists ${classDef.DBViewName};
@@ -957,3 +977,5 @@ export class Driver
     }
 }
 
+// Register Flexilite driver
+(<any>orm).addAdapter('flexilite', Driver);
