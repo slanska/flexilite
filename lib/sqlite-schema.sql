@@ -18,28 +18,30 @@ CREATE TABLE IF NOT EXISTS [.access_rules] (
 CREATE INDEX IF NOT EXISTS [idxAccessRulesByItemID] ON [.access_rules] ([ItemID]);
 
 ------------------------------------------------------------------------------------------
--- ChangeLog
+-- .change_log
 ------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [.change_log] (
   [ID]        INTEGER  NOT NULL PRIMARY KEY AUTOINCREMENT,
   [TimeStamp] DATETIME NOT NULL             DEFAULT (julianday('now')),
   [OldKey],
-  [OldValue],
+  [OldValue]  JSON1,
   [Key],
-  [Value],
+  [Value]     JSON1,
 
   -- TODO Implement function
   [ChangedBy] GUID              -- DEFAULT (GetCurrentUserID())
 );
 
-CREATE INDEX IF NOT EXISTS [idxChangeLogByNew] ON [.change_log] ([Key]) WHERE [Key] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxChangeLogByOld] ON [.change_log] ([OldKey]) WHERE [OldKey] IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS [idxChangeLogByChangedBy] ON [.change_log] ([ChangedBy], [TimeStamp]) WHERE ChangedBy IS NOT NULL;
+-- TODO Check if these indexes are needed?
+-- CREATE INDEX IF NOT EXISTS [idxChangeLogByNew] ON [.change_log] ([Key]) WHERE [Key] IS NOT NULL;
+--
+-- CREATE INDEX IF NOT EXISTS [idxChangeLogByOld] ON [.change_log] ([OldKey]) WHERE [OldKey] IS NOT NULL;
+--
+-- CREATE INDEX IF NOT EXISTS [idxChangeLogByChangedBy] ON [.change_log] ([ChangedBy], [TimeStamp]) WHERE ChangedBy IS NOT NULL;
 
 ------------------------------------------------------------------------------------------
--- Classes
+-- .classes
 ------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [.classes] (
   [ClassID]           INTEGER  NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -58,6 +60,8 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   [ctloMask]          INTEGER  NOT NULL             DEFAULT (0), -- Aggregated value for all indexing for assigned columns (A-P). Updated by trigger on ClassProperty update
   /* Additional custom data*/
   [ExtData]           JSON1,
+  [ValidateRegex]     TEXT NULL,
+  [MaxLength]         INT      NOT NULL             DEFAULT -1,
 
   CONSTRAINT [chkClasses_DefaultScalarType] CHECK (DefaultScalarType IN
                                                    ('String', 'Integer', 'Number', 'Boolean', 'Date', 'DateTime', 'Time', 'Guid',
@@ -71,21 +75,55 @@ AFTER INSERT
 ON [.classes]
 FOR EACH ROW
 BEGIN
-  INSERT INTO .change_log ([Key], [Value]) VALUES (
+  INSERT INTO [.change_log] ([Key], [Value]) VALUES (
     printf('@%s', new.ClassID),
-    '{ ' ||
-    '"ClassName": ' || quote(new.ClassName) ||
-    ', "SystemClass": ' || quote(new.SystemClass) ||
-    ', "DefaultScalarType": ' || quote(new.DefaultScalarType) ||
-    ', "TitlePropertyID": ' || quote(new.TitlePropertyID) ||
-    ', "SubTitleProperty": ' || quote(new.SubTitleProperty) ||
-    ', "SchemaXML": ' || quote(new.SchemaXML) ||
-    ', "SchemaOutdated": ' || quote(new.SchemaOutdated) ||
-    ', "MinOccurences": ' || quote(new.MinOccurences) ||
-    ', "MaxOccurences": ' || quote(new.MaxOccurences) ||
-    ', "DBViewName": ' || quote(new.DBViewName) ||
-    ', "ctloMask": ' || quote(new.ctloMask) ||
-    ' }'
+    json_set('{}',
+             CASE WHEN new.ClassName IS NULL
+               THEN NULL
+             ELSE "$.ClassName" END, new.ClassName,
+             CASE WHEN new.SystemClass IS NULL
+               THEN NULL
+             ELSE "$.SystemClass" END, new.SystemClass,
+             CASE WHEN new.DefaultScalarType IS NULL
+               THEN NULL
+             ELSE "$.DefaultScalarType" END, new.DefaultScalarType,
+             CASE WHEN new.TitlePropertyID IS NULL
+               THEN NULL
+             ELSE "$.TitlePropertyID" END, new.TitlePropertyID,
+             CASE WHEN new.SubTitleProperty IS NULL
+               THEN NULL
+             ELSE "$.SubTitleProperty" END, new.ClassName,
+             CASE WHEN new.SchemaOutdated IS NULL
+               THEN NULL
+             ELSE "$.SchemaOutdated" END, new.SchemaOutdated,
+             CASE WHEN new.MinOccurences IS NULL
+               THEN NULL
+             ELSE "$.MinOccurences" END, new.MinOccurences,
+             CASE WHEN new.MaxOccurences IS NULL
+               THEN NULL
+             ELSE "$.MaxOccurences" END, new.MaxOccurences,
+             CASE WHEN new.DBViewName IS NULL
+               THEN NULL
+             ELSE "$.DBViewName" END, new.DBViewName,
+             CASE WHEN new.ctloMask IS NULL
+               THEN NULL
+             ELSE "$.ctloMask" END, new.ctloMask,
+             CASE WHEN new.SchemaXML IS NULL
+               THEN NULL
+             ELSE "$.SchemaXML" END, new.SchemaXML,
+             CASE WHEN new.SchemaID IS NULL
+               THEN NULL
+             ELSE "$.SchemaID" END, new.SchemaID,
+             CASE WHEN new.ValidateRegex IS NULL
+               THEN NULL
+             ELSE "$.ValidateRegex" END, new.ValidateRegex,
+             CASE WHEN new.MaxLength IS NULL
+               THEN NULL
+             ELSE "$.MaxLength" END, new.MaxLength,
+             CASE WHEN new.ExtData IS NULL
+               THEN NULL
+             ELSE "$.ExtData" END, new.ExtData
+    )
   );
 END;
 
@@ -94,7 +132,7 @@ AFTER UPDATE
 ON [.classes]
 FOR EACH ROW
 BEGIN
-  INSERT INTO .change_log ([OldKey], [OldValue], [Key], [Value])
+  INSERT INTO [.change_log] ([OldKey], [OldValue], [Key], [Value])
     SELECT
       [OldKey],
       [OldValue],
@@ -103,32 +141,136 @@ BEGIN
     FROM (
       SELECT
         '@' || cast(nullif(old.ClassID, new.ClassID) AS TEXT)                             AS [OldKey],
-        printf('{%s%s%s%s%s%s%s%s%s%s%s}',
-               ' "ClassName": ' || nullif(quote(old.ClassName), quote(new.ClassName)) || ', ',
-               '"SystemClass": ' || nullif(quote(old.SystemClass), quote(new.SystemClass)) || ', ',
-               '"DefaultScalarType": ' || nullif(quote(old.DefaultScalarType), quote(new.DefaultScalarType)) || ', ',
-               '"TitlePropertyID": ' || nullif(quote(old.TitlePropertyID), quote(new.TitlePropertyID)) || ', ',
-               '"SubTitleProperty": ' || nullif(quote(old.SubTitleProperty), quote(new.SubTitleProperty)) || ', ',
-               '"SchemaXML": ' || nullif(quote(old.SchemaXML), quote(new.SchemaXML)) || ', ',
-               '"SchemaOutdated": ' || nullif(quote(old.SchemaOutdated), quote(new.SchemaOutdated)) || ', ',
-               '"MinOccurences": ' || nullif(quote(old.MinOccurences), quote(new.MinOccurences)) || ', ',
-               '"MaxOccurences": ' || nullif(quote(old.MaxOccurences), quote(new.MaxOccurences)) || ', ',
-               '"DBViewName": ' || nullif(quote(old.DBViewName), quote(new.DBViewName)) || ', ',
-               '"ctloMask": ' || nullif(quote(old.ctloMask), quote(new.ctloMask)) || ' '
-        )                                                                                 AS [OldValue],
+
+        json_set('{}',
+        CASE WHEN nullif(new.ClassName, old.ClassName) IS NULL
+          THEN NULL
+        ELSE "$.ClassName" END,
+        new.ClassName,
+        CASE WHEN nullif(new.SystemClass, old.SystemClass) IS NULL
+          THEN NULL
+        ELSE "$.SystemClass" END,
+        new.SystemClass,
+        CASE WHEN nullif(new.DefaultScalarType, old.DefaultScalarType) IS NULL
+          THEN NULL
+        ELSE "$.DefaultScalarType" END,
+        new.DefaultScalarType,
+        CASE WHEN nullif(new.TitlePropertyID,old.TitlePropertyID) IS NULL
+          THEN NULL
+        ELSE "$.TitlePropertyID" END,
+        new.TitlePropertyID,
+        CASE WHEN nullif(new.SubTitleProperty, old.SubTitleProperty) IS NULL
+          THEN NULL
+        ELSE "$.SubTitleProperty" END,
+        new.ClassName,
+        CASE WHEN nullif(new.SchemaOutdated,old.SchemaOutdated) IS NULL
+          THEN NULL
+        ELSE "$.SchemaOutdated" END,
+        new.SchemaOutdated,
+        CASE WHEN nullif(new.MinOccurences, old.MinOccurences) IS NULL
+          THEN NULL
+        ELSE "$.MinOccurences" END,
+        new.MinOccurences,
+        CASE WHEN nullif(new.MaxOccurences,old.MaxOccurences) IS NULL
+          THEN NULL
+        ELSE "$.MaxOccurences" END,
+        new.MaxOccurences,
+        CASE WHEN nullif(new.DBViewName, old.DBViewName) IS NULL
+          THEN NULL
+        ELSE "$.DBViewName" END,
+        new.DBViewName,
+        CASE WHEN new.ctloMask IS NULL
+          THEN NULL
+        ELSE "$.ctloMask" END,
+        new.ctloMask,
+        CASE WHEN nullif(new.SchemaXML,old.SchemaXML) IS NULL
+          THEN NULL
+        ELSE "$.SchemaXML" END,
+        new.SchemaXML,
+        CASE WHEN nullif(new.SchemaID,old.SchemaID) IS NULL
+          THEN NULL
+        ELSE "$.SchemaID" END,
+        new.SchemaID,
+        CASE WHEN nullif(new.ValidateRegex, old.ValidateRegex) IS NULL
+          THEN NULL
+        ELSE "$.ValidateRegex" END,
+        new.ValidateRegex,
+        CASE WHEN nullif(new.MaxLength, old.MaxLength) IS NULL
+          THEN NULL
+        ELSE "$.MaxLength" END,
+        new.MaxLength,
+        CASE WHEN nullif(new.ExtData, old.ExtData) IS NULL
+          THEN NULL
+        ELSE "$.ExtData" END,
+        new.ExtData
+        ) AS [OldValue],
+
         '@' || cast(new.ClassID AS TEXT)                                                  AS [Key],
-        printf('{%s%s%s%s%s%s%s%s%s%s%s}',
-               ' "ClassName": ' || nullif(quote(new.ClassName), quote(new.ClassName)) || ', ',
-               '"SystemClass": ' || nullif(quote(new.SystemClass), quote(old.SystemClass)) || ', ',
-               '"DefaultScalarType": ' || nullif(quote(new.DefaultScalarType), quote(old.DefaultScalarType)) || ', ',
-               '"TitlePropertyID": ' || nullif(quote(new.TitlePropertyID), quote(old.TitlePropertyID)) || ', ',
-               '"SubTitleProperty": ' || nullif(quote(new.SubTitleProperty), quote(old.SubTitleProperty)) || ', ',
-               '"SchemaXML": ' || nullif(quote(new.SchemaXML), quote(old.SchemaXML)) || ', ',
-               '"SchemaOutdated": ' || nullif(quote(new.SchemaOutdated), quote(old.SchemaOutdated)) || ', ',
-               '"MinOccurences": ' || nullif(quote(new.MinOccurences), quote(old.MinOccurences)) || ', ',
-               '"MaxOccurences": ' || nullif(quote(new.MaxOccurences), quote(old.MaxOccurences)) || ', ',
-               '"DBViewName": ' || nullif(quote(new.DBViewName), quote(old.DBViewName)) || ', ',
-               '"ctloMask": ' || nullif(quote(new.ctloMask), quote(old.ctloMask)) || ' ') AS [Value]
+
+
+                json_set('{}',
+        CASE WHEN nullif(new.ClassName, old.ClassName) IS NULL
+          THEN NULL
+        ELSE "$.ClassName" END,
+        old.ClassName,
+        CASE WHEN nullif(new.SystemClass, old.SystemClass) IS NULL
+          THEN NULL
+        ELSE "$.SystemClass" END,
+        old.SystemClass,
+        CASE WHEN nullif(new.DefaultScalarType, old.DefaultScalarType) IS NULL
+          THEN NULL
+        ELSE "$.DefaultScalarType" END,
+        old.DefaultScalarType,
+        CASE WHEN nullif(new.TitlePropertyID,old.TitlePropertyID) IS NULL
+          THEN NULL
+        ELSE "$.TitlePropertyID" END,
+        old.TitlePropertyID,
+        CASE WHEN nullif(new.SubTitleProperty, old.SubTitleProperty) IS NULL
+          THEN NULL
+        ELSE "$.SubTitleProperty" END,
+        old.ClassName,
+        CASE WHEN nullif(new.SchemaOutdated,old.SchemaOutdated) IS NULL
+          THEN NULL
+        ELSE "$.SchemaOutdated" END,
+        old.SchemaOutdated,
+        CASE WHEN nullif(new.MinOccurences, old.MinOccurences) IS NULL
+          THEN NULL
+        ELSE "$.MinOccurences" END,
+        old.MinOccurences,
+        CASE WHEN nullif(new.MaxOccurences,old.MaxOccurences) IS NULL
+          THEN NULL
+        ELSE "$.MaxOccurences" END,
+        old.MaxOccurences,
+        CASE WHEN nullif(new.DBViewName, old.DBViewName) IS NULL
+          THEN NULL
+        ELSE "$.DBViewName" END,
+        old.DBViewName,
+        CASE WHEN new.ctloMask IS NULL
+          THEN NULL
+        ELSE "$.ctloMask" END,
+        old.ctloMask,
+        CASE WHEN nullif(new.SchemaXML,old.SchemaXML) IS NULL
+          THEN NULL
+        ELSE "$.SchemaXML" END,
+        old.SchemaXML,
+        CASE WHEN nullif(new.SchemaID,old.SchemaID) IS NULL
+          THEN NULL
+        ELSE "$.SchemaID" END,
+        old.SchemaID,
+        CASE WHEN nullif(new.ValidateRegex, old.ValidateRegex) IS NULL
+          THEN NULL
+        ELSE "$.ValidateRegex" END,
+        old.ValidateRegex,
+        CASE WHEN nullif(new.MaxLength, old.MaxLength) IS NULL
+          THEN NULL
+        ELSE "$.MaxLength" END,
+        old.MaxLength,
+        CASE WHEN nullif(new.ExtData, old.ExtData) IS NULL
+          THEN NULL
+        ELSE "$.ExtData" END,
+        old.ExtData
+        )
+        AS [Value]
     )
     WHERE [OldValue] <> [Value] OR (nullif([OldKey], [Key])) IS NOT NULL;
 END;
@@ -148,28 +290,47 @@ AFTER DELETE
 ON [.classes]
 FOR EACH ROW
 BEGIN
-  INSERT INTO .change_log ([OldKey], [OldValue]) VALUES (
+  INSERT INTO [.change_log] ([OldKey], [OldValue]) VALUES (
     printf('@%s', old.ClassID),
-    '{ ' ||
-    '"ClassName": ' || quote(old.ClassName) ||
-    ', "SystemClass": ' || quote(old.SystemClass) ||
-    ', "DefaultScalarType": ' || quote(old.DefaultScalarType) ||
-    ', "TitlePropertyID": ' || quote(old.TitlePropertyID) ||
-    ', "SubTitleProperty": ' || quote(old.SubTitleProperty) ||
-    ', "SchemaXML": ' || quote(old.SchemaXML) ||
-    ', "SchemaOutdated": ' || quote(old.SchemaOutdated) ||
-    ', "MinOccurences": ' || quote(old.MinOccurences) ||
-    ', "MaxOccurences": ' || quote(old.MaxOccurences) ||
-    ', "DBViewName": ' || quote(old.DBViewName) ||
-    ', "ctloMask": ' || quote(old.ctloMask) ||
-    ' }'
+
+    json_set(
+        case when old.ClassName is null then null else '$.ClassName' end,
+          old.ClassName,
+          case when old.SystemClass is null then null else '$.SystemClass' end,
+          old.SystemClass,
+          case when old.DefaultScalarType is null then null else '$.DefaultScalarType' end,
+          old.DefaultScalarType,
+          case when old.TitlePropertyID is null then null else '$.TitlePropertyID' end,
+          old.TitlePropertyID,
+          case when old.SubTitleProperty is null then null else '$.SubTitleProperty' end,
+          old.SubTitleProperty,
+          case when old.SchemaXML is null then null else '$.SchemaXML' end,
+          old.SchemaXML,
+          case when old.SchemaOutdated is null then null else '$.SchemaOutdated' end,
+          old.SchemaOutdated,
+          case when old.MinOccurences is null then null else '$.MinOccurences' end,
+          old.MinOccurences,
+          case when old.MaxOccurences is null then null else '$.MaxOccurences' end,
+          old.MaxOccurences,
+          case when old.DBViewName is null then null else '$.DBViewName' end,
+          old.DBViewName,
+          case when old.ctloMask is null then null else '$.ctloMask' end,
+          old.ctloMask,
+          case when old.ValidateRegex is null then null else '$.ValidateRegex' end,
+          old.ValidateRegex,
+          case when old.MaxLength is null then null else '$.MaxLength' end,
+          old.MaxLength,
+          case when old.ExtData is null then null else '$.ExtData' end,
+          old.ExtData
+
+    )
   );
 END;
 
 ------------------------------------------------------------------------------------------
 -- [.objects]
 ------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [.objects] (
+CREATE TABLE IF NOT EXISTS [.class_properties] (
   [ClassID]            INTEGER NOT NULL CONSTRAINT [fkClassPropertiesClassID] REFERENCES [.classes] ([ClassID]) ON DELETE CASCADE ON UPDATE CASCADE,
   [PropertyID]         INTEGER NOT NULL CONSTRAINT [fkClassPropertiesPropertyID] REFERENCES [.classes] ([ClassID]) ON DELETE RESTRICT ON UPDATE CASCADE,
   [PropertyName]       TEXT(64),
@@ -182,7 +343,7 @@ CREATE TABLE IF NOT EXISTS [.objects] (
   [MaxOccurences]      INTEGER NOT NULL DEFAULT 1,
   [Unique]             BOOLEAN NOT NULL DEFAULT 0,
   [ColumnAssigned]     CHAR,
-  [AutoValue]          TEXT,
+  [AutoValue]          TEXT, -- TODO Comments: sequence ID, current date, guid, current date on insert
   [MaxLength]          INTEGER NOT NULL DEFAULT (-1),
   [TempColumnAssigned] CHAR,
 
@@ -238,169 +399,39 @@ CREATE TABLE IF NOT EXISTS [.objects] (
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesColumnAssigned] ON [.class_properties] ([ClassID], [ColumnAssigned]) WHERE ColumnAssigned IS NOT NULL;
 
-CREATE TRIGGER IF NOT EXISTS [trigClassPropertiesAfterDelete]
-AFTER DELETE
-ON [.class_properties]
-FOR EACH ROW
-BEGIN
-  UPDATE .classes
-  SET SchemaOutdated = 1
-  WHERE ClassID = old.ClassID;
-
-  INSERT INTO .change_log ([OldKey], [OldValue]) VALUES (
-    printf('@%s/%s', old.ClassID, old.PropertyID),
-    '{ ' ||
-    '"PropertyName": ' || quote(old.[PropertyName]) ||
-    '"TrackChanges": ' || quote(old.[TrackChanges]) ||
-    '"DefaultValue": ' || quote(old.[DefaultValue]) ||
-    '"DefaultDataType": ' || quote(old.[DefaultDataType]) ||
-    '"MinOccurences": ' || quote(old.[MinOccurences]) ||
-    '"MaxOccurences": ' || quote(old.[MaxOccurences]) ||
-    '"Unique": ' || quote(old.[Unique]) ||
-    '"ColumnAssigned": ' || quote(old.[ColumnAssigned]) ||
-    '"AutoValue": ' || quote(old.[AutoValue]) ||
-    '"MaxLength": ' || quote(old.[MaxLength]) ||
-    '"TempColumnAssigned": ' || quote(old.[TempColumnAssigned]) ||
-    '"ctlo": ' || quote(old.[ctlo]) ||
-    '"ctloMask": ' || quote(old.[ctloMask]) ||
-    '"ctlv": ' || quote(old.[ctlv]) ||
-    '"ReferencedClassID": ' || quote(old.ReferencedClassID) ||
-    '"ReversePropertyID": ' || quote(old.ReversePropertyID) ||
-    ' }'
-  );
-
-  -- ColumnAssigned is set to null from letter.
-  -- Need to copy data to Values table and reset column in [.objects]
-  INSERT OR REPLACE INTO [.values] ([ClassID], [ObjectID], [PropertyID], [PropIndex], [ctlv], [Value])
-    SELECT
-      old.[ClassID],
-      [ObjectID],
-      (SELECT [PropertyID]
-       FROM [.class_properties]
-       WHERE ClassID = old.[ClassID] AND [ColumnAssigned] = old.[ColumnAssigned] AND [ColumnAssigned] IS NOT NULL),
-      0,
-      old.ctlv,
-      CASE
-      WHEN old.ColumnAssigned = 'A'
-        THEN A
-      WHEN old.ColumnAssigned = 'B'
-        THEN B
-      WHEN old.ColumnAssigned = 'C'
-        THEN C
-      WHEN old.ColumnAssigned = 'D'
-        THEN D
-      WHEN old.ColumnAssigned = 'E'
-        THEN E
-      WHEN old.ColumnAssigned = 'F'
-        THEN F
-      WHEN old.ColumnAssigned = 'G'
-        THEN G
-      WHEN old.ColumnAssigned = 'H'
-        THEN H
-      WHEN old.ColumnAssigned = 'I'
-        THEN I
-      WHEN old.ColumnAssigned = 'J'
-        THEN J
-      WHEN old.ColumnAssigned = 'K'
-        THEN K
-      WHEN old.ColumnAssigned = 'L'
-        THEN L
-      WHEN old.ColumnAssigned = 'M'
-        THEN M
-      WHEN old.ColumnAssigned = 'N'
-        THEN N
-      WHEN old.ColumnAssigned = 'O'
-        THEN O
-      WHEN old.ColumnAssigned = 'P'
-        THEN P
-      ELSE NULL
-      END
-    FROM [.objects]
-    WHERE [ClassID] = old.[ClassID];
-
-  UPDATE [.objects]
-  SET
-    A = CASE WHEN old.ColumnAssigned = 'A'
-      THEN NULL
-        ELSE A END,
-    B = CASE WHEN old.ColumnAssigned = 'B'
-      THEN NULL
-        ELSE A END,
-    C = CASE WHEN old.ColumnAssigned = 'C'
-      THEN NULL
-        ELSE A END,
-    D = CASE WHEN old.ColumnAssigned = 'D'
-      THEN NULL
-        ELSE A END,
-    E = CASE WHEN old.ColumnAssigned = 'E'
-      THEN NULL
-        ELSE A END,
-    F = CASE WHEN old.ColumnAssigned = 'F'
-      THEN NULL
-        ELSE A END,
-    G = CASE WHEN old.ColumnAssigned = 'G'
-      THEN NULL
-        ELSE A END,
-    H = CASE WHEN old.ColumnAssigned = 'H'
-      THEN NULL
-        ELSE A END,
-    I = CASE WHEN old.ColumnAssigned = 'I'
-      THEN NULL
-        ELSE A END,
-    J = CASE WHEN old.ColumnAssigned = 'J'
-      THEN NULL
-        ELSE A END,
-    K = CASE WHEN old.ColumnAssigned = 'K'
-      THEN NULL
-        ELSE A END,
-    L = CASE WHEN old.ColumnAssigned = 'L'
-      THEN NULL
-        ELSE A END,
-    M = CASE WHEN old.ColumnAssigned = 'M'
-      THEN NULL
-        ELSE A END,
-    N = CASE WHEN old.ColumnAssigned = 'N'
-      THEN NULL
-        ELSE A END,
-    O = CASE WHEN old.ColumnAssigned = 'O'
-      THEN NULL
-        ELSE A END,
-    P = CASE WHEN old.ColumnAssigned = 'P'
-      THEN NULL
-        ELSE A END
-  WHERE [ClassID] = old.[ClassID];
-END;
-
 CREATE TRIGGER IF NOT EXISTS [trigClassPropertiesAfterInsert]
 AFTER INSERT
 ON [.class_properties]
 FOR EACH ROW
 BEGIN
-  UPDATE .classes
+  UPDATE [.classes]
   SET SchemaOutdated = 1
   WHERE ClassID = new.ClassID;
 
-  INSERT INTO .change_log ([Key], [Value]) VALUES (
+  INSERT INTO [.change_log] ([Key], [Value]) VALUES (
     printf('@%s/%s', new.ClassID, new.PropertyID),
-    '{ ' ||
-    '"PropertyName": ' || quote(new.[PropertyName]) || ', ' ||
-    '"TrackChanges": ' || quote(new.[TrackChanges]) || ', ' ||
-    '"DefaultValue": ' || quote(new.[DefaultValue]) || ', ' ||
-    '"DefaultDataType": ' || quote(new.[DefaultDataType]) || ', ' ||
-    '"MinOccurences": ' || quote(new.[MinOccurences]) || ', ' ||
-    '"MaxOccurences": ' || quote(new.[MaxOccurences]) || ', ' ||
-    '"Unique": ' || quote(new.[Unique]) || ', ' ||
-    '"ColumnAssigned": ' || quote(new.[ColumnAssigned]) || ', ' ||
-    '"AutoValue": ' || quote(new.[AutoValue]) || ', ' ||
-    '"MaxLength": ' || quote(new.[MaxLength]) || ', ' ||
-    '"TempColumnAssigned": ' || quote(new.[TempColumnAssigned]) || ', ' ||
-    '"ctlo": ' || quote(new.[ctlo]) || ', ' ||
-    '"ctloMask": ' || quote(new.[ctloMask]) || ', ' ||
-    '"ctlv": ' || quote(new.[ctlv]) ||
-    '"ReferencedClassID": ' || quote(new.ReferencedClassID) ||
-    '"ReversePropertyID": ' || quote(new.ReversePropertyID) ||
-    ' }'
-  );
+    json_set('{}',
+
+    case when new.PropertyName is null then null else '$.PropertyName' end, new.[PropertyName],
+       case when new.TrackChanges is null then null else '$.TrackChanges' end, new.[TrackChanges],
+       case when new.DefaultValue is null then null else '$.DefaultValue' end, new.[DefaultValue],
+       case when new.DefaultDataType is null then null else '$.DefaultDataType' end, new.[DefaultDataType],
+       case when new.MinOccurences is null then null else '$.MinOccurences' end, new.[MinOccurences],
+       case when new.MaxOccurences is null then null else '$.MaxOccurences' end, new.[MaxOccurences],
+       case when new.[Unique] is null then null else '$.Unique' end, new.[Unique],
+       case when new.ColumnAssigned is null then null else '$.ColumnAssigned' end, new.[ColumnAssigned],
+       case when new.AutoValue is null then null else '$.AutoValue' end, new.[AutoValue],
+       case when new.MaxLength is null then null else '$.MaxLength' end, new.[MaxLength],
+       case when new.TempColumnAssigned is null then null else '$.TempColumnAssigned' end, new.[TempColumnAssigned],
+       case when new.ctlo is null then null else '$.ctlo' end, new.[ctlo],
+       case when new.ctloMask is null then null else '$.ctloMask' end, new.[ctloMask],
+       case when new.ctlv is null then null else '$.ctlv' end, new.[ctlv],
+       case when new.ReferencedClassID is null then null else '$.ReferencedClassID' end, new.[ReferencedClassID],
+       case when new.ReversePropertyID is null then null else '$.ReversePropertyID' end, new.[ReversePropertyID],
+       case when new.ValidationRegex is null then null else '$.ValidationRegex' end, new.[ValidationRegex],
+       case when new.ExtData is null then null else '$.ExtData' end, new.[ExtData]
+));
+
 
   -- Determine last unused column (A to P), if any
   -- This update might fire trigClassPropertiesColumnAssignedBecameNotNull
@@ -429,7 +460,7 @@ ON [.class_properties]
 FOR EACH ROW
   WHEN old.[ColumnAssigned] IS NOT NULL AND new.[ColumnAssigned] IS NULL
 BEGIN
-  UPDATE .classes
+  UPDATE [.classes]
   SET SchemaOutdated = 1
   WHERE ClassID = new.ClassID;
 
@@ -557,7 +588,7 @@ AFTER UPDATE OF [ctlo], [ctloMask]
 ON [.class_properties]
 FOR EACH ROW
 BEGIN
-  UPDATE .classes
+  UPDATE [.classes]
   SET ctloMask = (ctloMask & ~new.ctloMask) | new.ctlo
   WHERE ClassID = new.ClassID;
 END;
@@ -567,7 +598,7 @@ CREATE TRIGGER IF NOT EXISTS [trigClassPropertiesAfterUpdate]
 AFTER UPDATE ON [.class_properties]
 FOR EACH ROW
 BEGIN
-  INSERT INTO .change_log ([OldKey], [OldValue], [Key], [Value])
+  INSERT INTO [.change_log] ([OldKey], [OldValue], [Key], [Value])
     SELECT
       [OldKey],
       [OldValue],
@@ -577,46 +608,52 @@ BEGIN
       (SELECT
          '@' || cast(nullif(old.ClassID, new.ClassID) AS TEXT) || '/' ||
          cast(nullif(old.PropertyID, new.PropertyID) AS TEXT)           AS [OldKey],
-         printf('{%s%s%s%s%s%s%s%s%s%s%s%s%s%s}',
-                '"PropertyName": ' || nullif(quote(old.PropertyName), quote(new.PropertyName)) || ', ',
-                '"TrackChanges": ' || nullif(quote(old.TrackChanges), quote(new.TrackChanges)) || ', ',
-                '"DefaultValue": ' || nullif(quote(old.DefaultValue), quote(new.DefaultValue)) || ', ',
-                '"DefaultDataType": ' || nullif(quote(old.DefaultDataType), quote(new.DefaultDataType)) || ', ',
-                '"MinOccurences": ' || nullif(quote(old.MinOccurences), quote(new.MinOccurences)) || ', ',
-                '"MaxOccurences": ' || nullif(quote(old.MaxOccurences), quote(new.MaxOccurences)) || ', ',
-                '"Unique": ' || nullif(quote(old.[Unique]), quote(new.[Unique])) || ', ',
-                '"ColumnAssigned": ' || nullif(quote(old.ColumnAssigned), quote(new.[ColumnAssigned])) || ', ',
-                '"AutoValue": ' || nullif(quote(old.AutoValue), quote(new.AutoValue)) || ', ',
-                '"MaxLength": ' || nullif(quote(old.MaxLength), quote(new.MaxLength)) || ', ',
-                '"TempColumnAssigned": ' || nullif(quote(old.TempColumnAssigned), quote(new.TempColumnAssigned)) ||
-                ', ',
-                '"ctlo": ' || nullif(quote(old.ctlo), quote(new.ctlo)) || ', ',
-                '"ctloMask": ' || nullif(quote(old.ctloMask), quote(new.ctloMask)) || ', ',
-                '"ReferencedClassID": ' || nullif(quote(old.ReferencedClassID), quote(new.ReferencedClassID)) || ', ',
-                '"ReversePropertyID": ' || nullif(quote(old.ReversePropertyID), quote(new.ReversePropertyID)) || ', ',
-                '"ctlv": ' || nullif(quote(old.ctlv), quote(new.ctlv))) AS [OldValue],
+
+        json_set('{}',
+         case when nullif(new.PropertyName, old.PropertyName) is null then null else '$.PropertyName' end, new.PropertyName,
+          case when nullif(new.TrackChanges, old.TrackChanges) is null then null else '$.TrackChanges' end, new.TrackChanges,
+          case when nullif(new.DefaultValue, old.DefaultValue) is null then null else '$.DefaultValue' end, new.DefaultValue,
+          case when nullif(new.DefaultDataType, old.DefaultDataType) is null then null else '$.DefaultDataType' end, new.DefaultDataType,
+          case when nullif(new.MinOccurences, old.MinOccurences) is null then null else '$.MinOccurences' end, new.MinOccurences,
+          case when nullif(new.MaxOccurences, old.MaxOccurences) is null then null else '$.MaxOccurences' end, new.MaxOccurences,
+          case when nullif(new.[Unique], old.[Unique]) is null then null else '$.Unique' end, new.[Unique],
+          case when nullif(new.ColumnAssigned, old.ColumnAssigned) is null then null else '$.ColumnAssigned' end, new.ColumnAssigned,
+          case when nullif(new.AutoValue, old.AutoValue) is null then null else '$.AutoValue' end, new.AutoValue,
+          case when nullif(new.MaxLength, old.MaxLength) is null then null else '$.MaxLength' end, new.MaxLength,
+          case when nullif(new.TempColumnAssigned, old.TempColumnAssigned) is null then null else '$.TempColumnAssigned' end, new.TempColumnAssigned,
+          case when nullif(new.ctlo, old.ctlo) is null then null else '$.ctlo' end, new.ctlo,
+          case when nullif(new.ctloMask, old.ctloMask) is null then null else '$.ctloMask' end, new.ctloMask,
+          case when nullif(new.ReferencedClassID, old.ReferencedClassID) is null then null else '$.ReferencedClassID' end, new.ReferencedClassID,
+          case when nullif(new.ReversePropertyID, old.ReversePropertyID) is null then null else '$.ReversePropertyID' end, new.ReversePropertyID,
+          case when nullif(new.ctlv, old.ctlv) is null then null else '$.ctlv' end, new.ctlv,
+          case when nullif(new.ExtData, old.ExtData) is null then null else '$.ExtData' end, new.ExtData,
+          case when nullif(new.ValidationRegex, old.ValidationRegex) is null then null else '$.ValidationRegex' end, new.ValidationRegex,
+          case when nullif(new.MaxLength, old.MaxLength) is null then null else '$.MaxLength' end, new.MaxLength
+               ) AS [OldValue],
 
          printf('@%s/%s', new.ClassID, new.PropertyID)                  AS [Key],
 
-         printf('{%s%s%s%s%s%s%s%s%s%s%s%s%s%s}',
-                '"PropertyName": ' || nullif(quote(new.PropertyName), quote(old.PropertyName)) || ', ',
-                '"TrackChanges": ' || nullif(quote(new.TrackChanges), quote(old.TrackChanges)) || ', ',
-                '"DefaultValue": ' || nullif(quote(new.DefaultValue), quote(old.DefaultValue)) || ', ',
-                '"DefaultDataType": ' || nullif(quote(new.DefaultDataType), quote(old.DefaultDataType)) || ', ',
-                '"MinOccurences": ' || nullif(quote(new.MinOccurences), quote(old.MinOccurences)) || ', ',
-                '"MaxOccurences": ' || nullif(quote(new.MaxOccurences), quote(old.MaxOccurences)) || ', ',
-                '"Unique": ' || nullif(quote(new.[Unique]), quote(old.[Unique])) || ', ',
-                '"ColumnAssigned": ' || nullif(quote(new.[ColumnAssigned]), quote(old.ColumnAssigned)) || ', ',
-                '"AutoValue": ' || nullif(quote(new.AutoValue), quote(old.AutoValue)) || ', ',
-                '"MaxLength": ' || nullif(quote(new.MaxLength), quote(old.MaxLength)) || ', ',
-                '"TempColumnAssigned": ' || nullif(quote(new.TempColumnAssigned), quote(old.TempColumnAssigned)) ||
-                ', ',
-                '"ReferencedClassID": ' || nullif(quote(new.ReferencedClassID), quote(old.ReferencedClassID)) || ', ',
-                '"ReversePropertyID": ' || nullif(quote(new.ReversePropertyID), quote(old.ReversePropertyID)) || ', ',
-
-                '"ctlo": ' || nullif(quote(new.ctlo), quote(old.ctlo)) || ', ',
-                '"ctloMask": ' || nullif(quote(new.ctloMask), quote(old.ctloMask)) || ', ',
-                '"ctlv": ' || nullif(quote(new.ctlv), quote(old.ctlv))) AS [Value]
+         json_set('{}',
+         case when nullif(new.PropertyName, old.PropertyName) is null then null else '$.PropertyName' end, old.PropertyName,
+          case when nullif(new.TrackChanges, old.TrackChanges) is null then null else '$.TrackChanges' end, old.TrackChanges,
+          case when nullif(new.DefaultValue, old.DefaultValue) is null then null else '$.DefaultValue' end, old.DefaultValue,
+          case when nullif(new.DefaultDataType, old.DefaultDataType) is null then null else '$.DefaultDataType' end, old.DefaultDataType,
+          case when nullif(new.MinOccurences, old.MinOccurences) is null then null else '$.MinOccurences' end, old.MinOccurences,
+          case when nullif(new.MaxOccurences, old.MaxOccurences) is null then null else '$.MaxOccurences' end, old.MaxOccurences,
+          case when nullif(new.[Unique], old.[Unique]) is null then null else '$.Unique' end, old.[Unique],
+          case when nullif(new.ColumnAssigned, old.ColumnAssigned) is null then null else '$.ColumnAssigned' end, old.ColumnAssigned,
+          case when nullif(new.AutoValue, old.AutoValue) is null then null else '$.AutoValue' end, old.AutoValue,
+          case when nullif(new.MaxLength, old.MaxLength) is null then null else '$.MaxLength' end, old.MaxLength,
+          case when nullif(new.TempColumnAssigned, old.TempColumnAssigned) is null then null else '$.TempColumnAssigned' end, old.TempColumnAssigned,
+          case when nullif(new.ctlo, old.ctlo) is null then null else '$.ctlo' end, old.ctlo,
+          case when nullif(new.ctloMask, old.ctloMask) is null then null else '$.ctloMask' end, old.ctloMask,
+          case when nullif(new.ReferencedClassID, old.ReferencedClassID) is null then null else '$.ReferencedClassID' end, old.ReferencedClassID,
+          case when nullif(new.ReversePropertyID, old.ReversePropertyID) is null then null else '$.ReversePropertyID' end, old.ReversePropertyID,
+          case when nullif(new.ctlv, old.ctlv) is null then null else '$.ctlv' end, old.ctlv,
+          case when nullif(new.ExtData, old.ExtData) is null then null else '$.ExtData' end, old.ExtData,
+          case when nullif(new.ValidationRegex, old.ValidationRegex) is null then null else '$.ValidationRegex' end, old.ValidationRegex,
+          case when nullif(new.MaxLength, old.MaxLength) is null then null else '$.MaxLength' end, old.MaxLength
+               ) AS [Value]
       )
     WHERE [OldValue] <> [Value] OR (nullif([OldKey], [Key])) IS NOT NULL;
 END;
@@ -627,7 +664,7 @@ ON [.class_properties]
 FOR EACH ROW
   WHEN new.[ColumnAssigned] IS NOT NULL AND old.[ColumnAssigned] IS NULL
 BEGIN
-  UPDATE .classes
+  UPDATE [.classes]
   SET SchemaOutdated = 1
   WHERE ClassID = new.ClassID;
 
@@ -817,6 +854,141 @@ BEGIN
         AND PropertyID = new.PropertyID AND PropIndex = 0 AND (ctlv & 14) = 0;
 END;
 
+CREATE TRIGGER IF NOT EXISTS [trigClassPropertiesAfterDelete]
+AFTER DELETE
+ON [.class_properties]
+FOR EACH ROW
+BEGIN
+  UPDATE [.classes]
+  SET SchemaOutdated = 1
+  WHERE ClassID = old.ClassID;
+
+  INSERT INTO [.change_log] ([OldKey], [OldValue]) VALUES (
+    printf('@%s/%s', old.ClassID, old.PropertyID),
+    json_set('{}',
+  case when old.PropertyName is null then null else '$.PropertyName' end, old.PropertyName,
+      case when old.TrackChanges is null then null else '$.TrackChanges' end, old.TrackChanges,
+      case when old.DefaultValue is null then null else '$.DefaultValue' end, old.DefaultValue,
+      case when old.DefaultDataType is null then null else '$.DefaultDataType' end, old.DefaultDataType,
+      case when old.MinOccurences is null then null else '$.MinOccurences' end, old.MinOccurences,
+      case when old.MaxOccurences is null then null else '$.MaxOccurences' end, old.MaxOccurences,
+      case when old.[Unique] is null then null else '$.Unique' end, old.[Unique],
+      case when old.ColumnAssigned is null then null else '$.ColumnAssigned' end, old.ColumnAssigned,
+      case when old.AutoValue is null then null else '$.AutoValue' end, old.AutoValue,
+      case when old.MaxLength is null then null else '$.MaxLength' end, old.MaxLength,
+      case when old.TempColumnAssigned is null then null else '$.TempColumnAssigned' end, old.TempColumnAssigned,
+      case when old.ctlo is null then null else '$.ctlo' end, old.ctlo,
+      case when old.ctloMask is null then null else '$.ctloMask' end, old.ctloMask,
+      case when old.ctlv is null then null else '$.ctlv' end, old.ctlv,
+      case when old.ReferencedClassID is null then null else '$.ReferencedClassID' end, old.ReferencedClassID,
+      case when old.ReversePropertyID is null then null else '$.ReversePropertyID' end, old.ReversePropertyID,
+      case when old.ExtData is null then null else '$.ExtData' end, old.ExtData,
+      case when old.MaxLength is null then null else '$.MaxLength' end, old.MaxLength)
+  );
+
+  -- ColumnAssigned is set to null from letter.
+  -- Need to copy data to Values table and reset column in [.objects]
+  INSERT OR REPLACE INTO [.values] ([ClassID], [ObjectID], [PropertyID], [PropIndex], [ctlv], [Value])
+    SELECT
+      old.[ClassID],
+      [ObjectID],
+      (SELECT [PropertyID]
+       FROM [.class_properties]
+       WHERE ClassID = old.[ClassID] AND [ColumnAssigned] = old.[ColumnAssigned] AND [ColumnAssigned] IS NOT NULL),
+      0,
+      old.ctlv,
+      CASE
+      WHEN old.ColumnAssigned = 'A'
+        THEN A
+      WHEN old.ColumnAssigned = 'B'
+        THEN B
+      WHEN old.ColumnAssigned = 'C'
+        THEN C
+      WHEN old.ColumnAssigned = 'D'
+        THEN D
+      WHEN old.ColumnAssigned = 'E'
+        THEN E
+      WHEN old.ColumnAssigned = 'F'
+        THEN F
+      WHEN old.ColumnAssigned = 'G'
+        THEN G
+      WHEN old.ColumnAssigned = 'H'
+        THEN H
+      WHEN old.ColumnAssigned = 'I'
+        THEN I
+      WHEN old.ColumnAssigned = 'J'
+        THEN J
+      WHEN old.ColumnAssigned = 'K'
+        THEN K
+      WHEN old.ColumnAssigned = 'L'
+        THEN L
+      WHEN old.ColumnAssigned = 'M'
+        THEN M
+      WHEN old.ColumnAssigned = 'N'
+        THEN N
+      WHEN old.ColumnAssigned = 'O'
+        THEN O
+      WHEN old.ColumnAssigned = 'P'
+        THEN P
+      ELSE NULL
+      END
+    FROM [.objects]
+    WHERE [ClassID] = old.[ClassID];
+
+  UPDATE [.objects]
+  SET
+    A = CASE WHEN old.ColumnAssigned = 'A'
+      THEN NULL
+        ELSE A END,
+    B = CASE WHEN old.ColumnAssigned = 'B'
+      THEN NULL
+        ELSE A END,
+    C = CASE WHEN old.ColumnAssigned = 'C'
+      THEN NULL
+        ELSE A END,
+    D = CASE WHEN old.ColumnAssigned = 'D'
+      THEN NULL
+        ELSE A END,
+    E = CASE WHEN old.ColumnAssigned = 'E'
+      THEN NULL
+        ELSE A END,
+    F = CASE WHEN old.ColumnAssigned = 'F'
+      THEN NULL
+        ELSE A END,
+    G = CASE WHEN old.ColumnAssigned = 'G'
+      THEN NULL
+        ELSE A END,
+    H = CASE WHEN old.ColumnAssigned = 'H'
+      THEN NULL
+        ELSE A END,
+    I = CASE WHEN old.ColumnAssigned = 'I'
+      THEN NULL
+        ELSE A END,
+    J = CASE WHEN old.ColumnAssigned = 'J'
+      THEN NULL
+        ELSE A END,
+    K = CASE WHEN old.ColumnAssigned = 'K'
+      THEN NULL
+        ELSE A END,
+    L = CASE WHEN old.ColumnAssigned = 'L'
+      THEN NULL
+        ELSE A END,
+    M = CASE WHEN old.ColumnAssigned = 'M'
+      THEN NULL
+        ELSE A END,
+    N = CASE WHEN old.ColumnAssigned = 'N'
+      THEN NULL
+        ELSE A END,
+    O = CASE WHEN old.ColumnAssigned = 'O'
+      THEN NULL
+        ELSE A END,
+    P = CASE WHEN old.ColumnAssigned = 'P'
+      THEN NULL
+        ELSE A END
+  WHERE [ClassID] = old.[ClassID];
+END;
+
+
 --------------------------------------------------------------------------------------------
 -- vw_class_properties
 --------------------------------------------------------------------------------------------
@@ -832,7 +1004,7 @@ CREATE VIEW IF NOT EXISTS [.vw_class_properties] AS
 
     /* Computed PropertyName */
     coalesce(PropertyName, (SELECT ClassName
-                            FROM .classes
+                            FROM [.classes]
                             WHERE ClassID = cp.PropertyID
                             LIMIT 1)) AS PropertyName,
 
@@ -883,42 +1055,42 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigClassPropertiesEasyUpdate]
-INSTEAD OF UPDATE ON [[.vw_class_properties]]
+INSTEAD OF UPDATE ON [.vw_class_properties]
 FOR EACH ROW
 BEGIN
-  UPDATE [.class_properties]
-  SET
-    [ClassID]      = new.[ClassID], [PropertyID] = new.[PropertyID], [PropertyName] = nullif(new.[PropertyName],
-                                                                                             (SELECT [ClassName]
-                                                                                              FROM [.classes]
-                                                                                              WHERE
-                                                                                                [ClassID] =
-                                                                                                new.[PropertyID]
-                                                                                              LIMIT 1)),
-    [ctlv]         = new.[Indexed] |
-                     (CASE WHEN new.[ReferenceKind] <> 0
-                       THEN 1 | new.[ReferenceKind]
+UPDATE [.class_properties]
+SET
+  [ClassID]      = new.[ClassID], [PropertyID] = new.[PropertyID], [PropertyName] = nullif(new.[PropertyName],
+                                                                                           (SELECT [ClassName]
+                                                                                            FROM [.classes]
+                                                                                            WHERE
+                                                                                              [ClassID] =
+                                                                                              new.[PropertyID]
+                                                                                            LIMIT 1)),
+  [ctlv]         = new.[Indexed] |
+                   (CASE WHEN new.[ReferenceKind] <> 0
+                     THEN 1 | new.[ReferenceKind]
+                    ELSE 0 END)
+                   | (CASE WHEN new.[FullTextData]
+    THEN 16
                       ELSE 0 END)
-                     | (CASE WHEN new.[FullTextData]
-      THEN 16
-                        ELSE 0 END)
-                     | (CASE WHEN new.[RangeData]
-      THEN 32
-                        ELSE 0 END)
-                     | (CASE WHEN new.[TrackChanges]
-      THEN 0
-                        ELSE 64 END),
-    [DefaultValue] = new.[DefaultValue],
-    [AutoValue]    = new.[AutoValue]
-  WHERE [ClassID] = old.[ClassID] AND [PropertyID] = old.[PropertyID];
+                   | (CASE WHEN new.[RangeData]
+    THEN 32
+                      ELSE 0 END)
+                   | (CASE WHEN new.[TrackChanges]
+    THEN 0
+                      ELSE 64 END),
+  [DefaultValue] = new.[DefaultValue],
+  [AutoValue]    = new.[AutoValue]
+WHERE [ClassID] = old.[ClassID] AND [PropertyID] = old.[PropertyID];
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigClassPropertiesEasyDelete]
-INSTEAD OF DELETE ON [[.vw_class_properties]]
+INSTEAD OF DELETE ON [.vw_class_properties]
 FOR EACH ROW
 BEGIN
-  DELETE FROM [.class_properties]
-  WHERE [ClassID] = old.[ClassID] AND [PropertyID] = old.[PropertyID];
+DELETE FROM [.class_properties]
+WHERE [ClassID] = old.[ClassID] AND [PropertyID] = old.[PropertyID];
 END;
 
 ------------------------------------------------------------------------------------------
@@ -1005,6 +1177,7 @@ BEGIN
     AND [ObjectID] MATCH printf('#%s#', old.[oldObjectID])
     AND [PropertyIndex] MATCH '#0#';
 END;
+
 ------------------------------------------------------------------------------------------
 -- [.objects]
 ------------------------------------------------------------------------------------------
@@ -1088,58 +1261,26 @@ BEGIN
   INSERT INTO [.change_log] ([Key], [Value])
     SELECT
       printf('@%s.%s', new.[ClassID], new.[ObjectID]),
-      printf('{ %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s }',
-             '"A": ' || CASE WHEN new.A IS NULL
-               THEN NULL
-                        ELSE quote(new.A) END || ', ',
-             '"B": ' || CASE WHEN new.B IS NULL
-               THEN NULL
-                        ELSE quote(new.B) END || ', ',
-             '"C": ' || CASE WHEN new.C IS NULL
-               THEN NULL
-                        ELSE quote(new.C) END || ', ',
-             '"D": ' || CASE WHEN new.D IS NULL
-               THEN NULL
-                        ELSE quote(new.D) END || ', ',
-             '"E": ' || CASE WHEN new.E IS NULL
-               THEN NULL
-                        ELSE quote(new.E) END || ', ',
-             '"F": ' || CASE WHEN new.F IS NULL
-               THEN NULL
-                        ELSE quote(new.F) END || ', ',
-             '"G": ' || CASE WHEN new.G IS NULL
-               THEN NULL
-                        ELSE quote(new.G) END || ', ',
-             '"H": ' || CASE WHEN new.H IS NULL
-               THEN NULL
-                        ELSE quote(new.H) END || ', ',
-             '"I": ' || CASE WHEN new.I IS NULL
-               THEN NULL
-                        ELSE quote(new.I) END || ', ',
-             '"J": ' || CASE WHEN new.J IS NULL
-               THEN NULL
-                        ELSE quote(new.J) END || ', ',
-             '"K": ' || CASE WHEN new.K IS NULL
-               THEN NULL
-                        ELSE quote(new.K) END || ', ',
-             '"L": ' || CASE WHEN new.L IS NULL
-               THEN NULL
-                        ELSE quote(new.L) END || ', ',
-             '"M": ' || CASE WHEN new.M IS NULL
-               THEN NULL
-                        ELSE quote(new.M) END || ', ',
-             '"N": ' || CASE WHEN new.N IS NULL
-               THEN NULL
-                        ELSE quote(new.N) END || ', ',
-             '"O": ' || CASE WHEN new.O IS NULL
-               THEN NULL
-                        ELSE quote(new.O) END || ', ',
-             '"P": ' || CASE WHEN new.P IS NULL
-               THEN NULL
-                        ELSE quote(new.P) END || ', ',
-             '"ctlo": ' || CASE WHEN new.ctlo IS NULL
-               THEN NULL
-                           ELSE quote(new.ctlo) END)
+      json_set('{}',
+        case when new.A is null then null else '$.A' end, new.A,
+        case when new.B is null then null else '$.B' end, new.B,
+        case when new.C is null then null else '$.C' end, new.C,
+        case when new.D is null then null else '$.D' end, new.D,
+        case when new.E is null then null else '$.E' end, new.E,
+        case when new.F is null then null else '$.F' end, new.F,
+        case when new.G is null then null else '$.G' end, new.G,
+        case when new.H is null then null else '$.H' end, new.H,
+        case when new.I is null then null else '$.I' end, new.I,
+        case when new.J is null then null else '$.J' end, new.J,
+        case when new.K is null then null else '$.K' end, new.K,
+        case when new.L is null then null else '$.L' end, new.L,
+        case when new.M is null then null else '$.M' end, new.M,
+        case when new.N is null then null else '$.N' end, new.N,
+        case when new.O is null then null else '$.O' end, new.O,
+        case when new.P is null then null else '$.P' end, new.P,
+        case when new.ctlo is null then null else '$.ctlo' end, new.ctlo
+
+   )
     WHERE new.[ctlo] IS NULL OR new.[ctlo] & (1 << 49);
 
   -- Full text and range data using INSTEAD OF triggers of dummy view
@@ -1215,7 +1356,7 @@ AFTER UPDATE
 ON [.objects]
 FOR EACH ROW
 BEGIN
-  INSERT INTO .change_log ([OldKey], [OldValue], [Key], [Value])
+  INSERT INTO [.change_log] ([OldKey], [OldValue], [Key], [Value])
     SELECT
       [OldKey],
       [OldValue],
@@ -1225,45 +1366,47 @@ BEGIN
       (SELECT
          '@' || cast(nullif(old.ClassID, new.ClassID) AS TEXT) || '.' ||
          cast(nullif(old.ObjectID, new.[ObjectID]) AS TEXT) AS [OldKey],
-         printf('{%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s}',
-                ' "A": ' || nullif(quote(old.A), quote(new.A)) || ', ',
-                ' "B": ' || nullif(quote(old.B), quote(new.B)) || ', ',
-                ' "C": ' || nullif(quote(old.C), quote(new.C)) || ', ',
-                ' "D": ' || nullif(quote(old.D), quote(new.D)) || ', ',
-                ' "E": ' || nullif(quote(old.E), quote(new.E)) || ', ',
-                ' "F": ' || nullif(quote(old.F), quote(new.F)) || ', ',
-                ' "G": ' || nullif(quote(old.G), quote(new.G)) || ', ',
-                ' "H": ' || nullif(quote(old.H), quote(new.H)) || ', ',
-                ' "I": ' || nullif(quote(old.I), quote(new.I)) || ', ',
-                ' "J": ' || nullif(quote(old.J), quote(new.J)) || ', ',
-                ' "K": ' || nullif(quote(old.K), quote(new.K)) || ', ',
-                ' "L": ' || nullif(quote(old.L), quote(new.L)) || ', ',
-                ' "M": ' || nullif(quote(old.M), quote(new.M)) || ', ',
-                ' "N": ' || nullif(quote(old.N), quote(new.N)) || ', ',
-                ' "O": ' || nullif(quote(old.O), quote(new.O)) || ', ',
-                ' "P": ' || nullif(quote(old.P), quote(new.P)) || ', ',
-                ' "ctlo": ' || nullif(quote(old.ctlo), quote(new.ctlo)) || ' '
+
+        json_set('{}',
+          case when nullif(new.A, old.A) is null then null else '$.A' end, new.A,
+            case when nullif(new.B, old.B) is null then null else '$.B' end, new.B,
+          case when nullif(new.C, old.C) is null then null else '$.C' end, new.C,
+            case when nullif(new.D, old.D) is null then null else '$.D' end, new.D,
+          case when nullif(new.E, old.E) is null then null else '$.E' end, new.E,
+            case when nullif(new.F, old.F) is null then null else '$.F' end, new.F,
+          case when nullif(new.G, old.G) is null then null else '$.G' end, new.G,
+            case when nullif(new.H, old.H) is null then null else '$.H' end, new.H,
+          case when nullif(new.I, old.I) is null then null else '$.I' end, new.I,
+            case when nullif(new.J, old.J) is null then null else '$.J' end, new.J,
+          case when nullif(new.K, old.K) is null then null else '$.K' end, new.K,
+            case when nullif(new.L, old.L) is null then null else '$.L' end, new.L,
+          case when nullif(new.M, old.M) is null then null else '$.M' end, new.M,
+            case when nullif(new.N, old.N) is null then null else '$.N' end, new.N,
+          case when nullif(new.O, old.O) is null then null else '$.O' end, new.O,
+            case when nullif(new.P, old.P) is null then null else '$.P' end, new.P,
+          case when nullif(new.ctlo, old.ctlo) is null then null else '$.ctlo' end, new.ctlo
          )                                                  AS [OldValue],
          printf('@%s.%s', new.[ClassID], new.[ObjectID])    AS [Key],
-         printf('{%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s}',
-                ' "A": ' || nullif(quote(new.A), quote(old.A)) || ', ',
-                ' "B": ' || nullif(quote(new.B), quote(old.B)) || ', ',
-                ' "C": ' || nullif(quote(new.C), quote(old.C)) || ', ',
-                ' "D": ' || nullif(quote(new.D), quote(old.D)) || ', ',
-                ' "E": ' || nullif(quote(new.E), quote(old.E)) || ', ',
-                ' "F": ' || nullif(quote(new.F), quote(old.F)) || ', ',
-                ' "G": ' || nullif(quote(new.G), quote(old.G)) || ', ',
-                ' "H": ' || nullif(quote(new.H), quote(old.H)) || ', ',
-                ' "I": ' || nullif(quote(new.I), quote(old.I)) || ', ',
-                ' "J": ' || nullif(quote(new.J), quote(old.J)) || ', ',
-                ' "K": ' || nullif(quote(new.K), quote(old.K)) || ', ',
-                ' "L": ' || nullif(quote(new.L), quote(old.L)) || ', ',
-                ' "M": ' || nullif(quote(new.M), quote(old.M)) || ', ',
-                ' "N": ' || nullif(quote(new.N), quote(old.N)) || ', ',
-                ' "O": ' || nullif(quote(new.O), quote(old.O)) || ', ',
-                ' "P": ' || nullif(quote(new.P), quote(old.P)) || ', ',
-                ' "ctlo": ' || nullif(quote(new.ctlo), quote(old.ctlo)) || ' '
-         )                                                  AS [Value]
+         json_set('{}',
+          case when nullif(new.A, old.A) is null then null else '$.A' end, old.A,
+            case when nullif(new.B, old.B) is null then null else '$.B' end, old.B,
+          case when nullif(new.C, old.C) is null then null else '$.C' end, old.C,
+            case when nullif(new.D, old.D) is null then null else '$.D' end, old.D,
+          case when nullif(new.E, old.E) is null then null else '$.E' end, old.E,
+            case when nullif(new.F, old.F) is null then null else '$.F' end, old.F,
+          case when nullif(new.G, old.G) is null then null else '$.G' end, old.G,
+            case when nullif(new.H, old.H) is null then null else '$.H' end, old.H,
+          case when nullif(new.I, old.I) is null then null else '$.I' end, old.I,
+            case when nullif(new.J, old.J) is null then null else '$.J' end, old.J,
+          case when nullif(new.K, old.K) is null then null else '$.K' end, old.K,
+            case when nullif(new.L, old.L) is null then null else '$.L' end, old.L,
+          case when nullif(new.M, old.M) is null then null else '$.M' end, old.M,
+            case when nullif(new.N, old.N) is null then null else '$.N' end, old.N,
+          case when nullif(new.O, old.O) is null then null else '$.O' end, old.O,
+            case when nullif(new.P, old.P) is null then null else '$.P' end, old.P,
+          case when nullif(new.ctlo, old.ctlo) is null then null else '$.ctlo' end, old.ctlo
+         )
+                                                         AS [Value]
       )
     WHERE (new.[ctlo] IS NULL OR new.[ctlo] & (1 << 49))
           AND ([OldValue] <> [Value] OR (nullif([OldKey], [Key])) IS NOT NULL);
@@ -1388,59 +1531,26 @@ BEGIN
   INSERT INTO [.change_log] ([OldKey], [OldValue])
     SELECT
       printf('@%s.%s', old.[ClassID], old.[ObjectID]),
-      printf('{%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s}',
-             ' "A": ' || CASE WHEN old.A IS NULL
-               THEN NULL
-                         ELSE quote(old.A) END || ', ',
-             ' "B": ' || CASE WHEN old.B IS NULL
-               THEN NULL
-                         ELSE quote(old.B) END || ', ',
-             ' "C": ' || CASE WHEN old.C IS NULL
-               THEN NULL
-                         ELSE quote(old.C) END || ', ',
-             ' "D": ' || CASE WHEN old.D IS NULL
-               THEN NULL
-                         ELSE quote(old.D) END || ', ',
-             ' "E": ' || CASE WHEN old.E IS NULL
-               THEN NULL
-                         ELSE quote(old.E) END || ', ',
-             ' "F": ' || CASE WHEN old.F IS NULL
-               THEN NULL
-                         ELSE quote(old.F) END || ', ',
-             ' "G": ' || CASE WHEN old.G IS NULL
-               THEN NULL
-                         ELSE quote(old.G) END || ', ',
-             ' "H": ' || CASE WHEN old.H IS NULL
-               THEN NULL
-                         ELSE quote(old.H) END || ', ',
-             ' "I": ' || CASE WHEN old.I IS NULL
-               THEN NULL
-                         ELSE quote(old.I) END || ', ',
-             ' "J": ' || CASE WHEN old.J IS NULL
-               THEN NULL
-                         ELSE quote(old.J) END || ', ',
-             ' "K": ' || CASE WHEN old.K IS NULL
-               THEN NULL
-                         ELSE quote(old.K) END || ', ',
-             ' "L": ' || CASE WHEN old.L IS NULL
-               THEN NULL
-                         ELSE quote(old.L) END || ', ',
-             ' "M": ' || CASE WHEN old.M IS NULL
-               THEN NULL
-                         ELSE quote(old.M) END || ', ',
-             ' "N": ' || CASE WHEN old.N IS NULL
-               THEN NULL
-                         ELSE quote(old.N) END || ', ',
-             ' "O": ' || CASE WHEN old.O IS NULL
-               THEN NULL
-                         ELSE quote(old.O) END || ', ',
-             ' "P": ' || CASE WHEN old.P IS NULL
-               THEN NULL
-                         ELSE quote(old.P) END || ', ',
-             ' "ctlo": ' || CASE WHEN old.ctlo IS NULL
-               THEN NULL
-                            ELSE quote(old.ctlo) END
+      json_set('{}',
+        case when old.A is null then null else '$.A' end, old.A,
+          case when old.B is null then null else '$.B' end, old.B,
+        case when old.C is null then null else '$.C' end, old.C,
+          case when old.D is null then null else '$.D' end, old.D,
+        case when old.E is null then null else '$.E' end, old.E,
+          case when old.F is null then null else '$.F' end, old.F,
+        case when old.G is null then null else '$.G' end, old.G,
+          case when old.H is null then null else '$.H' end, old.H,
+        case when old.I is null then null else '$.I' end, old.I,
+          case when old.J is null then null else '$.J' end, old.J,
+        case when old.K is null then null else '$.K' end, old.K,
+          case when old.L is null then null else '$.L' end, old.L,
+        case when old.M is null then null else '$.M' end, old.M,
+          case when old.N is null then null else '$.N' end, old.N,
+        case when old.O is null then null else '$.O' end, old.O,
+          case when old.P is null then null else '$.P' end, old.P,
+        case when old.ctlo is null then null else '$.ctlo' end, old.ctlo
       )
+
     WHERE old.[ctlo] IS NULL OR old.[ctlo] & (1 << 49);
 
   -- Delete all objects that are referenced from this object and marked for cascade delete (ctlv = 10)
@@ -1753,7 +1863,7 @@ BEGIN
       P = (CASE WHEN p.[ColumnAssigned] = 'P'
         THEN new.[Value]
            ELSE P END)
-    FROM .classes c, [.vw_class_properties] p
+    FROM [.classes] c, [.vw_class_properties] p
     WHERE c.[ClassID] = p.[ClassID] AND c.ClassName = new.ClassName AND p.PropertyName = new.PropertyName
           AND (p.[ctlv] & 14) = 0 AND p.ColumnAssigned IS NOT NULL AND new.PropertyIndex = 0;
 
@@ -1767,7 +1877,7 @@ BEGIN
       new.PropertyIndex,
       new.[Value],
       p.[ctlv]
-    FROM .classes c, [.vw_class_properties] p
+    FROM [.classes] c, [.vw_class_properties] p
     WHERE c.[ClassID] = p.[ClassID] AND c.ClassName = new.ClassName AND p.PropertyName = new.PropertyName AND
           p.ColumnAssigned IS NULL;
 END;
