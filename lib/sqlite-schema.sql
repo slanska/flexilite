@@ -1094,9 +1094,9 @@ WHERE [ClassID] = old.[ClassID] AND [PropertyID] = old.[PropertyID];
 END;
 
 ------------------------------------------------------------------------------------------
--- FullTextData
+-- .full_text_data
 ------------------------------------------------------------------------------------------
-CREATE VIRTUAL TABLE IF NOT EXISTS [FullTextData] USING fts4 (
+CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
 
   [PropertyID],
   [ClassID],
@@ -1127,7 +1127,7 @@ CREATE TRIGGER IF NOT EXISTS [trigDummyObjectColumnDataInsert]
 INSTEAD OF INSERT ON [.vw_object_column_data]
 FOR EACH ROW
 BEGIN
-  INSERT INTO FullTextData ([PropertyID], [ClassID], [ObjectID], [PropertyIndex], [Value])
+  INSERT INTO [.full_text_data] ([PropertyID], [ClassID], [ObjectID], [PropertyIndex], [Value])
     SELECT
       printf('#%s#', new.[ColumnAssigned]),
       printf('#%s#', new.[ClassID]),
@@ -1143,7 +1143,7 @@ INSTEAD OF UPDATE ON [.vw_object_column_data]
 FOR EACH ROW
 BEGIN
   -- Process full text data based on ctlo
-  DELETE FROM FullTextData
+  DELETE FROM [.full_text_data]
   WHERE
     new.[ColumnAssigned] IS NOT NULL AND
     new.oldctlo & (1 << (17 + unicode(new.[ColumnAssigned]) - unicode('A'))) AND typeof(new.[oldValue]) = 'text'
@@ -1152,7 +1152,7 @@ BEGIN
     AND [ObjectID] MATCH printf('#%s#', new.[oldObjectID])
     AND [PropertyIndex] MATCH '#0#';
 
-  INSERT INTO FullTextData ([PropertyID], [ClassID], [ObjectID], [PropertyIndex], [Value])
+  INSERT INTO [.full_text_data] ([PropertyID], [ClassID], [ObjectID], [PropertyIndex], [Value])
     SELECT
       printf('#%s#', new.[ColumnAssigned]),
       printf('#%s#', new.[ClassID]),
@@ -1168,7 +1168,7 @@ INSTEAD OF DELETE ON [.vw_object_column_data]
 FOR EACH ROW
 BEGIN
   -- Process full text data based on ctlo
-  DELETE FROM FullTextData
+  DELETE FROM [.full_text_data]
   WHERE
     old.[ColumnAssigned] IS NOT NULL AND
     old.oldctlo & (1 << (17 + unicode(old.[ColumnAssigned]) - unicode('A'))) AND typeof(old.[oldValue]) = 'text'
@@ -1513,13 +1513,13 @@ AFTER UPDATE OF [ctlo]
 ON [.objects]
 FOR EACH ROW
 BEGIN
--- A-P: delete from FullTextData
+-- A-P: delete from [.full_text_data]
 
--- A-P: insert into FullTextData
+-- A-P: insert into [.full_text_data]
 
--- A-P: delete from RangeData
+-- A-P: delete from [.range_data]
 
--- A-P: insert into RangeData
+-- A-P: insert into [.range_data]
 END;
 */
 
@@ -1620,9 +1620,9 @@ BEGIN
 END;
 
 ------------------------------------------------------------------------------------------
--- RangeData
+-- .range_data
 ------------------------------------------------------------------------------------------
-CREATE VIRTUAL TABLE IF NOT EXISTS [RangeData] USING rtree (
+CREATE VIRTUAL TABLE IF NOT EXISTS [.range_data] USING rtree (
   [id],
   [ClassID0], [ClassID1],
   [ObjectID0], [ObjectID1],
@@ -1682,7 +1682,7 @@ BEGIN
       new.[Value]
     WHERE (new.[ctlv] & 64) <> 64;
 
-  INSERT INTO FullTextData ([PropertyID], [ClassID], [ObjectID], [PropertyIndex], [Value])
+  INSERT INTO [.full_text_data] ([PropertyID], [ClassID], [ObjectID], [PropertyIndex], [Value])
     SELECT
       printf('#%s#', new.[PropertyID]),
       printf('#%s#', new.[ClassID]),
@@ -1724,7 +1724,7 @@ BEGIN
     WHERE (new.[ctlv] & 64) <> 64 AND ([OldValue] <> [Value] OR (nullif([OldKey], [Key])) IS NOT NULL);
 
   -- Process full text data based on ctlv
-  DELETE FROM FullTextData
+  DELETE FROM [.full_text_data]
   WHERE
     old.ctlv & 16 AND typeof(old.[Value]) = 'text'
     AND [PropertyID] MATCH printf('#%s#', old.[PropertyID])
@@ -1732,7 +1732,7 @@ BEGIN
     AND [ObjectID] MATCH printf('#%s#', old.[ObjectID])
     AND [PropertyIndex] MATCH printf('#%s#', old.[PropIndex]);
 
-  INSERT INTO FullTextData ([PropertyID], [ClassID], [ObjectID], [PropertyIndex], [Value])
+  INSERT INTO [.full_text_data] ([PropertyID], [ClassID], [ObjectID], [PropertyIndex], [Value])
     SELECT
       printf('#%s#', new.[PropertyID]),
       printf('#%s#', new.[ClassID]),
@@ -1766,7 +1766,7 @@ BEGIN
                             WHERE [Value] = ObjectID AND ctlv IN (3)) = 0;
 
   -- Process full text data based on ctlv
-  DELETE FROM FullTextData
+  DELETE FROM [.full_text_data]
   WHERE
     old.[ctlv] & 16 AND typeof(old.[Value]) = 'text'
     AND [PropertyID] MATCH printf('#%s#', old.[PropertyID])
