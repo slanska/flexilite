@@ -3,7 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/sqlite-schema.sql" afterPath="$PROJECT_DIR$/lib/sqlite-schema.sql" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.js" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tsd.json" afterPath="$PROJECT_DIR$/tsd.json" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/typings/lodash/lodash.d.ts" afterPath="$PROJECT_DIR$/typings/lodash/lodash.d.ts" />
     </list>
     <ignored path="flexilite.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -24,196 +27,124 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="FlexiliteAdapter.ts" pinned="false" current-in-tab="false">
+      <file leaf-file-name="FlexiliteAdapter.ts" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="619" column="64" selection-start-line="619" selection-start-column="55" selection-end-line="619" selection-end-column="64" />
+            <state vertical-scroll-proportion="1.6608696">
+              <caret line="691" column="0" selection-start-line="691" selection-start-column="0" selection-end-line="691" selection-end-column="0" />
               <folding>
                 <element signature="e#53#97#0" expanded="false" />
                 <element signature="e#327#369#0" expanded="false" />
-                <element signature="n#!!block;n#IDropOptions#0" expanded="false" />
-                <element signature="n#!!block;n#ISyncOptions#0" expanded="false" />
                 <element signature="n#!!block;n#IHasManyAssociation#0" expanded="false" />
-                <element signature="e#1008#1091#0" expanded="false" />
+                <element signature="e#1082#1165#0" expanded="false" />
                 <element signature="n#!!block;n#constructor#0;n#Driver#0" expanded="false" />
-                <element signature="e#1470#1525#0" expanded="false" />
-                <element signature="e#1706#1751#0" expanded="false" />
-                <element signature="e#1773#2421#0" expanded="false" />
-                <element signature="e#1787#1846#0" expanded="false" />
-                <element signature="e#2592#2715#0" expanded="false" />
+                <element signature="e#1544#1599#0" expanded="false" />
+                <element signature="e#1780#1825#0" expanded="false" />
+                <element signature="e#1847#2495#0" expanded="false" />
+                <element signature="e#1861#1920#0" expanded="false" />
+                <element signature="e#2666#2789#0" expanded="false" />
                 <element signature="n#!!block;n#getViewName#0;n#Driver#0" expanded="false" />
                 <element signature="n#!!block;n#convertTimezone#0;n#Driver#0" expanded="false" />
-                <element signature="e#2957#3080#0" expanded="false" />
-                <element signature="e#3110#3181#0" expanded="false" />
+                <element signature="e#3031#3154#0" expanded="false" />
+                <element signature="e#3184#3255#0" expanded="false" />
                 <element signature="n#!!block;n#ping#0;n#Driver#0" expanded="false" />
                 <element signature="n#!!block;n#on#0;n#Driver#0" expanded="false" />
-                <element signature="e#3459#3507#0" expanded="false" />
+                <element signature="e#3533#3581#0" expanded="false" />
                 <element signature="n#!!block;n#connect#0;n#Driver#0" expanded="false" />
                 <element signature="n#!!block;n#close#0;n#Driver#0" expanded="false" />
                 <element signature="n#!!block;n#getQuery#0;n#Driver#0" expanded="false" />
                 <element signature="n#!!block;n#execSimpleQuery#0;n#Driver#0" expanded="false" />
-                <element signature="e#3848#3912#0" expanded="false" />
+                <element signature="e#3922#3986#0" expanded="false" />
                 <element signature="n#!!block;n#find#0;n#Driver#0" expanded="false" />
-                <element signature="e#4214#4260#0" expanded="false" />
-                <element signature="e#4312#4356#0" expanded="false" />
-                <element signature="e#4411#4575#0" expanded="false" />
-                <element signature="e#4609#4765#0" expanded="false" />
-                <element signature="e#4679#4755#0" expanded="false" />
-                <element signature="e#4799#5249#0" expanded="false" />
-                <element signature="e#5003#5127#0" expanded="false" />
-                <element signature="e#5157#5239#0" expanded="false" />
-                <element signature="e#5271#5319#0" expanded="false" />
-                <element signature="e#5354#5540#0" expanded="false" />
-                <element signature="e#5407#5530#0" expanded="false" />
-                <element signature="e#5603#5663#0" expanded="false" />
-                <element signature="e#5720#5731#0" expanded="false" />
+                <element signature="e#4288#4334#0" expanded="false" />
+                <element signature="e#4386#4430#0" expanded="false" />
+                <element signature="e#4485#4649#0" expanded="false" />
+                <element signature="e#4683#4839#0" expanded="false" />
+                <element signature="e#4753#4829#0" expanded="false" />
+                <element signature="e#4873#5323#0" expanded="false" />
+                <element signature="e#5077#5201#0" expanded="false" />
+                <element signature="e#5231#5313#0" expanded="false" />
+                <element signature="e#5345#5393#0" expanded="false" />
+                <element signature="e#5428#5614#0" expanded="false" />
+                <element signature="e#5481#5604#0" expanded="false" />
+                <element signature="e#5677#5737#0" expanded="false" />
+                <element signature="e#5794#5805#0" expanded="false" />
                 <element signature="n#!!block;n#count#0;n#Driver#0" expanded="false" />
-                <element signature="e#5927#6299#0" expanded="false" />
-                <element signature="e#6105#6203#0" expanded="false" />
-                <element signature="e#6233#6289#0" expanded="false" />
-                <element signature="e#6321#6369#0" expanded="false" />
-                <element signature="e#6404#6599#0" expanded="false" />
-                <element signature="e#6457#6589#0" expanded="false" />
-                <element signature="e#6662#6722#0" expanded="false" />
-                <element signature="e#6762#6773#0" expanded="false" />
+                <element signature="e#6001#6373#0" expanded="false" />
+                <element signature="e#6179#6277#0" expanded="false" />
+                <element signature="e#6307#6363#0" expanded="false" />
+                <element signature="e#6395#6443#0" expanded="false" />
+                <element signature="e#6478#6673#0" expanded="false" />
+                <element signature="e#6531#6663#0" expanded="false" />
+                <element signature="e#6736#6796#0" expanded="false" />
+                <element signature="e#6836#6847#0" expanded="false" />
                 <element signature="n#!!block;n#insert#0;n#Driver#0" expanded="false" />
-                <element signature="e#6838#6875#0" expanded="false" />
-                <element signature="e#7184#7244#0" expanded="false" />
-                <element signature="e#7298#8299#0" expanded="false" />
-                <element signature="e#7616#8002#0" expanded="false" />
-                <element signature="e#7796#7986#0" expanded="false" />
-                <element signature="e#8032#8289#0" expanded="false" />
-                <element signature="e#8109#8237#0" expanded="false" />
-                <element signature="e#8324#8335#0" expanded="false" />
+                <element signature="e#6912#6949#0" expanded="false" />
+                <element signature="e#7258#7318#0" expanded="false" />
+                <element signature="e#7372#8373#0" expanded="false" />
+                <element signature="e#7690#8076#0" expanded="false" />
+                <element signature="e#7870#8060#0" expanded="false" />
+                <element signature="e#8106#8363#0" expanded="false" />
+                <element signature="e#8183#8311#0" expanded="false" />
+                <element signature="e#8398#8409#0" expanded="false" />
                 <element signature="n#!!block;n#update#0;n#Driver#0" expanded="false" />
-                <element signature="e#8393#8430#0" expanded="false" />
-                <element signature="e#8822#8882#0" expanded="false" />
-                <element signature="e#8922#8933#0" expanded="false" />
+                <element signature="e#8467#8504#0" expanded="false" />
+                <element signature="e#8896#8956#0" expanded="false" />
+                <element signature="e#8996#9007#0" expanded="false" />
                 <element signature="n#!!block;n#remove#0;n#Driver#0" expanded="false" />
-                <element signature="e#9176#9236#0" expanded="false" />
+                <element signature="e#9250#9310#0" expanded="false" />
                 <element signature="n#!!block;n#execQuery#0;n#Driver#0" expanded="false" />
-                <element signature="e#9374#9458#0" expanded="false" />
-                <element signature="e#9523#9652#0" expanded="false" />
+                <element signature="e#9448#9532#0" expanded="false" />
+                <element signature="e#9597#9726#0" expanded="false" />
                 <element signature="n#!!block;n#eagerQuery#0;n#Driver#0" expanded="false" />
-                <element signature="e#10284#10295#0" expanded="false" />
+                <element signature="e#10358#10369#0" expanded="false" />
                 <element signature="n#!!block;n#clear#0;n#Driver#0" expanded="false" />
-                <element signature="e#10452#10612#0" expanded="false" />
-                <element signature="e#10637#10648#0" expanded="false" />
+                <element signature="e#10526#10686#0" expanded="false" />
+                <element signature="e#10711#10722#0" expanded="false" />
                 <element signature="n#!!block;n#valueToProperty#0;n#Driver#0" expanded="false" />
-                <element signature="e#10728#12776#0" expanded="false" />
-                <element signature="e#10961#11007#0" expanded="false" />
-                <element signature="e#11044#11110#0" expanded="false" />
-                <element signature="e#11153#11206#0" expanded="false" />
-                <element signature="e#11338#11510#0" expanded="false" />
-                <element signature="e#11434#11492#0" expanded="false" />
-                <element signature="e#11622#12493#0" expanded="false" />
-                <element signature="e#11713#11791#0" expanded="false" />
-                <element signature="e#11837#11909#0" expanded="false" />
-                <element signature="e#12012#12475#0" expanded="false" />
-                <element signature="e#12298#12453#0" expanded="false" />
-                <element signature="e#12684#12766#0" expanded="false" />
-                <element signature="e#12810#12858#0" expanded="false" />
+                <element signature="e#10802#12850#0" expanded="false" />
+                <element signature="e#11035#11081#0" expanded="false" />
+                <element signature="e#11118#11184#0" expanded="false" />
+                <element signature="e#11227#11280#0" expanded="false" />
+                <element signature="e#11412#11584#0" expanded="false" />
+                <element signature="e#11508#11566#0" expanded="false" />
+                <element signature="e#11696#12567#0" expanded="false" />
+                <element signature="e#11787#11865#0" expanded="false" />
+                <element signature="e#11911#11983#0" expanded="false" />
+                <element signature="e#12086#12549#0" expanded="false" />
+                <element signature="e#12372#12527#0" expanded="false" />
+                <element signature="e#12758#12840#0" expanded="false" />
+                <element signature="e#12884#12932#0" expanded="false" />
                 <element signature="n#!!block;n#propertyToValue#0;n#Driver#0" expanded="false" />
-                <element signature="e#12935#15561#0" expanded="false" />
-                <element signature="e#13140#13210#0" expanded="false" />
-                <element signature="e#13345#15278#0" expanded="false" />
-                <element signature="e#13414#15260#0" expanded="false" />
-                <element signature="e#13600#13676#0" expanded="false" />
-                <element signature="e#13795#13869#0" expanded="false" />
-                <element signature="e#14018#14125#0" expanded="false" />
-                <element signature="e#14248#14324#0" expanded="false" />
-                <element signature="e#14452#14532#0" expanded="false" />
-                <element signature="e#14660#14740#0" expanded="false" />
-                <element signature="e#14871#14949#0" expanded="false" />
-                <element signature="e#15016#15094#0" expanded="false" />
-                <element signature="e#15469#15551#0" expanded="false" />
-                <element signature="e#15595#15646#0" expanded="false" />
+                <element signature="e#13009#15635#0" expanded="false" />
+                <element signature="e#13214#13284#0" expanded="false" />
+                <element signature="e#13419#15352#0" expanded="false" />
+                <element signature="e#13488#15334#0" expanded="false" />
+                <element signature="e#13674#13750#0" expanded="false" />
+                <element signature="e#13869#13943#0" expanded="false" />
+                <element signature="e#14092#14199#0" expanded="false" />
+                <element signature="e#14322#14398#0" expanded="false" />
+                <element signature="e#14526#14606#0" expanded="false" />
+                <element signature="e#14734#14814#0" expanded="false" />
+                <element signature="e#14945#15023#0" expanded="false" />
+                <element signature="e#15090#15168#0" expanded="false" />
+                <element signature="e#15543#15625#0" expanded="false" />
+                <element signature="e#15669#15720#0" expanded="false" />
                 <element signature="n#!!block;n#isSql#0;n#Driver#0" expanded="false" />
-                <element signature="e#15709#15720#0" expanded="false" />
-                <element signature="e#15727#15793#0" expanded="false" />
-                <element signature="n#!!block;n#getClassDef#0;n#Driver#0" expanded="false" />
-                <element signature="e#16130#16216#0" expanded="false" />
-                <element signature="e#17196#17262#0" expanded="false" />
-                <element signature="n#!!block;n#syncProperties#0;n#Driver#0" expanded="false" />
-                <element signature="e#18021#18765#0" expanded="false" />
-                <element signature="e#18275#18753#0" expanded="false" />
-                <element signature="e#18927#19001#0" expanded="false" />
+                <element signature="e#15783#15794#0" expanded="false" />
                 <element signature="n#!!block;n#generateTriggerBegin#0;n#Driver#0" expanded="false" />
-                <element signature="e#19522#19600#0" expanded="false" />
                 <element signature="n#!!block;n#generateConstraintsForTrigger#0;n#Driver#0" expanded="false" />
-                <element signature="e#19798#20868#0" expanded="false" />
-                <element signature="e#20059#20071#0" expanded="false" />
-                <element signature="e#20742#20761#0" expanded="false" />
-                <element signature="e#20909#21059#0" expanded="false" />
-                <element signature="e#21094#21105#0" expanded="false" />
                 <element signature="n#!!block;n#generateInsertValues#0;n#Driver#0" expanded="false" />
-                <element signature="e#21295#21756#0" expanded="false" />
-                <element signature="e#21411#21746#0" expanded="false" />
-                <element signature="e#21791#21802#0" expanded="false" />
                 <element signature="n#!!block;n#generateDeleteNullValues#0;n#Driver#0" expanded="false" />
-                <element signature="e#21996#22416#0" expanded="false" />
-                <element signature="e#22076#22078#0" expanded="false" />
-                <element signature="n#!!block;n#sync#0;n#Driver#0" expanded="false" />
-                <element signature="e#22550#29342#0" expanded="false" />
-                <element signature="e#22580#29215#0" expanded="false" />
-                <element signature="e#22598#22653#0" expanded="false" />
-                <element signature="e#23016#23481#0" expanded="false" />
-                <element signature="e#23975#24985#0" expanded="false" />
-                <element signature="e#24324#24434#0" expanded="false" />
-                <element signature="e#24576#24967#0" expanded="false" />
-                <element signature="e#25273#25323#0" expanded="false" />
-                <element signature="e#25787#25993#0" expanded="false" />
-                <element signature="e#26011#26080#0" expanded="false" />
-                <element signature="e#27139#27487#0" expanded="false" />
-                <element signature="e#27323#27469#0" expanded="false" />
-                <element signature="e#28047#28446#0" expanded="false" />
-                <element signature="e#28231#28428#0" expanded="false" />
-                <element signature="e#28499#28621#0" expanded="false" />
-                <element signature="e#29252#29332#0" expanded="false" />
-                <element signature="n#!!block;n#drop#0;n#Driver#0" expanded="false" />
-                <element signature="e#29427#29458#0" expanded="false" />
-                <element signature="n#!!block;n#hasMany#0;n#Driver#0" expanded="false" />
-                <element signature="e#29815#30290#0" expanded="false" />
-                <element signature="e#29896#29933#0" expanded="false" />
-                <element signature="e#30025#30062#0" expanded="false" />
-                <element signature="e#30136#30173#0" expanded="false" />
-                <element signature="e#30242#30279#0" expanded="false" />
+                <marker date="1448508856000" expanded="true" signature="16230:20214" placeholder="..." />
+                <marker date="1448508856000" expanded="true" signature="16672:20214" placeholder="..." />
+                <marker date="1448508856000" expanded="true" signature="17012:20214" placeholder="..." />
+                <marker date="1448508856000" expanded="true" signature="25713:26019" placeholder="..." />
+                <marker date="1448508856000" expanded="true" signature="26208:26769" placeholder="..." />
+                <marker date="1448508856000" expanded="true" signature="26338:26769" placeholder="..." />
+                <marker date="1448508856000" expanded="true" signature="26419:26769" placeholder="..." />
+                <marker date="1448508856000" expanded="true" signature="32277:32696" placeholder="..." />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ActorDBOrmDriver.ts" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/lib/ActorDB/ActorDBOrmDriver.ts">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="3" column="0" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
-              <folding>
-                <element signature="n#!!doc" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Actordb.d.ts" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/lib/ActorDB/Thrift/gen-js/Actordb.d.ts">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.5523256">
-              <caret line="31" column="0" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
-              <folding>
-                <element signature="n#!!doc" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="thrift.d.ts" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/node_modules/thrift/lib/ts/thrift.d.ts">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="380" column="8" selection-start-line="380" selection-start-column="8" selection-end-line="380" selection-end-column="8" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -277,8 +208,8 @@
             <state vertical-scroll-proportion="0.0">
               <caret line="28" column="9" selection-start-line="28" selection-start-column="9" selection-end-line="28" selection-end-column="9" />
               <folding>
-                <marker date="1448123119000" expanded="true" signature="0:44" placeholder="/** Created by slanska on 03.10.2015. ...*/" />
-                <marker date="1448123119000" expanded="true" signature="238:320" placeholder="//..." />
+                <marker date="1448496746000" expanded="true" signature="0:44" placeholder="/** Created by slanska on 03.10.2015. ...*/" />
+                <marker date="1448496746000" expanded="true" signature="238:320" placeholder="//..." />
               </folding>
             </state>
           </provider>
@@ -319,14 +250,14 @@
         <option value="$PROJECT_DIR$/lib/sqlite-schema.sql" />
         <option value="$PROJECT_DIR$/tests/test.ts" />
         <option value="$PROJECT_DIR$/lib/models/index.ts" />
-        <option value="$PROJECT_DIR$/lib/models/IClass.ts" />
         <option value="$PROJECT_DIR$/lib/models/ClassDef.ts" />
         <option value="$PROJECT_DIR$/lib/FlexiliteAdapter.js" />
         <option value="$PROJECT_DIR$/tests/helper.ts" />
         <option value="$PROJECT_DIR$/lib/models/IClassProperty.ts" />
         <option value="$PROJECT_DIR$/lib/models/IPropertyDef.ts" />
-        <option value="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
         <option value="$PROJECT_DIR$/lib/ActorDB/ActorDBOrmDriver.ts" />
+        <option value="$PROJECT_DIR$/lib/models/IClass.ts" />
+        <option value="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
       </list>
     </option>
   </component>
@@ -448,24 +379,6 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="tests" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="tests" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="data" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -819,7 +732,13 @@
       <option name="project" value="LOCAL" />
       <updated>1448340060514</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="refactoring in sqlite schema script">
+      <created>1448423290009</created>
+      <option name="number" value="00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1448423290010</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -863,10 +782,11 @@
       <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32599726" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32934928" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.4883081" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.21320495" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3118503" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -875,7 +795,6 @@
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
     <layout-to-restore>
@@ -923,7 +842,8 @@
     <MESSAGE value="first working version of view generation" />
     <MESSAGE value="refactored Driver to use TypeScript class" />
     <MESSAGE value="added ActorDB Thrift binding&#10;" />
-    <option name="LAST_COMMIT_MESSAGE" value="added ActorDB Thrift binding&#10;" />
+    <MESSAGE value="refactoring in sqlite schema script" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactoring in sqlite schema script" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -940,27 +860,27 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>335</line>
+          <line>337</line>
           <option name="timeStamp" value="98" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>406</line>
+          <line>408</line>
           <option name="timeStamp" value="114" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>167</line>
+          <line>169</line>
           <option name="timeStamp" value="115" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>870</line>
+          <line>939</line>
           <option name="timeStamp" value="116" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>782</line>
+          <line>848</line>
           <option name="timeStamp" value="118" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
@@ -970,12 +890,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>678</line>
+          <line>744</line>
           <option name="timeStamp" value="125" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>839</line>
+          <line>908</line>
           <option name="timeStamp" value="126" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
@@ -985,24 +905,29 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>498</line>
+          <line>500</line>
           <option name="timeStamp" value="132" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>423</line>
+          <line>425</line>
           <option name="timeStamp" value="133" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>90</line>
+          <line>92</line>
           <option name="timeStamp" value="134" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
+          <line>797</line>
+          <option name="timeStamp" value="136" />
         </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
-      <option name="time" value="136" />
+      <option name="time" value="137" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="NodeJSConfigurationType">
@@ -1017,13 +942,6 @@
     </watches-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/lib/models/IAccessRule.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="7" column="5" selection-start-line="7" selection-start-column="5" selection-end-line="7" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/lib/models/IRepository.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -1238,6 +1156,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="9" column="62" selection-start-line="9" selection-start-column="62" selection-end-line="9" selection-end-column="62" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -1245,14 +1164,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="31" column="29" selection-start-line="31" selection-start-column="29" selection-end-line="31" selection-end-column="29" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/models/IClass.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="27" column="23" selection-start-line="27" selection-start-column="23" selection-end-line="27" selection-end-column="23" />
           <folding />
         </state>
       </provider>
@@ -1287,8 +1198,8 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="28" column="9" selection-start-line="28" selection-start-column="9" selection-end-line="28" selection-end-column="9" />
           <folding>
-            <marker date="1448123119000" expanded="true" signature="0:44" placeholder="/** Created by slanska on 03.10.2015. ...*/" />
-            <marker date="1448123119000" expanded="true" signature="238:320" placeholder="//..." />
+            <marker date="1448496746000" expanded="true" signature="0:44" placeholder="/** Created by slanska on 03.10.2015. ...*/" />
+            <marker date="1448496746000" expanded="true" signature="238:320" placeholder="//..." />
           </folding>
         </state>
       </provider>
@@ -1345,20 +1256,12 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/node_modules/thrift/lib/ts/thrift.d.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="380" column="8" selection-start-line="380" selection-start-column="8" selection-end-line="380" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/lib/ActorDB/Thrift/gen-js/adbt_types.js">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-0.15224358">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="n#!!doc" expanded="true" />
+            <element signature="n#!!doc" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1368,7 +1271,7 @@
         <state vertical-scroll-proportion="-0.1826923">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="n#!!doc" expanded="true" />
+            <element signature="n#!!doc" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1378,7 +1281,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="n#!!doc" expanded="true" />
+            <element signature="n#!!doc" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1388,8 +1291,52 @@
         <state vertical-scroll-proportion="-1.9791666">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="n#!!doc" expanded="true" />
+            <element signature="n#!!doc" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/ActorDB/Thrift/gen-js/Actordb.d.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.49709302">
+          <caret line="9" column="31" selection-start-line="9" selection-start-column="31" selection-end-line="9" selection-end-column="31" />
+          <folding>
+            <element signature="n#!!doc" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/ActorDB/ActorDBOrmDriver.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.16569768">
+          <caret line="3" column="0" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
+          <folding>
+            <element signature="n#!!doc" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/node_modules/thrift/lib/ts/thrift.d.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.6173913">
+          <caret line="544" column="8" selection-start-line="544" selection-start-column="8" selection-end-line="544" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/typings/lodash/lodash.d.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="12951" column="14" selection-start-line="12951" selection-start-column="14" selection-end-line="12951" selection-end-column="14" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/models/IClass.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.71086955">
+          <caret line="36" column="0" selection-start-line="36" selection-start-column="0" selection-end-line="36" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -1403,178 +1350,120 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="619" column="64" selection-start-line="619" selection-start-column="55" selection-end-line="619" selection-end-column="64" />
+        <state vertical-scroll-proportion="1.6608696">
+          <caret line="691" column="0" selection-start-line="691" selection-start-column="0" selection-end-line="691" selection-end-column="0" />
           <folding>
             <element signature="e#53#97#0" expanded="false" />
             <element signature="e#327#369#0" expanded="false" />
-            <element signature="n#!!block;n#IDropOptions#0" expanded="false" />
-            <element signature="n#!!block;n#ISyncOptions#0" expanded="false" />
             <element signature="n#!!block;n#IHasManyAssociation#0" expanded="false" />
-            <element signature="e#1008#1091#0" expanded="false" />
+            <element signature="e#1082#1165#0" expanded="false" />
             <element signature="n#!!block;n#constructor#0;n#Driver#0" expanded="false" />
-            <element signature="e#1470#1525#0" expanded="false" />
-            <element signature="e#1706#1751#0" expanded="false" />
-            <element signature="e#1773#2421#0" expanded="false" />
-            <element signature="e#1787#1846#0" expanded="false" />
-            <element signature="e#2592#2715#0" expanded="false" />
+            <element signature="e#1544#1599#0" expanded="false" />
+            <element signature="e#1780#1825#0" expanded="false" />
+            <element signature="e#1847#2495#0" expanded="false" />
+            <element signature="e#1861#1920#0" expanded="false" />
+            <element signature="e#2666#2789#0" expanded="false" />
             <element signature="n#!!block;n#getViewName#0;n#Driver#0" expanded="false" />
             <element signature="n#!!block;n#convertTimezone#0;n#Driver#0" expanded="false" />
-            <element signature="e#2957#3080#0" expanded="false" />
-            <element signature="e#3110#3181#0" expanded="false" />
+            <element signature="e#3031#3154#0" expanded="false" />
+            <element signature="e#3184#3255#0" expanded="false" />
             <element signature="n#!!block;n#ping#0;n#Driver#0" expanded="false" />
             <element signature="n#!!block;n#on#0;n#Driver#0" expanded="false" />
-            <element signature="e#3459#3507#0" expanded="false" />
+            <element signature="e#3533#3581#0" expanded="false" />
             <element signature="n#!!block;n#connect#0;n#Driver#0" expanded="false" />
             <element signature="n#!!block;n#close#0;n#Driver#0" expanded="false" />
             <element signature="n#!!block;n#getQuery#0;n#Driver#0" expanded="false" />
             <element signature="n#!!block;n#execSimpleQuery#0;n#Driver#0" expanded="false" />
-            <element signature="e#3848#3912#0" expanded="false" />
+            <element signature="e#3922#3986#0" expanded="false" />
             <element signature="n#!!block;n#find#0;n#Driver#0" expanded="false" />
-            <element signature="e#4214#4260#0" expanded="false" />
-            <element signature="e#4312#4356#0" expanded="false" />
-            <element signature="e#4411#4575#0" expanded="false" />
-            <element signature="e#4609#4765#0" expanded="false" />
-            <element signature="e#4679#4755#0" expanded="false" />
-            <element signature="e#4799#5249#0" expanded="false" />
-            <element signature="e#5003#5127#0" expanded="false" />
-            <element signature="e#5157#5239#0" expanded="false" />
-            <element signature="e#5271#5319#0" expanded="false" />
-            <element signature="e#5354#5540#0" expanded="false" />
-            <element signature="e#5407#5530#0" expanded="false" />
-            <element signature="e#5603#5663#0" expanded="false" />
-            <element signature="e#5720#5731#0" expanded="false" />
+            <element signature="e#4288#4334#0" expanded="false" />
+            <element signature="e#4386#4430#0" expanded="false" />
+            <element signature="e#4485#4649#0" expanded="false" />
+            <element signature="e#4683#4839#0" expanded="false" />
+            <element signature="e#4753#4829#0" expanded="false" />
+            <element signature="e#4873#5323#0" expanded="false" />
+            <element signature="e#5077#5201#0" expanded="false" />
+            <element signature="e#5231#5313#0" expanded="false" />
+            <element signature="e#5345#5393#0" expanded="false" />
+            <element signature="e#5428#5614#0" expanded="false" />
+            <element signature="e#5481#5604#0" expanded="false" />
+            <element signature="e#5677#5737#0" expanded="false" />
+            <element signature="e#5794#5805#0" expanded="false" />
             <element signature="n#!!block;n#count#0;n#Driver#0" expanded="false" />
-            <element signature="e#5927#6299#0" expanded="false" />
-            <element signature="e#6105#6203#0" expanded="false" />
-            <element signature="e#6233#6289#0" expanded="false" />
-            <element signature="e#6321#6369#0" expanded="false" />
-            <element signature="e#6404#6599#0" expanded="false" />
-            <element signature="e#6457#6589#0" expanded="false" />
-            <element signature="e#6662#6722#0" expanded="false" />
-            <element signature="e#6762#6773#0" expanded="false" />
+            <element signature="e#6001#6373#0" expanded="false" />
+            <element signature="e#6179#6277#0" expanded="false" />
+            <element signature="e#6307#6363#0" expanded="false" />
+            <element signature="e#6395#6443#0" expanded="false" />
+            <element signature="e#6478#6673#0" expanded="false" />
+            <element signature="e#6531#6663#0" expanded="false" />
+            <element signature="e#6736#6796#0" expanded="false" />
+            <element signature="e#6836#6847#0" expanded="false" />
             <element signature="n#!!block;n#insert#0;n#Driver#0" expanded="false" />
-            <element signature="e#6838#6875#0" expanded="false" />
-            <element signature="e#7184#7244#0" expanded="false" />
-            <element signature="e#7298#8299#0" expanded="false" />
-            <element signature="e#7616#8002#0" expanded="false" />
-            <element signature="e#7796#7986#0" expanded="false" />
-            <element signature="e#8032#8289#0" expanded="false" />
-            <element signature="e#8109#8237#0" expanded="false" />
-            <element signature="e#8324#8335#0" expanded="false" />
+            <element signature="e#6912#6949#0" expanded="false" />
+            <element signature="e#7258#7318#0" expanded="false" />
+            <element signature="e#7372#8373#0" expanded="false" />
+            <element signature="e#7690#8076#0" expanded="false" />
+            <element signature="e#7870#8060#0" expanded="false" />
+            <element signature="e#8106#8363#0" expanded="false" />
+            <element signature="e#8183#8311#0" expanded="false" />
+            <element signature="e#8398#8409#0" expanded="false" />
             <element signature="n#!!block;n#update#0;n#Driver#0" expanded="false" />
-            <element signature="e#8393#8430#0" expanded="false" />
-            <element signature="e#8822#8882#0" expanded="false" />
-            <element signature="e#8922#8933#0" expanded="false" />
+            <element signature="e#8467#8504#0" expanded="false" />
+            <element signature="e#8896#8956#0" expanded="false" />
+            <element signature="e#8996#9007#0" expanded="false" />
             <element signature="n#!!block;n#remove#0;n#Driver#0" expanded="false" />
-            <element signature="e#9176#9236#0" expanded="false" />
+            <element signature="e#9250#9310#0" expanded="false" />
             <element signature="n#!!block;n#execQuery#0;n#Driver#0" expanded="false" />
-            <element signature="e#9374#9458#0" expanded="false" />
-            <element signature="e#9523#9652#0" expanded="false" />
+            <element signature="e#9448#9532#0" expanded="false" />
+            <element signature="e#9597#9726#0" expanded="false" />
             <element signature="n#!!block;n#eagerQuery#0;n#Driver#0" expanded="false" />
-            <element signature="e#10284#10295#0" expanded="false" />
+            <element signature="e#10358#10369#0" expanded="false" />
             <element signature="n#!!block;n#clear#0;n#Driver#0" expanded="false" />
-            <element signature="e#10452#10612#0" expanded="false" />
-            <element signature="e#10637#10648#0" expanded="false" />
+            <element signature="e#10526#10686#0" expanded="false" />
+            <element signature="e#10711#10722#0" expanded="false" />
             <element signature="n#!!block;n#valueToProperty#0;n#Driver#0" expanded="false" />
-            <element signature="e#10728#12776#0" expanded="false" />
-            <element signature="e#10961#11007#0" expanded="false" />
-            <element signature="e#11044#11110#0" expanded="false" />
-            <element signature="e#11153#11206#0" expanded="false" />
-            <element signature="e#11338#11510#0" expanded="false" />
-            <element signature="e#11434#11492#0" expanded="false" />
-            <element signature="e#11622#12493#0" expanded="false" />
-            <element signature="e#11713#11791#0" expanded="false" />
-            <element signature="e#11837#11909#0" expanded="false" />
-            <element signature="e#12012#12475#0" expanded="false" />
-            <element signature="e#12298#12453#0" expanded="false" />
-            <element signature="e#12684#12766#0" expanded="false" />
-            <element signature="e#12810#12858#0" expanded="false" />
+            <element signature="e#10802#12850#0" expanded="false" />
+            <element signature="e#11035#11081#0" expanded="false" />
+            <element signature="e#11118#11184#0" expanded="false" />
+            <element signature="e#11227#11280#0" expanded="false" />
+            <element signature="e#11412#11584#0" expanded="false" />
+            <element signature="e#11508#11566#0" expanded="false" />
+            <element signature="e#11696#12567#0" expanded="false" />
+            <element signature="e#11787#11865#0" expanded="false" />
+            <element signature="e#11911#11983#0" expanded="false" />
+            <element signature="e#12086#12549#0" expanded="false" />
+            <element signature="e#12372#12527#0" expanded="false" />
+            <element signature="e#12758#12840#0" expanded="false" />
+            <element signature="e#12884#12932#0" expanded="false" />
             <element signature="n#!!block;n#propertyToValue#0;n#Driver#0" expanded="false" />
-            <element signature="e#12935#15561#0" expanded="false" />
-            <element signature="e#13140#13210#0" expanded="false" />
-            <element signature="e#13345#15278#0" expanded="false" />
-            <element signature="e#13414#15260#0" expanded="false" />
-            <element signature="e#13600#13676#0" expanded="false" />
-            <element signature="e#13795#13869#0" expanded="false" />
-            <element signature="e#14018#14125#0" expanded="false" />
-            <element signature="e#14248#14324#0" expanded="false" />
-            <element signature="e#14452#14532#0" expanded="false" />
-            <element signature="e#14660#14740#0" expanded="false" />
-            <element signature="e#14871#14949#0" expanded="false" />
-            <element signature="e#15016#15094#0" expanded="false" />
-            <element signature="e#15469#15551#0" expanded="false" />
-            <element signature="e#15595#15646#0" expanded="false" />
+            <element signature="e#13009#15635#0" expanded="false" />
+            <element signature="e#13214#13284#0" expanded="false" />
+            <element signature="e#13419#15352#0" expanded="false" />
+            <element signature="e#13488#15334#0" expanded="false" />
+            <element signature="e#13674#13750#0" expanded="false" />
+            <element signature="e#13869#13943#0" expanded="false" />
+            <element signature="e#14092#14199#0" expanded="false" />
+            <element signature="e#14322#14398#0" expanded="false" />
+            <element signature="e#14526#14606#0" expanded="false" />
+            <element signature="e#14734#14814#0" expanded="false" />
+            <element signature="e#14945#15023#0" expanded="false" />
+            <element signature="e#15090#15168#0" expanded="false" />
+            <element signature="e#15543#15625#0" expanded="false" />
+            <element signature="e#15669#15720#0" expanded="false" />
             <element signature="n#!!block;n#isSql#0;n#Driver#0" expanded="false" />
-            <element signature="e#15709#15720#0" expanded="false" />
-            <element signature="e#15727#15793#0" expanded="false" />
-            <element signature="n#!!block;n#getClassDef#0;n#Driver#0" expanded="false" />
-            <element signature="e#16130#16216#0" expanded="false" />
-            <element signature="e#17196#17262#0" expanded="false" />
-            <element signature="n#!!block;n#syncProperties#0;n#Driver#0" expanded="false" />
-            <element signature="e#18021#18765#0" expanded="false" />
-            <element signature="e#18275#18753#0" expanded="false" />
-            <element signature="e#18927#19001#0" expanded="false" />
+            <element signature="e#15783#15794#0" expanded="false" />
             <element signature="n#!!block;n#generateTriggerBegin#0;n#Driver#0" expanded="false" />
-            <element signature="e#19522#19600#0" expanded="false" />
             <element signature="n#!!block;n#generateConstraintsForTrigger#0;n#Driver#0" expanded="false" />
-            <element signature="e#19798#20868#0" expanded="false" />
-            <element signature="e#20059#20071#0" expanded="false" />
-            <element signature="e#20742#20761#0" expanded="false" />
-            <element signature="e#20909#21059#0" expanded="false" />
-            <element signature="e#21094#21105#0" expanded="false" />
             <element signature="n#!!block;n#generateInsertValues#0;n#Driver#0" expanded="false" />
-            <element signature="e#21295#21756#0" expanded="false" />
-            <element signature="e#21411#21746#0" expanded="false" />
-            <element signature="e#21791#21802#0" expanded="false" />
             <element signature="n#!!block;n#generateDeleteNullValues#0;n#Driver#0" expanded="false" />
-            <element signature="e#21996#22416#0" expanded="false" />
-            <element signature="e#22076#22078#0" expanded="false" />
-            <element signature="n#!!block;n#sync#0;n#Driver#0" expanded="false" />
-            <element signature="e#22550#29342#0" expanded="false" />
-            <element signature="e#22580#29215#0" expanded="false" />
-            <element signature="e#22598#22653#0" expanded="false" />
-            <element signature="e#23016#23481#0" expanded="false" />
-            <element signature="e#23975#24985#0" expanded="false" />
-            <element signature="e#24324#24434#0" expanded="false" />
-            <element signature="e#24576#24967#0" expanded="false" />
-            <element signature="e#25273#25323#0" expanded="false" />
-            <element signature="e#25787#25993#0" expanded="false" />
-            <element signature="e#26011#26080#0" expanded="false" />
-            <element signature="e#27139#27487#0" expanded="false" />
-            <element signature="e#27323#27469#0" expanded="false" />
-            <element signature="e#28047#28446#0" expanded="false" />
-            <element signature="e#28231#28428#0" expanded="false" />
-            <element signature="e#28499#28621#0" expanded="false" />
-            <element signature="e#29252#29332#0" expanded="false" />
-            <element signature="n#!!block;n#drop#0;n#Driver#0" expanded="false" />
-            <element signature="e#29427#29458#0" expanded="false" />
-            <element signature="n#!!block;n#hasMany#0;n#Driver#0" expanded="false" />
-            <element signature="e#29815#30290#0" expanded="false" />
-            <element signature="e#29896#29933#0" expanded="false" />
-            <element signature="e#30025#30062#0" expanded="false" />
-            <element signature="e#30136#30173#0" expanded="false" />
-            <element signature="e#30242#30279#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/ActorDB/ActorDBOrmDriver.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="3" column="0" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
-          <folding>
-            <element signature="n#!!doc" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/ActorDB/Thrift/gen-js/Actordb.d.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.5523256">
-          <caret line="31" column="0" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
-          <folding>
-            <element signature="n#!!doc" expanded="true" />
+            <marker date="1448508856000" expanded="true" signature="16230:20214" placeholder="..." />
+            <marker date="1448508856000" expanded="true" signature="16672:20214" placeholder="..." />
+            <marker date="1448508856000" expanded="true" signature="17012:20214" placeholder="..." />
+            <marker date="1448508856000" expanded="true" signature="25713:26019" placeholder="..." />
+            <marker date="1448508856000" expanded="true" signature="26208:26769" placeholder="..." />
+            <marker date="1448508856000" expanded="true" signature="26338:26769" placeholder="..." />
+            <marker date="1448508856000" expanded="true" signature="26419:26769" placeholder="..." />
+            <marker date="1448508856000" expanded="true" signature="32277:32696" placeholder="..." />
           </folding>
         </state>
       </provider>
