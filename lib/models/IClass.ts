@@ -22,7 +22,7 @@ declare interface IClass
     // TODO Needed?
     SchemaXML?: string;
 
-    SchemaOutdated?: boolean;
+    SchemaOutdated?: boolean | number;
     MinOccurences?: number;
     MaxOccurences?: number;
     DBViewName: string;

@@ -72,7 +72,6 @@ export function ConnectAndSave(done:Function)
             console.log("First person: %s, age %d", people[0].fullName(), people[0].age);
             people[0].age = 16;
             people[0].save.sync(people[0]);
-
         }
         catch(err)
         {

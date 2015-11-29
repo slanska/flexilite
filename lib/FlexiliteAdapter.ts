@@ -17,8 +17,6 @@ import path = require('path');
 import ClassDef = require('./models/ClassDef');
 import flex = require('./models/index');
 import orm = require("orm");
-import {Error} from "../typings/node/node";
-import _ = require('lodash');
 
 interface IDropOptions
 {
@@ -101,7 +99,7 @@ export class Driver
 
     getViewName(table:string):string
     {
-        return `vw_${table}`;
+        return table;
     }
 
     convertTimezone(tz:string):any
@@ -594,10 +592,10 @@ export class Driver
      */
     private getClassDefByID(self, classID:number):IClass
     {
-        var classDef = (<any>self.db.get).sync(self.db, 'select * from [Classes] where [ClassID] = ?', classID);
+        var classDef = (<any>self.db.get).sync(self.db, 'select * from [.classes] where [ClassID] = ?', classID);
         if (!classDef)
             throw new Error(`Class with id=${classID} not found`);
-        classDef.Properties = (<any>self.db.all).sync(self.db, 'select * from [ClassProperties] where [ClassID] = ?', classID);
+        classDef.Properties = (<any>self.db.all).sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', classID);
         return classDef;
     }
 
@@ -606,17 +604,51 @@ export class Driver
      If class does not exist yet, new instance of IClass will be created.
      ClassID will be set to undefined, Properties - to empty object
      */
-    private getClassDefByName(self, className:number):IClass
+    private getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IClass
     {
-        var classDef:IClass = (<any>self.db.get).sync(self.db, 'select * from [Classes] where [ClassName] = ?', className);
-        if (!classDef)
+        var self = this;
+        var selStmt = self.db.prepare('select * from [.classes] where [ClassName] = ?');
+        var rows = (<any>selStmt.all).sync(selStmt, className);
+        var classDef:IClass;
+
+        if (rows.length === 0)
+        // Class not found
         {
-            classDef = new ClassDef.Flexilite.models.ClassDef();
-            classDef.ClassName = className;
-            classDef.DBViewName = this.getViewName(className);
+            if (createIfNotExist)
+            {
+                var insCStmt = self.db.prepare(
+                    `insert or replace into [.classes] ([ClassName], [DBViewName]) values (?, ?);
+                    select * from [.classes] where [ClassName] = ?;`);
+                (<any>insCStmt.run).sync(insCStmt, [className, className]);
+
+                // Reload class def with all updated properties
+                classDef = (<any>selStmt.all).sync(selStmt, className)[0];
+            }
+            else
+            //
+            {
+                classDef = new ClassDef.Flexilite.models.ClassDef();
+                classDef.ClassName = className;
+                classDef.DBViewName = this.getViewName(className);
+                classDef.ClassID = null;
+            }
+            classDef.Properties = {};
+        }
+        else
+        {
+            classDef = rows[0];
+            classDef.Properties = {};
+            if (loadProperties)
+            // Class found. Try to load properties
+            {
+                var props = (<any>self.db.all).sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', classDef.ClassID) || {};
+                props.forEach (function (p, idx, propArray)
+                {
+                    classDef.Properties[p.PropertyName] = p;
+                });
+            }
         }
 
-        classDef.Properties = (<any>self.db.all).sync(self.db, 'select * from [ClassProperties] where [ClassID] = ?', className) || {};
         return classDef;
     }
 
@@ -627,22 +659,27 @@ export class Driver
      */
     private syncModelToClassDef(model:ISyncOptions):IClass
     {
+        var self = this;
+
         // Load existing model, if it exists
-        var result = this.getClassDefByName(this, model.table);
+        var result = this.getClassDefByName(model.table, true, true);
 
         // Initially set all properties
-        var deletedProperties = [string];
+        var deletedProperties:[string] = <[string]>[];
         for (var propName in result.Properties)
         {
             deletedProperties.push(propName);
         }
 
-        var insCStmt = self.db.prepare(`insert or replace into [.classes] ([ClassName], [DBViewName], [ClassID]) values (?, ?, ?);`);
-        var insCPStmt = self.db.prepare(`insert or replace into [.class_pProperties] ([ClassID], [PropertyID],
+        var insCStmt = self.db.prepare(
+            `insert or ignore into [.classes] ([ClassName], [DefaultScalarType], [ClassID])
+            select ?, ?, (select ClassID from [.classes] where ClassName = ? limit 1);`);
+
+        var insCPStmt = self.db.prepare(`insert or replace into [.class_properties] ([ClassID], [PropertyID],
      [PropertyName], [TrackChanges], [DefaultValue], [DefaultDataType],
      [MinOccurences], [MaxOccurences], [Unique], [MaxLength], [ReferencedClassID],
      [ReversePropertyID], [ColumnAssigned]) values (?,
-     (select [ClassID] from [Classes] where [ClassName] = ? limit 1),
+     (select [ClassID] from [.classes] where [ClassName] = ? limit 1),
       ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?);`);
 
@@ -660,21 +697,21 @@ export class Driver
             }
             cp.DefaultDataType = pd.type || cp.DefaultDataType;
             cp.Indexed = pd.indexed || cp.Indexed;
-            cp.PropertyName = pd.propName;
+            cp.PropertyName = propName;
             cp.Unique = pd.unique || cp.Unique;
             cp.DefaultValue = pd.defaultValue || cp.DefaultValue;
-            if (pd.ext)
-            {
-                cp.ColumnAssigned = pd.ext.mappedTo || cp.ColumnAssigned;
-                cp.MaxLength = pd.ext.maxLength || cp.MaxLength;
-                cp.MaxOccurences = pd.ext.maxOccurences || cp.MaxOccurences;
-                cp.MinOccurences = pd.ext.minOccurences || cp.MinOccurences;
-                cp.ValidationRegex = pd.ext.validateRegex || cp.ValidationRegex;
-            }
+            var ext = pd.ext || {};
 
-            (<any>insCStmt.run).sync(insCStmt, [propName]);
+            cp.ColumnAssigned = ext.mappedTo || cp.ColumnAssigned;
+            cp.MaxLength = ext.maxLength || cp.MaxLength;
+            cp.MaxOccurences = ext.maxOccurences || cp.MaxOccurences;
+            cp.MinOccurences = ext.minOccurences || cp.MinOccurences;
+            cp.ValidationRegex = ext.validateRegex || cp.ValidationRegex;
+
+            (<any>insCStmt.run).sync(insCStmt, [propName, cp.DefaultDataType, propName]);
+
             (<any>insCPStmt.run).sync(insCPStmt, [
-                classID,
+                result.ClassID,
                 propName,
                 pd.name,
                 (pd.ext && pd.ext.trackChanges) || true,
@@ -689,52 +726,10 @@ export class Driver
                 null
             ]);
         }
+
+        result = this.getClassDefByName(model.table, false, true);
 
         return result;
-    }
-
-    /*
-     Internal method for synchronizing class properties
-     */
-    private  syncProperties(classDef:IClass):IClass
-    {
-        var self = this;
-
-        var insCStmt = self.db.prepare(`insert or replace into [.classes] ([ClassName], [DBViewName], [ClassID]) values (?, ?, ?);`);
-        var insCPStmt = self.db.prepare(`insert or replace into [.class_pProperties] ([ClassID], [PropertyID],
-     [PropertyName], [TrackChanges], [DefaultValue], [DefaultDataType],
-     [MinOccurences], [MaxOccurences], [Unique], [MaxLength], [ReferencedClassID],
-     [ReversePropertyID], [ColumnAssigned]) values (?,
-     (select [ClassID] from [Classes] where [ClassName] = ? limit 1),
-      ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?);`);
-
-        for (var key in classDef.allProperties)
-        {
-            var pd:Flexilite.models.IPropertyDef = opts.allProperties[key];
-            var propName = (pd.ext && pd.ext.mappedTo) || pd.name;
-            (<any>insCStmt.run).sync(insCStmt, [propName]);
-            (<any>insCPStmt.run).sync(insCPStmt, [
-                classID,
-                propName,
-                pd.name,
-                (pd.ext && pd.ext.trackChanges) || true,
-                pd.defaultValue,
-                pd.type || 'text',
-                (pd.ext && pd.ext.minOccurences) || 0,
-                (pd.ext && pd.ext.maxOccurences) || 1,
-                pd.unique || false,
-                (pd.ext && pd.ext.maxLength) || 0,
-                null,
-                null,
-                null
-            ]);
-        }
-
-        (<any>insCStmt.finalize).sync(insCStmt);
-        (<any>insCPStmt.finalize).sync(insCPStmt);
-
-        return self.getClassDefByID(self, classID);
     }
 
     /*
@@ -827,7 +822,7 @@ export class Driver
             //
             //if (!p.ColumnAssigned)
             //{
-            //    result += `delete from [Values] where [ObjectID] = (old.ObjectID | (old.HostID << 31)) and [PropertyID] = ${p.PropertyID}
+            //    result += `delete from [.values] where [ObjectID] = (old.ObjectID | (old.HostID << 31)) and [PropertyID] = ${p.PropertyID}
             //    and [PropIndex] = 0 and [ClassID] = ${classDef.ClassID} and new.[${p.PropertyName}] is not null;\n`;
             //}
         }
@@ -842,31 +837,17 @@ export class Driver
         {
             try
             {
-                // Process data and save in Classes and ClassProperties
+                // Process data and save in .classes and .class_properties
                 // Set Flag SchemaOutdated
-                // Run view regeneration process
-
-                //            var getClassSQL = `select * from [Classes] where [ClassName] = '${opts.table}';`;
-                //
-                //            var cls = (<any>self.db.get).sync(self.db, getClassSQL);
-                //
-                //            if (!cls)
-                //            // Class not found. Insert new record
-                //            {
-                //                var insClsStmt = self.db.prepare(
-                //                    `insert or replace into [.classes] ([ClassName],
-                //[SchemaOutdated], [DBViewName])
-                //values (?, ?, ?);`);
-                //                var rslt = (<any>insClsStmt.run).sync(insClsStmt, [opts.table, true, self.getViewName(opts.table)]);
-                //                cls = (<any>self.db.get).sync(self.db, getClassSQL);
-                //                (<any>insClsStmt.finalize).sync(insClsStmt);
-                //            }
-
-                var classDef:IClass = this.syncModelToClassDef(opts);
-                var classDef:IClass = self.syncProperties(opts, cls.ClassID);
+                var classDef:IClass = self.syncModelToClassDef(opts);
 
                 // Regenerate view
                 // Check if class schema needs synchronization
+                if (classDef.SchemaOutdated !== 1)
+                {
+                    callback();
+                    return;
+                }
 
                 var viewSQL = `drop view if exists ${classDef.DBViewName};
             \ncreate view if not exists ${classDef.DBViewName} as select
@@ -881,14 +862,14 @@ export class Driver
                     propIdx++;
                     var p:IClassProperty = classDef.Properties[propName];
                     if (p.ColumnAssigned && p.ColumnAssigned !== null)
-                    // This property is stored directly in Objects table
+                    // This property is stored directly in .objects table
                     {
                         viewSQL += `o.[${p.ColumnAssigned}] as [${p.PropertyName}]\n`;
                     }
                     else
                     // This property is stored in Values table. Need to use subquery for access
                     {
-                        viewSQL += `\n(select v.[Value] from [Values] v
+                        viewSQL += `\n(select v.[Value] from [.values] v
                     where v.[ObjectID] = o.[ObjectID]
     and v.[PropIndex] = 0 and v.[PropertyID] = ${p.PropertyID}`;
                         if ((p.ctlv & 1) === 1)
@@ -896,7 +877,7 @@ export class Driver
                         viewSQL += `) as [${p.PropertyName}]`;
                     }
                 }
-                viewSQL += ` from [Objects] o
+                viewSQL += ` from [.objects] o
     where o.[ClassID] = ${classDef.ClassID}`;
 
                 if (classDef.ctloMask !== 0)
@@ -931,7 +912,7 @@ export class Driver
              (SELECT coalesce(new.[ObjectID] & 2147483647,
              (select ([seq] & 2147483647) + 1
           FROM [sqlite_sequence]
-          WHERE name = 'Objects' limit 1)) AS [NextID])
+          WHERE name = '.objects' limit 1)) AS [NextID])
 
              ;\n`;
                 viewSQL += `end;\n`;
@@ -941,7 +922,7 @@ export class Driver
                     'when not (new.[ObjectID] is null or new.[HostID] is null)');
                 viewSQL += self.generateConstraintsForTrigger(classDef);
 
-                viewSQL += `insert into [Objects] ([ObjectID], [ClassID], [ctlo]`;
+                viewSQL += `insert into [.objects] ([ObjectID], [ClassID], [ctlo]`;
                 cols = '';
                 for (var propName in classDef.Properties)
                 {
@@ -980,7 +961,7 @@ export class Driver
                 }
                 if (columns !== '')
                 {
-                    viewSQL += `update [Objects] set ${columns} where [ObjectID] = new.[ObjectID];\n`;
+                    viewSQL += `update [.objects] set ${columns} where [ObjectID] = new.[ObjectID];\n`;
                 }
 
                 viewSQL += self.generateInsertValues(classDef);
@@ -989,10 +970,12 @@ export class Driver
 
                 // Delete trigger
                 viewSQL += self.generateTriggerBegin(classDef.DBViewName, 'delete');
-                viewSQL += `delete from [Objects] where [ObjectID] = new.[ObjectID] and [ClassID] = ${classDef.ClassID};\n`;
+                viewSQL += `delete from [.objects] where [ObjectID] = new.[ObjectID] and [ClassID] = ${classDef.ClassID};\n`;
                 viewSQL += 'end;\n';
 
                 console.log(viewSQL);
+
+                // Run view script
                 (<any>self.db.exec).sync(self.db, viewSQL);
 
                 callback();
@@ -1013,7 +996,7 @@ export class Driver
         //one_associations
         //many_associations
 
-        var qry = `select * from [Classes] where [ClassName] = ${opts.table};
+        var qry = `select * from [.classes] where [ClassName] = ${opts.table};
     `;
         this.db.exec(qry);
 
