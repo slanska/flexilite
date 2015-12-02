@@ -276,13 +276,44 @@ export class Driver
      */
     insert(table:string, data, keyProperties, cb)
     {
+        var classDef = this.getClassDefByName(table, false, true);
+        var nonSchemaProps = {};
+        var schemaProps = {};
+        var schemaCount = 0;
+        var nonSchemaCount = 0;
+        var q = '';
+
         // TODO Iterate via data's properties
         // Props defined in schema, are inserted via updatable view
-        // Non-schema props are inserted as one batch to Values table
-        var q = this.query.insert()
-            .into(this.getViewName(table)) // TODO
-            .set(data)
-            .build();
+        for (var p in data)
+        {
+            if (!classDef.hasOwnProperty(p))
+            // Non-schema props are inserted as one batch to Values table
+            {
+                nonSchemaProps[p] = data[p];
+                nonSchemaCount++;
+
+                q += this.query.insert().into('[.values]').set(
+                    {
+                        ClassID: classDef.ClassID,
+                        ObjectID: 0, // TODO
+                        Value: data[p]
+
+                    }).build();
+            }
+            else
+            {
+                schemaProps[p] = data[p];
+                schemaCount++;
+            }
+        }
+
+        if (schemaCount > 0)
+            q = this.query.insert()
+                    .into(this.getViewName(table)) // TODO
+                    .set(schemaProps)
+                    .build() + ';' + q;
+
 
         if (this.opts.debug)
         {
@@ -877,6 +908,13 @@ export class Driver
                         viewSQL += `) as [${p.PropertyName}]`;
                     }
                 }
+
+                // non-schema properties are returned as single JSON
+                if (propIdx > 0)
+                    viewSQL += ', ';
+
+                viewSQL += ` as [.non-schema-props]`;
+
                 viewSQL += ` from [.objects] o
     where o.[ClassID] = ${classDef.ClassID}`;
 
