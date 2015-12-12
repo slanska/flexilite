@@ -18,3 +18,4 @@
 /// <reference path="../lib/models/IValue.ts" />
 /// <reference path="../lib/models/IPropertyDef.ts" />
 /// <reference path="thrift/thrift.d.ts" />
+/// <reference path="../lib/models/definitions.d.ts"/>

@@ -5,6 +5,8 @@ import IPropertyDef = Flexilite.models.IPropertyDef;
 
 /// <reference path="../typings/tsd.d.ts"/>
 
+'use strict';
+
 var _ = require("lodash");
 import util = require("util");
 import sqlite3 = require("sqlite3");
@@ -18,29 +20,6 @@ import ClassDef = require('./models/ClassDef');
 import flex = require('./models/index');
 import orm = require("orm");
 
-interface IDropOptions
-{
-    table:string;
-    properties:[any];
-    one_associations:[any];
-    many_associations:[any];
-}
-
-interface ISyncOptions extends IDropOptions
-{
-    extension:any;
-    id:any;
-    allProperties:[string, Flexilite.models.IPropertyDef];
-    indexes:[any];
-    customTypes:[any];
-    extend_associations:[any];
-}
-
-// TODO Handle hasOne and extend association
-
-interface IHasManyAssociation
-{
-}
 
 /*
  Implements Flexilite driver for node-orm.
@@ -87,8 +66,6 @@ export class Driver
             // SQLITE_OPEN_SHAREDCACHE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_WAL
             this.db = sqlite3.cached.Database(fn, 0x00020000 | sqlite3.OPEN_READWRITE | 0x00080000);
         }
-
-        // TODO var js = (<any>this.db.all).sync(this.db, "select json_set('{}', '$.a', 99, '$.c', 'sdsd', '$.ff', 100, null, 4);");
 
         this.aggregate_functions = ["ABS", "ROUND",
             "AVG", "MIN", "MAX",
@@ -271,10 +248,76 @@ export class Driver
         this.db.all(q, cb);
     }
 
+
+    /*
+     Prepares extended data to be inserted or updated.
+     During preparation, data attribute names are replaced with attribute IDs
+     */
+    private preprocessExtData(classDef:IClass, data:any):IDataToSave
+    {
+        var result = <IDataToSave>{};
+        result.SchemaData = {};
+        result.ExtData = {};
+        var nonSchemaCount = 0;
+        var schemaCount = 0;
+        var q = '';
+
+        // TODO Iterate via data's properties
+        // Props defined in schema, are inserted via updatable view
+        for (var propName in data)
+        {
+            if (!classDef.Properties.hasOwnProperty(propName))
+            // Non-schema props are inserted as one batch to Values table
+            {
+                // Make sure that property is registered as class
+                var propClass = this.getClassDefByName(propName, true, false);
+                var pid = propClass.ClassID.toString();
+                var v = data[propName];
+                if (Buffer.isBuffer(v))
+                {
+                    v = v.toString('base64');
+                    pid = 'X' + pid;
+                }
+                else
+                    if (_.isDate(v))
+                    {
+                        v = 0; // TODO
+                        pid = 'D' + pid;
+                    }
+                    else
+                        if (_.isObject(v))
+                        {
+                            // Another object found. Proceed recursively
+                        }
+                        else
+                        {
+
+                        }
+
+                result.ExtData[pid] = v;
+                nonSchemaCount++;
+
+                q += this.query.insert().into('[.values]').set(
+                    {
+                        ClassID: classDef.ClassID,
+                        ObjectID: 0, // TODO
+                        Value: data[propName]
+
+                    }).build();
+            }
+            else
+            {
+                result.SchemaData[propName] = data[propName];
+                schemaCount++;
+            }
+        }
+        return result;
+    }
+
     /*
 
      */
-    insert(table:string, data, keyProperties, cb)
+    insert(table:string, data:any, keyProperties, cb)
     {
         var classDef = this.getClassDefByName(table, false, true);
         var nonSchemaProps = {};
@@ -283,30 +326,6 @@ export class Driver
         var nonSchemaCount = 0;
         var q = '';
 
-        // TODO Iterate via data's properties
-        // Props defined in schema, are inserted via updatable view
-        for (var p in data)
-        {
-            if (!classDef.hasOwnProperty(p))
-            // Non-schema props are inserted as one batch to Values table
-            {
-                nonSchemaProps[p] = data[p];
-                nonSchemaCount++;
-
-                q += this.query.insert().into('[.values]').set(
-                    {
-                        ClassID: classDef.ClassID,
-                        ObjectID: 0, // TODO
-                        Value: data[p]
-
-                    }).build();
-            }
-            else
-            {
-                schemaProps[p] = data[p];
-                schemaCount++;
-            }
-        }
 
         if (schemaCount > 0)
             q = this.query.insert()
@@ -606,11 +625,10 @@ export class Driver
     /*
      Overrides isSql property for driver
      */
-    public get isSql()
+    public    get    isSql()
     {
         return true;
     }
-
 
     /*
 
@@ -621,7 +639,7 @@ export class Driver
      Loads class definition with properties by class ID.
      Class should exist, otherwise exception will be thrown
      */
-    private getClassDefByID(self, classID:number):IClass
+    private    getClassDefByID(self, classID:number):IClass
     {
         var classDef = (<any>self.db.get).sync(self.db, 'select * from [.classes] where [ClassID] = ?', classID);
         if (!classDef)
@@ -635,7 +653,7 @@ export class Driver
      If class does not exist yet, new instance of IClass will be created.
      ClassID will be set to undefined, Properties - to empty object
      */
-    private getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IClass
+    private    getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IClass
     {
         var self = this;
         var selStmt = self.db.prepare('select * from [.classes] where [ClassName] = ?');
@@ -673,7 +691,7 @@ export class Driver
             // Class found. Try to load properties
             {
                 var props = (<any>self.db.all).sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', classDef.ClassID) || {};
-                props.forEach (function (p, idx, propArray)
+                props.forEach(function (p, idx, propArray)
                 {
                     classDef.Properties[p.PropertyName] = p;
                 });
@@ -688,7 +706,7 @@ export class Driver
      Makes updates to the database.
      Returns instance of IClass, with all changes applied
      */
-    private syncModelToClassDef(model:ISyncOptions):IClass
+    private    syncModelToClassDef(model:ISyncOptions):IClass
     {
         var self = this;
 
@@ -766,7 +784,7 @@ export class Driver
     /*
      Generates beginning of INSTEAD OF trigger for dynamic view
      */
-    private generateTriggerBegin(viewName:string, triggerKind:string, triggerSuffix = '', when = ''):string
+    private    generateTriggerBegin(viewName:string, triggerKind:string, triggerSuffix = '', when = ''):string
     {
         return `/* Autogenerated code. Do not edit or delete. ${viewName[0].toUpperCase() + viewName.slice(1)}.${triggerKind} trigger*/\n
             drop trigger if exists [trig_${viewName}_${triggerKind}${triggerSuffix}];
@@ -779,7 +797,7 @@ export class Driver
     /*
      Generates constraints for INSTEAD OF triggers for dynamic view
      */
-    private generateConstraintsForTrigger(classDef:IClass):string
+    private    generateConstraintsForTrigger(classDef:IClass):string
     {
         var result = '';
         // Iterate through all properties
@@ -820,7 +838,7 @@ export class Driver
     /*
 
      */
-    private generateInsertValues(classDef:IClass):string
+    private    generateInsertValues(classDef:IClass):string
     {
         var result = '';
 
@@ -842,7 +860,7 @@ export class Driver
     /*
 
      */
-    private generateDeleteNullValues(classDef:IClass):string
+    private    generateDeleteNullValues(classDef:IClass):string
     {
         var result = '';
 
