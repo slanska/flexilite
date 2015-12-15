@@ -336,80 +336,139 @@ export class Driver
     }
 
     /*
+     Processes individual property. Depending on actual property's value and
+     whether it is included in schema, property will be either added to the list of EAV rows
+     or to the list to inserted/updated via view
+     @param propInfo - data for individual property to be processed
+     @param schemaProps - object with all properties which are defined in schema
+     @param nonSchemaProps - array of prop definitions which are not defined in class schema
+     */
+    private processPropertyForSave(propInfo:IPropertyToSave, schemaProps:any, nonSchemaProps:IPropertyToSave[])
+    {
+        var self = this;
+        // Make sure that property is registered as class
+        var propClass = this.getClassDefByName(propInfo.propName, true, false);
+        var pid = propClass.ClassID.toString();
+
+        function doProp(propIdPrefix:string)
+        {
+            if (propInfo.propIndex === 0 && propInfo.classDef.Properties.hasOwnProperty(propInfo.propName))
+            {
+                schemaProps[propInfo.propName] = propInfo.value;
+            }
+            else
+            {
+                pid = propIdPrefix + pid;
+                nonSchemaProps.push(propInfo);
+            }
+        }
+
+        // Determine actual property type
+        if (Buffer.isBuffer(propInfo.value))
+        // Binary (BLOB) value. Store as base64 string
+        {
+            propInfo.value = propInfo.value.toString('base64');
+            doProp('X');
+        }
+        else
+            if (_.isDate(propInfo.value))
+            // Date value. Store as Julian value (double value)
+            {
+                propInfo.value = (<Date>propInfo.value).getMilliseconds();
+                doProp('D');
+
+            }
+            else
+                if (_.isArray(propInfo.value))
+                // List of properties
+                {
+                    propInfo.value.forEach(function (item, idx, arr)
+                    {
+                        var pi:IPropertyToSave = propInfo;
+                        pi.propIndex = idx + 1;
+                        self.processPropertyForSave(pi, schemaProps, nonSchemaProps);
+                    });
+                }
+                else
+                    if (_.isObject(propInfo.value))
+                    // Reference to another object
+                    {
+                        var refClassName:string;
+                        if (propInfo.classDef.Properties.hasOwnProperty(propInfo.propName))
+                        {
+                            var refClassID = propInfo.classDef.Properties[propInfo.propName].ReferencedClassID;
+                            var refClass = self.getClassDefByID(refClassID);
+                            refClassName = refClass.ClassName;
+                        }
+                        else
+                        {
+                            refClassName = propInfo.propName;
+                        }
+
+                        // TODO Check if object already exists???
+                        self.saveObject(refClassName, propInfo.value, null, propInfo.hostID);
+                    }
+                    else
+                    {
+                        // Regular scalar property
+                        doProp('');
+                    }
+    }
+
+    /*
      Inserts individual object to the database.
      Returns newly generated objectID
      */
-    private insertObject(table:string, data:any, hostID:number):number
+    private saveObject(table:string, data:any, objectID:number, hostID:number):number
     {
         var self = this;
 
         var classDef = self.getClassDefByName(table, false, true);
         var q = '';
 
-        var objectID = self.generateObjectID();
+        if (!objectID)
+            objectID = self.generateObjectID();
         if (!hostID)
             hostID = objectID;
 
-        var objData = this.preprocessObjectData(classDef, data);
+        var schemaProps = {};
+        var nonSchemaProps:IPropertyToSave[] = [];
 
-        // Add ID attributes
-        objData.SchemaData.HostID = hostID;
-        objData.SchemaData.ObjectID = objectID;
-
-
-        // If there is schema-defined data
-        if (!_.isEmpty(objData.SchemaData))
-            q = self.query.insert()
-                    .into(this.getViewName(table))
-                    .set(objData.SchemaData)
-                    .build() + ';' + q;
-
-        if (!_.isEmpty(objData.LinkedSchemaObjects))
+        for (var propName in data)
         {
-            for (var linkName in objData.LinkedSchemaObjects)
-            {
-                // Depending on class and property definition,
-                var linkHostID:number = hostID;
-
-                var linkClassName:string;
-                // Try to find out if there is link property
-                if (classDef.Properties.hasOwnProperty(linkName))
-                {
-                    var linkProp = classDef.Properties[linkName];
-                    var linkClass = self.getClassDefByID(linkProp.ReferencedClassID);
-                    linkClassName = linkClass.ClassName;
-                }
-                else
-                {
-                    linkClassName = linkName;
-                }
-
-                var linkedResult = self.insertObject(linkClassName, objData.LinkedSchemaObjects[linkName], linkHostID);
-                // Add reference to created object
-                self.execSQL(`insert into [.values] (ObjectID, ClassID, PropertyID, PropIndex,
-                ) values (?, ?)`);
-            }
+            // Shortcut to property data
+            var v = data[propName];
+            var propInfo:IPropertyToSave = {
+                objectID: objectID, hostID: hostID, classDef: classDef,
+                propName: propName, propIndex: 0, value: v
+            };
+            self.processPropertyForSave(propInfo, schemaProps, nonSchemaProps);
         }
 
-        //q += this.query.insert().into('[.values]').set(
-        //    {
-        //        ClassID: classDef.ClassID,
-        //        ObjectID: objectID,
-        //        Value: data[propName]
-        //
-        //    });
+        q = self.query.insert()
+                .into(this.getViewName(table))
+                .set(schemaProps)
+                .build() + ';' + q;
 
         if (self.opts.debug)
         {
             require("./Debug").sql('sqlite', q);
         }
 
+        nonSchemaProps.forEach(function (item:IPropertyToSave, idx, arr)
+        {
+            self.execSQL(`insert or replace into [.values] (ObjectID, ClassID, PropertyID, PropIndex,
+                [Value], [ctlv]) values (?, ?, ?, ?, ?, ?)`,
+                item.objectID, item.classDef.ClassID, item.propID, item.propIndex, item.value, 0);
+            //TODO Set ctlo. use propInfo?
+        });
+
         var info = (<any>self.db.all).sync(self.db, q);
 
         return objectID;
     }
 
-    private execSQL(sql:string, ...args:any[])
+    private    execSQL(sql:string, ...args:any[])
     {
         (<any>this.db.exec).sync(this.db, sql, args);
     }
@@ -428,7 +487,7 @@ export class Driver
                 self.execSQL('savepoint a1;');
                 try
                 {
-                    var objectID = self.insertObject(table, data, null);
+                    var objectID = self.saveObject(table, data, null, null);
                     var i, ids = {}, prop;
 
                     if (keyProperties.length == 1 && keyProperties[0].type == 'serial')
@@ -715,7 +774,9 @@ export class Driver
     /*
      Overrides isSql property for driver
      */
-    public get isSql()
+    public
+    get
+    isSql()
     {
         return true;
     }
@@ -728,7 +789,7 @@ export class Driver
      Loads class definition with properties by class ID.
      Class should exist, otherwise exception will be thrown
      */
-    private getClassDefByID(classID:number):IClass
+    private    getClassDefByID(classID:number):IClass
     {
         var classDef = (<any>this.db.get).sync(this.db, 'select * from [.classes] where [ClassID] = ?', classID);
         if (!classDef)
@@ -744,7 +805,7 @@ export class Driver
      If class does not exist and no new class should be registered, class def will
      be created in memory. In this case ClassID will be set to null, Properties - to empty object
      */
-    private getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IClass
+    private    getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IClass
     {
         var self = this;
         var selStmt = self.db.prepare('select * from [.classes] where [ClassName] = ?');

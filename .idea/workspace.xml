@@ -2,21 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/FlexiliteDBAdapter.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/FlexiliteDBAdapter.js.map" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/FlexiliteDBAdapter.ts" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.js" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.js.map" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.js.map" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/Util.js" afterPath="$PROJECT_DIR$/lib/Util.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/Util.js.map" afterPath="$PROJECT_DIR$/lib/Util.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/models/IClass.ts" afterPath="$PROJECT_DIR$/lib/models/IClass.ts" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/models/definitions.d.ts" afterPath="$PROJECT_DIR$/lib/models/definitions.d.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/sqlite-schema.sql" afterPath="$PROJECT_DIR$/lib/sqlite-schema.sql" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/test.js" afterPath="$PROJECT_DIR$/tests/test.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/test.js.map" afterPath="$PROJECT_DIR$/tests/test.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/test.ts" afterPath="$PROJECT_DIR$/tests/test.ts" />
     </list>
     <ignored path="flexilite.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -40,21 +30,21 @@
       <file leaf-file-name="FlexiliteAdapter.ts" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="2.1588235">
-              <caret line="389" column="34" selection-start-line="389" selection-start-column="34" selection-end-line="389" selection-end-column="34" />
+            <state vertical-scroll-proportion="8.90196">
+              <caret line="1014" column="11" selection-start-line="1014" selection-start-column="11" selection-end-line="1014" selection-end-column="11" />
               <folding>
                 <element signature="e#53#97#0" expanded="false" />
                 <element signature="e#631#714#0" expanded="false" />
                 <element signature="e#1093#1148#0" expanded="false" />
                 <element signature="e#1410#1469#0" expanded="false" />
                 <element signature="n#!!block;n#count#0;n#Driver#0" expanded="false" />
-                <marker date="1450030109000" expanded="true" signature="21162:22182" placeholder="..." />
-                <marker date="1450030109000" expanded="true" signature="21928:22182" placeholder="..." />
-                <marker date="1450030109000" expanded="true" signature="22352:24091" placeholder="..." />
-                <marker date="1450030109000" expanded="true" signature="22504:24091" placeholder="..." />
-                <marker date="1450030109000" expanded="true" signature="23117:24091" placeholder="..." />
-                <marker date="1450030109000" expanded="true" signature="25788:26718" placeholder="..." />
-                <marker date="1450030109000" expanded="true" signature="25879:26718" placeholder="..." />
+                <marker date="1450201864000" expanded="true" signature="23720:24743" placeholder="..." />
+                <marker date="1450201864000" expanded="true" signature="24489:24743" placeholder="..." />
+                <marker date="1450201864000" expanded="true" signature="24913:26652" placeholder="..." />
+                <marker date="1450201864000" expanded="true" signature="25065:26652" placeholder="..." />
+                <marker date="1450201864000" expanded="true" signature="25678:26652" placeholder="..." />
+                <marker date="1450201864000" expanded="true" signature="28349:29279" placeholder="..." />
+                <marker date="1450201864000" expanded="true" signature="28440:29279" placeholder="..." />
               </folding>
             </state>
           </provider>
@@ -64,7 +54,7 @@
         <entry file="file://$PROJECT_DIR$/lib/models/definitions.d.ts">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="29" column="74" selection-start-line="29" selection-start-column="74" selection-end-line="29" selection-end-column="74" />
+              <caret line="56" column="0" selection-start-line="56" selection-start-column="0" selection-end-line="56" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -152,8 +142,8 @@
         <option value="$PROJECT_DIR$/lib/models/IClass.ts" />
         <option value="$PROJECT_DIR$/tests/helper.ts" />
         <option value="$PROJECT_DIR$/tests/test.ts" />
-        <option value="$PROJECT_DIR$/lib/models/definitions.d.ts" />
         <option value="$PROJECT_DIR$/lib/sqlite-schema.sql" />
+        <option value="$PROJECT_DIR$/lib/models/definitions.d.ts" />
         <option value="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
       </list>
     </option>
@@ -508,7 +498,13 @@
       <option name="project" value="LOCAL" />
       <updated>1449897693539</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="more changes">
+      <created>1450151846051</created>
+      <option name="number" value="00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1450151846051</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -550,16 +546,16 @@
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2171875" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32599726" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22283356" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22283356" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.21320495" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.31086656" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
@@ -628,12 +624,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>474</line>
+          <line>533</line>
           <option name="timeStamp" value="98" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>546</line>
+          <line>605</line>
           <option name="timeStamp" value="114" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
@@ -643,32 +639,32 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>932</line>
+          <line>993</line>
           <option name="timeStamp" value="136" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>991</line>
+          <line>1052</line>
           <option name="timeStamp" value="144" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>1026</line>
+          <line>1087</line>
           <option name="timeStamp" value="145" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>985</line>
+          <line>1046</line>
           <option name="timeStamp" value="146" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>871</line>
+          <line>932</line>
           <option name="timeStamp" value="147" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>813</line>
+          <line>874</line>
           <option name="timeStamp" value="155" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
@@ -1033,14 +1029,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/models/definitions.d.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="29" column="74" selection-start-line="29" selection-start-column="74" selection-end-line="29" selection-end-column="74" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/lib/sqlite-schema.sql">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-9.814815">
@@ -1073,23 +1061,39 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$APPLICATION_HOME_DIR$/plugins/JavaScriptLanguage/typescriptCompiler/external/lib.d.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.3326087">
+          <caret line="1115" column="4" selection-start-line="1115" selection-start-column="4" selection-end-line="1115" selection-end-column="4" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/models/definitions.d.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="56" column="0" selection-start-line="56" selection-start-column="0" selection-end-line="56" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="2.1588235">
-          <caret line="389" column="34" selection-start-line="389" selection-start-column="34" selection-end-line="389" selection-end-column="34" />
+        <state vertical-scroll-proportion="8.90196">
+          <caret line="1014" column="11" selection-start-line="1014" selection-start-column="11" selection-end-line="1014" selection-end-column="11" />
           <folding>
             <element signature="e#53#97#0" expanded="false" />
             <element signature="e#631#714#0" expanded="false" />
             <element signature="e#1093#1148#0" expanded="false" />
             <element signature="e#1410#1469#0" expanded="false" />
             <element signature="n#!!block;n#count#0;n#Driver#0" expanded="false" />
-            <marker date="1450030109000" expanded="true" signature="21162:22182" placeholder="..." />
-            <marker date="1450030109000" expanded="true" signature="21928:22182" placeholder="..." />
-            <marker date="1450030109000" expanded="true" signature="22352:24091" placeholder="..." />
-            <marker date="1450030109000" expanded="true" signature="22504:24091" placeholder="..." />
-            <marker date="1450030109000" expanded="true" signature="23117:24091" placeholder="..." />
-            <marker date="1450030109000" expanded="true" signature="25788:26718" placeholder="..." />
-            <marker date="1450030109000" expanded="true" signature="25879:26718" placeholder="..." />
+            <marker date="1450201864000" expanded="true" signature="23720:24743" placeholder="..." />
+            <marker date="1450201864000" expanded="true" signature="24489:24743" placeholder="..." />
+            <marker date="1450201864000" expanded="true" signature="24913:26652" placeholder="..." />
+            <marker date="1450201864000" expanded="true" signature="25065:26652" placeholder="..." />
+            <marker date="1450201864000" expanded="true" signature="25678:26652" placeholder="..." />
+            <marker date="1450201864000" expanded="true" signature="28349:29279" placeholder="..." />
+            <marker date="1450201864000" expanded="true" signature="28440:29279" placeholder="..." />
           </folding>
         </state>
       </provider>
