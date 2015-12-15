@@ -7,7 +7,7 @@
 'use strict';
 var chai = require('chai');
 var expect = chai.expect;
-var flexilite = require('../lib/FlexiliteAdapter');
+//var Driver = require('../lib/FlexiliteAdapter').Driver;
 var orm = require("orm");
 var sqlite3 = require("sqlite3");
 var util = require("util");
@@ -17,6 +17,7 @@ var fs = require('fs');
 var Sync = require("syncho");
 var faker = require('faker');
 var orm_trn = require('orm-transaction');
+var Driver = require('../lib/FlexiliteAdapter').Driver;
 /**
  * Unit tests
  */
@@ -44,11 +45,9 @@ describe(' Create new empty database:', function () {
             //done();
         });
         it('generate 10000 persons', function (done) {
-            done();
-            return;
+            //done();
+            //return;
             Sync(function () {
-                var orm2 = orm;
-                orm2.addAdapter('flexilite', flexilite);
                 // Use URI file name with shared cache mode
                 var fname = "" + path.join(__dirname, "data", "test1.db");
                 var connString = util.format("flexilite://%s", fname);

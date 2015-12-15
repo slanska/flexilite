@@ -6,13 +6,12 @@
 /// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
 /// <reference path="../typings/tsd.d.ts" />
 
-
 'use strict';
 
 import chai = require('chai');
 
 var expect = chai.expect;
-var flexilite = require('../lib/FlexiliteAdapter');
+//var Driver = require('../lib/FlexiliteAdapter').Driver;
 import orm = require("orm");
 var sqlite3 = require("sqlite3");
 import util = require("util");
@@ -22,6 +21,7 @@ var fs = require('fs');
 var Sync = require("syncho");
 import faker = require('faker');
 var orm_trn = require('orm-transaction');
+var Driver = require('../lib/FlexiliteAdapter').Driver;
 
 /**
  * Unit tests
@@ -62,14 +62,11 @@ describe(' Create new empty database:',
 
             it('generate 10000 persons', (done)=>
             {
-                done();
-                return;
+                //done();
+                //return;
 
                 Sync(function ()
                 {
-                    var orm2:any = orm;
-                    orm2.addAdapter('flexilite', flexilite);
-
                     // Use URI file name with shared cache mode
                     var fname = `${path.join(__dirname, "data", "test1.db")}`;
                     var connString = util.format("flexilite://%s", fname);

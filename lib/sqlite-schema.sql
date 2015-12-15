@@ -7,6 +7,16 @@ PRAGMA encoding = 'UTF-8';
 PRAGMA recursive_triggers = 1;
 
 ------------------------------------------------------------------------------------------
+-- .generators
+------------------------------------------------------------------------------------------
+create table [.generators] (name TEXT primary key, seq integer) without rowid;
+
+/* -- Sample of generating ID
+  insert or replace into [.generators] (name, seq) select '.objects',
+  coalesce((select seq from [.generators] where name = '.objects') , 0) + 1 ;
+*/
+
+------------------------------------------------------------------------------------------
 -- .access_rules
 ------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [.access_rules] (
@@ -331,7 +341,7 @@ BEGIN
 END;
 
 ------------------------------------------------------------------------------------------
--- [.objects]
+-- [.class_properties]
 ------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [.class_properties] (
   [ClassID]            INTEGER NOT NULL CONSTRAINT [fkClassPropertiesClassID] REFERENCES [.classes] ([ClassID]) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -1196,6 +1206,9 @@ CREATE TABLE IF NOT EXISTS [.objects] (
   Bits 17-32: columns A-P should be indexed for full text search
   Bits 33-48: columns A-P should be treated as range values and indexed for range (spatial search) search
   Bit 49: DON'T track changes
+  Bit 50: Schema is not validated. Normally, this bit is set when object was referenced in other object
+  but it was not defined in the schema
+
   */
   [ctlo]     INTEGER,
   [A],

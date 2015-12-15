@@ -19,6 +19,7 @@ import path = require('path');
 import ClassDef = require('./models/ClassDef');
 import flex = require('./models/index');
 import orm = require("orm");
+import {link} from "fs";
 
 
 /*
@@ -248,31 +249,40 @@ export class Driver
         this.db.all(q, cb);
     }
 
+    /*
+     Registers class definition with className based on the sample data.
+     proceedExisting flag determines whether data will be processed for already registered
+     class. In this case, all additional data attributes that are not registered
+     will be registered.
+     If proceedExisting === false and class already exists, nothing will happen
+     */
+    registerClassDefFromObject(className:string, data:any, proceedExisting)
+    {
+        var classDef = this.getClassDefByName(className, true, true);
+    }
 
     /*
-     Prepares extended data to be inserted or updated.
-     During preparation, data attribute names are replaced with attribute IDs
+     Prepares object data to be inserted or updated.
+     During preparation, attribute names for extended data are replaced with attribute IDs
      */
-    private preprocessExtData(classDef:IClass, data:any):IDataToSave
+    private preprocessObjectData(classDef:IClass, data:any):IDataToSave
     {
-        var result = <IDataToSave>{};
-        result.SchemaData = {};
-        result.ExtData = {};
-        var nonSchemaCount = 0;
-        var schemaCount = 0;
-        var q = '';
+        var result:IDataToSave = {SchemaData: {}, ExtData: {}, LinkedSchemaObjects: {}};
 
-        // TODO Iterate via data's properties
-        // Props defined in schema, are inserted via updatable view
+        // Props defined in schema will be inserted/updated via updatable view
+
+        // Non schema data are inserted as EAV records
+
         for (var propName in data)
         {
+            var v = data[propName];
             if (!classDef.Properties.hasOwnProperty(propName))
             // Non-schema props are inserted as one batch to Values table
             {
                 // Make sure that property is registered as class
                 var propClass = this.getClassDefByName(propName, true, false);
                 var pid = propClass.ClassID.toString();
-                var v = data[propName];
+
                 if (Buffer.isBuffer(v))
                 {
                     v = v.toString('base64');
@@ -281,37 +291,127 @@ export class Driver
                 else
                     if (_.isDate(v))
                     {
-                        v = 0; // TODO
+                        v = (<Date>v).getMilliseconds();
                         pid = 'D' + pid;
                     }
                     else
                         if (_.isObject(v))
                         {
-                            // Another object found. Proceed recursively
+                            // Another object found. It will be processed recursively
+                            result.LinkedSchemaObjects[propName] = v;
                         }
                         else
-                        {
+                            if (_.isArray(v))
+                            {
 
-                        }
-
-                result.ExtData[pid] = v;
-                nonSchemaCount++;
-
-                q += this.query.insert().into('[.values]').set(
-                    {
-                        ClassID: classDef.ClassID,
-                        ObjectID: 0, // TODO
-                        Value: data[propName]
-
-                    }).build();
+                            }
+                            else
+                            {
+                                result.ExtData[pid] = v;
+                            }
             }
             else
             {
-                result.SchemaData[propName] = data[propName];
-                schemaCount++;
+                if (_.isObject(v) && !Buffer.isBuffer(v) && !_.isDate(v))
+                    result.LinkedSchemaObjects[propName] = v;
+                else result.SchemaData[propName] = v;
             }
         }
         return result;
+    }
+
+    /*
+     Private method to generate new sequential object ID.
+     Returns int32 value. Must be called within Fiber context.
+     */
+    private generateObjectID():number
+    {
+        var self = this;
+        (<any>self.db.exec).sync(self.db, `insert or replace into [.generators] (name, seq) select '.objects',
+        coalesce((select seq from [.generators] where name = '.objects') , 0) + 1 ;`);
+
+        var objectID:number = (<any>self.db.get).sync(self.db,
+            `select seq from [.generators] where name = '.objects' limit 1;`).seq;
+        return objectID;
+    }
+
+    /*
+     Inserts individual object to the database.
+     Returns newly generated objectID
+     */
+    private insertObject(table:string, data:any, hostID:number):number
+    {
+        var self = this;
+
+        var classDef = self.getClassDefByName(table, false, true);
+        var q = '';
+
+        var objectID = self.generateObjectID();
+        if (!hostID)
+            hostID = objectID;
+
+        var objData = this.preprocessObjectData(classDef, data);
+
+        // Add ID attributes
+        objData.SchemaData.HostID = hostID;
+        objData.SchemaData.ObjectID = objectID;
+
+
+        // If there is schema-defined data
+        if (!_.isEmpty(objData.SchemaData))
+            q = self.query.insert()
+                    .into(this.getViewName(table))
+                    .set(objData.SchemaData)
+                    .build() + ';' + q;
+
+        if (!_.isEmpty(objData.LinkedSchemaObjects))
+        {
+            for (var linkName in objData.LinkedSchemaObjects)
+            {
+                // Depending on class and property definition,
+                var linkHostID:number = hostID;
+
+                var linkClassName:string;
+                // Try to find out if there is link property
+                if (classDef.Properties.hasOwnProperty(linkName))
+                {
+                    var linkProp = classDef.Properties[linkName];
+                    var linkClass = self.getClassDefByID(linkProp.ReferencedClassID);
+                    linkClassName = linkClass.ClassName;
+                }
+                else
+                {
+                    linkClassName = linkName;
+                }
+
+                var linkedResult = self.insertObject(linkClassName, objData.LinkedSchemaObjects[linkName], linkHostID);
+                // Add reference to created object
+                self.execSQL(`insert into [.values] (ObjectID, ClassID, PropertyID, PropIndex,
+                ) values (?, ?)`);
+            }
+        }
+
+        //q += this.query.insert().into('[.values]').set(
+        //    {
+        //        ClassID: classDef.ClassID,
+        //        ObjectID: objectID,
+        //        Value: data[propName]
+        //
+        //    });
+
+        if (self.opts.debug)
+        {
+            require("./Debug").sql('sqlite', q);
+        }
+
+        var info = (<any>self.db.all).sync(self.db, q);
+
+        return objectID;
+    }
+
+    private execSQL(sql:string, ...args:any[])
+    {
+        (<any>this.db.exec).sync(this.db, sql, args);
     }
 
     /*
@@ -319,81 +419,71 @@ export class Driver
      */
     insert(table:string, data:any, keyProperties, cb)
     {
-        var classDef = this.getClassDefByName(table, false, true);
-        var nonSchemaProps = {};
-        var schemaProps = {};
-        var schemaCount = 0;
-        var nonSchemaCount = 0;
-        var q = '';
+        if (!keyProperties)
+            return cb(null);
 
-
-        if (schemaCount > 0)
-            q = this.query.insert()
-                    .into(this.getViewName(table)) // TODO
-                    .set(schemaProps)
-                    .build() + ';' + q;
-
-
-        if (this.opts.debug)
-        {
-            require("./Debug").sql('sqlite', q);
-        }
-
-        this.db.all(q, function (err, info)
-        {
-            if (err)
-                return cb(err);
-            if (!keyProperties)
-                return cb(null);
-
-            var i, ids = {}, prop;
-
-            // TODO Reload automatically generated values (IDs etc.)
-            if (keyProperties.length == 1 && keyProperties[0].type == 'serial')
+        var self = this;
+        Sync(function ()
             {
-                // TODO Get last inserted ID
-                this.db.get("SELECT last_insert_rowid() AS last_row_id",
-                    function (err, row)
-                    {
-                        if (err) return cb(err);
-
-                        ids[keyProperties[0].name] = row.last_row_id;
-
-                        return cb(null, ids);
-                    });
-            }
-            else
-            {
-                for (i = 0; i < keyProperties.length; i++)
+                self.execSQL('savepoint a1;');
+                try
                 {
-                    prop = keyProperties[i];
-                    ids[prop.name] = data[prop.mapsTo] || null;
+                    var objectID = self.insertObject(table, data, null);
+                    var i, ids = {}, prop;
+
+                    if (keyProperties.length == 1 && keyProperties[0].type == 'serial')
+                    {
+                        ids[keyProperties[0].name] = objectID;
+                    }
+                    else
+                    {
+                        for (i = 0; i < keyProperties.length; i++)
+                        {
+                            prop = keyProperties[i];
+                            ids[prop.name] = data[prop.mapsTo] || null;
+                        }
+                    }
+
+                    return cb(null, ids);
                 }
-                return cb(null, ids);
+                catch (err)
+                {
+                    self.execSQL('rollback;');
+                    throw err;
+                }
+                finally
+                {
+                    self.execSQL('release a1;');
+                }
             }
-        }.bind(this));
+        );
     }
 
     /*
-
+     Updates existing data object.
      */
     update(table, changes, conditions, cb)
     {
-        // TODO Iterate via data's properties
-        // Props defined in schema, are updated via updatable view
-        // Non-schema props are updated/inserted as one batch to Values table
-        // TODO Alter where clause to add classID
-        var q = this.query.update()
-            .into(this.getViewName(table))
-            .set(changes)
-            .where(conditions)
-            .build();
-
-        if (this.opts.debug)
+        var self = this;
+        Sync(function ()
         {
-            require("./Debug").sql('sqlite', q);
-        }
-        this.db.all(q, cb);
+
+            // TODO Iterate via data's properties
+            // Props defined in schema, are updated via updatable view
+            // Non-schema props are updated/inserted as one batch to Values table
+            // TODO Alter where clause to add classID
+            var q = self.query.update()
+                .into(this.getViewName(table))
+                .set(changes)
+                .where(conditions)
+                .build();
+
+            if (this.opts.debug)
+            {
+                require("./Debug").sql('sqlite', q);
+            }
+            self.db.all(q, cb);
+        });
     }
 
     /*
@@ -625,7 +715,7 @@ export class Driver
     /*
      Overrides isSql property for driver
      */
-    public    get    isSql()
+    public get isSql()
     {
         return true;
     }
@@ -634,26 +724,27 @@ export class Driver
 
      */
 
-
     /*
      Loads class definition with properties by class ID.
      Class should exist, otherwise exception will be thrown
      */
-    private    getClassDefByID(self, classID:number):IClass
+    private getClassDefByID(classID:number):IClass
     {
-        var classDef = (<any>self.db.get).sync(self.db, 'select * from [.classes] where [ClassID] = ?', classID);
+        var classDef = (<any>this.db.get).sync(this.db, 'select * from [.classes] where [ClassID] = ?', classID);
         if (!classDef)
             throw new Error(`Class with id=${classID} not found`);
-        classDef.Properties = (<any>self.db.all).sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', classID);
+        classDef.Properties = (<any>this.db.all).sync(this.db, 'select * from [.class_properties] where [ClassID] = ?', classID);
         return classDef;
     }
 
     /*
      Loads class definition with properties by class name
-     If class does not exist yet, new instance of IClass will be created.
-     ClassID will be set to undefined, Properties - to empty object
+     If class does not exist yet and createIfNotExist === true, new instance of IClass
+     will be created and registered in database.
+     If class does not exist and no new class should be registered, class def will
+     be created in memory. In this case ClassID will be set to null, Properties - to empty object
      */
-    private    getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IClass
+    private getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IClass
     {
         var self = this;
         var selStmt = self.db.prepare('select * from [.classes] where [ClassName] = ?');
@@ -945,6 +1036,10 @@ export class Driver
                 // In this case, recursively call insert statement with newly obtained ObjectID
                 viewSQL += self.generateTriggerBegin(classDef.DBViewName, 'insert', 'whenNull',
                     'when new.[ObjectID] is null or new.[HostID] is null');
+
+                // Generate new ID
+                viewSQL += `insert or replace into [.generators] (name, seq) select '.objects',
+                coalesce((select seq from [.generators] where name = '.objects') , 0) + 1 ;`;
                 viewSQL += `insert into [${classDef.DBViewName}] ([ObjectID], [HostID]`;
 
                 var cols = '';
@@ -965,9 +1060,9 @@ export class Driver
              end
 
              ${cols} from
-             (SELECT coalesce(new.[ObjectID] & 2147483647,
-             (select ([seq] & 2147483647) + 1
-          FROM [sqlite_sequence]
+             (SELECT coalesce(new.[ObjectID],
+             (select (seq)
+          FROM [.generators]
           WHERE name = '.objects' limit 1)) AS [NextID])
 
              ;\n`;
