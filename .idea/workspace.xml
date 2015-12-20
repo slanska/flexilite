@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
+    <list default="true" readonly="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/dictionaries/ruslanskorynin.xml" afterPath="$PROJECT_DIR$/.idea/dictionaries/ruslanskorynin.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.js" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.js.map" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.js.map" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" afterPath="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/Util.js" afterPath="$PROJECT_DIR$/lib/Util.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/Util.js.map" afterPath="$PROJECT_DIR$/lib/Util.js.map" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/Util.ts" afterPath="$PROJECT_DIR$/lib/Util.ts" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/models/definitions.d.ts" afterPath="$PROJECT_DIR$/lib/models/definitions.d.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/sqlite-schema.sql" afterPath="$PROJECT_DIR$/lib/sqlite-schema.sql" />
     </list>
     <ignored path="flexilite.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -27,24 +32,17 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="FlexiliteAdapter.ts" pinned="false" current-in-tab="true">
+      <file leaf-file-name="FlexiliteAdapter.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="8.90196">
-              <caret line="1014" column="11" selection-start-line="1014" selection-start-column="11" selection-end-line="1014" selection-end-column="11" />
+            <state vertical-scroll-proportion="-5.0">
+              <caret line="1062" column="41" selection-start-line="1061" selection-start-column="12" selection-end-line="1062" selection-end-column="41" />
               <folding>
                 <element signature="e#53#97#0" expanded="false" />
-                <element signature="e#631#714#0" expanded="false" />
-                <element signature="e#1093#1148#0" expanded="false" />
-                <element signature="e#1410#1469#0" expanded="false" />
-                <element signature="n#!!block;n#count#0;n#Driver#0" expanded="false" />
-                <marker date="1450201864000" expanded="true" signature="23720:24743" placeholder="..." />
-                <marker date="1450201864000" expanded="true" signature="24489:24743" placeholder="..." />
-                <marker date="1450201864000" expanded="true" signature="24913:26652" placeholder="..." />
-                <marker date="1450201864000" expanded="true" signature="25065:26652" placeholder="..." />
-                <marker date="1450201864000" expanded="true" signature="25678:26652" placeholder="..." />
-                <marker date="1450201864000" expanded="true" signature="28349:29279" placeholder="..." />
-                <marker date="1450201864000" expanded="true" signature="28440:29279" placeholder="..." />
+                <element signature="e#1122#1177#0" expanded="false" />
+                <element signature="e#1439#1498#0" expanded="false" />
+                <element signature="n#!!block;n#remove#0;n#Driver#0" expanded="false" />
+                <element signature="n#!!block;n#clear#0;n#Driver#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -54,17 +52,17 @@
         <entry file="file://$PROJECT_DIR$/lib/models/definitions.d.ts">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="56" column="0" selection-start-line="56" selection-start-column="0" selection-end-line="56" selection-end-column="0" />
+              <caret line="10" column="21" selection-start-line="10" selection-start-column="10" selection-end-line="10" selection-end-column="21" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="sqlite-schema.sql" pinned="false" current-in-tab="false">
+      <file leaf-file-name="sqlite-schema.sql" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/lib/sqlite-schema.sql">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-9.814815">
-              <caret line="1209" column="38" selection-start-line="1209" selection-start-column="38" selection-end-line="1209" selection-end-column="38" />
+            <state vertical-scroll-proportion="0.5657143">
+              <caret line="1935" column="12" selection-start-line="1935" selection-start-column="12" selection-end-line="1935" selection-end-column="12" />
               <folding />
             </state>
           </provider>
@@ -94,7 +92,7 @@
         <entry file="file://$PROJECT_DIR$/tests/test.ts">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="75" column="47" selection-start-line="75" selection-start-column="47" selection-end-line="75" selection-end-column="47" />
+              <caret line="72" column="20" selection-start-line="72" selection-start-column="20" selection-end-line="72" selection-end-column="20" />
               <folding />
             </state>
           </provider>
@@ -137,14 +135,14 @@
         <option value="$PROJECT_DIR$/lib/models/IPropertyDef.ts" />
         <option value="$PROJECT_DIR$/lib/ActorDB/ActorDBOrmDriver.ts" />
         <option value="$PROJECT_DIR$/lib/models/IClassProperty.ts" />
-        <option value="$PROJECT_DIR$/lib/Util.ts" />
         <option value="$PROJECT_DIR$/typings/tsd.d.ts" />
         <option value="$PROJECT_DIR$/lib/models/IClass.ts" />
         <option value="$PROJECT_DIR$/tests/helper.ts" />
         <option value="$PROJECT_DIR$/tests/test.ts" />
-        <option value="$PROJECT_DIR$/lib/sqlite-schema.sql" />
         <option value="$PROJECT_DIR$/lib/models/definitions.d.ts" />
+        <option value="$PROJECT_DIR$/lib/Util.ts" />
         <option value="$PROJECT_DIR$/lib/FlexiliteAdapter.ts" />
+        <option value="$PROJECT_DIR$/lib/sqlite-schema.sql" />
       </list>
     </option>
   </component>
@@ -157,8 +155,10 @@
     <data>$PROJECT_DIR$/node_modules/mocha</data>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="width" value="1280" />
-    <option name="height" value="800" />
+    <option name="x" value="4" />
+    <option name="y" value="23" />
+    <option name="width" value="1263" />
+    <option name="height" value="709" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
     <OptionsSetting value="true" id="Add" />
@@ -186,6 +186,7 @@
     </navigator>
     <panes>
       <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -260,13 +261,120 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
+              <option name="myItemId" value="node_modules" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="node_modules" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="syncho" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="node_modules" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="syncho" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
               <option name="myItemId" value="lib" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="lib" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Util.ts" />
+              <option name="myItemType" value="com.intellij.lang.typescript.compiler.ui.projectView.TypeScriptNestingTreeNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="lib" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="lib" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="FlexiliteAdapter.ts" />
+              <option name="myItemType" value="com.intellij.lang.typescript.compiler.ui.projectView.TypeScriptNestingTreeNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="lib" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="models" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -281,7 +389,6 @@
     <property name="nodejs.mocha.mocha_node_package_dir" value="$PROJECT_DIR$/node_modules/mocha" />
     <property name="JavaScriptPreferStrict" value="true" />
     <property name="JavaScriptWeakerCompletionTypeGuess" value="true" />
-    <property name="FullScreen" value="true" />
     <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth0" value="103" />
     <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder0" value="0" />
     <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth1" value="113" />
@@ -504,58 +611,64 @@
       <option name="project" value="LOCAL" />
       <updated>1450151846051</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="more changes">
+      <created>1450201887819</created>
+      <option name="number" value="00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1450201887819</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="Tests - 2015.12.08 at 23h 47m 57s.xml">
+    <history-entry file="Tests - 2015.12.19 at 22h 31m 35s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.12.12 at 13h 34m 59s.xml">
+    <history-entry file="Tests - 2015.12.19 at 22h 39m 13s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.12.12 at 13h 39m 05s.xml">
+    <history-entry file="Tests - 2015.12.19 at 22h 40m 56s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.12.12 at 13h 43m 47s.xml">
+    <history-entry file="Tests - 2015.12.19 at 22h 45m 08s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.12.12 at 13h 44m 17s.xml">
+    <history-entry file="Tests - 2015.12.19 at 22h 49m 26s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.12.12 at 13h 45m 03s.xml">
+    <history-entry file="Tests - 2015.12.19 at 22h 50m 57s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.12.12 at 13h 48m 06s.xml">
+    <history-entry file="Tests - 2015.12.19 at 23h 09m 17s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.12.12 at 14h 36m 42s.xml">
+    <history-entry file="Tests - 2015.12.19 at 23h 18m 59s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.12.12 at 14h 37m 46s.xml">
+    <history-entry file="Tests - 2015.12.19 at 23h 22m 08s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="Tests - 2015.12.12 at 14h 39m 34s.xml">
+    <history-entry file="Tests - 2015.12.20 at 00h 33m 23s.xml">
       <configuration name="Tests" configurationId="mocha-javascript-test-runner" />
     </history-entry>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="0" width="1280" height="800" extended-state="0" />
+    <frame x="4" y="23" width="1263" height="709" extended-state="0" />
     <editor active="false" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2171875" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22011085" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32599726" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32736155" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22283356" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.26384366" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.21320495" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.21172638" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.31086656" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3403909" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
@@ -624,48 +737,23 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>533</line>
+          <line>537</line>
           <option name="timeStamp" value="98" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>605</line>
+          <line>612</line>
           <option name="timeStamp" value="114" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>145</line>
+          <line>146</line>
           <option name="timeStamp" value="115" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>993</line>
+          <line>1000</line>
           <option name="timeStamp" value="136" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>1052</line>
-          <option name="timeStamp" value="144" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>1087</line>
-          <option name="timeStamp" value="145" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>1046</line>
-          <option name="timeStamp" value="146" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>932</line>
-          <option name="timeStamp" value="147" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
-          <line>874</line>
-          <option name="timeStamp" value="155" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/tests/test.ts</url>
@@ -673,15 +761,20 @@
           <option name="timeStamp" value="156" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/tests/helper.ts</url>
-          <line>30</line>
-          <option name="timeStamp" value="157" />
+          <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
+          <line>328</line>
+          <option name="timeStamp" value="159" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts</url>
+          <line>491</line>
+          <option name="timeStamp" value="160" />
         </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
-      <option name="time" value="159" />
+      <option name="time" value="165" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="NodeJSConfigurationType">
@@ -697,13 +790,6 @@
     </watches-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/node_modules/orm/lib/Model.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="227" column="16" selection-start-line="227" selection-start-column="16" selection-end-line="227" selection-end-column="16" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/node_modules/sqlite3/sqlite3.js">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -826,20 +912,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="27" column="9" selection-start-line="27" selection-start-column="9" selection-end-line="27" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/typings/sqlite3/sqlite3.d.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.33280757">
-          <caret line="57" column="15" selection-start-line="57" selection-start-column="15" selection-end-line="57" selection-end-column="15" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/typings/thrift/thrift.d.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-4.6891026">
@@ -924,13 +996,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/node_modules/orm/lib/TypeScript/sql-query.d.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.4524313">
-          <caret line="61" column="25" selection-start-line="61" selection-start-column="25" selection-end-line="61" selection-end-column="25" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -954,13 +1019,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/Util.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/typings/tsd.d.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -973,9 +1031,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="7" column="5" selection-start-line="7" selection-start-column="5" selection-end-line="7" selection-end-column="5" />
-          <folding>
-            <element signature="n#!!doc" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -983,7 +1038,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.16067654">
           <caret line="4" column="16" selection-start-line="4" selection-start-column="16" selection-end-line="4" selection-end-column="16" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -992,16 +1046,6 @@
         <state vertical-scroll-proportion="0.397463">
           <caret line="28" column="24" selection-start-line="28" selection-start-column="24" selection-end-line="28" selection-end-column="24" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/Util.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.1205074">
-          <caret line="5" column="1" selection-start-line="5" selection-start-column="1" selection-end-line="5" selection-end-column="1" />
-          <folding>
-            <element signature="n#!!doc;n#Util#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1021,34 +1065,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/helper.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="30" column="12" selection-start-line="30" selection-start-column="12" selection-end-line="30" selection-end-column="12" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/sqlite-schema.sql">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-9.814815">
-          <caret line="1209" column="38" selection-start-line="1209" selection-start-column="38" selection-end-line="1209" selection-end-column="38" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/lib/models/IClass.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.24767226">
           <caret line="9" column="18" selection-start-line="9" selection-start-column="18" selection-end-line="9" selection-end-column="18" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/test.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="75" column="47" selection-start-line="75" selection-start-column="47" selection-end-line="75" selection-end-column="47" />
           <folding />
         </state>
       </provider>
@@ -1061,10 +1081,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$APPLICATION_HOME_DIR$/plugins/JavaScriptLanguage/typescriptCompiler/external/lib.d.ts">
+    <entry file="file://$PROJECT_DIR$/node_modules/orm/lib/TypeScript/sql-query.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.3326087">
-          <caret line="1115" column="4" selection-start-line="1115" selection-start-column="4" selection-end-line="1115" selection-end-column="4" />
+        <state vertical-scroll-proportion="1.476684">
+          <caret line="60" column="12" selection-start-line="60" selection-start-column="12" selection-end-line="60" selection-end-column="12" />
           <folding />
         </state>
       </provider>
@@ -1072,29 +1092,96 @@
     <entry file="file://$PROJECT_DIR$/lib/models/definitions.d.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="56" column="0" selection-start-line="56" selection-start-column="0" selection-end-line="56" selection-end-column="0" />
+          <caret line="10" column="21" selection-start-line="10" selection-start-column="10" selection-end-line="10" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/Util.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.33333334">
+          <caret line="173" column="9" selection-start-line="173" selection-start-column="9" selection-end-line="173" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/Util.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.35849056">
+          <caret line="10" column="5" selection-start-line="10" selection-start-column="5" selection-end-line="10" selection-end-column="5" />
+          <folding>
+            <element signature="n#!!doc;n#Util#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/helper.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="30" column="12" selection-start-line="30" selection-start-column="12" selection-end-line="30" selection-end-column="12" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="356" column="0" selection-start-line="356" selection-start-column="0" selection-end-line="356" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/typings/sqlite3/sqlite3.d.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.3324937">
+          <caret line="63" column="15" selection-start-line="63" selection-start-column="15" selection-end-line="63" selection-end-column="15" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/node_modules/syncho/lib/syncho.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="24" column="4" selection-start-line="24" selection-start-column="4" selection-end-line="24" selection-end-column="4" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/test.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="72" column="20" selection-start-line="72" selection-start-column="20" selection-end-line="72" selection-end-column="20" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_HOME_DIR$/plugins/JavaScriptLanguage/typescriptCompiler/external/lib.d.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="2.1432362">
+          <caret line="662" column="4" selection-start-line="662" selection-start-column="4" selection-end-line="662" selection-end-column="4" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/FlexiliteAdapter.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="8.90196">
-          <caret line="1014" column="11" selection-start-line="1014" selection-start-column="11" selection-end-line="1014" selection-end-column="11" />
+        <state vertical-scroll-proportion="-5.0">
+          <caret line="1062" column="41" selection-start-line="1061" selection-start-column="12" selection-end-line="1062" selection-end-column="41" />
           <folding>
             <element signature="e#53#97#0" expanded="false" />
-            <element signature="e#631#714#0" expanded="false" />
-            <element signature="e#1093#1148#0" expanded="false" />
-            <element signature="e#1410#1469#0" expanded="false" />
-            <element signature="n#!!block;n#count#0;n#Driver#0" expanded="false" />
-            <marker date="1450201864000" expanded="true" signature="23720:24743" placeholder="..." />
-            <marker date="1450201864000" expanded="true" signature="24489:24743" placeholder="..." />
-            <marker date="1450201864000" expanded="true" signature="24913:26652" placeholder="..." />
-            <marker date="1450201864000" expanded="true" signature="25065:26652" placeholder="..." />
-            <marker date="1450201864000" expanded="true" signature="25678:26652" placeholder="..." />
-            <marker date="1450201864000" expanded="true" signature="28349:29279" placeholder="..." />
-            <marker date="1450201864000" expanded="true" signature="28440:29279" placeholder="..." />
+            <element signature="e#1122#1177#0" expanded="false" />
+            <element signature="e#1439#1498#0" expanded="false" />
+            <element signature="n#!!block;n#remove#0;n#Driver#0" expanded="false" />
+            <element signature="n#!!block;n#clear#0;n#Driver#0" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/sqlite-schema.sql">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.5657143">
+          <caret line="1935" column="12" selection-start-line="1935" selection-start-column="12" selection-end-line="1935" selection-end-column="12" />
+          <folding />
         </state>
       </provider>
     </entry>

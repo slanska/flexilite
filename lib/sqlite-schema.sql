@@ -1795,9 +1795,9 @@ BEGIN
 END;
 
 --------------------------------------------------------------------------------------------
--- ValuesEasy
+-- .ValuesEasy
 --------------------------------------------------------------------------------------------
-CREATE VIEW IF NOT EXISTS ValuesEasy AS
+CREATE VIEW IF NOT EXISTS [.ValuesEasy] AS
   SELECT
     NULL AS [ClassName],
     NULL AS [HostID],
@@ -1807,7 +1807,7 @@ CREATE VIEW IF NOT EXISTS ValuesEasy AS
     NULL AS [Value];
 
 CREATE TRIGGER IF NOT EXISTS trigValuesEasy_Insert INSTEAD OF INSERT
-ON [ValuesEasy]
+ON [.ValuesEasy]
 FOR EACH ROW
 BEGIN
   INSERT OR REPLACE INTO [.objects] (ClassID, ObjectID, ctlo, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P)
@@ -1898,5 +1898,46 @@ BEGIN
     WHERE c.[ClassID] = p.[ClassID] AND c.ClassName = new.ClassName AND p.PropertyName = new.PropertyName AND
           p.ColumnAssigned IS NULL;
 END;
+
+--------------------------------------------------------------------------------------------
+-- .values_view - wraps access to .values table by providing separate HostID and ObjectID columns
+--------------------------------------------------------------------------------------------
+create view if not exists [.values_view] as
+select ClassID, [ObjectID] >> 31 as HostID,
+                    ([ObjectID] & 2147483647) as ObjectID, ctlv, PropertyID, PropIndex, [Value]
+from [.values];
+
+create trigger if not exists values_view_Insert instead of insert on [.values_view]
+for each row
+begin
+    insert into [.values]
+    (
+    ClassID, [ObjectID], ctlv, PropertyID, PropIndex, [Value]
+    )
+    values (
+    new.ClassID, new.[ObjectID] << 31 | (new.[ObjectID] & 2147483647), new.ctlv,
+    new.PropertyID, new.PropIndex, new.[Value]
+    );
+end;
+
+create trigger if not exists values_view_Update instead of update on [.values_view]
+for each row
+begin
+    update [.values] set
+    ClassID = new.ClassID,
+     [ObjectID] = new.[ObjectID] << 31 | (new.[ObjectID] & 2147483647),
+     ctlv = new.ctlv,
+    PropertyID = new.PropertyID, PropIndex = new.PropIndex, [Value] = new.[Value]
+    where [ObjectID] = old.[ObjectID] << 31 | (old.[ObjectID] & 2147483647)
+    and [PropertyID] = old.[PropertyID] and [PropIndex] = old.[PropIndex];
+end;
+
+create trigger if not exists values_view_Delete instead of delete on [.values_view]
+for each row
+begin
+    delete from [.values]
+   where [ObjectID] = old.[ObjectID] << 31 | (old.[ObjectID] & 2147483647)
+       and [PropertyID] = old.[PropertyID] and [PropIndex] = old.[PropIndex];
+end;
 
 

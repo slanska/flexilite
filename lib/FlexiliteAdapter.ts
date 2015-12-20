@@ -20,6 +20,7 @@ import ClassDef = require('./models/ClassDef');
 import flex = require('./models/index');
 import orm = require("orm");
 import {link} from "fs";
+import {Util} from "./Util";
 
 
 /*
@@ -262,65 +263,6 @@ export class Driver
     }
 
     /*
-     Prepares object data to be inserted or updated.
-     During preparation, attribute names for extended data are replaced with attribute IDs
-     */
-    private preprocessObjectData(classDef:IClass, data:any):IDataToSave
-    {
-        var result:IDataToSave = {SchemaData: {}, ExtData: {}, LinkedSchemaObjects: {}};
-
-        // Props defined in schema will be inserted/updated via updatable view
-
-        // Non schema data are inserted as EAV records
-
-        for (var propName in data)
-        {
-            var v = data[propName];
-            if (!classDef.Properties.hasOwnProperty(propName))
-            // Non-schema props are inserted as one batch to Values table
-            {
-                // Make sure that property is registered as class
-                var propClass = this.getClassDefByName(propName, true, false);
-                var pid = propClass.ClassID.toString();
-
-                if (Buffer.isBuffer(v))
-                {
-                    v = v.toString('base64');
-                    pid = 'X' + pid;
-                }
-                else
-                    if (_.isDate(v))
-                    {
-                        v = (<Date>v).getMilliseconds();
-                        pid = 'D' + pid;
-                    }
-                    else
-                        if (_.isObject(v))
-                        {
-                            // Another object found. It will be processed recursively
-                            result.LinkedSchemaObjects[propName] = v;
-                        }
-                        else
-                            if (_.isArray(v))
-                            {
-
-                            }
-                            else
-                            {
-                                result.ExtData[pid] = v;
-                            }
-            }
-            else
-            {
-                if (_.isObject(v) && !Buffer.isBuffer(v) && !_.isDate(v))
-                    result.LinkedSchemaObjects[propName] = v;
-                else result.SchemaData[propName] = v;
-            }
-        }
-        return result;
-    }
-
-    /*
      Private method to generate new sequential object ID.
      Returns int32 value. Must be called within Fiber context.
      */
@@ -336,6 +278,45 @@ export class Driver
     }
 
     /*
+     Returns fully qualified object ID
+     */
+    private buildObjectID(objectID:number, hostID:number = null):number
+    {
+        //
+        if (!hostID)
+            hostID = objectID;
+        return (hostID << 31) | objectID;
+    }
+
+    /*
+     Iterates through all keys of given data and determines which keys are scalar and defined in class schema.
+     Returns object with properties separates into these 2 groups: schema and extra.ß
+     */
+    private extractSchemaProperties(classDef:IClass, data):IDataToSave
+    {
+        var result:IDataToSave = {SchemaData: {}, ExtData: {}};
+        for (var pi in data)
+        {
+            var schemaProp = false;
+            if (classDef.Properties.hasOwnProperty(pi))
+            {
+                var v = data[pi];
+                if (!_.isObject(v) && !_.isArray(v))
+                {
+                    //if (_.isDate(v))
+                    //v = ;
+
+                    result.SchemaData[pi] = v;
+                    schemaProp = true;
+                }
+            }
+            if (!schemaProp)
+                result.ExtData[pi] = data[pi];
+        }
+        return result;
+    }
+
+    /*
      Processes individual property. Depending on actual property's value and
      whether it is included in schema, property will be either added to the list of EAV rows
      or to the list to inserted/updated via view
@@ -343,23 +324,33 @@ export class Driver
      @param schemaProps - object with all properties which are defined in schema
      @param nonSchemaProps - array of prop definitions which are not defined in class schema
      */
-    private processPropertyForSave(propInfo:IPropertyToSave, schemaProps:any, nonSchemaProps:IPropertyToSave[])
+    private processPropertyForSave(propInfo:IPropertyToSave, schemaProps:any, eavItems:IEAVItem[])
     {
         var self = this;
+
+        // Check if property is included into schema
+        var schemaProp = propInfo.classDef.Properties[propInfo.propName];
+
         // Make sure that property is registered as class
-        var propClass = this.getClassDefByName(propInfo.propName, true, false);
+        var propClass = schemaProp ? self.getClassDefByID(schemaProp.PropertyID) : self.getClassDefByName(propInfo.propName, true, false);
         var pid = propClass.ClassID.toString();
 
         function doProp(propIdPrefix:string)
         {
-            if (propInfo.propIndex === 0 && propInfo.classDef.Properties.hasOwnProperty(propInfo.propName))
+            if (propInfo.propIndex === 0 && schemaProp)
             {
                 schemaProps[propInfo.propName] = propInfo.value;
             }
             else
             {
                 pid = propIdPrefix + pid;
-                nonSchemaProps.push(propInfo);
+                eavItems.push({
+                    objectID: self.buildObjectID(propInfo.objectID, propInfo.hostID),
+                    propID: propClass.ClassID, propIndex: propInfo.propIndex,
+                    value: propInfo.value,
+                    classID: propClass.ClassID,
+                    ctlv: schemaProp ? schemaProp.ctlv : VALUE_CONTROL_FLAGS.NONE
+                });
             }
         }
 
@@ -376,7 +367,6 @@ export class Driver
             {
                 propInfo.value = (<Date>propInfo.value).getMilliseconds();
                 doProp('D');
-
             }
             else
                 if (_.isArray(propInfo.value))
@@ -386,7 +376,7 @@ export class Driver
                     {
                         var pi:IPropertyToSave = propInfo;
                         pi.propIndex = idx + 1;
-                        self.processPropertyForSave(pi, schemaProps, nonSchemaProps);
+                        self.processPropertyForSave(pi, schemaProps, eavItems);
                     });
                 }
                 else
@@ -394,9 +384,9 @@ export class Driver
                     // Reference to another object
                     {
                         var refClassName:string;
-                        if (propInfo.classDef.Properties.hasOwnProperty(propInfo.propName))
+                        if (schemaProp)
                         {
-                            var refClassID = propInfo.classDef.Properties[propInfo.propName].ReferencedClassID;
+                            var refClassID = schemaProp.ReferencedClassID;
                             var refClass = self.getClassDefByID(refClassID);
                             refClassName = refClass.ClassName;
                         }
@@ -406,7 +396,15 @@ export class Driver
                         }
 
                         // TODO Check if object already exists???
-                        self.saveObject(refClassName, propInfo.value, null, propInfo.hostID);
+                        var refObjectID = self.saveObject(refClassName, propInfo.value, null, propInfo.hostID);
+                        eavItems.push({
+                            objectID: self.buildObjectID(propInfo.objectID, propInfo.hostID),
+                            classID: propInfo.classDef.ClassID,
+                            propID: propClass.ClassID,
+                            propIndex: 0,
+                            ctlv: schemaProp ? schemaProp.ctlv : VALUE_CONTROL_FLAGS.REFERENCE_OWN,
+                            value: refObjectID
+                        });
                     }
                     else
                     {
@@ -416,8 +414,8 @@ export class Driver
     }
 
     /*
-     Inserts individual object to the database.
-     Returns newly generated objectID
+     Inserts or updates single object to the database.
+     Returns newly generated objectID (for inserted object)
      */
     private saveObject(table:string, data:any, objectID:number, hostID:number):number
     {
@@ -431,8 +429,15 @@ export class Driver
         if (!hostID)
             hostID = objectID;
 
+        var schemaDef:IDataToSave = self.extractSchemaProperties(classDef, data);
+
+        q = self.query.insert()
+                .into(this.getViewName(table))
+                .set(schemaDef.SchemaData)
+                .build() + ';';
+
         var schemaProps = {};
-        var nonSchemaProps:IPropertyToSave[] = [];
+        var nonSchemaProps:IEAVItem[] = [];
 
         for (var propName in data)
         {
@@ -445,32 +450,32 @@ export class Driver
             self.processPropertyForSave(propInfo, schemaProps, nonSchemaProps);
         }
 
-        q = self.query.insert()
-                .into(this.getViewName(table))
-                .set(schemaProps)
-                .build() + ';' + q;
+        (<any>self.db.all).sync(self.db, q);
+
+        nonSchemaProps.forEach(function (item:IEAVItem, idx, arr)
+        {
+            self.execSQL(`insert or replace into [.values] (ObjectID, ClassID, PropertyID, PropIndex,
+                [Value], [ctlv]) values (?, ?, ?, ?, ?, ?)`,
+                item.objectID, item.classID, item.propID, item.propIndex, item.value, item.ctlv);
+            //TODO Set ctlo. use propInfo?
+        });
 
         if (self.opts.debug)
         {
             require("./Debug").sql('sqlite', q);
         }
 
-        nonSchemaProps.forEach(function (item:IPropertyToSave, idx, arr)
-        {
-            self.execSQL(`insert or replace into [.values] (ObjectID, ClassID, PropertyID, PropIndex,
-                [Value], [ctlv]) values (?, ?, ?, ?, ?, ?)`,
-                item.objectID, item.classDef.ClassID, item.propID, item.propIndex, item.value, 0);
-            //TODO Set ctlo. use propInfo?
-        });
-
         var info = (<any>self.db.all).sync(self.db, q);
 
         return objectID;
     }
 
-    private    execSQL(sql:string, ...args:any[])
+    private execSQL(sql:string, ...args:any[])
     {
-        (<any>this.db.exec).sync(this.db, sql, args);
+        if (args && args.length > 0)
+            (<any>this.db.run).sync(sql, args);
+        else (<any>this.db.exec).sync(this.db, sql);
+
     }
 
     /*
@@ -526,7 +531,6 @@ export class Driver
         var self = this;
         Sync(function ()
         {
-
             // TODO Iterate via data's properties
             // Props defined in schema, are updated via updatable view
             // Non-schema props are updated/inserted as one batch to Values table
@@ -579,6 +583,9 @@ export class Driver
         return this.execSimpleQuery(query, cb);
     }
 
+    /*
+
+     */
     eagerQuery(association, opts, keys, cb)
     {
         var desiredKey:any = Object.keys(association.field);
@@ -704,6 +711,8 @@ export class Driver
             case "object":
                 if (value !== null)
                 {
+                    // FIXME Special processing for Buffer
+                    // skip other objects and arrays
                     value = JSON.stringify(value);
                 }
                 break;
@@ -774,9 +783,7 @@ export class Driver
     /*
      Overrides isSql property for driver
      */
-    public
-    get
-    isSql()
+    public    get    isSql()
     {
         return true;
     }
