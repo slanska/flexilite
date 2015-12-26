@@ -38,6 +38,26 @@ function ConnectAndSave(done) {
                     }
                 }
             });
+            var Car = db.define('car', {
+                name: String,
+                model: String,
+                plateNumber: String,
+                color: String
+            });
+            /*
+             getCar
+             hasCar
+             removeCar
+
+             == reverse:
+             getOwners
+             setOwners
+             */
+            Person.hasOne('car', Car, { reverse: 'owner' });
+            /*
+
+             */
+            Person.hasMany('cars', Car, {}, { reverse: 'person', key: true });
             // add the table to the database
             db.sync.sync(db);
             // add a row to the person table

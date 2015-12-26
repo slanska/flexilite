@@ -8,10 +8,9 @@
 
 'use strict';
 
-import chai = require('chai');
-
-var expect = chai.expect;
-//var Driver = require('../lib/FlexiliteAdapter').Driver;
+//import chai = require('chai');
+//
+//var expect = chai.expect;
 import orm = require("orm");
 var sqlite3 = require("sqlite3");
 import util = require("util");
@@ -62,8 +61,8 @@ describe(' Create new empty database:',
 
             it('generate 10000 persons', (done)=>
             {
-                //done();
-                //return;
+                done();
+                return;
 
                 Sync(function ()
                 {
@@ -92,6 +91,31 @@ describe(' Create new empty database:',
                         }
                     });
 
+                    var Car = db.define('car', {
+                        name: String,
+                        model: String,
+                        plateNumber: String,
+                        color: String,
+                        purchaseDate: Date,
+                        picture: Buffer
+                    });
+
+                    /*
+                     getCar
+                     hasCar
+                     removeCar
+
+                     == reverse:
+                     getOwners
+                     setOwners
+                     */
+                    Person.hasOne('favoriteCar', Car, {reverse: 'owner'});
+                    /*
+
+                     */
+                    Person.hasMany('cars', Car, {}, { reverse: 'person', key: true });
+
+
                     console.time('insert Persons');
 
                     var trn = db.transaction.sync(db);
@@ -103,7 +127,8 @@ describe(' Create new empty database:',
                                 name: faker.name.firstName(1),
                                 surname: faker.name.lastName(1),
                                 age: faker.random.number({min: 15, max: 60}),
-                                data: {City: faker.address.city(), Street: faker.address.streetName()}
+                                data: {City: faker.address.city(), Street: faker.address.streetName()},
+                                extInfo: {age: faker.random.number(75) + 5, profession: faker.commerce.department()}
                             });
                         }
 

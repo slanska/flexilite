@@ -22,7 +22,7 @@ interface IDataToSave
 }
 
 /*
-Defines contract for basic EAV property dataß
+ Defines contract for basic EAV property dataß
  */
 interface IEAVBase
 {
@@ -30,6 +30,11 @@ interface IEAVBase
      ID of object to be inserted/updated
      */
     objectID:number;
+
+    /*
+     ID of host object
+     */
+    hostID?: number;
 
     /*
      Optional property ID corresponding to property name
@@ -48,7 +53,7 @@ interface IEAVBase
 }
 
 /*
-Defines contract for data to be saved in .values tableß
+ Defines contract for data to be saved in .values tableß
  */
 interface IEAVItem extends IEAVBase
 {
@@ -65,10 +70,6 @@ interface IEAVItem extends IEAVBase
  */
 interface IPropertyToSave extends IEAVBase
 {
-    /*
-     ID of host object
-     */
-    hostID?: number;
 
     /*
      Class definition which hold this property.
@@ -140,21 +141,151 @@ interface IDropOptions
     table:string;
     properties:[any];
     one_associations:[any];
+
+    /*
+     TODO Finalize exact typeß
+     */
     many_associations:[any];
 }
 
-interface ISyncOptions extends IDropOptions
+interface IModel
 {
+    addProperty(propIn, options);
+    afterAutoFetch(cb);
+    afterCreate(cb);
+    afterLoad(cb);
+    afterRemove(cb);
+    afterSave(cb);
+    aggregate();
+    all();
+    allProperties:any;
+    arguments:any;
+    beforeCreate(cb);
+    beforeRemove(cb);
+    beforeSave(cb);
+    beforeValidation(cb);
+    caller:any;
+    clear(cb);
+    count(cb);
+    create();
+    drop(cb);
+    exists();
+    extendsTo(name:string, properties, opts);
+    find();
+    findByOwner();
+    get();
+    hasMany();
+    hasOne();
+    id: string[];
+    keys:string[];
+    length:number;
+    name:string;
+    one();
+    prependValidation(key, validation);
+    properties: {[propName:string]: any}; // FIXME Property def
+    prototype: any; // FIXME Model
+    settings: {get(key, def), set(key, value), unset()};
+    sync(cb);
+    table:string;
+    uid: string;
+
+}
+
+interface IHasManyAssociation
+{
+    addAccessor: string,
+    autoFetch: boolean,
+    autoFetchLimit: number,
+    delAccessor: string,
+    field: {[key: string]: Flexilite.models.IPropertyDef},
+    getAccessor: string,
+    hasAccessor:string,
+
+    /*
+     TODO
+     */
+    hooks: any;
+
+    /*
+     Name of properties in referenced class (detail/linked)
+     */
+    mergeAssocId :{[key:string]: Flexilite.models.IPropertyDef},
+
+    /*
+     Names of properties in the referencing class (master)
+     */
+    mergeId: {[key:string]: Flexilite.models.IPropertyDef},
+
+    mergeTable: string, // Many2Many table name
+    model:  IModel,
+    name: string, // relation name
+    setAccessor: string,
+
+    /*
+     Additional properties for the Many2Many table
+     */
+    props:any
+}
+
+interface IHasOneAssociation
+{
+    autoFetch: boolean,
+    autoFetchLimit: number,
+    delAccessor: string,
+    extension: boolean,
+
+    /*
+
+     */
+    field: {[propname: string] :
+        {
+            big: boolean,
+            mapsTo: string,
+            name: string,
+            required: boolean,
+            size: number,
+            time?: boolean,
+            type: string,
+            unsigned: boolean,
+            values: any}},
+    getAccessor: string,
+    hasAccessor: string,
+    model: IModel,
+
+    /*
+     Name of referenced table/class
+     */
+    name:string,
+    requred: boolean,
+
+    /*
+     Name of back reference (reversed) property
+     */
+    reverse: string,
+
+    /*
+     true for reversed property
+     */
+    reversed:boolean,
+
+    setAccessor:string
+}
+
+interface ISyncOptions
+{
+    table:string;
+    properties:[any];
+
     extension:any;
-    id:any;
+    id?:string[]; // array of ID fields
     allProperties:[string, Flexilite.models.IPropertyDef];
     indexes:[any];
     customTypes:[any];
     extend_associations:[any];
+
+    one_associations:[IHasOneAssociation];
+
+    many_associations?: [IHasManyAssociation];
 }
 
-// TODO Handle hasOne and extend association
 
-interface IHasManyAssociation
-{
-}

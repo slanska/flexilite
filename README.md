@@ -19,7 +19,7 @@ Typical cycle of relational database design can be described in the following st
 - adding support for full text search. Again, individually, per table and column
 
 5) In real life, database refactoring can be much more complicated. For example:
-- splitting table to 2 or more tables. Example: you created table called Customers, with Phone column. At some point you realize that customer may have multiple phones, so you need to a) create a new tables, called CustomerPhones, b) extract existing Phone data from Customers to CustomerPhones, c) setup foreign key relation.
+- splitting table to 2 or more tables. Example: you created table called Customers, with Phone column. At some point you realize that customer may have multiple phones, so you need to a) create a new table, called CustomerPhones, b) extract existing Phone data from Customers to CustomerPhones, c) setup foreign key relation.
 - then you need to do similar job for Employees table, Suppliers table etc.
 - then you decide to combine all common data from Customers, Employees and Suppliers table into a new table, called Persons or Entities. And you need to go through the same boring, error-prone, routine procedure again.
  

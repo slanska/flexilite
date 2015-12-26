@@ -257,9 +257,10 @@ export class Driver
      will be registered.
      If proceedExisting === false and class already exists, nothing will happen
      */
-    registerClassDefFromObject(className:string, data:any, proceedExisting)
+    registerClassDefFromObject(className:string, data:any, proceedExisting:boolean)
     {
         var classDef = this.getClassDefByName(className, true, true);
+        return classDef;
     }
 
     /*
@@ -278,17 +279,6 @@ export class Driver
     }
 
     /*
-     Returns fully qualified object ID
-     */
-    private buildObjectID(objectID:number, hostID:number = null):number
-    {
-        //
-        if (!hostID)
-            hostID = objectID;
-        return (hostID << 31) | objectID;
-    }
-
-    /*
      Iterates through all keys of given data and determines which keys are scalar and defined in class schema.
      Returns object with properties separates into these 2 groups: schema and extra.ß
      */
@@ -298,14 +288,13 @@ export class Driver
         for (var pi in data)
         {
             var schemaProp = false;
-            if (classDef.Properties.hasOwnProperty(pi))
+
+            // Include only properties that are defined in class schema and NOT defined as reference properties
+            if (classDef.Properties.hasOwnProperty(pi) && !classDef.Properties[pi].ReferencedClassID)
             {
                 var v = data[pi];
                 if (!_.isObject(v) && !_.isArray(v))
                 {
-                    //if (_.isDate(v))
-                    //v = ;
-
                     result.SchemaData[pi] = v;
                     schemaProp = true;
                 }
@@ -345,7 +334,8 @@ export class Driver
             {
                 pid = propIdPrefix + pid;
                 eavItems.push({
-                    objectID: self.buildObjectID(propInfo.objectID, propInfo.hostID),
+                    objectID: propInfo.objectID,
+                    hostID: propInfo.hostID,
                     propID: propClass.ClassID, propIndex: propInfo.propIndex,
                     value: propInfo.value,
                     classID: propClass.ClassID,
@@ -398,7 +388,8 @@ export class Driver
                         // TODO Check if object already exists???
                         var refObjectID = self.saveObject(refClassName, propInfo.value, null, propInfo.hostID);
                         eavItems.push({
-                            objectID: self.buildObjectID(propInfo.objectID, propInfo.hostID),
+                            objectID: propInfo.objectID,
+                            hostID: propInfo.hostID,
                             classID: propInfo.classDef.ClassID,
                             propID: propClass.ClassID,
                             propIndex: 0,
@@ -450,13 +441,13 @@ export class Driver
             self.processPropertyForSave(propInfo, schemaProps, nonSchemaProps);
         }
 
-        (<any>self.db.all).sync(self.db, q);
+        var info = (<any>self.db.all).sync(self.db, q);
 
         nonSchemaProps.forEach(function (item:IEAVItem, idx, arr)
         {
-            self.execSQL(`insert or replace into [.values] (ObjectID, ClassID, PropertyID, PropIndex,
-                [Value], [ctlv]) values (?, ?, ?, ?, ?, ?)`,
-                item.objectID, item.classID, item.propID, item.propIndex, item.value, item.ctlv);
+            self.execSQL(`insert or replace into [.values_view] (HostID, ObjectID, ClassID, PropertyID, PropIndex,
+                [Value], [ctlv]) values (?, ?, ?, ?, ?, ?, ?)`,
+                item.hostID, item.objectID, item.classID, item.propID, item.propIndex, item.value, item.ctlv);
             //TODO Set ctlo. use propInfo?
         });
 
@@ -465,7 +456,7 @@ export class Driver
             require("./Debug").sql('sqlite', q);
         }
 
-        var info = (<any>self.db.all).sync(self.db, q);
+        // FIXME - needed? (<any>self.db.all).sync(self.db, q);
 
         return objectID;
     }
@@ -507,6 +498,7 @@ export class Driver
                             ids[prop.name] = data[prop.mapsTo] || null;
                         }
                     }
+                    self.execSQL('release a1;');
 
                     return cb(null, ids);
                 }
@@ -514,10 +506,6 @@ export class Driver
                 {
                     self.execSQL('rollback;');
                     throw err;
-                }
-                finally
-                {
-                    self.execSQL('release a1;');
                 }
             }
         );
@@ -711,9 +699,12 @@ export class Driver
             case "object":
                 if (value !== null)
                 {
+                    if (Buffer.isBuffer(value))
+                        value = value.toString('base64');
+                    //else
                     // FIXME Special processing for Buffer
                     // skip other objects and arrays
-                    value = JSON.stringify(value);
+                    //value = JSON.stringify(value);
                 }
                 break;
 
@@ -812,7 +803,7 @@ export class Driver
      If class does not exist and no new class should be registered, class def will
      be created in memory. In this case ClassID will be set to null, Properties - to empty object
      */
-    private    getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IClass
+    private getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IClass
     {
         var self = this;
         var selStmt = self.db.prepare('select * from [.classes] where [ClassName] = ?');
@@ -861,18 +852,89 @@ export class Driver
     }
 
     /*
+     Registers a new class definition based on the sample data
+     */
+    public registerClassByObject(className:string, data:any):IClass
+    {
+        this.execSQL('savepoint a1;');
+        try
+        {
+            var classDef = this.getClassDefByName(className, true, true);
+            // Check if there are not registered properties
+
+            for (var propName in _.keys(data))
+            {
+                if (!classDef.Properties.hasOwnProperty(propName))
+                {
+
+                }
+            }
+
+            this.execSQL('release a1;');
+        }
+        catch (err)
+        {
+            this.execSQL('rollback;');
+            throw err;
+        }
+
+        return classDef;
+    }
+
+    /*
+     Does reverse engineering on the given database.
+     Analyses existing tables, constraints, indexes, foreign keys.
+     Returns dictionary with class definitions (IClass)
+     TODO: Declare this method in the IFlexiliteDriver interface
+     */
+    public reverseEngineer(dbConnection:sqlite3.Database)
+    {
+
+    }
+
+    /*
+     sync model
+     create .class
+     for each all_properties
+     create .class
+     create .class_property: ctlv = REFERENCE_OWN, check indexes
+     for each extend_assosiations
+     create .class
+     create .class_property: ctlv = REFERENCE
+
+
+     saveObject
+     for each property
+     if is object
+     if schema && referencedClassID - use it
+     else create .class by property name
+
+     save object
+     */
+
+    /*
      Synchronizes node-orm model to .classes and .class_properties.
      Makes updates to the database.
      Returns instance of IClass, with all changes applied
      */
-    private    syncModelToClassDef(model:ISyncOptions):IClass
+
+    /*
+     Links in wiki:
+     hasMany https://github.com/dresende/node-orm2/wiki/hasMany
+
+     hasOne: https://github.com/dresende/node-orm2/wiki/hasOne
+     extendsTo: https://github.com/dresende/node-orm2/wiki/extendsTo
+
+     hasMany and hasOne are converted into reference properties
+     */
+    private syncModelToClassDef(model:ISyncOptions):IClass
     {
         var self = this;
 
         // Load existing model, if it exists
         var result = this.getClassDefByName(model.table, true, true);
 
-        // Initially set all properties
+        // Assume all existing properties as candidates for removal
         var deletedProperties:[string] = <[string]>[];
         for (var propName in result.Properties)
         {
@@ -896,6 +958,7 @@ export class Driver
         {
             var pd:IPropertyDef = model.allProperties[propName];
 
+            // Unmark property from removal candidates list
             _.remove(deletedProperties, (value)=> value == propName);
 
             var cp:IClassProperty = result.Properties[propName.toLowerCase()];
@@ -903,20 +966,79 @@ export class Driver
             {
                 result.Properties[propName.toLowerCase()] = cp = {};
             }
-            cp.DefaultDataType = pd.type || cp.DefaultDataType;
-            cp.Indexed = pd.indexed || cp.Indexed;
-            cp.PropertyName = propName;
-            cp.Unique = pd.unique || cp.Unique;
-            cp.DefaultValue = pd.defaultValue || cp.DefaultValue;
-            var ext = pd.ext || {};
 
-            cp.ColumnAssigned = ext.mappedTo || cp.ColumnAssigned;
-            cp.MaxLength = ext.maxLength || cp.MaxLength;
-            cp.MaxOccurences = ext.maxOccurences || cp.MaxOccurences;
-            cp.MinOccurences = ext.minOccurences || cp.MinOccurences;
-            cp.ValidationRegex = ext.validateRegex || cp.ValidationRegex;
+            // Depending on klass, treat properties differently
+            // Possible values: primary, hasOne, hasMany
+            switch (pd.klass)
+            {
+                case 'primary':
+                    cp.DefaultDataType = pd.type || cp.DefaultDataType;
+                    cp.Indexed = pd.indexed || cp.Indexed;
+                    cp.PropertyName = propName;
+                    cp.Unique = pd.unique || cp.Unique;
+                    cp.DefaultValue = pd.defaultValue || cp.DefaultValue;
+                    var ext = pd.ext || {};
 
-            (<any>insCStmt.run).sync(insCStmt, [propName, cp.DefaultDataType, propName]);
+                    cp.ColumnAssigned = ext.mappedTo || cp.ColumnAssigned;
+                    cp.MaxLength = ext.maxLength || cp.MaxLength;
+                    cp.MaxOccurences = ext.maxOccurences || cp.MaxOccurences;
+                    cp.MinOccurences = ext.minOccurences || cp.MinOccurences;
+                    cp.ValidationRegex = ext.validateRegex || cp.ValidationRegex;
+
+                    (<any>insCStmt.run).sync(insCStmt, [propName, cp.DefaultDataType, propName]);
+
+                    if (pd.type === 'object')
+                    {
+                        var refModel:ISyncOptions;
+
+                        var refClass = this.registerClassDefFromObject(propName, null, true);
+                        cp.ReferencedClassID = refClass.ClassID;
+                    }
+                    else
+                    {
+
+                    }
+
+
+                    break;
+
+                case 'hasOne':
+                    var refOneProp = <IHasOneAssociation>_.find(model.one_associations, function (item:IHasOneAssociation, idx, arr)
+                    {
+                        return (item.field.hasOwnProperty(propName));
+                    });
+                    if (refOneProp)
+                    {
+                        var refClass = this.getClassDefByName(refOneProp.model.table, true, true);
+                        cp.ReferencedClassID = refClass.ClassID;
+
+                        // FIXME create reverse property & set it as ReversePropertyID
+                        //cp.ReversePropertyID =
+
+                        cp.MinOccurences = refOneProp.requred ? 1 : 0;
+                        cp.MaxOccurences = 1;
+                    }
+                    else
+                    {
+                        throw '';
+                    }
+                    break;
+
+                case 'hasMany':
+                    var refManyProp = <IHasManyAssociation>_.find(model.many_associations, function (item:IHasManyAssociation, idx, arr)
+                    {
+                        return (item.field.hasOwnProperty(propName));
+                    });
+
+                    if (refManyProp)
+                    {
+                    }
+                    else
+                    {
+                        throw '';
+                    }
+                    break;
+            }
 
             (<any>insCPStmt.run).sync(insCPStmt, [
                 result.ClassID,
@@ -929,10 +1051,11 @@ export class Driver
                 (pd.ext && pd.ext.maxOccurences) || 1,
                 pd.unique || false,
                 (pd.ext && pd.ext.maxLength) || 0,
-                null,
-                null,
+                null, // FIXME ReferencedClassID
+                null, // FIXME ReversePropertyID
                 null
             ]);
+
         }
 
         result = this.getClassDefByName(model.table, false, true);
@@ -956,7 +1079,7 @@ export class Driver
     /*
      Generates constraints for INSTEAD OF triggers for dynamic view
      */
-    private    generateConstraintsForTrigger(classDef:IClass):string
+    private generateConstraintsForTrigger(classDef:IClass):string
     {
         var result = '';
         // Iterate through all properties
@@ -1069,7 +1192,7 @@ export class Driver
                         viewSQL += ', ';
                     propIdx++;
                     var p:IClassProperty = classDef.Properties[propName];
-                    if (p.ColumnAssigned && p.ColumnAssigned !== null)
+                    if (p.ColumnAssigned)
                     // This property is stored directly in .objects table
                     {
                         viewSQL += `o.[${p.ColumnAssigned}] as [${p.PropertyName}]\n`;
@@ -1087,10 +1210,10 @@ export class Driver
                 }
 
                 // non-schema properties are returned as single JSON
-                if (propIdx > 0)
-                    viewSQL += ', ';
-
-                viewSQL += ` as [.non-schema-props]`;
+                //if (propIdx > 0)
+                //    viewSQL += ', ';
+                //
+                //viewSQL += ` as [.non-schema-props]`;
 
                 viewSQL += ` from [.objects] o
     where o.[ClassID] = ${classDef.ClassID}`;
@@ -1202,7 +1325,8 @@ export class Driver
             catch (err)
             {
                 console.log(err);
-                callback(err);
+                throw err;
+                //callback(err);
             }
         });
     }

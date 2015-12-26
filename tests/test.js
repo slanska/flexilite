@@ -5,9 +5,9 @@
 /// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
 /// <reference path="../typings/tsd.d.ts" />
 'use strict';
-var chai = require('chai');
-var expect = chai.expect;
-//var Driver = require('../lib/FlexiliteAdapter').Driver;
+//import chai = require('chai');
+//
+//var expect = chai.expect;
 var orm = require("orm");
 var sqlite3 = require("sqlite3");
 var util = require("util");
@@ -45,8 +45,8 @@ describe(' Create new empty database:', function () {
             //done();
         });
         it('generate 10000 persons', function (done) {
-            //done();
-            //return;
+            done();
+            return;
             Sync(function () {
                 // Use URI file name with shared cache mode
                 var fname = "" + path.join(__dirname, "data", "test1.db");
@@ -69,6 +69,28 @@ describe(' Create new empty database:', function () {
                         }
                     }
                 });
+                var Car = db.define('car', {
+                    name: String,
+                    model: String,
+                    plateNumber: String,
+                    color: String,
+                    purchaseDate: Date,
+                    picture: Buffer
+                });
+                /*
+                 getCar
+                 hasCar
+                 removeCar
+
+                 == reverse:
+                 getOwners
+                 setOwners
+                 */
+                Person.hasOne('favoriteCar', Car, { reverse: 'owner' });
+                /*
+
+                 */
+                Person.hasMany('cars', Car, {}, { reverse: 'person', key: true });
                 console.time('insert Persons');
                 var trn = db.transaction.sync(db);
                 try {
@@ -77,7 +99,8 @@ describe(' Create new empty database:', function () {
                             name: faker.name.firstName(1),
                             surname: faker.name.lastName(1),
                             age: faker.random.number({ min: 15, max: 60 }),
-                            data: { City: faker.address.city(), Street: faker.address.streetName() }
+                            data: { City: faker.address.city(), Street: faker.address.streetName() },
+                            extInfo: { age: faker.random.number(75) + 5, profession: faker.commerce.department() }
                         });
                     }
                     trn.commit();

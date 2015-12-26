@@ -50,6 +50,29 @@ export function ConnectAndSave(done:Function)
                 }
             });
 
+            var Car = db.define('car', {
+                name: String,
+                model: String,
+                plateNumber: String,
+                color: String
+            });
+
+            /*
+             getCar
+             hasCar
+             removeCar
+
+             == reverse:
+             getOwners
+             setOwners
+             */
+            Person.hasOne('car', Car, {reverse: 'owner'});
+            /*
+
+             */
+            Person.hasMany('cars', Car, {}, {reverse: 'person', key: true});
+
+
             // add the table to the database
             db.sync.sync(db);
 
@@ -73,7 +96,7 @@ export function ConnectAndSave(done:Function)
             people[0].age = 16;
             people[0].save.sync(people[0]);
         }
-        catch(err)
+        catch (err)
         {
             console.log(err);
             throw err;
