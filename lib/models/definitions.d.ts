@@ -22,7 +22,7 @@ interface IDataToSave
 }
 
 /*
- Defines contract for basic EAV property dataß
+ Defines contract for basic EAV property data
  */
 interface IEAVBase
 {
@@ -193,13 +193,13 @@ interface IModel
 
 interface IHasManyAssociation
 {
-    addAccessor: string,
+    addAccessor: string, // Function name
     autoFetch: boolean,
     autoFetchLimit: number,
-    delAccessor: string,
+    delAccessor: string,// Function name
     field: {[key: string]: Flexilite.models.IPropertyDef},
-    getAccessor: string,
-    hasAccessor:string,
+    getAccessor: string,// Function name
+    hasAccessor:string,// Function name
 
     /*
      TODO
@@ -219,7 +219,7 @@ interface IHasManyAssociation
     mergeTable: string, // Many2Many table name
     model:  IModel,
     name: string, // relation name
-    setAccessor: string,
+    setAccessor: string,// Function name
 
     /*
      Additional properties for the Many2Many table
@@ -231,7 +231,7 @@ interface IHasOneAssociation
 {
     autoFetch: boolean,
     autoFetchLimit: number,
-    delAccessor: string,
+    delAccessor: string,// Function name
     extension: boolean,
 
     /*
@@ -248,15 +248,15 @@ interface IHasOneAssociation
             type: string,
             unsigned: boolean,
             values: any}},
-    getAccessor: string,
-    hasAccessor: string,
+    getAccessor: string,// Function name
+    hasAccessor: string,// Function name
     model: IModel,
 
     /*
      Name of referenced table/class
      */
     name:string,
-    requred: boolean,
+    required: boolean,
 
     /*
      Name of back reference (reversed) property
@@ -268,7 +268,7 @@ interface IHasOneAssociation
      */
     reversed:boolean,
 
-    setAccessor:string
+    setAccessor:string// Function name
 }
 
 interface ISyncOptions
@@ -286,6 +286,15 @@ interface ISyncOptions
     one_associations:[IHasOneAssociation];
 
     many_associations?: [IHasManyAssociation];
+}
+
+/*
+
+ */
+declare const enum FLEXILITE_LIMITS
+{
+    MaxOccurences = 1 << 31,
+    MaxObjectID = 1 << 31
 }
 
 

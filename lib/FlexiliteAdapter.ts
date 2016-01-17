@@ -945,13 +945,38 @@ export class Driver
             `insert or ignore into [.classes] ([ClassName], [DefaultScalarType], [ClassID])
             select ?, ?, (select ClassID from [.classes] where ClassName = ? limit 1);`);
 
-        var insCPStmt = self.db.prepare(`insert or replace into [.class_properties] ([ClassID], [PropertyID],
+        var insCPStmt = null;
+
+        function saveClassProperty(cp:IClassProperty)
+        {
+            if (!insCPStmt || insCPStmt === null)
+            {
+                insCPStmt = self.db.prepare(`insert or replace into [.class_properties]
+                ([ClassID], [PropertyID],
      [PropertyName], [TrackChanges], [DefaultValue], [DefaultDataType],
      [MinOccurences], [MaxOccurences], [Unique], [MaxLength], [ReferencedClassID],
      [ReversePropertyID], [ColumnAssigned]) values (?,
      (select [ClassID] from [.classes] where [ClassName] = ? limit 1),
       ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?);`);
+            }
+
+            (<any>insCPStmt.run).sync(insCPStmt, [
+                result.ClassID,
+                propName,
+                cp.PropertyName,
+                cp.TrackChanges,
+                cp.DefaultValue,
+                cp.DefaultDataType,
+                cp.MinOccurences,
+                cp.MaxOccurences,
+                cp.Unique,
+                cp.MaxLength,
+                cp.ReferencedClassID,
+                cp.ReversePropertyID,
+                null
+            ]);
+        }
 
         // Check properties
         for (var propName in model.allProperties)
@@ -1015,7 +1040,7 @@ export class Driver
                         // FIXME create reverse property & set it as ReversePropertyID
                         //cp.ReversePropertyID =
 
-                        cp.MinOccurences = refOneProp.requred ? 1 : 0;
+                        cp.MinOccurences = refOneProp.required ? 1 : 0;
                         cp.MaxOccurences = 1;
                     }
                     else
@@ -1040,22 +1065,48 @@ export class Driver
                     break;
             }
 
-            (<any>insCPStmt.run).sync(insCPStmt, [
-                result.ClassID,
-                propName,
-                pd.name,
-                (pd.ext && pd.ext.trackChanges) || true,
-                pd.defaultValue,
-                pd.type || 'text',
-                (pd.ext && pd.ext.minOccurences) || 0,
-                (pd.ext && pd.ext.maxOccurences) || 1,
-                pd.unique || false,
-                (pd.ext && pd.ext.maxLength) || 0,
-                null, // FIXME ReferencedClassID
-                null, // FIXME ReversePropertyID
-                null
-            ]);
+            saveClassProperty(cp);
 
+        }
+
+        for (var oneRel in model.one_associations)
+        {
+            var assoc:IHasOneAssociation = model.one_associations[oneRel];
+            var cp:IClassProperty = result.Properties[oneRel.toLowerCase()];
+            if (!cp)
+            {
+                result.Properties[oneRel.toLowerCase()] = cp = {};
+                cp.PropertyName = oneRel;
+            }
+            cp.Indexed = true;
+            cp.MinOccurences = assoc.required ? 1 : 0;
+            cp.MaxOccurences = 1;
+            var refClass = self.getClassDefByName(assoc.model.table, true, true);
+            cp.ReferencedClassID = refClass.ClassID;
+
+            // Set reverse property
+
+            saveClassProperty(cp);
+        }
+
+        for (var manyRel in model.many_associations)
+        {
+            var assoc:IHasOneAssociation = model.one_associations[manyRel];
+            var cp:IClassProperty = result.Properties[manyRel.toLowerCase()];
+            if (!cp)
+            {
+                result.Properties[manyRel.toLowerCase()] = cp = {};
+                cp.PropertyName = manyRel;
+            }
+            cp.Indexed = true;
+            cp.MinOccurences = assoc.required ? 1 : 0;
+            cp.MaxOccurences = 1 << 31;
+            var refClass = self.getClassDefByName(assoc.model.table, true, true);
+            cp.ReferencedClassID = refClass.ClassID;
+
+            // Set reverse property
+
+            saveClassProperty(cp);
         }
 
         result = this.getClassDefByName(model.table, false, true);
@@ -1100,7 +1151,7 @@ export class Driver
             // Range validation
 
             // Max length validation
-            if (p.MaxLength || 0 !== 0)
+            if ((p.MaxLength || 0) !== 0 && (p.MaxLength || 0) !== -1)
                 result += `when typeof(new.[${p.PropertyName}]) in ('text', 'blob')
         and len(new.[${p.PropertyName}] > ${p.MaxLength}) then 'Length of ${p.PropertyName} exceeds max value of ${p.MaxLength}'\n`;
 
@@ -1112,7 +1163,7 @@ export class Driver
 
         if (result.length > 0)
         {
-            result = `select raise_error(ABORT, s.Error) from (select case ${result} else null end as Error) s where s.Error is not null`;
+            result = `select raise_error(ABORT, s.Error) from (select case ${result} else null end as Error) s where s.Error is not null;\n`;
         }
         return result;
     }

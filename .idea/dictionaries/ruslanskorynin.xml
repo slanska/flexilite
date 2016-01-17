@@ -7,13 +7,17 @@
       <w>dayfrac</w>
       <w>frac</w>
       <w>gregcal</w>
+      <w>guid</w>
       <w>intgr</w>
+      <w>klass</w>
       <w>newargs</w>
+      <w>printf</w>
       <w>rslt</w>
       <w>sharedcache</w>
       <w>shortid</w>
       <w>sqlquery</w>
       <w>syncho</w>
+      <w>unmark</w>
     </words>
   </dictionary>
 </component>

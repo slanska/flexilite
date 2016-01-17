@@ -5,5 +5,7 @@
 module Flexilite.models
 {
     export interface  IAccessRule
-    {}
+    {
+
+    }
 }

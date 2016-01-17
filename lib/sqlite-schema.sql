@@ -1122,7 +1122,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
 );
 
 ------------------------------------------------------------------------------------------
--- DummyObjectColumnData
+-- .vw_object_column_data
 ------------------------------------------------------------------------------------------
 CREATE VIEW IF NOT EXISTS [.vw_object_column_data]
 AS
