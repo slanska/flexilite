@@ -53,11 +53,14 @@ CREATE TABLE IF NOT EXISTS [.change_log] (
 ------------------------------------------------------------------------------------------
 create table if not exists [.schemas]
 (
+[ClassID] INTEGER NOT NULL,
     [SchemaID] INTEGER  NOT NULL PRIMARY KEY AUTOINCREMENT,
     [PreviousSchemaID] integer null CONSTRAINT [fkSchemaToPrevSchemaID]
                                     REFERENCES [.schemas] ([SchemaID]) ON DELETE RESTRICT ON UPDATE RESTRICT,
 [Data] JSON1 NOT NULL
 );
+
+create index if not exists [idxSchemasByClassSchemaID] on [.schemas] ([ClassID], [SchemaID]);
 
 -- Trigger
 -- on update of Data - create copy of old schema if Data has changed
@@ -65,7 +68,7 @@ CREATE TRIGGER IF NOT EXISTS [trigSchemasAfterUpdate]
 AFTER UPDATE
 ON [.schemas]
 FOR EACH ROW
-WHEN old.[Data] <> new.[Data] and [old.PreviousSchemaID] is null
+WHEN old.[Data] <> new.[Data] and old.[PreviousSchemaID] is null
 BEGIN
     insert into [.schemas] ([PreviousSchemaID], [Data]) values (new.[SchemaID], old.[Data]);
 
@@ -135,7 +138,7 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   [ClassID]           INTEGER  NOT NULL PRIMARY KEY AUTOINCREMENT,
   [ClassName]         TEXT(64) NOT NULL,
   [SchemaOutdated] BOOL NOT NULL DEFAULT 0,
-  [CurrentSchemaID] INTEGER NOT NULL   CONSTRAINT [fkClassesCurrentSchemaID]
+  [CurrentSchemaID] INTEGER NULL   CONSTRAINT [fkClassesCurrentSchemaID]
     REFERENCES [.schemas] ([SchemaID]) ON DELETE RESTRICT ON UPDATE RESTRICT,
 
 
@@ -225,25 +228,25 @@ BEGIN
   -- Update objects with shortcuts if needed
   update [.objects] set
         [ctlo] = new.[ctloMask],
-        [A] = (select json_extract([Data], '$.properties.' || [new.A] || '.jsonPath')
+        [A] = (select json_extract([Data], '$.properties.' || new.A || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [B] = (select json_extract([Data], '$.properties.' || [new.B] || '.jsonPath')
+        [B] = (select json_extract([Data], '$.properties.' || new.B || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [C] = (select json_extract([Data], '$.properties.' || [new.C] || '.jsonPath')
+        [C] = (select json_extract([Data], '$.properties.' || new.C || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [D] = (select json_extract([Data], '$.properties.' || [new.D] || '.jsonPath')
+        [D] = (select json_extract([Data], '$.properties.' || new.D || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [E] = (select json_extract([Data], '$.properties.' || [new.E] || '.jsonPath')
+        [E] = (select json_extract([Data], '$.properties.' || new.E || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [F] = (select json_extract([Data], '$.properties.' || [new.F] || '.jsonPath')
+        [F] = (select json_extract([Data], '$.properties.' || new.F || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [G] = (select json_extract([Data], '$.properties.' || [new.G] || '.jsonPath')
+        [G] = (select json_extract([Data], '$.properties.' || new.G || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [H] = (select json_extract([Data], '$.properties.' || [new.H] || '.jsonPath')
+        [H] = (select json_extract([Data], '$.properties.' || new.H || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [I] = (select json_extract([Data], '$.properties.' || [new.I] || '.jsonPath')
+        [I] = (select json_extract([Data], '$.properties.' || new.I || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [J] = (select json_extract([Data], '$.properties.' || [new.J] || '.jsonPath')
+        [J] = (select json_extract([Data], '$.properties.' || new.J || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID])
 
         where [ClassID] = new.ClassID;
@@ -383,25 +386,25 @@ BEGIN
   -- Update objects with shortcuts if needed
   update [.objects] set
         [ctlo] = new.[ctloMask],
-        [A] = (select json_extract([Data], '$.properties.' || [new.A] || '.jsonPath')
+        [A] = (select json_extract([Data], '$.properties.' || new.A || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [B] = (select json_extract([Data], '$.properties.' || [new.B] || '.jsonPath')
+        [B] = (select json_extract([Data], '$.properties.' || new.B || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [C] = (select json_extract([Data], '$.properties.' || [new.C] || '.jsonPath')
+        [C] = (select json_extract([Data], '$.properties.' || new.C || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [D] = (select json_extract([Data], '$.properties.' || [new.D] || '.jsonPath')
+        [D] = (select json_extract([Data], '$.properties.' || new.D || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [E] = (select json_extract([Data], '$.properties.' || [new.E] || '.jsonPath')
+        [E] = (select json_extract([Data], '$.properties.' || new.E || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [F] = (select json_extract([Data], '$.properties.' || [new.F] || '.jsonPath')
+        [F] = (select json_extract([Data], '$.properties.' || new.F || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [G] = (select json_extract([Data], '$.properties.' || [new.G] || '.jsonPath')
+        [G] = (select json_extract([Data], '$.properties.' || new.G || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [H] = (select json_extract([Data], '$.properties.' || [new.H] || '.jsonPath')
+        [H] = (select json_extract([Data], '$.properties.' || new.H || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [I] = (select json_extract([Data], '$.properties.' || [new.I] || '.jsonPath')
+        [I] = (select json_extract([Data], '$.properties.' || new.I || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID]),
-        [J] = (select json_extract([Data], '$.properties.' || [new.J] || '.jsonPath')
+        [J] = (select json_extract([Data], '$.properties.' || new.J || '.jsonPath')
             from [.schemas] s where s.[SchemaID] = [SchemaID])
 
         where [ClassID] = new.ClassID;
@@ -1221,7 +1224,10 @@ create view if not exists [.vw_objects] as select
 [H],
 [I],
 [J],
-[Data] = (case when HostID is null then [Data] else (select h.[Data] from [.vw_objects] h where h.ObjectID = HostID limit 1) end)
+
+(WITH RECURSIVE
+  obj(h, d) AS (select HostID as h, Data as d UNION ALL SELECT o2.HostID, json_extract(o2.Data, d) from [.objects] o2 WHERE o2.ObjectID = h)
+SELECT d FROM obj limit 1) as [Data]
 
 from [.objects];
 
@@ -1229,7 +1235,7 @@ from [.objects];
 -- .vw_objects_full - Access to full objects data, with handling JSONPath & HostID cases
 -- AND shortcut fields
 --------------------------------------------------------------------------------------------
-create view if not exists [.vw_objects] as select
+create view if not exists [.vw_objects_full] as select
 o.[ObjectID],
 o.[SchemaID],
 o.[HostID],

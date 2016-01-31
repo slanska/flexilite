@@ -1,10 +1,75 @@
 /**
  * Created by slanska on 2016-01-16.
  */
+
+/*
+ Declares contract for defining list of objects either by objectID(s), filter and/or ClassID
+ */
+declare interface IObjectFilter
+{
+    objectId?: number | [number];
+    classId?: number;
+    filter?: any;
+}
+
+/*
+
+ */
+declare interface IPropertyDef
+{
+
+    jsonPath: string;
+    name: string;
+}
+
+/*
+
+ */
+declare interface ISchemaDef
+{
+    properties: [number, IPropertyDef]
+}
+
+declare interface IClassPropertyDef
+{
+    propertyID: number;
+}
+
+declare interface IClassDef
+{
+    ClassID:number;
+    CurrentSchemaID:number;
+    Properties:[string, IClassPropertyDef];
+}
+
+import Driver = require('./Driver');
+
+
 // FIXME: rename to SQLiteDataRefactor
-var SQLiteDataRefactor = (function () {
-    function SQLiteDataRefactor() {
+export class SQLiteDataRefactor
+{
+    constructor (private ormDriver: Driver.Flexilite.SQLite.Driver)
+    {
+
     }
+
+    // Create class
+    createClass(className:string, copyFrom:{classIdOrName?:number|string, schemaId?:number}):IClassDef
+    {
+        var result:IClassDef;
+        return result;
+    }
+
+    // Delete class
+    deleteClass()
+    {
+    }
+
+    // Rename class
+    renameClass()
+    {
+    }
+
     // Extract object
     /*
      Parameters:
@@ -19,31 +84,41 @@ var SQLiteDataRefactor = (function () {
      Insert new object into JSONIC view with path (or extracted content?)
      -- Update old objects by removing content?
      */
-    SQLiteDataRefactor.prototype.extractObject = function (filter, mappings) {
-    };
+    public extractObject(filter:IObjectFilter, mappings:[IPropertyDef])
+    {
+
+    }
+
     // Map object
     /*
      Same as extract but new object is stored as reference (JsonPath).
      If object is already mapped, JsonPath is concatenated
      */
-    SQLiteDataRefactor.prototype.mapObject = function (filter, mappings) {
-    };
+    public mapObject(filter:IObjectFilter, mappings:[IPropertyDef])
+    {
+
+    }
+
     // Add property
     /*
      Update schema. Trigger will create new record with old data.
      Set Class.CurrentSchemaID = new.SchemaID
      */
-    SQLiteDataRefactor.prototype.addProperty = function (schema, propertyId, propDef) {
-    };
+    addProperty(schema:ISchemaDef, propertyId:number, propDef:IPropertyDef)
+    {
+    }
+
     // Insert object
     /*
      In view trigger, ref properties are processed individually (hard coded, based on schema definition)
      Insert child objects, with JsonPath
      Insert into ref-values
      */
-    SQLiteDataRefactor.prototype.insertObject = function (classIdOrName, data) {
+    insertObject(classIdOrName:number | string, data:any):number
+    {
         return 0; // FIXME
-    };
+    }
+
     // Update object
     /*
      new JSON is merged from old JSON and new property values
@@ -51,21 +126,30 @@ var SQLiteDataRefactor = (function () {
      if old.Data <> new.Data (to apply validation).
      Recursively called in trigger
      */
-    SQLiteDataRefactor.prototype.updateObject = function (objectId, data, oldData) {
-    };
+    updateObject(objectId:number, data:any, oldData?:any)
+    {
+    }
+
     // Delete object
     /*
      Update child objects, left after removing all ref-values, matching by Host and
      JsonPath. Set extracted JSON from old.Data, based on their JsonPath
      */
-    SQLiteDataRefactor.prototype.deleteObject = function (objectId) {
-    };
+    deleteObject(objectId:number)
+    {
+    }
+
     // Delete property
-    SQLiteDataRefactor.prototype.deleteProperty = function (schema, propertyId) {
-    };
+    deleteProperty(schema:ISchemaDef, propertyId:number)
+    {
+    }
+
+
     // Rename property
-    SQLiteDataRefactor.prototype.renameProperty = function (schema, propertyId, newPropertyName) {
-    };
+    renameProperty(schema:ISchemaDef, propertyId:number, newPropertyName:string)
+    {
+    }
+
     /*
      Updates property(ies) definition.
      Actions:
@@ -73,34 +157,44 @@ var SQLiteDataRefactor = (function () {
      - updates class.CurrentSchemaID
      - generates views for the class
      */
-    SQLiteDataRefactor.prototype.updateProperty = function (schema, propertyId, propDef) {
-    };
+    updateProperty(schema:ISchemaDef, propertyId:number, propDef:IPropertyDef)
+    {
+
+    }
+
     // Property: scalar -> collection
+
     // Split property into multiple: use SQL expressions
-    SQLiteDataRefactor.prototype.splitProperty = function () {
-    };
+    splitProperty()
+    {
+
+    }
+
     // Merge many properties into one: use SQL expressions
-    SQLiteDataRefactor.prototype.mergeProperties = function () {
-    };
+    mergeProperties()
+    {
+
+    }
+
     // Inject one object into another
-    SQLiteDataRefactor.prototype.injectObjects = function () {
-    };
+    injectObjects()
+    {
+    }
+
     // Move properties from one object to another (partial extract)
-    SQLiteDataRefactor.prototype.moveProperties = function () {
-    };
-    // Create class
-    SQLiteDataRefactor.prototype.createClass = function () {
-    };
-    // Delete class
-    SQLiteDataRefactor.prototype.deleteClass = function () {
-    };
-    // Rename class
-    SQLiteDataRefactor.prototype.renameClass = function () {
-    };
+    moveProperties()
+    {
+    }
+
+
     // Extend object with other class (mixin)
-    SQLiteDataRefactor.prototype.extendObject = function (filter, classIdOrName) {
-    };
-    return SQLiteDataRefactor;
-})();
-exports.SQLiteDataRefactor = SQLiteDataRefactor;
-//# sourceMappingURL=SQLiteDataRefactor.js.map
+    extendObject(filter:IObjectFilter, classIdOrName:number | string)
+    {
+    }
+
+    // add relation
+
+    // delete relation
+
+//
+}

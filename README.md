@@ -6,6 +6,93 @@ Flexilite is based on SQLite as a storage engine and thus is usable in any type 
 is a good fit.
 The main idea of Flexilite is to provide API to deal with database schema in an evolutional and easy way.
 
+## Short introduction
+
+Here is a very brief demonstration of Flexilite concept. Structure of tables below are trimmed for 
+the sake of this example. 
+
+###Table .attributes
+Holds key-value pairs for all semantical attribute names registered in the system
+These attributes include class names and property names.
+Note that name case does not matter: semantically, from the point of Flexilite - Person == person, Age == age
+
+|-|-|
+| AttributeID | Name | PluralName |
+| 1 | Person | Persons |
+| 2 | Company | *NULL*|
+| ... | ... |
+| 11 | Name | *NULL*|
+| 12 | Age | *NULL*|
+| 13 | Salary |*NULL*|
+
+###Table [.classes]
+Lists all classes in database. Class is equivalent of table definition in the traditional
+RDBMS. Column *'Properties'* holds JSON string with list of class properties.
+
+|---------|-----------------|------------|
+| ClassID | CurrentSchemaID | Properties |
+|1          |22              |```{ name: {id: 11, title: "Name"}, age: {id: 12, title: "Age"}, salary: {id: 13, title: "Salary"}}```|
+|2  |
+
+###Table [.schemas]
+
+Collection of all data schemas in the database. Every class may be associated with multiple schemas.
+One schema from the associated list is current class' schema. Schema defines, in particular, 
+a) class properties mapping and b) validation rules
+
+|-|-|-|
+| ClassID | SchemasID | Data |
+|1|21|```{11: {jsonPath: ".name"}, 12: {jsonPath: ".age"}, 13: {jsonPath: ".salary"}}```|
+|1|22|```{11: {jsonPath: ".name"}, 12: {jsonPath: ".age"}, 13: {jsonPath: ".privateInfo.salary"}}```|
+
+###Table [.objects]
+
+All data items (AKA objects AKA rows AKA records) in Flexilite are stored in one table. Every object has unique ID 
+(autoincrement integer), class ID and schema ID. Actual data is stored in *'Data'* column
+as JSON. Schema ID associated with a given object determines how actual property values
+can be retrieved.
+
+|-|-|-|-|-|
+|ClassID | SchemaID | ObjectID | HostID | Data |
+|1|21|101|```null```|```{name: "John Doe", age: "31", salary: "30000"}```|
+|1|22|102|```null```|```{name: "Andrew Fullton", age: "46", privateInfo: { salary: "65000" }}```|
+
+In the data snapshot above there are 2 objects which belong to the class *Person* and are assigned
+to different schemas (21 and 22). *Data* field has JSON values of different structure, 
+corresponding to associated schemas. 
+
+###Views for class
+
+For every class registered in the system Flexilite maintains 2 views. These views are named
+according to class name (to be exact, according to the optional plural name). So,
+for *Person* class it would be the following views defined (let's assume that class *Person*
+has plural name defined as *Persons*):
+- [Persons]
+- [.Persons.]
+
+Both these views are updatable, i.e. then can be used not only for fetching data, but also
+for standard CRUD operations.
+
+###View [Person]
+
+Think about this view as a canonical table in the relational database. You can execute
+SELECT as well as INSERT, UPDATE and DELETE statements. All properties defined for the
+corresponding class are represented as view columns. Definition of this view is generated automatically
+by Flexilite on class or schema change.
+
+In a bit simplified way, definition of *Person* view will look as follows:
+
+```
+create view if not exists [Persons] as 
+select
+(json_extract(o.Data, json_extract(s.Data, '$."11".jsonPath'))) as Name,
+(json_extract(o.Data, json_extract(s.Data, '$."12".jsonPath'))) as Age,
+(json_extract(o.Data, json_extract(s.Data, '$."13".jsonPath'))) as Salary
+from [.objects] o join [.schemas] s on o.SchemaID = s.SchemaID where o.ClassID = 1;
+```
+
+
+
 ## Why Flexilite?
 Typical cycle of relational database design can be described in the following steps:
 1) Collect requirements, make preliminary database design.

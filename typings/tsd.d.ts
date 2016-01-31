@@ -14,7 +14,6 @@
 /// <reference path="../lib/models/IAccessRule.ts" />
 /// <reference path="../lib/models/IChangeLog.ts" />
 /// <reference path="../lib/models/IObject.ts" />
-/// <reference path="../lib/models/IRepository.ts" />
 /// <reference path="../lib/models/IValue.ts" />
 /// <reference path="../lib/models/IPropertyDef.ts" />
 /// <reference path="thrift/thrift.d.ts" />

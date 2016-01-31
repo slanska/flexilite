@@ -197,7 +197,7 @@ interface IHasManyAssociation
     autoFetch: boolean,
     autoFetchLimit: number,
     delAccessor: string,// Function name
-    field: {[key: string]: Flexilite.models.IPropertyDef},
+    field: {[key: string]: IPropertyDef},
     getAccessor: string,// Function name
     hasAccessor:string,// Function name
 
@@ -209,12 +209,12 @@ interface IHasManyAssociation
     /*
      Name of properties in referenced class (detail/linked)
      */
-    mergeAssocId :{[key:string]: Flexilite.models.IPropertyDef},
+    mergeAssocId :{[key:string]: IPropertyDef},
 
     /*
      Names of properties in the referencing class (master)
      */
-    mergeId: {[key:string]: Flexilite.models.IPropertyDef},
+    mergeId: {[key:string]: IPropertyDef},
 
     mergeTable: string, // Many2Many table name
     model:  IModel,
@@ -278,7 +278,7 @@ interface ISyncOptions
 
     extension:any;
     id?:string[]; // array of ID fields
-    allProperties:[string, Flexilite.models.IPropertyDef];
+    allProperties:[string, IPropertyDef];
     indexes:[any];
     customTypes:[any];
     extend_associations:[any];

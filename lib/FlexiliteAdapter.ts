@@ -1,4 +1,4 @@
-import IPropertyDef = Flexilite.models.IPropertyDef;
+
 /**
  * Created by slanska on 03.10.2015.
  */
