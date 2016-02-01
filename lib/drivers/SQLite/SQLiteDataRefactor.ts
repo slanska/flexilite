@@ -42,13 +42,14 @@ declare interface IClassDef
     Properties:[string, IClassPropertyDef];
 }
 
-import Driver = require('./Driver');
+import d = require( './Driver');
 
 
 // FIXME: rename to SQLiteDataRefactor
 export class SQLiteDataRefactor
 {
-    constructor (private ormDriver: Driver.Flexilite.SQLite.Driver)
+
+    constructor (private ormDriver)
     {
 
     }
