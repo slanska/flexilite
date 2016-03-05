@@ -15,7 +15,7 @@
       "commit": "421d6610bdb09e1015b71f5991d7a68d079eca21"
     },
     "mocha/mocha.d.ts": {
-      "commit": "3b7f250dcf631f1c3c545e28d9ff25920c60b5f7"
+      "commit": "9f0f926a12026287b5a4a229e5672c01e7549313"
     },
     "chai/chai.d.ts": {
       "commit": "3b7f250dcf631f1c3c545e28d9ff25920c60b5f7"
@@ -25,6 +25,9 @@
     },
     "thrift/thrift.d.ts": {
       "commit": "16134c168d021351acb1673ee9659644fc58c424"
+    },
+    "object-hash/object-hash.d.ts": {
+      "commit": "b10e5ade29708bb0a7d21916a9fe289973520e89"
     }
   }
 }

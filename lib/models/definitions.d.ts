@@ -271,25 +271,28 @@ interface IHasOneAssociation
     setAccessor:string// Function name
 }
 
+/*
+ Node-orm2 model definition for synchronization with database schema
+ */
 interface ISyncOptions
 {
     table:string;
-    properties:[any];
+    properties:IPropertyDef[];
 
     extension:any;
     id?:string[]; // array of ID fields
     allProperties:[string, IPropertyDef];
-    indexes:[any];
-    customTypes:[any];
-    extend_associations:[any];
+    indexes:any[];
+    customTypes:any[];
+    extend_associations:any[];
 
-    one_associations:[IHasOneAssociation];
+    one_associations:IHasOneAssociation[];
 
-    many_associations?: [IHasManyAssociation];
+    many_associations?: IHasManyAssociation[];
 }
 
 /*
-
+ Integer constants defined as enum
  */
 declare const enum FLEXILITE_LIMITS
 {

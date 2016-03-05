@@ -7,7 +7,7 @@
 
 'use strict';
 
-var _ = require("lodash");
+import _ = require("lodash");
 import util = require("util");
 import sqlite3 = require("sqlite3");
 // TODO import sqlquery = require("sql-query");
@@ -21,9 +21,9 @@ import flex = require('../../models/index');
 import orm = require("orm");
 import {link} from "fs";
 import {Util} from "../../Util";
+import objectHash = require('object-hash');
 
-
-module Flexilite.SQLite
+namespace Flexilite.SQLite
 {
     /*
      Implements Flexilite driver for node-orm.
@@ -463,12 +463,16 @@ module Flexilite.SQLite
             return objectID;
         }
 
-        private execSQL(sql:string, ...args:any[])
-        {
-            if (args && args.length > 0)
-                (<any>this.db.run).sync(sql, args);
-            else (<any>this.db.exec).sync(this.db, sql);
+        /*
 
+         */
+        private execSQL(sql:string, ...args:any[]):any
+        {
+            var result;
+            if (args && args.length > 0)
+                result = (<any>this.db.run).sync(sql, args);
+            else result = (<any>this.db.exec).sync(this.db, sql);
+            return result;
         }
 
         /*
@@ -854,22 +858,57 @@ module Flexilite.SQLite
         }
 
         /*
+
+         */
+        private registerAttribute(attrName:string, pluralName?:string):number
+        {
+            var self = this;
+            var result = self.execSQL(`insert or replace [.attributes] (name, pluralName) values (?, ?); 
+            select id from [.attributes] where name = ?;`, attrName, pluralName, attrName);
+
+            return result;
+        }
+
+        /*
          Registers a new class definition based on the sample data
          */
-        public registerClassByObject(className:string, data:any):IClass
+        public registerClassByObject(className:string, data:any, saveData:boolean = false):IClass
         {
+            var self = this;
             this.execSQL('savepoint a1;');
             try
             {
-                var classDef = this.getClassDefByName(className, true, true);
-                // Check if there are not registered properties
+                // Register properties and class name as attributes. Obtain their IDs
+                var classID:number = this.registerAttribute(className);
 
-                for (var propName in _.keys(data))
+                // Process all properties
+                var classProps = {properties: {}};
+                var schemaProps = {properties: {}};
+                _.forEach(data, (prop, name:string) =>
                 {
-                    if (!classDef.Properties.hasOwnProperty(propName))
-                    {
+                    var propID = self.registerAttribute(name);
+                    classProps.properties[propID] = {};
+                    schemaProps.properties[propID] = {JSONPath: `$.${name}`};
 
-                    }
+                });
+
+                // Create class object
+                var createClassSQL = `insert or ignore into [.classes] (ClassID, ClassName, SchemaOutdated, Properties) 
+                values (${classID}, ?, 1, ?);`;
+                self.execSQL(createClassSQL, className, JSON.stringify(classProps));
+
+                // Create schema object
+                var createSchemaSQL = `insert into [.schemas] (ClassID) 
+                values (${classID}); select last_row_id();`;
+                var schemaID = self.execSQL(createSchemaSQL, JSON.stringify(schemaProps));
+
+                self.execSQL(`update [.classes] set CurrentSchemaID = ?`, schemaID);
+
+                // Optionally, save data
+                if (saveData)
+                {
+                    var insertObjSQL = `insert into [.objects] (ClassID, SchemaID, Data) values (?, ?, ?);`;
+                    self.execSQL(insertObjSQL, classID, schemaID, JSON.stringify(data));
                 }
 
                 this.execSQL('release a1;');
@@ -880,7 +919,7 @@ module Flexilite.SQLite
                 throw err;
             }
 
-            return classDef;
+            return null;
         }
 
         /*
@@ -932,6 +971,13 @@ module Flexilite.SQLite
         private syncModelToClassDef(model:ISyncOptions):IClass
         {
             var self = this;
+
+            // Check if this schema is already defined.
+            // By schema signature
+            var hashValue = objectHash(model);
+            var classID;
+
+            self.execSQL(`select * from [.schema] where ClassID = ? and Hash = ?`, classID, hashValue);
 
             // Load existing model, if it exists
             var result = this.getClassDefByName(model.table, true, true);
@@ -1119,7 +1165,7 @@ module Flexilite.SQLite
         /*
          Generates beginning of INSTEAD OF trigger for dynamic view
          */
-        private    generateTriggerBegin(viewName:string, triggerKind:string, triggerSuffix = '', when = ''):string
+        private generateTriggerBegin(viewName:string, triggerKind:string, triggerSuffix = '', when = ''):string
         {
             return `/* Autogenerated code. Do not edit or delete. ${viewName[0].toUpperCase() + viewName.slice(1)}.${triggerKind} trigger*/\n
             drop trigger if exists [trig_${viewName}_${triggerKind}${triggerSuffix}];
@@ -1195,7 +1241,7 @@ module Flexilite.SQLite
         /*
 
          */
-        private    generateDeleteNullValues(classDef:IClass):string
+        private generateDeleteNullValues(classDef:IClass):string
         {
             var result = '';
 
@@ -1217,11 +1263,12 @@ module Flexilite.SQLite
         {
             var self = this;
 
+            // Wrap all calls into Fibers syncho
             Sync(function ()
             {
                 try
                 {
-                    // Process data and save in .classes and .class_properties
+                    // Process data and save in .classes and .schemas tables
                     // Set Flag SchemaOutdated
                     var classDef:IClass = self.syncModelToClassDef(opts);
 
@@ -1426,6 +1473,6 @@ module Flexilite.SQLite
     }
 }
 
-module.exports = Flexilite.SQLite.Driver;
+export = Flexilite.SQLite.Driver;
 
 

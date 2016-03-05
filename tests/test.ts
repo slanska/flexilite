@@ -8,9 +8,6 @@
 
 'use strict';
 
-//import chai = require('chai');
-//
-//var expect = chai.expect;
 import orm = require("orm");
 var sqlite3 = require("sqlite3");
 import util = require("util");
@@ -22,13 +19,16 @@ import faker = require('faker');
 var orm_trn = require('orm-transaction');
 var Driver = require('../lib/FlexiliteAdapter').Driver;
 
+var drv = require('../lib/drivers/SQLite/Driver');
+
 /**
  * Unit tests
  */
-describe(' Create new empty database:',
+describe('Create new empty database:',
     () =>
     {
         console.log('Create new DB\n');
+        console.log(drv);
 
         beforeEach(
             function (done)

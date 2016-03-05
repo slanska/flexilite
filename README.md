@@ -1,28 +1,29 @@
 # flexilite
 
 #What is Flexilite?
-Flexilite ("F") is a node.js library and sql scripts to convert ordinary SQLite database into repository of data classes, objects 
+Flexilite ("F") is a node.js library and set of SQL scripts to convert ordinary SQLite database 
+into repository of data classes, objects 
 and their relations, with highly dynamic and flexible structure. Flexilite intends to solve typical problems of 
-evolutional design of relational databases. "F" covers most of known db schema refactoring patterns, plus "F" provides 
-few useful and highly demanded features out of box. We will list them later in this document.
+evolutional design of relational databases. "F" covers most of known db schema refactoring patterns. Not only that,
+"F" also provides few useful and highly demanded features out of box. We will list them later in this document.
 
-Main idea
+*Main idea*
 In few sentences:
 Traditional way to design db schema becomes noticeably outdated in the modern ever-changing world. What was good 
 30 years ago (RDBMS) does not match real life complexity. When designing new system or maintaining existing one, 
 db schema has to go through many iterations of refactoring.
 
-The goal of this project is to provide easy-to-use, feature rich and flexible solution to deal with uncertainties 
-of database schema design.
+The goal of this project is to provide proof of concept and at the same time production ready, easy-to-use, 
+feature rich and flexible solution to deal with uncertainties of database schema design.
 Flexilite is based on SQLite as a storage engine and thus is usable in any type of application where SQLite 
 is a good fit (from embedded systems, to smartphones, to desktop apps, to small-to-medium websites).
-The main idea of Flexilite is to provide API to deal with database schema in an evaluational and easy way.
+Flexilite is based on node-orm2 library for node.js and implements custom DB driver compatible with node-orm.
 
 ## Short introduction
 
 Here is a very brief demonstration of Flexilite concept and what sort of problems it is designed to solve.
  
- Typical scenario of database design and ongoing maintenance looks as follows:
+ Typical scenario of database design and ongoing maintenance may be demonstrated in the following list of schema iterations:
  1) Create DB table Person, with columns: PersonID, Name, Email, Phone, AddressLine1, AddressLine2, City, 
  ProvinceOrState, PostalCode, Country
  2) Added columns WorkEmail, WorkPhone and renamed Email to PersonalEmail, Phone - to CellPhone
@@ -45,24 +46,26 @@ Here is a very brief demonstration of Flexilite concept and what sort of problem
    b) writing script to move existing data (or reset existing database and start from fresh new, if change happens in the
    middle of development and data are not worthy to keep).
    
-   (We omit here other things that also need to be done after DB schema changes - updating UI forms, and very likely, revisiting UI flow and so on.
+   (We omit here other things that also need to be done after DB schema changes - updating UI forms, and very likely, 
+   revisiting UI flow, changing navigation, handling different typical cases and so on.
    These tasks can be as time and effort consuming as direct DB changes, but we will ignore this class of changes as it goes too far
    from the scope).
    
-   In major percentage of cases database schema in its evolution shifts towards complication, and decomposition. I.e. schema requires new tables/classes
-   to be introduced, new columns/attributes. 
+   In major percentage of cases database schema in its evolution shifts towards complication, and decomposition. 
+   I.e. schema requires new tables/classes to be introduced, new columns/attributes. 
    
    Database schema migration patterns described above present just a subset of typical issues that database and application
    developer needs to address when designing, developing and maintaining real world business software.
    
    Besides, there is whole set of other data related tasks that are not covered by a traditional RDBMS (or NoSQL) systems, and
    require case-by-case resolving. Short list of such tasks might look as follows:
-    1) many-to-many relations. There is no out-of-box way to implement this. Usually this kind of relation is handled by adding special table 
+    1) many-to-many relations. In RDBMS world, there is no out-of-box way to implement this. Usually this kind of relation is handled by adding special table 
     which would hold IDs for both related tables.
     2) re-ordering items in the list. While this type of functionality is completely ignored by RDBMS concept, it is rather 
-    popular requirement/nice-to-have features in the real world application. Again, like #1, if requied, this feature needs to be
+    popular requirement/nice-to-have features in the real world application. Again, like #1, if required, this feature needs to be
     dealt with case-by-case basis.
-    3) data to the same collection/table/class is collected from various sources with a (likely) different structure and a (possibly) extra data, 
+    3) data to the same collection/table/class is collected from various sources with a (likely) different 
+    structure and a (possibly) extra data, 
     which is not included into original schema.
     While different structures can be handled during loading phase via transformation, handling extra data (if needed to preserve) 
     require either adding generic field (JSON, BLOB or memo), or extending schema with one or more additional tables/collections to store these data.
@@ -85,27 +88,32 @@ Here is a very brief demonstration of Flexilite concept and what sort of problem
      c) creating one table for all enums, with 
      additional column (something like 'EnumType'). Also, proper handling of enums might require support for multi-language representation of items to
      the user. Implementation of such requirements, coupled together with necessity to translate table/column metadata, tend to lead to cumbersome, complicated 
-     design. As for me, this kind of work always makes me feel that I had to re-invent the wheel again.
+     design. As for me, this kind of work always makes me feel that I had to re-invent the wheel again and again.
      
      8) Adding full text search for some text fields. Needs to be handled on case-by-case basis, by implementing individual indexes. 
      Ability to do search for text values in the scope of entire database or subset of certain fields requires non-trivial design and significant implementation
       efforts.
       
       9) Change tracking, i.e. ability to keep history of changes for certain classes/tables. 
+      10) Add time-serie support, i.e. ability to keep time-based state for simple objects or their subsets 
+      (this task is somehow related tp #9). Examples:
+      current rates, employee salary history, tracking fleet and other assets and so on.
     
 ## How Flexilite can help?
-   In order to help with the challenhes listed above "F" introduces simple and clean concept. It is based on SQLite capabilities and features, so that 
+   In order to help with the challenhes listed above, "F" introduces simple and clean concept. 
+   It is based on SQLite capabilities and features, so that 
    implementation of "F" is compact, light and efficient. "F" utilizes the following SQLite features:
    - type affinity (any cell in the table may have value of any data type)
-   - views, updatable with help of INSTEAD OF triggers
-    - recently added support for JSON data type
+   - updatable views, which can be used as replacement for physical tables with help of INSTEAD OF triggers
+    - recently added support for JSON data type and manipulation based on JSON path
     - clustered (i.e. WITHOUT ROWID) indexes
     - triggers
     - common table expressions
     - full text search
+    - R-trees
     
    Basic concept of "F":
-   -All data and metadata are stored in the fixed number of physical tables (about 10).
+   -All data and metadata are stored in the fixed number of physical tables (< 10 tables).
    -"F" provides out-of-box solutions for typical patterns of database schema evolution as well as general database features (listed above).
    - "F" heavily uses JSON for processing semi-structured data, for both metadata and records.
     

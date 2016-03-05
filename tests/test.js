@@ -5,9 +5,6 @@
 /// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
 /// <reference path="../typings/tsd.d.ts" />
 'use strict';
-//import chai = require('chai');
-//
-//var expect = chai.expect;
 var orm = require("orm");
 var sqlite3 = require("sqlite3");
 var util = require("util");
@@ -18,11 +15,13 @@ var Sync = require("syncho");
 var faker = require('faker');
 var orm_trn = require('orm-transaction');
 var Driver = require('../lib/FlexiliteAdapter').Driver;
+var drv = require('../lib/drivers/SQLite/Driver');
 /**
  * Unit tests
  */
-describe(' Create new empty database:', function () {
+describe('Create new empty database:', function () {
     console.log('Create new DB\n');
+    console.log(drv);
     beforeEach(function (done) {
         done();
     });

@@ -1,6 +1,7 @@
 <component name="ProjectDictionaryState">
   <dictionary name="ruslanskorynin">
     <words>
+      <w>bitmask</w>
       <w>calctype</w>
       <w>ctlo</w>
       <w>ctlv</w>
@@ -11,6 +12,7 @@
       <w>intgr</w>
       <w>klass</w>
       <w>newargs</w>
+      <w>northwind</w>
       <w>printf</w>
       <w>rslt</w>
       <w>sharedcache</w>

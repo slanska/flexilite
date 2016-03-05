@@ -2,7 +2,10 @@
  * Created by slanska on 2015-11-09.
  */
 
-declare interface  IPropertyDef
+/*
+node-orm2 declaration of individual property
+ */
+declare interface IPropertyDef
 {
     ext?: {
         mappedTo?: string,
