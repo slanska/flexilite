@@ -20,6 +20,11 @@ import _ = require('lodash');
 
 describe('Reverse Engineering for existing SQLite databases', () =>
 {
+    beforeEach((done)=>
+    {
+        done();
+    });
+
     it('Generate schema for Northwind database', (done)=>
     {
         Sync(()=>

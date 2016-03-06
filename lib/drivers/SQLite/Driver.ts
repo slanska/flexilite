@@ -470,7 +470,7 @@ namespace Flexilite.SQLite
         {
             var result;
             if (args && args.length > 0)
-                result = this.db.run.sync(sql, args);
+                result = this.db.run.sync(this.db, sql, args);
             else result = this.db.exec.sync(this.db, sql);
             return result;
         }
@@ -972,12 +972,15 @@ namespace Flexilite.SQLite
         {
             var self = this;
 
+            // TODO
+            // Normalize model
+
             // Check if this schema is already defined.
             // By schema signature
             var hashValue = objectHash(model);
             var classID;
 
-            self.execSQL(`select * from [.schema] where ClassID = ? and Hash = ?`, classID, hashValue);
+            self.execSQL(`select * from [.schemas] where ClassID = ? and Hash = ?`, classID, hashValue);
 
             // Load existing model, if it exists
             var result = this.getClassDefByName(model.table, true, true);

@@ -301,12 +301,77 @@ declare const enum FLEXILITE_LIMITS
 }
 
 /*
-Extend functions to allow sync calls
+ Extend functions to allow sync calls
  */
 interface Function
 {
     sync(thisArg, ...args):any;
     sync<T>(thisArg, ...args):T;
+}
+
+declare const enum PROPERTY_TYPE
+{
+    text,
+    integer,
+    numeric,
+    boolean,
+    reference,
+    enum,
+    binary,
+    date,
+    datetime
+}
+
+declare const enum UI_COMPONENT
+{
+    text,
+    counter,
+    switch,
+    slider,
+    combo,
+    checkbox,
+    radiobutton,
+    segmented
+}
+
+interface PropertyRules
+{
+    type:PROPERTY_TYPE;
+    required:boolean;
+}
+
+interface PropertyUISettings
+{
+    icon?:string;
+    component: UI_COMPONENT;
+}
+
+interface SchemaPropertyDefinition
+{
+    JSONPath: string;
+    ui: PropertyUISettings;
+    rules: PropertyRules;
+    minOccurences:number;
+    maxOccurences:number;
+}
+
+interface SchemaDefinition
+{
+    properties: {[propertyID:number]: SchemaPropertyDefinition
+    }
+    ;
+}
+
+interface ClassPropertyDefinition
+{
+    name?:string;
+}
+
+interface ClassDefinition
+{
+    properties: {[propertyID:number]: ClassPropertyDefinition
+    }
+    ;
 }
 
 

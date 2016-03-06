@@ -1424,4 +1424,4 @@ export class Driver
 }
 
 // Register Flexilite driver
-(<any>orm).addAdapter('flexilite', Driver);
+//(<any>orm).addAdapter('flexilite', Driver);
