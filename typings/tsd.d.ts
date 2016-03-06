@@ -19,3 +19,4 @@
 /// <reference path="thrift/thrift.d.ts" />
 /// <reference path="../lib/models/definitions.d.ts" />
 /// <reference path="object-hash/object-hash.d.ts" />
+

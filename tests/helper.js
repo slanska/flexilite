@@ -5,9 +5,8 @@
 /// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts"/>
 /// <reference path="../node_modules/orm/lib/TypeScript/sql-query.d.ts"/>
 'use strict';
-var chai = require('chai');
-var expect = chai.expect;
-var Driver = require('../lib/FlexiliteAdapter').Driver;
+// TODO var expect = chai.expect;
+//var Driver = require('../lib/FlexiliteAdapter').Driver;
 var orm = require("orm");
 var sqlite3 = require("sqlite3");
 var util = require("util");

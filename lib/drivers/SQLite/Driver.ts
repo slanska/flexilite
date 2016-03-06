@@ -272,10 +272,10 @@ namespace Flexilite.SQLite
         private generateObjectID():number
         {
             var self = this;
-            (<any>self.db.exec).sync(self.db, `insert or replace into [.generators] (name, seq) select '.objects',
+            self.db.exec.sync(self.db, `insert or replace into [.generators] (name, seq) select '.objects',
         coalesce((select seq from [.generators] where name = '.objects') , 0) + 1 ;`);
 
-            var objectID:number = (<any>self.db.get).sync(self.db,
+            var objectID:number = self.db.get.sync(self.db,
                 `select seq from [.generators] where name = '.objects' limit 1;`).seq;
             return objectID;
         }
@@ -443,7 +443,7 @@ namespace Flexilite.SQLite
                 self.processPropertyForSave(propInfo, schemaProps, nonSchemaProps);
             }
 
-            var info = (<any>self.db.all).sync(self.db, q);
+            var info = self.db.all.sync(self.db, q);
 
             nonSchemaProps.forEach(function (item:IEAVItem, idx, arr)
             {
@@ -458,7 +458,7 @@ namespace Flexilite.SQLite
                 require("./Debug").sql('sqlite', q);
             }
 
-            // FIXME - needed? (<any>self.db.all).sync(self.db, q);
+            // FIXME - needed? self.db.all.sync(self.db, q);
 
             return objectID;
         }
@@ -470,8 +470,8 @@ namespace Flexilite.SQLite
         {
             var result;
             if (args && args.length > 0)
-                result = (<any>this.db.run).sync(sql, args);
-            else result = (<any>this.db.exec).sync(this.db, sql);
+                result = this.db.run.sync(sql, args);
+            else result = this.db.exec.sync(this.db, sql);
             return result;
         }
 
@@ -795,10 +795,10 @@ namespace Flexilite.SQLite
          */
         private    getClassDefByID(classID:number):IClass
         {
-            var classDef = (<any>this.db.get).sync(this.db, 'select * from [.classes] where [ClassID] = ?', classID);
+            var classDef = this.db.get.sync(this.db, 'select * from [.classes] where [ClassID] = ?', classID);
             if (!classDef)
                 throw new Error(`Class with id=${classID} not found`);
-            classDef.Properties = (<any>this.db.all).sync(this.db, 'select * from [.class_properties] where [ClassID] = ?', classID);
+            classDef.Properties = this.db.all.sync(this.db, 'select * from [.class_properties] where [ClassID] = ?', classID);
             return classDef;
         }
 
@@ -813,7 +813,7 @@ namespace Flexilite.SQLite
         {
             var self = this;
             var selStmt = self.db.prepare('select * from [.classes] where [ClassName] = ?');
-            var rows = (<any>selStmt.all).sync(selStmt, className);
+            var rows = selStmt.all.sync(selStmt, className);
             var classDef:IClass;
 
             if (rows.length === 0)
@@ -824,10 +824,10 @@ namespace Flexilite.SQLite
                     var insCStmt = self.db.prepare(
                         `insert or replace into [.classes] ([ClassName], [DBViewName]) values (?, ?);
                     select * from [.classes] where [ClassName] = ?;`);
-                    (<any>insCStmt.run).sync(insCStmt, [className, className]);
+                    insCStmt.run.sync(insCStmt, [className, className]);
 
                     // Reload class def with all updated properties
-                    classDef = (<any>selStmt.all).sync(selStmt, className)[0];
+                    classDef = selStmt.all.sync(selStmt, className)[0];
                 }
                 else
                 //
@@ -846,7 +846,7 @@ namespace Flexilite.SQLite
                 if (loadProperties)
                 // Class found. Try to load properties
                 {
-                    var props = (<any>self.db.all).sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', classDef.ClassID) || {};
+                    var props = self.db.all.sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', classDef.ClassID) || {};
                     props.forEach(function (p, idx, propArray)
                     {
                         classDef.Properties[p.PropertyName] = p;
@@ -1009,7 +1009,7 @@ namespace Flexilite.SQLite
       ?, ?, ?, ?, ?, ?, ?);`);
                 }
 
-                (<any>insCPStmt.run).sync(insCPStmt, [
+                insCPStmt.run.sync(insCPStmt, [
                     result.ClassID,
                     propName,
                     cp.PropertyName,
@@ -1058,7 +1058,7 @@ namespace Flexilite.SQLite
                         cp.MinOccurences = ext.minOccurences || cp.MinOccurences;
                         cp.ValidationRegex = ext.validateRegex || cp.ValidationRegex;
 
-                        (<any>insCStmt.run).sync(insCStmt, [propName, cp.DefaultDataType, propName]);
+                        insCStmt.run.sync(insCStmt, [propName, cp.DefaultDataType, propName]);
 
                         if (pd.type === 'object')
                         {
@@ -1418,7 +1418,7 @@ namespace Flexilite.SQLite
                     console.log(viewSQL);
 
                     // Run view script
-                    (<any>self.db.exec).sync(self.db, viewSQL);
+                    self.db.exec.sync(self.db, viewSQL);
 
                     callback();
                 }

@@ -235,19 +235,19 @@ interface IHasOneAssociation
     extension: boolean,
 
     /*
-
+     Collection of fields which map to ID of referenced table
      */
     field: {[propname: string] :
         {
-            big: boolean,
-            mapsTo: string,
+            big?: boolean,
+            mapsTo?: string,
             name: string,
-            required: boolean,
-            size: number,
+            required?: boolean,
+            size?: number,
             time?: boolean,
-            type: string,
-            unsigned: boolean,
-            values: any}},
+            type?: string,
+            unsigned?: boolean,
+            values?: any}},
     getAccessor: string,// Function name
     hasAccessor: string,// Function name
     model: IModel,
@@ -299,5 +299,16 @@ declare const enum FLEXILITE_LIMITS
     MaxOccurences = 1 << 31,
     MaxObjectID = 1 << 31
 }
+
+/*
+Extend functions to allow sync calls
+ */
+interface Function
+{
+    sync(thisArg, ...args):any;
+    sync<T>(thisArg, ...args):T;
+}
+
+
 
 

@@ -6,6 +6,9 @@
       <w>ctlo</w>
       <w>ctlv</w>
       <w>dayfrac</w>
+      <w>dest</w>
+      <w>fkeys</w>
+      <w>fname</w>
       <w>frac</w>
       <w>gregcal</w>
       <w>guid</w>
@@ -13,7 +16,9 @@
       <w>klass</w>
       <w>newargs</w>
       <w>northwind</w>
+      <w>parentship</w>
       <w>printf</w>
+      <w>regx</w>
       <w>rslt</w>
       <w>sharedcache</w>
       <w>shortid</w>

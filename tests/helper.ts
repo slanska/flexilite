@@ -10,8 +10,8 @@
 
 import chai = require('chai');
 
-var expect = chai.expect;
-var Driver = require('../lib/FlexiliteAdapter').Driver;
+// TODO var expect = chai.expect;
+//var Driver = require('../lib/FlexiliteAdapter').Driver;
 
 import orm = require("orm");
 var sqlite3 = require("sqlite3");
