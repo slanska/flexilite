@@ -159,6 +159,11 @@ module Flexilite
                         if (matches[1] === 'blob')
                             return {type: 'binary', size: Number(matches[2])};
 
+                        if (matches[1] === 'numeric')
+                        {
+                            return {type: 'number'};
+                        }
+
                         return {type: 'text', size: Number(matches[2])};
                     }
                     return {type: 'text'};
@@ -166,7 +171,7 @@ module Flexilite
         }
 
         /*
-        
+
          */
         public getPropertiesFromORMDriverSchema(schema:ISyncOptions):{[propName:string]:IPropertyDef}
         {

@@ -49,4 +49,13 @@ describe('Advanced cases of data refactoring', () =>
     {
         done();
     });
+
+    /*
+    Country text column -> Extract to separate object, replace with country ID -> include into row
+    by auto-generated link to Countries
+     */
+    it('7. Scalar value(s) -> Extract to separate object -> Display value(s) from referenced object', (done)=>
+    {
+        done();
+    });
 });

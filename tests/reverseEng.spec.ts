@@ -25,11 +25,10 @@ describe('Reverse Engineering for existing SQLite databases', () =>
         done();
     });
 
-    it('Generate schema for Northwind database', (done)=>
+    function reverseEngineering(srcDBName:string, done)
     {
         Sync(()=>
         {
-            var srcDBName = path.join(__dirname, './data/northwind.db');
             var re = new Flexilite.ReverseEngine(srcDBName);
             var schema = re.loadSchemaFromDatabase.sync(re);
 
@@ -46,7 +45,21 @@ describe('Reverse Engineering for existing SQLite databases', () =>
 
                 console.log(name, model);
             });
+
             done();
         });
-    })
+    }
+
+    it('Generate schema for Northwind database', (done)=>
+    {
+        var srcDBName = path.join(__dirname, './data/northwind.db');
+        reverseEngineering(srcDBName, done);
+
+    });
+
+    it('Generate schema for Chinook database', (done)=>
+    {
+        var srcDBName = path.join(__dirname, './data/chinook.db');
+        reverseEngineering(srcDBName, done);
+    });
 });

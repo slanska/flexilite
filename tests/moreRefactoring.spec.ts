@@ -49,4 +49,14 @@ describe('More data refactoring', () =>
     {
         done();
     });
+
+    it('7. Create class from data', (done)=>
+    {
+        done();
+    });
+
+    it('8. Find matching class and schema for data', (done)=>
+    {
+        done();
+    });
 });

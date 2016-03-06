@@ -29,5 +29,11 @@ describe('More data refactoring', function () {
     it('6. Computed property', function (done) {
         done();
     });
+    it('7. Create class from data', function (done) {
+        done();
+    });
+    it('8. Find matching class and schema for data', function (done) {
+        done();
+    });
 });
 //# sourceMappingURL=moreRefactoring.spec.js.map
