@@ -6,26 +6,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/tests/datasources.md" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/Util.js" afterPath="$PROJECT_DIR$/lib/Util.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/Util.js.map" afterPath="$PROJECT_DIR$/lib/Util.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/reverseEng.js" afterPath="$PROJECT_DIR$/lib/misc/reverseEng.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/reverseEng.js.map" afterPath="$PROJECT_DIR$/lib/misc/reverseEng.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/reverseEng.ts" afterPath="$PROJECT_DIR$/lib/misc/reverseEng.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/models/ClassDef.js" afterPath="$PROJECT_DIR$/lib/models/ClassDef.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/models/ClassDef.js.map" afterPath="$PROJECT_DIR$/lib/models/ClassDef.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/models/index.js" afterPath="$PROJECT_DIR$/lib/models/index.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/models/index.js.map" afterPath="$PROJECT_DIR$/lib/models/index.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/advancedRefactoring.spec.js" afterPath="$PROJECT_DIR$/tests/advancedRefactoring.spec.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/advancedRefactoring.spec.js.map" afterPath="$PROJECT_DIR$/tests/advancedRefactoring.spec.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/advancedRefactoring.spec.ts" afterPath="$PROJECT_DIR$/tests/advancedRefactoring.spec.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/moreRefactoring.spec.js" afterPath="$PROJECT_DIR$/tests/moreRefactoring.spec.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/moreRefactoring.spec.js.map" afterPath="$PROJECT_DIR$/tests/moreRefactoring.spec.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/moreRefactoring.spec.ts" afterPath="$PROJECT_DIR$/tests/moreRefactoring.spec.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/reverseEng.spec.js" afterPath="$PROJECT_DIR$/tests/reverseEng.spec.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/reverseEng.spec.js.map" afterPath="$PROJECT_DIR$/tests/reverseEng.spec.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/reverseEng.spec.ts" afterPath="$PROJECT_DIR$/tests/reverseEng.spec.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql" />
     </list>
     <ignored path="flexilite.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -108,16 +90,6 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="index.ts" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/lib/index.ts">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="38">
-              <caret line="4" column="25" selection-start-line="4" selection-start-column="25" selection-end-line="4" selection-end-column="25" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="reverseEng.spec.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tests/reverseEng.spec.ts">
           <provider selected="true" editor-type-id="text-editor">
@@ -145,8 +117,8 @@
       <file leaf-file-name="Driver.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="126">
-              <caret line="1275" column="20" selection-start-line="1275" selection-start-column="20" selection-end-line="1275" selection-end-column="20" />
+            <state relative-caret-position="183">
+              <caret line="1296" column="36" selection-start-line="1296" selection-start-column="36" selection-end-line="1296" selection-end-column="36" />
               <folding>
                 <element signature="e#623#647#0" expanded="true" />
                 <element signature="e#34350#34833#0" expanded="false" />
@@ -166,6 +138,26 @@
                 <element signature="e#39901#40620#0" expanded="false" />
                 <element signature="e#40106#40244#0" expanded="false" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="IClassProperty.ts" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/lib/models/IClassProperty.ts">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-76">
+              <caret line="6" column="0" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="dbschema.sql" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="418">
+              <caret line="115" column="44" selection-start-line="115" selection-start-column="44" selection-end-line="115" selection-end-column="44" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -210,21 +202,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="moreRefactoring.spec.ts" pinned="false" current-in-tab="true">
+      <file leaf-file-name="moreRefactoring.spec.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tests/moreRefactoring.spec.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="589">
-              <caret line="31" column="0" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="definitions.d.ts" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/lib/models/definitions.d.ts">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-245">
-              <caret line="339" column="21" selection-start-line="339" selection-start-column="21" selection-end-line="339" selection-end-column="21" />
+            <state relative-caret-position="418">
+              <caret line="27" column="40" selection-start-line="27" selection-start-column="40" selection-end-line="27" selection-end-column="40" />
               <folding />
             </state>
           </provider>
@@ -287,7 +269,6 @@
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/index.ts" />
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts" />
         <option value="$PROJECT_DIR$/README.md" />
-        <option value="$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql" />
         <option value="$PROJECT_DIR$/lib/models/IPropertyDef.ts" />
         <option value="$PROJECT_DIR$/tests/schemas/Northwind.ts" />
         <option value="$PROJECT_DIR$/tests/helper.ts" />
@@ -302,6 +283,7 @@
         <option value="$PROJECT_DIR$/tests/reverseEng.spec.ts" />
         <option value="$PROJECT_DIR$/lib/misc/reverseEng.ts" />
         <option value="$PROJECT_DIR$/tests/moreRefactoring.spec.ts" />
+        <option value="$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql" />
       </list>
     </option>
   </component>
@@ -792,7 +774,13 @@
       <option name="project" value="LOCAL" />
       <updated>1457283561015</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="stubs for tests">
+      <created>1457290491569</created>
+      <option name="number" value="00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1457290491569</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -1013,32 +1001,6 @@
     </watches-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/node_modules/orm/Adapters.md">
-      <provider editor-type-id="split-provider[text-editor;MultiMarkdownPreviewEditor]">
-        <state split_layout="FIRST">
-          <first_editor relative-caret-position="0">
-            <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-      <provider selected="true" editor-type-id="MultiMarkdownFxPreviewEditor">
-        <state />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/node_modules/orm/Readme.md">
-      <provider editor-type-id="split-provider[text-editor;MultiMarkdownPreviewEditor]">
-        <state split_layout="FIRST">
-          <first_editor relative-caret-position="-132">
-            <caret line="705" column="13" selection-start-line="705" selection-start-column="13" selection-end-line="705" selection-end-column="13" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-      <provider selected="true" editor-type-id="MultiMarkdownFxPreviewEditor">
-        <state />
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/node_modules/orm/lib/TypeScript/sql-query.d.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-704">
@@ -1425,32 +1387,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="126">
-          <caret line="1275" column="20" selection-start-line="1275" selection-start-column="20" selection-end-line="1275" selection-end-column="20" />
-          <folding>
-            <element signature="e#623#647#0" expanded="true" />
-            <element signature="e#34350#34833#0" expanded="false" />
-            <element signature="e#34881#35367#0" expanded="false" />
-            <element signature="e#35818#35910#0" expanded="false" />
-            <element signature="e#35928#35979#0" expanded="false" />
-            <element signature="e#37381#37409#0" expanded="false" />
-            <element signature="e#37640#37741#0" expanded="false" />
-            <element signature="e#37808#38279#0" expanded="false" />
-            <element signature="e#38011#38073#0" expanded="false" />
-            <element signature="e#38333#38398#0" expanded="false" />
-            <element signature="e#38632#38733#0" expanded="false" />
-            <element signature="e#38802#38829#0" expanded="false" />
-            <element signature="e#38883#38948#0" expanded="false" />
-            <element signature="e#39121#39830#0" expanded="false" />
-            <element signature="e#39324#39460#0" expanded="false" />
-            <element signature="e#39901#40620#0" expanded="false" />
-            <element signature="e#40106#40244#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tests/reverseEng.spec.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="329">
@@ -1473,8 +1409,50 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/tests/moreRefactoring.spec.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="589">
-          <caret line="31" column="0" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
+        <state relative-caret-position="418">
+          <caret line="27" column="40" selection-start-line="27" selection-start-column="40" selection-end-line="27" selection-end-column="40" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="183">
+          <caret line="1296" column="36" selection-start-line="1296" selection-start-column="36" selection-end-line="1296" selection-end-column="36" />
+          <folding>
+            <element signature="e#623#647#0" expanded="true" />
+            <element signature="e#34350#34833#0" expanded="false" />
+            <element signature="e#34881#35367#0" expanded="false" />
+            <element signature="e#35818#35910#0" expanded="false" />
+            <element signature="e#35928#35979#0" expanded="false" />
+            <element signature="e#37381#37409#0" expanded="false" />
+            <element signature="e#37640#37741#0" expanded="false" />
+            <element signature="e#37808#38279#0" expanded="false" />
+            <element signature="e#38011#38073#0" expanded="false" />
+            <element signature="e#38333#38398#0" expanded="false" />
+            <element signature="e#38632#38733#0" expanded="false" />
+            <element signature="e#38802#38829#0" expanded="false" />
+            <element signature="e#38883#38948#0" expanded="false" />
+            <element signature="e#39121#39830#0" expanded="false" />
+            <element signature="e#39324#39460#0" expanded="false" />
+            <element signature="e#39901#40620#0" expanded="false" />
+            <element signature="e#40106#40244#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/models/IClassProperty.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-76">
+          <caret line="6" column="0" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="418">
+          <caret line="115" column="44" selection-start-line="115" selection-start-column="44" selection-end-line="115" selection-end-column="44" />
           <folding />
         </state>
       </provider>
