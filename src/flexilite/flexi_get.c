@@ -24,6 +24,7 @@ struct flexiGetData
     const char *zSql5;
     const char *zSql6;
     const char *zSql7;
+    const char *zSql8;
 };
 
 static void init_flexiGetData(sqlite3 *db, struct flexiGetData *data)
@@ -75,6 +76,12 @@ static void init_flexiGetData(sqlite3 *db, struct flexiGetData *data)
 " left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
 " where v.ObjectID = @ObjectID v.PropertyID = @RefPropertyID) where flexi_get(@WherePropertyID, SchemaData, Data)"\
 " limit 1";
+
+    // Item in list, with certain property index
+    data->zSql8 = "select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData,s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
+    " from [.ref-values] v join [.objects] o on v.ObjectID = o.ObjectID" \
+"left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
+" where v.ObjectID = @ObjectID v.PropertyID = @RefPropertyID and v.PropIndex = @PropertyIndex limit 1";
 //    sqlite3_prepare_v2(db,
 //    const char *zSql,       /* SQL statement, UTF-8 encoded */
 //    int nByte,              /* Maximum length of zSql in bytes. */
@@ -132,17 +139,50 @@ static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, const char *zSche
         if (valPropNode == NULL || valPropNode->u.zJContent == NULL)
             return SQLITE_NOTFOUND;
 
+        int stmtIndex = 0;
+
         // Optional properties
-        // Where property ID
-        JsonNode *wherePropNode = jsonGetNode(&x, "$.properties.%d.map.link.wherePropID", (int) iPropID, context);
-
-        // Sort property ID
-        JsonNode *sortPropNode = jsonGetNode(&x, "$.properties.%d.map.link.sortPropID", (int) iPropID, context);
-
         // Property Index
         JsonNode *idxPropNode = jsonGetNode(&x, "$.properties.%d.map.link.propIndex", (int) iPropID, context);
+        if (idxPropNode != NULL)
+        {
+            stmtIndex = 8;
 
+        }
+        else
+        {
 
+/*
+ * 0 - first
+ * 1 - sorted asc, no where
+ * 2 - last
+ * 3 - sorted desc, no where
+ * 4 - where, no sort
+ * 5 - where, sorted asc
+ * 6 - where, last in list
+ * 7 - where, sorted desc
+ * 8 - by property index
+ */
+
+            // Where property ID
+            JsonNode *wherePropNode = jsonGetNode(&x, "$.properties.%d.map.link.wherePropID", (int) iPropID, context);
+            if (wherePropNode != NULL)
+            {
+                stmtIndex |= 0x04;
+
+            }
+            // Sort property ID
+            JsonNode *sortPropNode = jsonGetNode(&x, "$.properties.%d.map.link.sortPropID", (int) iPropID, context);
+            if (sortPropNode != NULL)
+            {
+                stmtIndex |= 0x01;
+
+            }
+            // Desc property ID
+            JsonNode *descPropNode = jsonGetNode(&x, "$.properties.%d.map.link.sortDesc", (int) iPropID, context);
+            if (descPropNode != NULL)
+                stmtIndex |= 0x02;
+        }
 
 
     }
