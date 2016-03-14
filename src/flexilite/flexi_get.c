@@ -2,7 +2,10 @@
 // Created by slanska on 2016-03-13.
 //
 
+#include <string.h>
+#include <printf.h>
 #include "../../lib/sqlite/sqlite3ext.h"
+#include "../misc/json1.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -11,7 +14,8 @@ SQLITE_EXTENSION_INIT3
 /*
  * Holds list of prepared statements to speed up 'flexi_get' function
  */
-struct flexiGetData {
+struct flexiGetData
+{
     //
     const char *zSql1;
     const char *zSql2;
@@ -22,7 +26,8 @@ struct flexiGetData {
     const char *zSql7;
 };
 
-static void init_flexiGetData(struct flexiGetData *data) {
+static void init_flexiGetData(sqlite3 *db, struct flexiGetData *data)
+{
 
     // First item in list, by property index
     data->zSql1 = "select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData,s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
@@ -70,13 +75,77 @@ static void init_flexiGetData(struct flexiGetData *data) {
 " left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
 " where v.ObjectID = @ObjectID v.PropertyID = @RefPropertyID) where flexi_get(@WherePropertyID, SchemaData, Data)"\
 " limit 1";
+//    sqlite3_prepare_v2(db,
+//    const char *zSql,       /* SQL statement, UTF-8 encoded */
+//    int nByte,              /* Maximum length of zSql in bytes. */
+//    sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
+//    const char **pzTail     /* OUT: Pointer to unused portion of zSql */);
 }
 
-static int flexi_get_value(sqlite3_context *context, sqlite3_int64 iPropID, const char *zSchemaJson,
-                           const char *zDataJson) {
-    struct flexiGetData *data = (struct flexiGetData *) sqlite3_user_data(context);
+/*
+ *
+ */
+static JsonNode *jsonGetNode(JsonParse *x, const char *zPathTemplate, int iPropID, sqlite3_context *context)
+{
+    JsonNode *result;
+    char zPropPath[100];
+    sprintf(zPropPath, zPathTemplate, (int) iPropID);
+    result = jsonLookup(x, zPropPath, 0, context);
+    return result;
+}
 
+/*
+ * Returns:
+ *  SQLITE_OK - if data was found and set to context result or search is over and NULL is set to context result
+ *  SQLITE_NOTFOUND - data was not found, but there is possibility that linked object has data
+ *  SQLERROR - any error occured
+ */
+static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, const char *zSchemaJson,
+                           const char *zDataJson, struct flexiGetData *data,
+                           sqlite3_context *context)
+{
     // Get property definition from schema JSON.
+    JsonParse x;          /* The parse */
+    int parseResult = jsonParse(&x, context, zSchemaJson);
+    if (parseResult != 0)
+        // TODO process result
+        return parseResult;
+
+    JsonNode *propNode = jsonGetNode(&x, "$.properties.%d.map.jsonPath", (int) iPropID, context);
+    if (propNode == NULL)
+    {
+
+
+    }
+    //SQLITE_DONE;
+
+    if (!propNode->u.zJContent || strlen(propNode->u.zJContent) == 0)
+        // jsonPath not found. Try to use referenced property instead
+    {
+        // Reference property ID
+        JsonNode *refPropNode = jsonGetNode(&x, "$.properties.%d.map.link.refPropID", (int) iPropID, context);
+        if (refPropNode == NULL || refPropNode->u.zJContent == NULL)
+            return SQLITE_NOTFOUND;
+
+        // Linked object property ID
+        JsonNode *valPropNode = jsonGetNode(&x, "$.properties.%d.map.link.valuePropID", (int) iPropID, context);
+        if (valPropNode == NULL || valPropNode->u.zJContent == NULL)
+            return SQLITE_NOTFOUND;
+
+        // Optional properties
+        // Where property ID
+        JsonNode *wherePropNode = jsonGetNode(&x, "$.properties.%d.map.link.wherePropID", (int) iPropID, context);
+
+        // Sort property ID
+        JsonNode *sortPropNode = jsonGetNode(&x, "$.properties.%d.map.link.sortPropID", (int) iPropID, context);
+
+        // Property Index
+        JsonNode *idxPropNode = jsonGetNode(&x, "$.properties.%d.map.link.propIndex", (int) iPropID, context);
+
+
+
+
+    }
 
     // If not set, return NULL.
 
@@ -90,9 +159,11 @@ static int flexi_get_value(sqlite3_context *context, sqlite3_int64 iPropID, cons
     // For sake of performance, these cases are handled by pre-compiled statements, which are kept in flexiGetData
     // structure (declared above)
 
-    // Return result
 
-    return 0;
+    // Return result
+    sqlite3_result_null(context);
+    jsonParseReset(&x);
+    return SQLITE_OK;
 }
 
 /*
@@ -104,28 +175,37 @@ static int flexi_get_value(sqlite3_context *context, sqlite3_int64 iPropID, cons
  * property ID to retrieve
  * schema JSON1 data
  *      expected to be in the following format, as defined by Flexilite:
- *      properties: {[propID:number]: {map: {jsonPath:string, link: {refPropID: number, filter: any, orderBy: any; linkedPropID: number}}}}
+ *      properties: {[propID:number]: {map: {jsonPath:string, link: {refPropID: number, wherePropertyID: number;
+ *      whereValue: any; orderByPropID: number;
+ *      orderByDesc: boolean;
+ *      linkedPropID: number}}}}
  * data JSON1 data
   */
 static void sqlFlexiGetFunc(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
-) {
-    if (argc != 3) {
+)
+{
+    if (argc != 3)
+    {
         sqlite3_result_error(context, "Function flexi_get() expects 3 arguments", 1);
         return;
     }
+
+    sqlite3 *db = sqlite3_context_db_handle(context);
+
+    struct flexiGetData *dataContext = (struct flexiGetData *) sqlite3_user_data(context);
     const sqlite3_int64 iPropID = sqlite3_value_int64(argv[0]);
     const char *zSchemaJson = (const char *) sqlite3_value_text(argv[1]);
     const char *zDataJson = (const char *) sqlite3_value_text(argv[2]);
 
-    while (1) {
-        int result = flexi_get_value(context, iPropID, zSchemaJson, zDataJson);
-        if (result == 0)
+    while (1)
+    {
+        int result = flexi_get_value(db, iPropID, zSchemaJson, zDataJson, dataContext, context);
+        if (result != 0)
             break;
     }
-
 }
 
 #ifdef _WIN32
@@ -136,7 +216,8 @@ int sqlite3_flexi_get_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
-) {
+)
+{
     int rc = SQLITE_OK;
     SQLITE_EXTENSION_INIT2(pApi);
     (void) pzErrMsg;  /* Unused parameter */

@@ -27,7 +27,7 @@ set (EXT_FILES
         src/misc/totype.c
         src/flexilite/flexi_get.c
         src/misc/var.c
-        )
+        src/misc/json1.c)
 
 add_library(sqlite_extensions SHARED ${EXT_FILES})
 

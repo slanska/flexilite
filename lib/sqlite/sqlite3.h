@@ -41,6 +41,7 @@
 extern "C" {
 #endif
 
+#define SQLITE_ENABLE_JSON1
 
 /*
 ** Provide the ability to override linkage features of the interface.
