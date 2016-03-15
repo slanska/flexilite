@@ -11,83 +11,62 @@ SQLITE_EXTENSION_INIT3
 
 #include <string.h>
 
+// SQL statement parameters
+#define WherePropertyID 1
+#define WhereValuePropertyID 2
+#define OrderByPropertyID 3
+#define ObjectID 4
+#define RefPropertyID 5
+#define PropIndex 6
+
+// String literals to make SQL declarations shorter and more expressive
+#define _SQL_WHERE_BY_PROPERTY_PART_ " flexi_get(?1, SchemaData, Data) = ?2"
+#define _SQL_ORDER_BY_PROPERTY_PART_ " order by flexi_get(?3, SchemaData, Data)"
+#define _SQL_SELECT_PART_ "select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData, s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
+    " from [.ref-values] v join [.objects] o on v.ObjectID = o.ObjectID" \
+    " left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
+    " where v.ObjectID = ?4 and v.PropertyID = ?5 "
+
+/*
+ * SQL strings for retrieving linked data, for various cases
+ */
+static const char *sql_strings[9] =
+        {
+                // 0 - First item in ref collection, sorted by property index
+                _SQL_SELECT_PART_ " order by v.PropIndex asc limit 1;",
+
+                // 1 - First item in ref collection, sorted by 'order-by' property
+                "select * from (" _SQL_SELECT_PART_ ") " _SQL_ORDER_BY_PROPERTY_PART_ " asc limit 1;",
+
+                // 2 - Last item in ref collection, sorted by property index
+                _SQL_SELECT_PART_ " order by v.PropIndex desc limit 1;",
+
+                // 3 - Last item in reference collection, sorted by 'order-by' property
+                "select * from (" _SQL_SELECT_PART_ ") " _SQL_ORDER_BY_PROPERTY_PART_ " desc limit 1;",
+
+                // 4 - First item in ref collection, filtered by 'where' property
+                "select * from (" _SQL_SELECT_PART_ ") where " _SQL_WHERE_BY_PROPERTY_PART_ " order by v.PropIndex asc limit 1;",
+
+                // 5 - First item in ref collection, filtered by 'where' property and sorted by 'order-by' property
+                "select * from (" _SQL_SELECT_PART_ ") where " _SQL_WHERE_BY_PROPERTY_PART_ _SQL_ORDER_BY_PROPERTY_PART_ " asc limit 1;",
+
+                // 6 - Last item in ref collection, filtered by 'where' property
+                "select * from (" _SQL_SELECT_PART_ ") where " _SQL_WHERE_BY_PROPERTY_PART_ " order by v.PropIndex desc limit 1;",
+
+                // 7 - Last item in ref collection, filtered by 'where' property and sorted by 'order-by' property
+                "select * from (" _SQL_SELECT_PART_ ") where " _SQL_WHERE_BY_PROPERTY_PART_ _SQL_ORDER_BY_PROPERTY_PART_ " desc limit 1;",
+
+                // 8 - by specific index in reference collection
+                _SQL_SELECT_PART_ " and v.PropIndex = ?6 limit 1;"
+        };
+
 /*
  * Holds list of prepared statements to speed up 'flexi_get' function
  */
 struct flexiGetData
 {
-    //
-    const char *zSql1;
-    const char *zSql2;
-    const char *zSql3;
-    const char *zSql4;
-    const char *zSql5;
-    const char *zSql6;
-    const char *zSql7;
-    const char *zSql8;
+    sqlite3_stmt *statements[9];
 };
-
-static void init_flexiGetData(sqlite3 *db, struct flexiGetData *data)
-{
-
-    // First item in list, by property index
-    data->zSql1 = "select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData,s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
-    " from [.ref-values] v join [.objects] o on v.ObjectID = o.ObjectID" \
-"left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
-" where v.ObjectID = @ObjectID v.PropertyID = @RefPropertyID order by v.PropIndex asc limit 1";
-
-    // Last item in list, by property index
-    data->zSql2 = "select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData,s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
-    " from [.ref-values] v join [.objects] o on v.ObjectID = o.ObjectID" \
-"left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
-" where v.ObjectID = @ObjectID v.PropertyID = @RefPropertyID order by v.PropIndex desc limit 1";
-
-    // First item in list, sorted and filtered
-    data->zSql3 = "select * from ( select select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData,s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
-    " from [.ref-values] v join [.objects] o on v.ObjectID = o.ObjectID" \
-" left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
-" where v.ObjectID = @ObjectID v.PropertyID = @RefPropertyID) where flexi_get(@WherePropertyID, SchemaData, Data)"\
-" order by flexi_get(@OrderByPropertyID, SchemaData, Data) asc limit 1";
-
-    // Last item in list, sorted and filtered
-    data->zSql4 = "select * from ( select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData,s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
-    " from [.ref-values] v join [.objects] o on v.ObjectID = o.ObjectID" \
-" left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
-" where v.ObjectID = @ObjectID v.PropertyID = @RefPropertyID) where flexi_get(@WherePropertyID, SchemaData, Data)"\
-" order by flexi_get(@OrderByPropertyID, SchemaData, Data) desc limit 1";
-
-    // First item in list, sorted
-    data->zSql5 = "select * from ( select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData,s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
-    " from [.ref-values] v join [.objects] o on v.ObjectID = o.ObjectID" \
-" left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
-" where v.ObjectID = @ObjectID v.PropertyID = @RefPropertyID) "\
-" order by flexi_get(@OrderByPropertyID, SchemaData, Data) asc limit 1";
-
-// Last item in list, sorted
-    data->zSql6 = "select * from ( select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData,s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
-    " from [.ref-values] v join [.objects] o on v.ObjectID = o.ObjectID" \
-" left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
-" where v.ObjectID = @ObjectID v.PropertyID = @RefPropertyID) "\
-" order by flexi_get(@OrderByPropertyID, SchemaData, Data) desc limit 1";
-
-    // First found item in list, filtered
-    data->zSql7 = "select * from ( select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData,s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
-    " from [.ref-values] v join [.objects] o on v.ObjectID = o.ObjectID" \
-" left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
-" where v.ObjectID = @ObjectID v.PropertyID = @RefPropertyID) where flexi_get(@WherePropertyID, SchemaData, Data)"\
-" limit 1";
-
-    // Item in list, with certain property index
-    data->zSql8 = "select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData,s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
-    " from [.ref-values] v join [.objects] o on v.ObjectID = o.ObjectID" \
-"left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
-" where v.ObjectID = @ObjectID v.PropertyID = @RefPropertyID and v.PropIndex = @PropertyIndex limit 1";
-//    sqlite3_prepare_v2(db,
-//    const char *zSql,       /* SQL statement, UTF-8 encoded */
-//    int nByte,              /* Maximum length of zSql in bytes. */
-//    sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
-//    const char **pzTail     /* OUT: Pointer to unused portion of zSql */);
-}
 
 /*
  *
@@ -102,12 +81,23 @@ static JsonNode *jsonGetNode(JsonParse *x, const char *zPathTemplate, int iPropI
 }
 
 /*
+ *
+ */
+static void setSQLiteParam(sqlite3_stmt *stmt, int paramNo, JsonNode *jsNode)
+{
+    if (jsNode != NULL && jsNode->u.zJContent != NULL)
+    {
+        sqlite3_bind_text(stmt, paramNo, jsNode->u.zJContent, 0, 0);
+    }
+}
+
+/*
  * Returns:
  *  SQLITE_OK - if data was found and set to context result or search is over and NULL is set to context result
  *  SQLITE_NOTFOUND - data was not found, but there is possibility that linked object has data
- *  SQLERROR - any error occured
+ *  SQLERROR - any error occurred
  */
-static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, const char *zSchemaJson,
+static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, sqlite3_int64 iObjectID, const char *zSchemaJson,
                            const char *zDataJson, struct flexiGetData *data,
                            sqlite3_context *context)
 {
@@ -142,6 +132,10 @@ static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, const char *zSche
         int stmtIndex = 0;
 
         // Optional properties
+        JsonNode *wherePropNode = NULL;
+        JsonNode *whereValuePropNode = NULL;
+        JsonNode *sortPropNode = NULL;
+        JsonNode *descPropNode = NULL;
         // Property Index
         JsonNode *idxPropNode = jsonGetNode(&x, "$.properties.%d.map.link.propIndex", (int) iPropID, context);
         if (idxPropNode != NULL)
@@ -154,9 +148,9 @@ static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, const char *zSche
 
 /*
  * 0 - first
- * 1 - sorted asc, no where
+ * 1 - sorted asc, no 'where'
  * 2 - last
- * 3 - sorted desc, no where
+ * 3 - sorted desc, no 'where'
  * 4 - where, no sort
  * 5 - where, sorted asc
  * 6 - where, last in list
@@ -164,27 +158,57 @@ static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, const char *zSche
  * 8 - by property index
  */
 
+
+
             // Where property ID
-            JsonNode *wherePropNode = jsonGetNode(&x, "$.properties.%d.map.link.wherePropID", (int) iPropID, context);
+            wherePropNode = jsonGetNode(&x, "$.properties.%d.map.link.where.filterPropID", (int) iPropID,
+                                        context);
+
             if (wherePropNode != NULL)
             {
+                whereValuePropNode = jsonGetNode(&x, "$.properties.%d.map.link.where.valuePropID", (int) iPropID,
+                                                 context);
+                if (whereValuePropNode == NULL)
+                {
+                    // TODO Return NULL
+                }
                 stmtIndex |= 0x04;
 
             }
             // Sort property ID
-            JsonNode *sortPropNode = jsonGetNode(&x, "$.properties.%d.map.link.sortPropID", (int) iPropID, context);
+            sortPropNode = jsonGetNode(&x, "$.properties.%d.map.link.sort.propID", (int) iPropID, context);
             if (sortPropNode != NULL)
             {
                 stmtIndex |= 0x01;
 
             }
             // Desc property ID
-            JsonNode *descPropNode = jsonGetNode(&x, "$.properties.%d.map.link.sortDesc", (int) iPropID, context);
+            descPropNode = jsonGetNode(&x, "$.properties.%d.map.link.sort.desc", (int) iPropID, context);
             if (descPropNode != NULL)
                 stmtIndex |= 0x02;
         }
 
+        // Check if SQL statement has been already prepared
+        if (data->statements[stmtIndex] == NULL)
+        {
+            const char *sql = sql_strings[stmtIndex];
+            int result = sqlite3_prepare_v2(db,
+                                            sql,
+                                            (int) strlen(sql),
+                                            &data->statements[stmtIndex],
+                                            NULL);
+        }
 
+        sqlite3_stmt *stmt = data->statements[stmtIndex];
+        sqlite3_reset(stmt);
+        setSQLiteParam(stmt, WherePropertyID, wherePropNode);
+        setSQLiteParam(stmt, WhereValuePropertyID, whereValuePropNode);
+        setSQLiteParam(stmt, OrderByPropertyID, sortPropNode);
+        setSQLiteParam(stmt, PropIndex, idxPropNode);
+        sqlite3_bind_int(stmt, ObjectID, (int) iObjectID);
+        setSQLiteParam(stmt, RefPropertyID, refPropNode);
+
+        sqlite3_step(stmt);
     }
 
     // If not set, return NULL.
@@ -227,9 +251,9 @@ static void sqlFlexiGetFunc(
         sqlite3_value **argv
 )
 {
-    if (argc != 3)
+    if (argc != 4)
     {
-        sqlite3_result_error(context, "Function flexi_get() expects 3 arguments", 1);
+        sqlite3_result_error(context, "Function flexi_get() expects 4 arguments", 1);
         return;
     }
 
@@ -237,12 +261,13 @@ static void sqlFlexiGetFunc(
 
     struct flexiGetData *dataContext = (struct flexiGetData *) sqlite3_user_data(context);
     const sqlite3_int64 iPropID = sqlite3_value_int64(argv[0]);
-    const char *zSchemaJson = (const char *) sqlite3_value_text(argv[1]);
-    const char *zDataJson = (const char *) sqlite3_value_text(argv[2]);
+    const sqlite3_int64 iObjectID = sqlite3_value_int64(argv[1]);
+    const char *zSchemaJson = (const char *) sqlite3_value_text(argv[2]);
+    const char *zDataJson = (const char *) sqlite3_value_text(argv[3]);
 
     while (1)
     {
-        int result = flexi_get_value(db, iPropID, zSchemaJson, zDataJson, dataContext, context);
+        int result = flexi_get_value(db, iPropID, iObjectID, zSchemaJson, zDataJson, dataContext, context);
         if (result != 0)
             break;
     }
@@ -263,7 +288,7 @@ int sqlite3_flexi_get_init(
     (void) pzErrMsg;  /* Unused parameter */
 
     struct flexiGetData *data = sqlite3_malloc(sizeof(struct flexiGetData));
-    rc = sqlite3_create_function_v2(db, "flexi_get", 3, SQLITE_UTF8, data,
+    rc = sqlite3_create_function_v2(db, "flexi_get", 4, SQLITE_UTF8, data,
                                     sqlFlexiGetFunc, 0, 0, 0);
     return rc;
 }
