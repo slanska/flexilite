@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c89")
 
 project(sqlite_shell)
 

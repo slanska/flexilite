@@ -83,10 +83,15 @@ JsonNode *jsonLookup(
 
 void jsonParseReset(JsonParse *pParse);
 
+/*
+ * Retrieves value from JSON node and sets to the context
+ */
 void jsonReturn(
         JsonNode *pNode,            /* Node to return */
         sqlite3_context *pCtx,      /* Return value for this function */
         sqlite3_value **aReplace    /* Array of replacement values */
 );
+
+
 
 #endif //SQLITE_EXTENSIONS_JSON1_H

@@ -12,12 +12,12 @@ SQLITE_EXTENSION_INIT3
 #include <string.h>
 
 // SQL statement parameters
-#define WherePropertyID 1
-#define WhereValuePropertyID 2
-#define OrderByPropertyID 3
-#define ObjectID 4
-#define RefPropertyID 5
-#define PropIndex 6
+#define WHERE_PROPERTY_INDEX 1
+#define WHERE_VALUE_INDEX 2
+#define ORDER_BY_PROPERTY_INDEX 3
+#define OBJECT_ID_INDEX 4
+#define REF_PROPERTY_INDEX 5
+#define PROPINDEX_INDEX 6
 
 // String literals to make SQL declarations shorter and more expressive
 #define _SQL_WHERE_BY_PROPERTY_PART_ " flexi_get(?1, SchemaData, Data) = ?2"
@@ -63,7 +63,7 @@ static const char *sql_strings[9] =
 /*
  * Holds list of prepared statements to speed up 'flexi_get' function
  */
-struct flexiGetData
+struct flexi_prepared_statements
 {
     sqlite3_stmt *statements[9];
 };
@@ -91,143 +91,161 @@ static void setSQLiteParam(sqlite3_stmt *stmt, int paramNo, JsonNode *jsNode)
     }
 }
 
+struct flexi_get_fetch_params
+{
+    const unsigned char *schemaJSON;
+    const unsigned char *dataJSON;
+    long int objectID;
+    int schemaID;
+};
+
 /*
  * Returns:
- *  SQLITE_OK - if data was found and set to context result or search is over and NULL is set to context result
- *  SQLITE_NOTFOUND - data was not found, but there is possibility that linked object has data
- *  SQLERROR - any error occurred
+0 - search is over. If result is found, then it is set in sqlite3_context. Otherwise, null is set to sqlite3_context
+1 - no result yet, but based on schema definition, linked objects may have requested data. fetchParams will
+ be set to new set of data
  */
-static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, sqlite3_int64 iObjectID, const char *zSchemaJson,
-                           const char *zDataJson, struct flexiGetData *data,
-                           sqlite3_context *context)
+static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, struct flexi_get_fetch_params *fetchParams,
+                           struct flexi_prepared_statements *statements, sqlite3_context *context)
 {
+    int result = 0;
+
     // Get property definition from schema JSON.
-    JsonParse x;          /* The parse */
-    int parseResult = jsonParse(&x, context, zSchemaJson);
-    if (parseResult != 0)
-        // TODO process result
-        return parseResult;
+    JsonParse xSchema;          /* The parse */
+    JsonParse xData;          /* The parse */
 
-    JsonNode *propNode = jsonGetNode(&x, "$.properties.%d.map.jsonPath", (int) iPropID, context);
-    if (propNode == NULL)
+    int parseResult = jsonParse(&xSchema, context, (const char *) fetchParams->schemaJSON);
+    if (parseResult != SQLITE_OK)
     {
-
-
-    }
-    //SQLITE_DONE;
-
-    if (!propNode->u.zJContent || strlen(propNode->u.zJContent) == 0)
-        // jsonPath not found. Try to use referenced property instead
-    {
-        // Reference property ID
-        JsonNode *refPropNode = jsonGetNode(&x, "$.properties.%d.map.link.refPropID", (int) iPropID, context);
-        if (refPropNode == NULL || refPropNode->u.zJContent == NULL)
-            return SQLITE_NOTFOUND;
-
-        // Linked object property ID
-        JsonNode *valPropNode = jsonGetNode(&x, "$.properties.%d.map.link.valuePropID", (int) iPropID, context);
-        if (valPropNode == NULL || valPropNode->u.zJContent == NULL)
-            return SQLITE_NOTFOUND;
-
-        int stmtIndex = 0;
-
-        // Optional properties
-        JsonNode *wherePropNode = NULL;
-        JsonNode *whereValuePropNode = NULL;
-        JsonNode *sortPropNode = NULL;
-        JsonNode *descPropNode = NULL;
-        // Property Index
-        JsonNode *idxPropNode = jsonGetNode(&x, "$.properties.%d.map.link.propIndex", (int) iPropID, context);
-        if (idxPropNode != NULL)
-        {
-            stmtIndex = 8;
-
-        }
-        else
-        {
-
-/*
- * 0 - first
- * 1 - sorted asc, no 'where'
- * 2 - last
- * 3 - sorted desc, no 'where'
- * 4 - where, no sort
- * 5 - where, sorted asc
- * 6 - where, last in list
- * 7 - where, sorted desc
- * 8 - by property index
- */
-
-
-
-            // Where property ID
-            wherePropNode = jsonGetNode(&x, "$.properties.%d.map.link.where.filterPropID", (int) iPropID,
-                                        context);
-
-            if (wherePropNode != NULL)
-            {
-                whereValuePropNode = jsonGetNode(&x, "$.properties.%d.map.link.where.valuePropID", (int) iPropID,
-                                                 context);
-                if (whereValuePropNode == NULL)
-                {
-                    // TODO Return NULL
-                }
-                stmtIndex |= 0x04;
-
-            }
-            // Sort property ID
-            sortPropNode = jsonGetNode(&x, "$.properties.%d.map.link.sort.propID", (int) iPropID, context);
-            if (sortPropNode != NULL)
-            {
-                stmtIndex |= 0x01;
-
-            }
-            // Desc property ID
-            descPropNode = jsonGetNode(&x, "$.properties.%d.map.link.sort.desc", (int) iPropID, context);
-            if (descPropNode != NULL)
-                stmtIndex |= 0x02;
-        }
-
-        // Check if SQL statement has been already prepared
-        if (data->statements[stmtIndex] == NULL)
-        {
-            const char *sql = sql_strings[stmtIndex];
-            int result = sqlite3_prepare_v2(db,
-                                            sql,
-                                            (int) strlen(sql),
-                                            &data->statements[stmtIndex],
-                                            NULL);
-        }
-
-        sqlite3_stmt *stmt = data->statements[stmtIndex];
-        sqlite3_reset(stmt);
-        setSQLiteParam(stmt, WherePropertyID, wherePropNode);
-        setSQLiteParam(stmt, WhereValuePropertyID, whereValuePropNode);
-        setSQLiteParam(stmt, OrderByPropertyID, sortPropNode);
-        setSQLiteParam(stmt, PropIndex, idxPropNode);
-        sqlite3_bind_int(stmt, ObjectID, (int) iObjectID);
-        setSQLiteParam(stmt, RefPropertyID, refPropNode);
-
-        sqlite3_step(stmt);
+        // TODO Report schema ID
+        sqlite3_result_error(context, "Schema JSON parsing error", parseResult);
+        goto EXIT;
     }
 
-    // If not set, return NULL.
+    JsonNode *propNode = jsonGetNode(&xSchema, "$.properties.%d.map.jsonPath", (int) iPropID, context);
+    if (propNode != NULL && propNode->u.zJContent && strlen(propNode->u.zJContent) > 0)
+        // direct mapping was found. Try to get data directly from data JSON
+    {
+        parseResult = jsonParse(&xData, context, (const char *) fetchParams->dataJSON);
+        if (parseResult != SQLITE_OK)
+        {
+            // TODO sqlite3_result_error(context, "Data JSON parsing error", parseResult);
+            goto EXIT;
+        }
 
-    // Check if data JSON has value on the path corresponding property definition
+        char propPath[200];
+        strncpy(propPath, propNode->u.zJContent, propNode->n);
+        if (propPath[propNode->n - 1] == '\"')
+            propPath[propNode->n - 1] = 0;
+        char *pPropPath = &propPath[0];
+        if (*pPropPath == '\"')
+            pPropPath++;
+        JsonNode *dataNode = jsonLookup(&xData, pPropPath, 0, context);
+        if (dataNode != NULL)
+        {
+            jsonReturn(dataNode, context, NULL);
+            goto EXIT;
+        }
+    }
 
-    // No direct data found. Check if schema has linked property definition
+    // direct value from data JSON was not retrieved. Try to get data from linked object, if applicable
 
-    // Build SQL to retrieve schema and data for linked property's data
+    // Reference property ID
+    JsonNode *refPropNode = jsonGetNode(&xSchema, "$.properties.%d.map.link.refPropID", (int) iPropID, context);
+    if (refPropNode == NULL || refPropNode->u.zJContent == NULL)
+    {
+        goto EXIT;
+    }
 
-    // Depending on configuration of linked property, there are few SQL variations possible to retrieve data from linked object
-    // For sake of performance, these cases are handled by pre-compiled statements, which are kept in flexiGetData
-    // structure (declared above)
+    // Linked object property ID
+    JsonNode *valPropNode = jsonGetNode(&xSchema, "$.properties.%d.map.link.valuePropID", (int) iPropID, context);
+    if (valPropNode == NULL || valPropNode->u.zJContent == NULL)
+    {
+        goto EXIT;
+    }
 
+    int stmtIndex = 0;
 
-    // Return result
-    sqlite3_result_null(context);
-    jsonParseReset(&x);
-    return SQLITE_OK;
+    // Optional properties
+    JsonNode *wherePropNode = NULL;
+    JsonNode *whereValuePropNode = NULL;
+    JsonNode *sortPropNode = NULL;
+    JsonNode *descPropNode = NULL;
+    // Property Index
+    JsonNode *idxPropNode = jsonGetNode(&xSchema, "$.properties.%d.map.link.propIndex", (int) iPropID, context);
+    if (idxPropNode != NULL)
+    {
+        stmtIndex = 8;
+    }
+    else
+    {
+        // Where property ID
+        wherePropNode = jsonGetNode(&xSchema, "$.properties.%d.map.link.where.filterPropID", (int) iPropID,
+                                    context);
+
+        if (wherePropNode != NULL)
+        {
+            whereValuePropNode = jsonGetNode(&xSchema, "$.properties.%d.map.link.where.valuePropID", (int) iPropID,
+                                             context);
+            if (whereValuePropNode == NULL)
+            {
+                goto EXIT;
+            }
+            stmtIndex |= 0x04;
+        }
+
+        // Sort property ID
+        sortPropNode = jsonGetNode(&xSchema, "$.properties.%d.map.link.sort.propID", (int) iPropID, context);
+        if (sortPropNode != NULL)
+        {
+            stmtIndex |= 0x01;
+        }
+
+        // Desc property ID
+        descPropNode = jsonGetNode(&xSchema, "$.properties.%d.map.link.sort.desc", (int) iPropID, context);
+        if (descPropNode != NULL)
+            stmtIndex |= 0x02;
+    }
+
+    // Check if SQL statement has been already prepared
+    if (statements->statements[stmtIndex] == NULL)
+    {
+        const char *sql = sql_strings[stmtIndex];
+        int prepareResult = sqlite3_prepare_v2(db,
+                                               sql,
+                                               (int) strlen(sql),
+                                               &statements->statements[stmtIndex],
+                                               NULL);
+    }
+    else
+    {
+        sqlite3_reset(statements->statements[stmtIndex]);
+    }
+
+    sqlite3_stmt *stmt = statements->statements[stmtIndex];
+    sqlite3_reset(stmt);
+    setSQLiteParam(stmt, WHERE_PROPERTY_INDEX, wherePropNode);
+    setSQLiteParam(stmt, WHERE_VALUE_INDEX, whereValuePropNode);
+    setSQLiteParam(stmt, ORDER_BY_PROPERTY_INDEX, sortPropNode);
+    setSQLiteParam(stmt, PROPINDEX_INDEX, idxPropNode);
+    sqlite3_bind_int64(stmt, OBJECT_ID_INDEX, fetchParams->objectID);
+    setSQLiteParam(stmt, REF_PROPERTY_INDEX, refPropNode);
+
+    int exec_result = sqlite3_step(stmt);
+    if (exec_result == SQLITE_ROW)
+    {
+        fetchParams->dataJSON = sqlite3_column_text(stmt, 0);
+        fetchParams->schemaJSON = sqlite3_column_text(stmt, 1);
+        fetchParams->schemaID = sqlite3_column_int(stmt, 2);
+        fetchParams->objectID = sqlite3_column_int64(stmt, 3);
+        result = 1;
+    }
+
+    EXIT:
+
+    jsonParseReset(&xData);
+    jsonParseReset(&xSchema);
+    return result;
 }
 
 /*
@@ -259,18 +277,22 @@ static void sqlFlexiGetFunc(
 
     sqlite3 *db = sqlite3_context_db_handle(context);
 
-    struct flexiGetData *dataContext = (struct flexiGetData *) sqlite3_user_data(context);
+    struct flexi_prepared_statements *dataContext = (struct flexi_prepared_statements *) sqlite3_user_data(context);
     const sqlite3_int64 iPropID = sqlite3_value_int64(argv[0]);
-    const sqlite3_int64 iObjectID = sqlite3_value_int64(argv[1]);
-    const char *zSchemaJson = (const char *) sqlite3_value_text(argv[2]);
-    const char *zDataJson = (const char *) sqlite3_value_text(argv[3]);
 
-    while (1)
+    struct flexi_get_fetch_params fetchParams;
+    fetchParams.schemaID = -1;
+    fetchParams.schemaJSON = sqlite3_value_text(argv[2]);
+    fetchParams.objectID = sqlite3_value_int64(argv[1]);
+    fetchParams.dataJSON = sqlite3_value_text(argv[3]);
+
+    // Preventive assumption that result is NULL
+    sqlite3_result_null(context);
+
+    do
     {
-        int result = flexi_get_value(db, iPropID, iObjectID, zSchemaJson, zDataJson, dataContext, context);
-        if (result != 0)
-            break;
     }
+    while (flexi_get_value(db, iPropID, &fetchParams, dataContext, context));
 }
 
 #ifdef _WIN32
@@ -287,7 +309,7 @@ int sqlite3_flexi_get_init(
     SQLITE_EXTENSION_INIT2(pApi);
     (void) pzErrMsg;  /* Unused parameter */
 
-    struct flexiGetData *data = sqlite3_malloc(sizeof(struct flexiGetData));
+    struct flexi_prepared_statements *data = sqlite3_malloc(sizeof(struct flexi_prepared_statements));
     rc = sqlite3_create_function_v2(db, "flexi_get", 4, SQLITE_UTF8, data,
                                     sqlFlexiGetFunc, 0, 0, 0);
     return rc;
