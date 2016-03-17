@@ -253,8 +253,9 @@ static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, struct flexi_get_
  * Uses database structure defined in Flexilite database to dynamically process
  * defined data schema and returns actual value for the given property.
  * Process schemas in loop, via linked properties and stops when either value is found, or linked schemas are exhausted.
- * Expects 3 parameters:
+ * Expects 4 parameters:
  * property ID to retrieve
+ * object ID
  * schema JSON1 data
  *      expected to be in the following format, as defined by Flexilite:
  *      properties: {[propID:number]: {map: {jsonPath:string, link: {refPropID: number, wherePropertyID: number;
