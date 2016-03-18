@@ -143,6 +143,7 @@ static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, struct flexi_get_
         JsonNode *dataNode = jsonLookup(&xData, pPropPath, 0, context);
         if (dataNode != NULL)
         {
+            
             jsonReturn(dataNode, context, NULL);
             goto EXIT;
         }
