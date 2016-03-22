@@ -87,11 +87,6 @@ static const char jsonIsSpace[] = {
 };
 #define safe_isspace(x) (jsonIsSpace[(unsigned char)x])
 
-/* Objects */
-typedef struct JsonString JsonString;
-typedef struct JsonNode JsonNode;
-typedef struct JsonParse JsonParse;
-
 /* An instance of this object represents a JSON string
 ** under construction.  Really, this is a generic string accumulator
 ** that can be and is used to create strings other than JSON.

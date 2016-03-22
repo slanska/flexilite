@@ -1,0 +1,16 @@
+{
+  "name": "sqlite_extensions_test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "slanska",
+  "license": "ISC",
+  "dependencies": {
+    "mocha": "^2.4.5",
+    "sqlite3": "^3.1.2",
+    "syncho": "^0.2.5"
+  }
+}

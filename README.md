@@ -1,8 +1,11 @@
 # sqlite-extensions
-Some useful extension functions for SQLite
+Collection of some useful extension functions for SQLite3, pre-compiled for major platforms and ready to be used for your application.
+Most of them are taken from 
 
-eval
-fileio
+##eval
+##fileio
+##regexp
+##totype
+##var
 
-flexi_get
-var
+##flexi_get

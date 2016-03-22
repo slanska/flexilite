@@ -16,30 +16,37 @@ static void sqlVarFunc(
         sqlite3_value **argv
 )
 {
-    struct Hash *varHash = sqlite3_user_data(context);
     assert(argc == 1 || argc == 2);
+
+    struct Hash *varHash = sqlite3_user_data(context);
     const char *localVarName = (const char *) sqlite3_value_text(argv[0]);
     // varName is allocated in stack. Need to create global object
     size_t keyLength = strlen(localVarName) + 1;
-    char *varName = sqlite3_malloc(keyLength);
+    char *varName = sqlite3_malloc((int)keyLength);
     strncpy(varName, localVarName, keyLength);
 
-    if (argc == 1)
+    sqlite3_value *value = sqlite3HashFind(varHash, varName);
+    if (value)
     {
-        sqlite3_value *value = sqlite3HashFind(varHash, varName);
-        if (value)
-        {
-            sqlite3_result_value(context, value);
-        }
-        else
-        {
-            sqlite3_result_null(context);
-        }
+        sqlite3_result_value(context, value);
     }
     else
     {
-        sqlite3_value *value = sqlite3_value_dup(argv[1]);
-        sqlite3HashInsert(varHash, varName, value);
+        sqlite3_result_null(context);
+    }
+
+    if (argc == 2)
+    {
+        int valueType = sqlite3_value_type(argv[1]);
+        if (valueType == SQLITE_NULL)
+        {
+            sqlite3HashInsert(varHash, varName, NULL);
+        }
+        else
+        {
+            sqlite3_value *newValue = sqlite3_value_dup(argv[1]);
+            sqlite3HashInsert(varHash, varName, newValue);
+        }
     }
 }
 
@@ -50,7 +57,7 @@ __declspec(dllexport)
 int sqlite3_var_init(
         sqlite3 *db,
         char **pzErrMsg,
-        const sqlite3_api_routines *pApi
+        const  sqlite3_api_routines *pApi
 )
 {
     int rc = SQLITE_OK;
@@ -66,6 +73,7 @@ int sqlite3_var_init(
         rc = sqlite3_create_function(db, "var", 2, SQLITE_UTF8, varHash,
                                      sqlVarFunc, 0, 0);
     }
+
     return rc;
 }
 

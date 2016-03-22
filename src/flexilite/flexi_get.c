@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include <printf.h>
+#include <assert.h>
 #include "../../lib/sqlite/sqlite3ext.h"
 #include "../misc/json1.h"
 
@@ -143,7 +144,7 @@ static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, struct flexi_get_
         JsonNode *dataNode = jsonLookup(&xData, pPropPath, 0, context);
         if (dataNode != NULL)
         {
-            
+
             jsonReturn(dataNode, context, NULL);
             goto EXIT;
         }
@@ -271,11 +272,7 @@ static void sqlFlexiGetFunc(
         sqlite3_value **argv
 )
 {
-    if (argc != 4)
-    {
-        sqlite3_result_error(context, "Function flexi_get() expects 4 arguments", 1);
-        return;
-    }
+    assert(argc == 4 || argc == 5);
 
     sqlite3 *db = sqlite3_context_db_handle(context);
 
@@ -288,8 +285,11 @@ static void sqlFlexiGetFunc(
     fetchParams.objectID = sqlite3_value_int64(argv[1]);
     fetchParams.dataJSON = sqlite3_value_text(argv[3]);
 
-    // Preventive assumption that result is NULL
-    sqlite3_result_null(context);
+    // Preventive assumption that result is NULL or (optionally) default value
+    if (argc == 5)
+        sqlite3_result_value(context, argv[4]);
+    else
+        sqlite3_result_null(context);
 
     do
     {
@@ -313,6 +313,8 @@ int sqlite3_flexi_get_init(
 
     struct flexi_prepared_statements *data = sqlite3_malloc(sizeof(struct flexi_prepared_statements));
     rc = sqlite3_create_function_v2(db, "flexi_get", 4, SQLITE_UTF8, data,
+                                    sqlFlexiGetFunc, 0, 0, 0);
+    rc = sqlite3_create_function_v2(db, "flexi_get", 5, SQLITE_UTF8, data,
                                     sqlFlexiGetFunc, 0, 0, 0);
     return rc;
 }
