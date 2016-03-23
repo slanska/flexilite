@@ -13,6 +13,12 @@
     },
     "node/node.d.ts": {
       "commit": "6766ed1d0faf02ede9e2edf2e66bbb2388c825ec"
+    },
+    "faker/faker.d.ts": {
+      "commit": "b14601af3fb2ad72d5048e94188a569a1838fb9c"
+    },
+    "lodash/lodash.d.ts": {
+      "commit": "b14601af3fb2ad72d5048e94188a569a1838fb9c"
     }
   }
 }

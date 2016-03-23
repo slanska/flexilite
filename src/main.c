@@ -39,10 +39,17 @@ int sqlite3_extension_init(
     {
         result = sqlite3_var_init(db, pzErrMsg, pApi);
     }
+
     // flexi_get
     if (result == 0)
     {
         result = sqlite3_flexi_get_init(db, pzErrMsg, pApi);
+    }
+
+    // hash
+    if (result == 0)
+    {
+        result = sqlite3_hash_init(db, pzErrMsg, pApi);
     }
 
     return result;

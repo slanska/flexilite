@@ -7,5 +7,6 @@ Most of them are taken from
 ##regexp
 ##totype
 ##var
+##hash
 
 ##flexi_get

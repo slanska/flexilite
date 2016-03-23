@@ -41,6 +41,12 @@ int sqlite3_var_init(
         const sqlite3_api_routines *pApi
 );
 
+int sqlite3_hash_init(
+        sqlite3 *db,
+        char **pzErrMsg,
+        const sqlite3_api_routines *pApi
+);
+
 int sqlite3_flexi_get_init(
         sqlite3 *db,
         char **pzErrMsg,

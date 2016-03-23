@@ -43,7 +43,7 @@ set(EXT_FILES
         src/util/hash.c
         src/util/hash.h
 
-        )
+        src/misc/hash.c)
 
 add_library(sqlite_extensions SHARED ${EXT_FILES})
 

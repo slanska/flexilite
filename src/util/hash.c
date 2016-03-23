@@ -104,7 +104,7 @@ const unsigned char sqlite3UpperToLower[] = {
 /*
 ** The hashing function.
 */
-static unsigned int strHash(const char *z)
+unsigned int sqlite3StrHashValue(const char *z)
 {
     unsigned int h = 0;
     unsigned char c;
@@ -193,7 +193,7 @@ static int rehash(Hash *pH, unsigned int new_size)
     memset(new_ht, 0, new_size * sizeof(struct _ht));
     for (elem = pH->first, pH->first = 0; elem; elem = next_elem)
     {
-        unsigned int h = strHash(elem->pKey) % new_size;
+        unsigned int h = sqlite3StrHashValue(elem->pKey) % new_size;
         next_elem = elem->next;
         insertElement(pH, &new_ht[h], elem);
     }
@@ -217,7 +217,7 @@ static HashElem *findElementWithHash(
     if (pH->ht)
     {
         struct _ht *pEntry;
-        h = strHash(pKey) % pH->htsize;
+        h = sqlite3StrHashValue(pKey) % pH->htsize;
         pEntry = &pH->ht[h];
         elem = pEntry->chain;
         count = pEntry->count;
@@ -346,7 +346,7 @@ void *sqlite3HashInsert(Hash *pH, const char *pKey, void *data)
         if (rehash(pH, pH->count * 2))
         {
             assert(pH->htsize > 0);
-            h = strHash(pKey) % pH->htsize;
+            h = sqlite3StrHashValue(pKey) % pH->htsize;
         }
     }
     insertElement(pH, pH->ht ? &pH->ht[h] : 0, new_elem);

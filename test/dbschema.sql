@@ -537,7 +537,6 @@ END;
 ------------------------------------------------------------------------------------------
 -- .full_text_data
 ------------------------------------------------------------------------------------------
-/*
 CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
 
   [PropertyID],
@@ -548,7 +547,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
 
   tokenize=unicode61
 );
-*/
+
 ------------------------------------------------------------------------------------------
 -- [.objects]
 ------------------------------------------------------------------------------------------
@@ -626,7 +625,6 @@ BEGIN
       json_set('{}',
       '$.SchemaID', new.SchemaID,
       '$.Data', new.Data,
-     CASE WHEN new.HostID IS NULL THEN NULL ELSE '$.HostID' END, new.HostID,
         CASE WHEN new.A IS NULL THEN NULL ELSE '$.A' END, new.A,
         CASE WHEN new.B IS NULL THEN NULL ELSE '$.B' END, new.B,
         CASE WHEN new.C IS NULL THEN NULL ELSE '$.C' END, new.C,
@@ -706,7 +704,6 @@ BEGIN
         json_set('{}',
         '$.SchemaID', new.SchemaID,
               '$.Data', new.Data,
-             CASE WHEN new.HostID IS NULL THEN NULL ELSE '$.HostID' END, new.HostID,
           CASE WHEN nullif(new.A, old.A) IS NULL THEN NULL ELSE '$.A' END, new.A,
             CASE WHEN nullif(new.B, old.B) IS NULL THEN NULL ELSE '$.B' END, new.B,
           CASE WHEN nullif(new.C, old.C) IS NULL THEN NULL ELSE '$.C' END, new.C,
@@ -724,7 +721,6 @@ BEGIN
          json_set('{}',
          CASE WHEN nullif(new.SchemaID, old.SchemaID) IS NULL THEN NULL ELSE '$.SchemaID' END, old.SchemaID,
                CASE WHEN nullif(new.Data, old.Data) IS NULL THEN NULL ELSE '$.Data' END, old.Data,
-              CASE WHEN nullif(new.HostID, old.HostID) IS NULL THEN NULL ELSE '$.HostID' END, old.HostID,
           CASE WHEN nullif(new.A, old.A) IS NULL THEN NULL ELSE '$.A' END, old.A,
             CASE WHEN nullif(new.B, old.B) IS NULL THEN NULL ELSE '$.B' END, old.B,
           CASE WHEN nullif(new.C, old.C) IS NULL THEN NULL ELSE '$.C' END, old.C,
@@ -827,7 +823,6 @@ BEGIN
       json_set('{}',
        CASE WHEN old.SchemaID IS NULL THEN NULL ELSE '$.SchemaID' END, old.SchemaID,
                      CASE WHEN old.Data IS NULL THEN NULL ELSE '$.Data' END, old.Data,
-                    CASE WHEN old.HostID IS NULL THEN NULL ELSE '$.HostID' END, old.HostID,
         CASE WHEN old.A IS NULL THEN NULL ELSE '$.A' END, old.A,
           CASE WHEN old.B IS NULL THEN NULL ELSE '$.B' END, old.B,
         CASE WHEN old.C IS NULL THEN NULL ELSE '$.C' END, old.C,
@@ -1130,7 +1125,6 @@ END;
 CREATE VIEW IF NOT EXISTS [.ValuesEasy] AS
   SELECT
     NULL AS [NameID],
-    NULL AS [HostID],
     NULL AS [ObjectID],
     NULL AS [PropertyName],
     NULL AS [PropertyIndex],
@@ -1143,7 +1137,6 @@ BEGIN
   INSERT OR REPLACE INTO [.objects] (CollectionID, ObjectID, ctlo, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P)
     SELECT
       c.CollectionID,
-      (new.HostID << 31) | new.[ObjectID],
 
       ctlo = c.ctloMask,
 
@@ -1207,10 +1200,10 @@ BEGIN
 END;
 
 --------------------------------------------------------------------------------------------
--- .values_view - wraps access to .values table by providing separate HostID and ObjectID columns
+-- .values_view - wraps access to .values table by providing separate ObjectID columns
 --------------------------------------------------------------------------------------------
 create view if not exists [.ref-values_view] as
-select CollectionID, [ObjectID] >> 31 as HostID,
+select CollectionID,
                     ([ObjectID] & 2147483647) as ObjectID, ctlv, PropertyID, PropIndex, [Value]
 from [.ref-values];
 
@@ -1248,12 +1241,11 @@ begin
 end;
 
 --------------------------------------------------------------------------------------------
--- .vw_objects - Access to objects data, with handling JSONPath & HostID cases
+-- .vw_objects - Access to objects data, with handling JSONPath cases
 --------------------------------------------------------------------------------------------
 create view if not exists [.vw_objects] as select
 [ObjectID],
 [SchemaID],
-[HostID],
 [CollectionID],
 [ctlo],
 [A],
@@ -1268,19 +1260,18 @@ create view if not exists [.vw_objects] as select
 [J],
 
 (WITH RECURSIVE
-  obj(h, d) AS (select HostID as h, Data as d UNION ALL SELECT o2.HostID, json_extract(o2.Data, d) from [.objects] o2 WHERE o2.ObjectID = h)
+  obj(h, d) AS (select  Data as d UNION ALL SELECT json_extract(o2.Data, d) from [.objects] o2 WHERE o2.ObjectID = h)
 SELECT d FROM obj limit 1) as [Data]
 
 from [.objects];
 
 --------------------------------------------------------------------------------------------
--- .vw_objects_full - Access to full objects data, with handling JSONPath & HostID cases
+-- .vw_objects_full - Access to full objects data, with handling JSONPath cases
 -- AND shortcut fields
 --------------------------------------------------------------------------------------------
 create view if not exists [.vw_objects_full] as select
 o.[ObjectID],
 o.[SchemaID],
-o.[HostID],
 o.[CollectionID],
 o.[ctlo],
 [Data] = json_set(o.Data,

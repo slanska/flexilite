@@ -83,6 +83,8 @@ void *sqlite3HashFind(const Hash *, const char *pKey);
 
 void sqlite3HashClear(Hash *);
 
+unsigned int sqlite3StrHashValue(const char *z);
+
 /*
 ** Macros for looping over all elements of a hash table.  The idiom is
 ** like this:

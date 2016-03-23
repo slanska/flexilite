@@ -280,7 +280,7 @@ static void sqlFlexiGetFunc(
     const sqlite3_int64 iPropID = sqlite3_value_int64(argv[0]);
 
     struct flexi_get_fetch_params fetchParams;
-    fetchParams.schemaID = -1;
+    fetchParams.schemaID = -1; // Initially schema ID is unknown
     fetchParams.schemaJSON = sqlite3_value_text(argv[2]);
     fetchParams.objectID = sqlite3_value_int64(argv[1]);
     fetchParams.dataJSON = sqlite3_value_text(argv[3]);
