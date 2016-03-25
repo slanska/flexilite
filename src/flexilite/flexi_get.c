@@ -19,10 +19,11 @@ SQLITE_EXTENSION_INIT3
 #define OBJECT_ID_INDEX 4
 #define REF_PROPERTY_INDEX 5
 #define PROPINDEX_INDEX 6
+#define SCHEMA_ID_INDEX 1
 
 // String literals to make SQL declarations shorter and more expressive
-#define _SQL_WHERE_BY_PROPERTY_PART_ " flexi_get(?1, SchemaData, Data) = ?2"
-#define _SQL_ORDER_BY_PROPERTY_PART_ " order by flexi_get(?3, SchemaData, Data)"
+#define _SQL_WHERE_BY_PROPERTY_PART_ " flexi_get(?1, ObjectID, SchemaData, Data) = ?2"
+#define _SQL_ORDER_BY_PROPERTY_PART_ " order by flexi_get(?3, ObjectID, SchemaData, Data)"
 #define _SQL_SELECT_PART_ "select JSON_SET(o.Data, v.Data) as Data, s.Data as SchemaData, s.SchemaID as SchemaID, o.ObjectID as ObjectID"\
     " from [.ref-values] v join [.objects] o on v.ObjectID = o.ObjectID" \
     " left outer join [.schemas] s on o.SchemaID = s.SchemaID"\
@@ -31,7 +32,7 @@ SQLITE_EXTENSION_INIT3
 /*
  * SQL strings for retrieving linked data, for various cases
  */
-static const char *sql_strings[9] =
+static const char *sql_strings[10] =
         {
                 // 0 - First item in ref collection, sorted by property index
                 _SQL_SELECT_PART_ " order by v.PropIndex asc limit 1;",
@@ -58,7 +59,10 @@ static const char *sql_strings[9] =
                 "select * from (" _SQL_SELECT_PART_ ") where " _SQL_WHERE_BY_PROPERTY_PART_ _SQL_ORDER_BY_PROPERTY_PART_ " desc limit 1;",
 
                 // 8 - by specific index in reference collection
-                _SQL_SELECT_PART_ " and v.PropIndex = ?6 limit 1;"
+                _SQL_SELECT_PART_ " and v.PropIndex = ?6 limit 1;",
+
+                // 9 - get schema JSON by schema ID
+                "select Data from [.schemas] where SchemaID = ?1"
         };
 
 /*
@@ -66,7 +70,7 @@ static const char *sql_strings[9] =
  */
 struct flexi_prepared_statements
 {
-    sqlite3_stmt *statements[9];
+    sqlite3_stmt *statements[10];
 };
 
 /*
@@ -118,8 +122,9 @@ static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, struct flexi_get_
     int parseResult = jsonParse(&xSchema, context, (const char *) fetchParams->schemaJSON);
     if (parseResult != SQLITE_OK)
     {
-        // TODO Report schema ID
-        sqlite3_result_error(context, "Schema JSON parsing error", parseResult);
+        char errorMsg[200];
+        sprintf(errorMsg, "Error parsing schema JSON (schema ID %d)", fetchParams->schemaID);
+        sqlite3_result_error(context, errorMsg, parseResult);
         goto EXIT;
     }
 
@@ -258,8 +263,8 @@ static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, struct flexi_get_
  * Expects 4 parameters:
  * property ID to retrieve
  * object ID
- * schema JSON1 data
- *      expected to be in the following format, as defined by Flexilite:
+ * schema JSON1 data or schema ID.
+ *      if JSON is passed, it is expected to be in the following format, as defined by Flexilite:
  *      properties: {[propID:number]: {map: {jsonPath:string, link: {refPropID: number, wherePropertyID: number;
  *      whereValue: any; orderByPropID: number;
  *      orderByDesc: boolean;
@@ -281,15 +286,41 @@ static void sqlFlexiGetFunc(
 
     struct flexi_get_fetch_params fetchParams;
     fetchParams.schemaID = -1; // Initially schema ID is unknown
-    fetchParams.schemaJSON = sqlite3_value_text(argv[2]);
-    fetchParams.objectID = sqlite3_value_int64(argv[1]);
-    fetchParams.dataJSON = sqlite3_value_text(argv[3]);
 
     // Preventive assumption that result is NULL or (optionally) default value
     if (argc == 5)
         sqlite3_result_value(context, argv[4]);
     else
         sqlite3_result_null(context);
+
+    // Arg 2 can be either schema JSON (text value) or schema ID (integer value)
+    sqlite3_value *schemaData = argv[2];
+    if (sqlite3_value_type(schemaData) == SQLITE_INTEGER)
+    {
+        // schema ID
+        if (dataContext->statements[9] == NULL)
+        {
+            int status = sqlite3_prepare_v2(db, sql_strings[9], 0, &dataContext->statements[9], NULL);
+        }
+        else
+        {
+            sqlite3_reset(dataContext->statements[9]);
+        }
+        fetchParams.schemaID = sqlite3_value_int(schemaData);
+        sqlite3_bind_int(dataContext->statements[9], SCHEMA_ID_INDEX, fetchParams.schemaID);
+        int exec_result = sqlite3_step(dataContext->statements[9]);
+        if (exec_result != SQLITE_ROW)
+            return;
+
+        fetchParams.schemaJSON = sqlite3_column_text(dataContext->statements[9], 0);
+    }
+    else
+    {
+        fetchParams.schemaJSON = sqlite3_value_text(schemaData);
+    }
+
+    fetchParams.objectID = sqlite3_value_int64(argv[1]);
+    fetchParams.dataJSON = sqlite3_value_text(argv[3]);
 
     do
     {
