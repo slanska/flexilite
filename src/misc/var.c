@@ -2,13 +2,12 @@
 // Created by slanska on 2016-03-13.
 //
 
+#include <assert.h>
+#include <string.h>
 #include "../../lib/sqlite/sqlite3ext.h"
 #include "../util/hash.h"
-#include <assert.h>
 
 SQLITE_EXTENSION_INIT3
-
-#include <string.h>
 
 static void sqlVarFunc(
         sqlite3_context *context,
@@ -18,12 +17,13 @@ static void sqlVarFunc(
 {
     assert(argc == 1 || argc == 2);
 
+    sqlite3_int64 memUsed = sqlite3_memory_used();
+
     struct Hash *varHash = sqlite3_user_data(context);
     const char *localVarName = (const char *) sqlite3_value_text(argv[0]);
-    // varName is allocated in stack. Need to create global object
+    //varName is allocated in stack. Need to create global object
     size_t keyLength = strlen(localVarName) + 1;
-    char *varName = sqlite3_malloc((int)keyLength);
-    strncpy(varName, localVarName, keyLength);
+    char *varName = sqlite3_malloc((int) keyLength);
 
     sqlite3_value *value = sqlite3HashFind(varHash, varName);
     if (value)
@@ -48,6 +48,8 @@ static void sqlVarFunc(
             sqlite3HashInsert(varHash, varName, newValue);
         }
     }
+
+    sqlite3_int64 memUsed2 = sqlite3_memory_used();
 }
 
 #ifdef _WIN32
@@ -57,7 +59,7 @@ __declspec(dllexport)
 int sqlite3_var_init(
         sqlite3 *db,
         char **pzErrMsg,
-        const  sqlite3_api_routines *pApi
+        const sqlite3_api_routines *pApi
 )
 {
     int rc = SQLITE_OK;

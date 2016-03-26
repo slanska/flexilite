@@ -12,7 +12,8 @@ int sqlite3_extension_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
-) {
+)
+{
     // eval
     int result = sqlite3_eval_init(db, pzErrMsg, pApi);
 
@@ -50,6 +51,12 @@ int sqlite3_extension_init(
     if (result == 0)
     {
         result = sqlite3_hash_init(db, pzErrMsg, pApi);
+    }
+
+    // mem_used & mem_high_water
+    if (result == 0)
+    {
+        result = sqlite3_memstat_init(db, pzErrMsg, pApi);
     }
 
     return result;

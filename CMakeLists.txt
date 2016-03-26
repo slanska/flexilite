@@ -8,13 +8,18 @@ cmake_minimum_required(VERSION 3.4)
 
 set(CMAKE_BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c89")
+#message(WARNING "Platform: ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
 
+
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR})
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
 project(sqlite_shell)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c89")
 
 find_package(zlib)
 
@@ -27,7 +32,12 @@ add_executable(sqlite_shell ${SHELL_FILES})
 
 project(sqlite_extensions)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c89")
+
+
 set(EXT_FILES
+
+
         src/main.c
 
         # compress.c is temporarily disabled because of the following error: Undefined symbols for architecture x86_64:
@@ -40,10 +50,14 @@ set(EXT_FILES
         src/flexilite/flexi_get.c
         src/misc/var.c
         src/misc/json1.c
+
         src/util/hash.c
         src/util/hash.h
 
-        src/misc/hash.c)
+        src/misc/hash.c
+
+        src/misc/memstat.c
+        )
 
 add_library(sqlite_extensions SHARED ${EXT_FILES})
 
