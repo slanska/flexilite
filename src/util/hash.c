@@ -50,7 +50,7 @@ void sqlite3HashClear(Hash *pH)
     while (elem)
     {
         HashElem *next_elem = elem->next;
-        sqlite3_free(elem->data);
+        sqlite3_value_free(elem->data);
         sqlite3_free((void *) elem->pKey);
         sqlite3_free(elem);
         elem = next_elem;
@@ -232,7 +232,7 @@ static void removeElementGivenHash(
         assert(pEntry->count >= 0);
     }
 
-    sqlite3_free(elem->data);
+    sqlite3_value_free(elem->data);
     sqlite3_free((void *) elem->pKey);
     sqlite3_free(elem);
 
@@ -249,7 +249,7 @@ static void removeElementGivenHash(
 ** that matches pKey.  Return the data for this element if it is
 ** found, or NULL if there is no match.
 */
-void *sqlite3HashFind(const Hash *pH, const char *pKey)
+sqlite3_value *sqlite3HashFind(const Hash *pH, const char *pKey)
 {
     HashElem *elem;    /* The element that matches key */
     unsigned int h;    /* A hash on key */
@@ -274,7 +274,7 @@ void *sqlite3HashFind(const Hash *pH, const char *pKey)
 ** If the "data" parameter to this function is NULL, then the
 ** element corresponding to "key" is removed from the hash table.
 */
-void sqlite3HashInsert(Hash *pH, const char *pKey, void *data)
+void sqlite3HashInsert(Hash *pH, const char *pKey, sqlite3_value *data)
 {
     unsigned int h;       /* the hash of the key modulo hash table size */
     HashElem *elem;       /* Used to loop thru the element list */
@@ -293,7 +293,7 @@ void sqlite3HashInsert(Hash *pH, const char *pKey, void *data)
         {
             if (elem->data != data)
             {
-                sqlite3_free(elem->data);
+                sqlite3_value_free(elem->data);
                 elem->data = data;
             }
 

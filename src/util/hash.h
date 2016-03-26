@@ -15,6 +15,8 @@
 #ifndef _SQLITE_HASH_H_
 #define _SQLITE_HASH_H_
 
+#include "../../lib/sqlite/sqlite3ext.h"
+
 /* Forward declarations of structures. */
 typedef struct Hash Hash;
 typedef struct HashElem HashElem;
@@ -67,7 +69,7 @@ struct HashElem
 {
     HashElem *next, *prev;
     /* Next and previous elements in the table */
-    void *data;
+    sqlite3_value *data;
     /* Data associated with this element */
     const char *pKey;            /* Key associated with this element */
 };
@@ -77,35 +79,12 @@ struct HashElem
 */
 void sqlite3HashInit(Hash *);
 
-void sqlite3HashInsert(Hash *, const char *pKey, void *pData);
+void sqlite3HashInsert(Hash *, const char *pKey, sqlite3_value *pData);
 
-void *sqlite3HashFind(const Hash *, const char *pKey);
+sqlite3_value *sqlite3HashFind(const Hash *, const char *pKey);
 
 void sqlite3HashClear(Hash *);
 
 unsigned int sqlite3StrHashValue(const char *z);
-
-/*
-** Macros for looping over all elements of a hash table.  The idiom is
-** like this:
-**
-**   Hash h;
-**   HashElem *p;
-**   ...
-**   for(p=sqliteHashFirst(&h); p; p=sqliteHashNext(p)){
-**     SomeStructure *pData = sqliteHashData(p);
-**     // do something with pData
-**   }
-*/
-#define sqliteHashFirst(H)  ((H)->first)
-#define sqliteHashNext(E)   ((E)->next)
-#define sqliteHashData(E)   ((E)->data)
-/* #define sqliteHashKey(E)    ((E)->pKey) // NOT USED */
-/* #define sqliteHashKeysize(E) ((E)->nKey)  // NOT USED */
-
-/*
-** Number of entries in a hash table
-*/
-/* #define sqliteHashCount(H)  ((H)->count) // NOT USED */
 
 #endif /* _SQLITE_HASH_H_ */

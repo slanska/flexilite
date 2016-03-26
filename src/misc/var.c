@@ -55,7 +55,8 @@ static void sqlVarFunc(
             sqlite3HashInsert(varHash, varName, newValue);
         }
     }
-    else sqlite3_free(varName);
+    else
+        sqlite3_free(varName);
 
     sqlite3_int64 memUsed2 = sqlite3_memory_used();
 }
