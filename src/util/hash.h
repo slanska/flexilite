@@ -77,7 +77,7 @@ struct HashElem
 */
 void sqlite3HashInit(Hash *);
 
-void *sqlite3HashInsert(Hash *, const char *pKey, void *pData);
+void sqlite3HashInsert(Hash *, const char *pKey, void *pData);
 
 void *sqlite3HashFind(const Hash *, const char *pKey);
 

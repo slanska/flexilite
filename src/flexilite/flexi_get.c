@@ -21,6 +21,8 @@ SQLITE_EXTENSION_INIT3
 #define PROPINDEX_INDEX 6
 #define SCHEMA_ID_INDEX 1
 
+#define SQL_STATEMENT_COUNT 10
+
 // String literals to make SQL declarations shorter and more expressive
 #define _SQL_WHERE_BY_PROPERTY_PART_ " flexi_get(?1, ObjectID, SchemaData, Data) = ?2"
 #define _SQL_ORDER_BY_PROPERTY_PART_ " order by flexi_get(?3, ObjectID, SchemaData, Data)"
@@ -32,7 +34,7 @@ SQLITE_EXTENSION_INIT3
 /*
  * SQL strings for retrieving linked data, for various cases
  */
-static const char *sql_strings[10] =
+static const char *sql_strings[SQL_STATEMENT_COUNT] =
         {
                 // 0 - First item in ref collection, sorted by property index
                 _SQL_SELECT_PART_ " order by v.PropIndex asc limit 1;",
@@ -70,7 +72,7 @@ static const char *sql_strings[10] =
  */
 struct flexi_prepared_statements
 {
-    sqlite3_stmt *statements[10];
+    sqlite3_stmt *statements[SQL_STATEMENT_COUNT];
 };
 
 /*
@@ -295,6 +297,16 @@ static void sqlFlexiGetFunc(
 
     // Arg 2 can be either schema JSON (text value) or schema ID (integer value)
     sqlite3_value *schemaData = argv[2];
+
+    // Check if either propertyID, dataJSON or schemaData is null
+    if (sqlite3_value_type(schemaData) == SQLITE_NULL
+        || sqlite3_value_type(argv[3]) == SQLITE_NULL
+        || sqlite3_value_type(argv[0]) == SQLITE_NULL)
+    {
+        sqlite3_result_null(context);
+        return;
+    }
+
     if (sqlite3_value_type(schemaData) == SQLITE_INTEGER)
     {
         // schema ID
@@ -328,6 +340,19 @@ static void sqlFlexiGetFunc(
     while (flexi_get_value(db, iPropID, &fetchParams, dataContext, context));
 }
 
+/*
+ *
+ */
+static void sqlFlexiGet_Destroy(void *userData)
+{
+    struct flexi_prepared_statements *dataContext = userData;
+    for (int i = 0; i < SQL_STATEMENT_COUNT; i++)
+    {
+        sqlite3_finalize(dataContext->statements[i]);
+    }
+    sqlite3_free(dataContext);
+}
+
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
@@ -339,14 +364,18 @@ int sqlite3_flexi_get_init(
 )
 {
     int rc = SQLITE_OK;
-    SQLITE_EXTENSION_INIT2(pApi);
+
     (void) pzErrMsg;  /* Unused parameter */
 
     struct flexi_prepared_statements *data = sqlite3_malloc(sizeof(struct flexi_prepared_statements));
+    memset(data, 0, sizeof(struct flexi_prepared_statements));
     rc = sqlite3_create_function_v2(db, "flexi_get", 4, SQLITE_UTF8, data,
-                                    sqlFlexiGetFunc, 0, 0, 0);
-    rc = sqlite3_create_function_v2(db, "flexi_get", 5, SQLITE_UTF8, data,
-                                    sqlFlexiGetFunc, 0, 0, 0);
+                                    sqlFlexiGetFunc, 0, 0, sqlFlexiGet_Destroy);
+    if (rc == SQLITE_OK)
+    {
+        //Note that we pass destroy function only once. to avoid multiple callbacks
+        rc = sqlite3_create_function_v2(db, "flexi_get", 5, SQLITE_UTF8, data,
+                                        sqlFlexiGetFunc, 0, 0, 0);
+    }
     return rc;
 }
-

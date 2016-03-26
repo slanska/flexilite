@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <ctype.h>
 #include "../../lib/sqlite/sqlite3ext.h"
 #include "../util/hash.h"
 
@@ -21,9 +22,15 @@ static void sqlVarFunc(
 
     struct Hash *varHash = sqlite3_user_data(context);
     const char *localVarName = (const char *) sqlite3_value_text(argv[0]);
-    //varName is allocated in stack. Need to create global object
+
     size_t keyLength = strlen(localVarName) + 1;
     char *varName = sqlite3_malloc((int) keyLength);
+    const char *src_c = localVarName;
+    char *dst_c = varName;
+    while (*src_c)
+    {
+        *dst_c++ = (char) toupper(*src_c++);
+    }
 
     sqlite3_value *value = sqlite3HashFind(varHash, varName);
     if (value)
@@ -48,8 +55,20 @@ static void sqlVarFunc(
             sqlite3HashInsert(varHash, varName, newValue);
         }
     }
+    else sqlite3_free(varName);
 
     sqlite3_int64 memUsed2 = sqlite3_memory_used();
+}
+
+/*
+ *
+ */
+static void sqlVarFunc_Destroy(void *userData)
+{
+    struct Hash *varHash = userData;
+    if (varHash)
+        sqlite3HashClear(varHash);
+    sqlite3_free(varHash);
 }
 
 #ifdef _WIN32
@@ -63,17 +82,17 @@ int sqlite3_var_init(
 )
 {
     int rc = SQLITE_OK;
-    SQLITE_EXTENSION_INIT2(pApi);
 
     struct Hash *varHash = sqlite3_malloc(sizeof(struct Hash));
     sqlite3HashInit(varHash);
 
-    rc = sqlite3_create_function(db, "var", 1, SQLITE_UTF8, varHash,
-                                 sqlVarFunc, 0, 0);
+    rc = sqlite3_create_function_v2(db, "var", 1, SQLITE_UTF8, varHash,
+                                    sqlVarFunc, 0, 0, sqlVarFunc_Destroy);
     if (rc == SQLITE_OK)
     {
-        rc = sqlite3_create_function(db, "var", 2, SQLITE_UTF8, varHash,
-                                     sqlVarFunc, 0, 0);
+        //Note that we pass destroy function only once. to avoid multiple callbacks
+        rc = sqlite3_create_function_v2(db, "var", 2, SQLITE_UTF8, varHash,
+                                        sqlVarFunc, 0, 0, 0);
     }
 
     return rc;

@@ -33,7 +33,6 @@ int sqlite3_hash_init(
 )
 {
     int rc = SQLITE_OK;
-    SQLITE_EXTENSION_INIT2(pApi);
 
     rc = sqlite3_create_function(db, "hash", 1, SQLITE_UTF8, NULL,
                                  sqlHashFunc, 0, 0);

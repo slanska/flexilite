@@ -14,6 +14,8 @@ int sqlite3_extension_init(
         const sqlite3_api_routines *pApi
 )
 {
+    SQLITE_EXTENSION_INIT2(pApi);
+
     // eval
     int result = sqlite3_eval_init(db, pzErrMsg, pApi);
 

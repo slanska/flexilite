@@ -45,61 +45,19 @@ void sqlite3HashClear(Hash *pH)
     elem = pH->first;
     pH->first = 0;
     sqlite3_free(pH->ht);
-    pH->ht = 0;
+    pH->ht = NULL;
     pH->htsize = 0;
     while (elem)
     {
         HashElem *next_elem = elem->next;
+        sqlite3_free(elem->data);
+        sqlite3_free((void *) elem->pKey);
         sqlite3_free(elem);
         elem = next_elem;
     }
     pH->count = 0;
 }
 
-/* An array to map all upper-case characters into their corresponding
-** lower-case character.
-**
-** SQLite only considers US-ASCII (or EBCDIC) characters.  We do not
-** handle case conversions for the UTF character set since the tables
-** involved are nearly as big or bigger than SQLite itself.
-*/
-const unsigned char sqlite3UpperToLower[] = {
-#ifdef SQLITE_ASCII
-0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17,
-     18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
-     36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
-     54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 97, 98, 99,100,101,102,103,
-    104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,
-    122, 91, 92, 93, 94, 95, 96, 97, 98, 99,100,101,102,103,104,105,106,107,
-    108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,
-    126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,
-    144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,
-    162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,
-    180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,
-    198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,
-    216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,
-    234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,
-    252,253,254,255
-#endif
-#ifdef SQLITE_EBCDIC
-0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, /* 0x */
-     16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, /* 1x */
-     32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, /* 2x */
-     48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, /* 3x */
-     64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, /* 4x */
-     80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, /* 5x */
-     96, 97, 98, 99,100,101,102,103,104,105,106,107,108,109,110,111, /* 6x */
-    112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127, /* 7x */
-    128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143, /* 8x */
-    144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159, /* 9x */
-    160,161,162,163,164,165,166,167,168,169,170,171,140,141,142,175, /* Ax */
-    176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191, /* Bx */
-    192,129,130,131,132,133,134,135,136,137,202,203,204,205,206,207, /* Cx */
-    208,145,146,147,148,149,150,151,152,153,218,219,220,221,222,223, /* Dx */
-    224,225,162,163,164,165,166,167,168,169,234,235,236,237,238,239, /* Ex */
-    240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255, /* Fx */
-#endif
-};
 
 /*
 ** The hashing function.
@@ -110,7 +68,7 @@ unsigned int sqlite3StrHashValue(const char *z)
     unsigned char c;
     while ((c = (unsigned char) *z++) != 0)
     {
-        h = (h << 3) ^ h ^ sqlite3UpperToLower[c];
+        h = (h << 3) ^ h ^ c;
     }
     return h;
 }
@@ -187,7 +145,7 @@ static int rehash(Hash *pH, unsigned int new_size)
 
     if (new_ht == 0) return 0;
     sqlite3_free(pH->ht);
-    pH->ht = new_ht;
+    pH->ht = (void *) new_ht;
 
     pH->htsize = new_size = (unsigned int) sqlite3_msize(new_ht) / sizeof(struct _ht);
     memset(new_ht, 0, new_size * sizeof(struct _ht));
@@ -218,7 +176,7 @@ static HashElem *findElementWithHash(
     {
         struct _ht *pEntry;
         h = sqlite3StrHashValue(pKey) % pH->htsize;
-        pEntry = &pH->ht[h];
+        pEntry = (void *) &pH->ht[h];
         elem = pEntry->chain;
         count = pEntry->count;
     }
@@ -232,7 +190,7 @@ static HashElem *findElementWithHash(
     while (count--)
     {
         assert(elem != 0);
-        if (sqlite3_stricmp(elem->pKey, pKey) == 0)
+        if (strcmp(elem->pKey, pKey) == 0)
         {
             return elem;
         }
@@ -265,7 +223,7 @@ static void removeElementGivenHash(
     }
     if (pH->ht)
     {
-        pEntry = &pH->ht[h];
+        pEntry = (void *) &pH->ht[h];
         if (pEntry->chain == elem)
         {
             pEntry->chain = elem->next;
@@ -273,7 +231,11 @@ static void removeElementGivenHash(
         pEntry->count--;
         assert(pEntry->count >= 0);
     }
+
+    sqlite3_free(elem->data);
+    sqlite3_free((void *) elem->pKey);
     sqlite3_free(elem);
+
     pH->count--;
     if (pH->count == 0)
     {
@@ -312,32 +274,44 @@ void *sqlite3HashFind(const Hash *pH, const char *pKey)
 ** If the "data" parameter to this function is NULL, then the
 ** element corresponding to "key" is removed from the hash table.
 */
-void *sqlite3HashInsert(Hash *pH, const char *pKey, void *data)
+void sqlite3HashInsert(Hash *pH, const char *pKey, void *data)
 {
     unsigned int h;       /* the hash of the key modulo hash table size */
     HashElem *elem;       /* Used to loop thru the element list */
-    HashElem *new_elem;   /* New element added to the pH */
 
     assert(pH != 0);
     assert(pKey != 0);
     elem = findElementWithHash(pH, pKey, &h);
     if (elem)
     {
-        void *old_data = elem->data;
-        if (data == 0)
+        // If new data is null, delete existing entry
+        if (data == NULL)
         {
             removeElementGivenHash(pH, elem, h);
         }
         else
         {
-            elem->data = data;
-            elem->pKey = pKey;
+            if (elem->data != data)
+            {
+                sqlite3_free(elem->data);
+                elem->data = data;
+            }
+
+            if (elem->pKey != pKey)
+            {
+                sqlite3_free((void *) elem->pKey);
+                elem->pKey = pKey;
+            }
         }
-        return old_data;
+        return;
     }
-    if (data == 0) return 0;
-    new_elem = (HashElem *) sqlite3_malloc(sizeof(HashElem));
-    if (new_elem == 0) return data;
+
+    if (data == NULL)
+        return;
+    /* New element added to the pH */
+    HashElem *new_elem = (HashElem *) sqlite3_malloc(sizeof(HashElem));
+    if (new_elem == NULL)
+        return;
     new_elem->pKey = pKey;
     new_elem->data = data;
     pH->count++;
@@ -349,6 +323,6 @@ void *sqlite3HashInsert(Hash *pH, const char *pKey, void *data)
             h = sqlite3StrHashValue(pKey) % pH->htsize;
         }
     }
-    insertElement(pH, pH->ht ? &pH->ht[h] : 0, new_elem);
-    return 0;
+    insertElement(pH, (void *) (pH->ht ? &pH->ht[h] : 0), new_elem);
+    return;
 }
