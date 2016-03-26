@@ -282,7 +282,7 @@ export class Driver
      Iterates through all keys of given data and determines which keys are scalar and defined in class schema.
      Returns object with properties separates into these 2 groups: schema and extra.ß
      */
-    private extractSchemaProperties(classDef:IClass, data):IDataToSave
+    private extractSchemaProperties(classDef:ICollectionDef, data):IDataToSave
     {
         var result:IDataToSave = {SchemaData: {}, ExtData: {}};
         for (var pi in data)
@@ -322,7 +322,7 @@ export class Driver
 
         // Make sure that property is registered as class
         var propClass = schemaProp ? self.getClassDefByID(schemaProp.PropertyID) : self.getClassDefByName(propInfo.propName, true, false);
-        var pid = propClass.ClassID.toString();
+        var pid = propClass.CollectionID.toString();
 
         function doProp(propIdPrefix:string)
         {
@@ -336,9 +336,9 @@ export class Driver
                 eavItems.push({
                     objectID: propInfo.objectID,
                     hostID: propInfo.hostID,
-                    propID: propClass.ClassID, propIndex: propInfo.propIndex,
+                    propID: propClass.CollectionID, propIndex: propInfo.propIndex,
                     value: propInfo.value,
-                    classID: propClass.ClassID,
+                    classID: propClass.CollectionID,
                     ctlv: schemaProp ? schemaProp.ctlv : VALUE_CONTROL_FLAGS.NONE
                 });
             }
@@ -378,7 +378,7 @@ export class Driver
                         {
                             var refClassID = schemaProp.ReferencedClassID;
                             var refClass = self.getClassDefByID(refClassID);
-                            refClassName = refClass.ClassName;
+                            refClassName = refClass.NameID;
                         }
                         else
                         {
@@ -390,8 +390,8 @@ export class Driver
                         eavItems.push({
                             objectID: propInfo.objectID,
                             hostID: propInfo.hostID,
-                            classID: propInfo.classDef.ClassID,
-                            propID: propClass.ClassID,
+                            classID: propInfo.classDef.CollectionID,
+                            propID: propClass.CollectionID,
                             propIndex: 0,
                             ctlv: schemaProp ? schemaProp.ctlv : VALUE_CONTROL_FLAGS.REFERENCE_OWN,
                             value: refObjectID
@@ -787,7 +787,7 @@ export class Driver
      Loads class definition with properties by class ID.
      Class should exist, otherwise exception will be thrown
      */
-    private    getClassDefByID(classID:number):IClass
+    private    getClassDefByID(classID:number):ICollectionDef
     {
         var classDef = (<any>this.db.get).sync(this.db, 'select * from [.classes] where [ClassID] = ?', classID);
         if (!classDef)
@@ -803,12 +803,12 @@ export class Driver
      If class does not exist and no new class should be registered, class def will
      be created in memory. In this case ClassID will be set to null, Properties - to empty object
      */
-    private getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IClass
+    private getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):ICollectionDef
     {
         var self = this;
         var selStmt = self.db.prepare('select * from [.classes] where [ClassName] = ?');
         var rows = (<any>selStmt.all).sync(selStmt, className);
-        var classDef:IClass;
+        var classDef:ICollectionDef;
 
         if (rows.length === 0)
         // Class not found
@@ -827,9 +827,9 @@ export class Driver
             //
             {
                 classDef = new ClassDef.Flexilite.models.ClassDef();
-                classDef.ClassName = className;
+                classDef.NameID = className;
                 classDef.DBViewName = this.getViewName(className);
-                classDef.ClassID = null;
+                classDef.CollectionID = null;
             }
             classDef.Properties = {};
         }
@@ -840,7 +840,7 @@ export class Driver
             if (loadProperties)
             // Class found. Try to load properties
             {
-                var props = (<any>self.db.all).sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', classDef.ClassID) || {};
+                var props = (<any>self.db.all).sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', classDef.CollectionID) || {};
                 props.forEach(function (p, idx, propArray)
                 {
                     classDef.Properties[p.PropertyName] = p;
@@ -854,7 +854,7 @@ export class Driver
     /*
      Registers a new class definition based on the sample data
      */
-    public registerClassByObject(className:string, data:any):IClass
+    public registerClassByObject(className:string, data:any):ICollectionDef
     {
         this.execSQL('savepoint a1;');
         try
@@ -927,7 +927,7 @@ export class Driver
 
      hasMany and hasOne are converted into reference properties
      */
-    private syncModelToClassDef(model:ISyncOptions):IClass
+    private syncModelToClassDef(model:ISyncOptions):ICollectionDef
     {
         var self = this;
 
@@ -962,7 +962,7 @@ export class Driver
             }
 
             (<any>insCPStmt.run).sync(insCPStmt, [
-                result.ClassID,
+                result.CollectionID,
                 propName,
                 cp.PropertyName,
                 cp.TrackChanges,
@@ -1017,7 +1017,7 @@ export class Driver
                         var refModel:ISyncOptions;
 
                         var refClass = this.registerClassDefFromObject(propName, null, true);
-                        cp.ReferencedClassID = refClass.ClassID;
+                        cp.ReferencedClassID = refClass.CollectionID;
                     }
                     else
                     {
@@ -1035,7 +1035,7 @@ export class Driver
                     if (refOneProp)
                     {
                         var refClass = this.getClassDefByName(refOneProp.model.table, true, true);
-                        cp.ReferencedClassID = refClass.ClassID;
+                        cp.ReferencedClassID = refClass.CollectionID;
 
                         // FIXME create reverse property & set it as ReversePropertyID
                         //cp.ReversePropertyID =
@@ -1082,7 +1082,7 @@ export class Driver
             cp.MinOccurences = assoc.required ? 1 : 0;
             cp.MaxOccurences = 1;
             var refClass = self.getClassDefByName(assoc.model.table, true, true);
-            cp.ReferencedClassID = refClass.ClassID;
+            cp.ReferencedClassID = refClass.CollectionID;
 
             // Set reverse property
 
@@ -1102,7 +1102,7 @@ export class Driver
             cp.MinOccurences = assoc.required ? 1 : 0;
             cp.MaxOccurences = 1 << 31;
             var refClass = self.getClassDefByName(assoc.model.table, true, true);
-            cp.ReferencedClassID = refClass.ClassID;
+            cp.ReferencedClassID = refClass.CollectionID;
 
             // Set reverse property
 
@@ -1130,7 +1130,7 @@ export class Driver
     /*
      Generates constraints for INSTEAD OF triggers for dynamic view
      */
-    private generateConstraintsForTrigger(classDef:IClass):string
+    private generateConstraintsForTrigger(classDef:ICollectionDef):string
     {
         var result = '';
         // Iterate through all properties
@@ -1171,7 +1171,7 @@ export class Driver
     /*
 
      */
-    private    generateInsertValues(classDef:IClass):string
+    private    generateInsertValues(classDef:ICollectionDef):string
     {
         var result = '';
 
@@ -1183,7 +1183,7 @@ export class Driver
             if (!p.ColumnAssigned)
             {
                 result += `insert or replace into [Values] ([ObjectID], [ClassID], [PropertyID], [PropIndex], [ctlv], [Value])
-             select (new.ObjectID | (new.HostID << 31)), ${classDef.ClassID}, ${p.PropertyID}, 0, ${p.ctlv}, new.[${p.PropertyName}]
+             select (new.ObjectID | (new.HostID << 31)), ${classDef.CollectionID}, ${p.PropertyID}, 0, ${p.ctlv}, new.[${p.PropertyName}]
              where new.[${p.PropertyName}] is not null;\n`;
             }
         }
@@ -1193,7 +1193,7 @@ export class Driver
     /*
 
      */
-    private    generateDeleteNullValues(classDef:IClass):string
+    private    generateDeleteNullValues(classDef:ICollectionDef):string
     {
         var result = '';
 
@@ -1221,11 +1221,11 @@ export class Driver
             {
                 // Process data and save in .classes and .class_properties
                 // Set Flag SchemaOutdated
-                var classDef:IClass = self.syncModelToClassDef(opts);
+                var classDef:ICollectionDef = self.syncModelToClassDef(opts);
 
                 // Regenerate view
                 // Check if class schema needs synchronization
-                if (classDef.SchemaOutdated !== 1)
+                if (classDef.ViewOutdated !== 1)
                 {
                     callback();
                     return;
@@ -1267,7 +1267,7 @@ export class Driver
                 //viewSQL += ` as [.non-schema-props]`;
 
                 viewSQL += ` from [.objects] o
-    where o.[ClassID] = ${classDef.ClassID}`;
+    where o.[ClassID] = ${classDef.CollectionID}`;
 
                 if (classDef.ctloMask !== 0)
                     viewSQL += `and ((o.[ctlo] & ${classDef.ctloMask}) = ${classDef.ctloMask})`;
@@ -1330,7 +1330,7 @@ export class Driver
                 }
 
                 viewSQL += `) values (new.HostID << 31 | (new.ObjectID & 2147483647),
-             ${classDef.ClassID}, ${classDef.ctloMask}${cols});\n`;
+             ${classDef.CollectionID}, ${classDef.ctloMask}${cols});\n`;
 
                 viewSQL += self.generateInsertValues(classDef);
                 viewSQL += 'end;\n';
@@ -1363,7 +1363,7 @@ export class Driver
 
                 // Delete trigger
                 viewSQL += self.generateTriggerBegin(classDef.DBViewName, 'delete');
-                viewSQL += `delete from [.objects] where [ObjectID] = new.[ObjectID] and [ClassID] = ${classDef.ClassID};\n`;
+                viewSQL += `delete from [.objects] where [ObjectID] = new.[ObjectID] and [ClassID] = ${classDef.CollectionID};\n`;
                 viewSQL += 'end;\n';
 
                 console.log(viewSQL);

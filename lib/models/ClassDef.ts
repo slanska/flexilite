@@ -11,7 +11,7 @@ export module Flexilite.models
     /*
 
      */
-    export class ClassDef implements IClass
+    export class ClassDef implements ICollectionDef
     {
         ClassName:string;
         SchemaID:number;

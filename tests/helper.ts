@@ -14,12 +14,31 @@ import chai = require('chai');
 //var Driver = require('../lib/FlexiliteAdapter').Driver;
 
 import orm = require("orm");
-var sqlite3 = require("sqlite3");
+import sqlite3 = require("sqlite3");
 import util = require("util");
 import path =require("path");
 var shortid = require("shortid");
-var faker = require("faker");
+import faker = require("faker");
 var Sync = require("syncho");
+import fs = require('fs');
+
+/*
+ Opens and initializes SQLite :memory: database.
+ Expected to be run in the context of syncho
+ Returns instance of database object
+ */
+export function openMemoryDB():sqlite3.Database
+{
+    var result = new sqlite3.Database(':memory:');
+    var libPath = path.join(__dirname, '../deps/sqlite_extensions/darwin-x64/libsqlite_extensions');
+    (result as any).loadExtension.sync(result, libPath);
+    var currentUserID = result.all.sync(result, `select randomblob(16) as uuid;`)[0]['uuid'];
+    var sqlScript = fs.readFileSync(path.join(__dirname, '../lib/drivers/SQLite/dbschema.sql'), 'UTF-8');
+    result.exec.sync(result, sqlScript);
+    result["CurrentUserID"] = currentUserID;
+    result.run.sync(result, `select var('CurrentUserID', ?);`, currentUserID);
+    return result;
+}
 
 export function ConnectAndSave(done:Function)
 {

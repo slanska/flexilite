@@ -4,7 +4,6 @@
 
 /// <reference path="../../typings/tsd.d.ts"/>
 
-
 /*
  Defines contract for object data to be inserted or updated.
  */
@@ -75,7 +74,7 @@ interface IPropertyToSave extends IEAVBase
      Class definition which hold this property.
      Property definition is accessible via classDef.Properties[propName]
      */
-    classDef:IClass;
+    classDef:ICollectionDef;
 
     /*
      Name of property
@@ -315,18 +314,23 @@ declare const enum PROPERTY_TYPE
     integer,
     numeric,
     boolean,
+
+    /*
+     Reference to collection
+     */
     reference,
-    enum,
+    ENUM,
     binary,
     date,
-    datetime
+    datetime,
+    linked_value
 }
 
 declare const enum UI_COMPONENT
 {
     text,
     counter,
-    switch,
+    SWITCH,
     slider,
     combo,
     checkbox,
@@ -337,7 +341,9 @@ declare const enum UI_COMPONENT
 interface PropertyRules
 {
     type:PROPERTY_TYPE;
-    required:boolean;
+    required?:boolean;
+    minOccurences?:number;
+    maxOccurences?:number;
 }
 
 interface PropertyUISettings
@@ -351,8 +357,8 @@ interface SchemaPropertyDefinition
     JSONPath: string;
     ui: PropertyUISettings;
     rules: PropertyRules;
-    minOccurences:number;
-    maxOccurences:number;
+    referenceTo?:string;
+    reversedProperty?:string;
 }
 
 interface SchemaDefinition
@@ -362,16 +368,15 @@ interface SchemaDefinition
     ;
 }
 
-interface ClassPropertyDefinition
+interface CollectionPropertyDefinition
 {
     name?:string;
 }
 
-interface ClassDefinition
+interface CollectionDefinition
 {
-    properties: {[propertyID:number]: ClassPropertyDefinition
-    }
-    ;
+    capacity?:number;
+    properties: {[propertyID:number]: CollectionPropertyDefinition    }    ;
 }
 
 

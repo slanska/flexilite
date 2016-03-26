@@ -7,7 +7,7 @@ module Flexilite.models
     export interface  IChangeLog
     {
         ID:number;
-        TimeStamp:number, // Julainday with fractions
+        TimeStamp:number, // Julianday with fractional time, following SQLite format
         OldKey:any;
         OldValue:any;
         Key:any;
