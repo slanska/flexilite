@@ -33,7 +33,7 @@ interface IEAVBase
     /*
      ID of host object
      */
-    hostID?: number;
+    hostID?:number;
 
     /*
      Optional property ID corresponding to property name
@@ -48,20 +48,7 @@ interface IEAVBase
     /*
      Property value
      */
-    value?: any;
-}
-
-/*
- Defines contract for data to be saved in .values tableß
- */
-interface IEAVItem extends IEAVBase
-{
-    classID: number;
-
-    /*
-     Flags
-     */
-    ctlv:VALUE_CONTROL_FLAGS;
+    value?:any;
 }
 
 /*
@@ -74,66 +61,14 @@ interface IPropertyToSave extends IEAVBase
      Class definition which hold this property.
      Property definition is accessible via classDef.Properties[propName]
      */
-    classDef:ICollectionDef;
+    //classDef:IFlexiCollection;
 
     /*
      Name of property
      */
-    propName: string;
+    propName:string;
 }
 
-/*
- ctlv is used for indexing and processing control. Possible values (the same as Values.ctlv):
- 0 - Index
- 1-3 - reference
- 2(3 as bit 0 is set) - regular ref
- 4(5) - ref: A -> B. When A deleted, delete B
- 6(7) - when B deleted, delete A
- 8(9) - when A or B deleted, delete counterpart
- 10(11) - cannot delete A until this reference exists
- 12(13) - cannot delete B until this reference exists
- 14(15) - cannot delete A nor B until this reference exist
-
- 16 - full text data
- 32 - range data
- 64 - DON'T track changes
- */
-declare const enum VALUE_CONTROL_FLAGS
-{
-    NONE = 0,
-    INDEX = 1,
-    REFERENCE = 2,
-    REFERENCE_OWN = 4,
-    REFERENCE_OWN_REVERSE = 6,
-    REFERENCE_OWN_MUTUAL = 8,
-    REFERENCE_DEPENDENT_MASTER = 10,
-    REFERENCE_DEPENDENT_LINK = 12,
-    REFERENCE_DEPENDENT_BOTH = 14,
-    FULL_TEXT_INDEX = 16,
-    RANGE_INDEX = 32,
-    NO_TRACK_CHANGES = 64
-}
-
-
-/*
- This is bit mask which regulates index storage.
- Bit 0: this object is a WEAK object and must be auto deleted after last reference to this object gets deleted.
- Bits 1-16: columns A-P should be indexed for fast lookup. These bits are checked by partial indexes
- Bits 17-32: columns A-P should be indexed for full text search
- Bits 33-48: columns A-P should be treated as range values and indexed for range (spatial search) search
- Bit 49: DON'T track changes
- Bit 50: Schema is not validated. Normally, this bit is set when object was referenced in other object
- but it was not defined in the schema
-
- */
-
-declare const enum OBJECT_CONTROL_FLAGS
-{
-    NONE = 0,
-    WEAK_OBJECT = 1,
-    NO_TRACK_CHANGES = 1 << 49,
-    SCHEMA_NOT_ENFORCED = 1 << 50
-}
 
 interface IDropOptions
 {
@@ -175,50 +110,50 @@ interface IModel
     get();
     hasMany();
     hasOne();
-    id: string[];
+    id:string[];
     keys:string[];
     length:number;
     name:string;
     one();
     prependValidation(key, validation);
-    properties: {[propName:string]: any}; // FIXME Property def
-    prototype: any; // FIXME Model
-    settings: {get(key, def), set(key, value), unset()};
+    properties:{[propName:string]:any}; // FIXME Property def
+    prototype:any; // FIXME Model
+    settings:{get(key, def), set(key, value), unset()};
     sync(cb);
     table:string;
-    uid: string;
+    uid:string;
 
 }
 
 interface IHasManyAssociation
 {
-    addAccessor: string, // Function name
-    autoFetch: boolean,
-    autoFetchLimit: number,
-    delAccessor: string,// Function name
-    field: {[key: string]: IPropertyDef},
-    getAccessor: string,// Function name
+    addAccessor:string, // Function name
+    autoFetch:boolean,
+    autoFetchLimit:number,
+    delAccessor:string,// Function name
+    field:{[key:string]:INodeORMPropertyDef},
+    getAccessor:string,// Function name
     hasAccessor:string,// Function name
 
     /*
      TODO
      */
-    hooks: any;
+    hooks:any;
 
     /*
      Name of properties in referenced class (detail/linked)
      */
-    mergeAssocId :{[key:string]: IPropertyDef},
+    mergeAssocId:{[key:string]:INodeORMPropertyDef},
 
     /*
      Names of properties in the referencing class (master)
      */
-    mergeId: {[key:string]: IPropertyDef},
+    mergeId:{[key:string]:INodeORMPropertyDef},
 
-    mergeTable: string, // Many2Many table name
-    model:  IModel,
-    name: string, // relation name
-    setAccessor: string,// Function name
+    mergeTable:string, // Many2Many table name
+    model:IModel,
+    name:string, // relation name
+    setAccessor:string,// Function name
 
     /*
      Additional properties for the Many2Many table
@@ -228,39 +163,38 @@ interface IHasManyAssociation
 
 interface IHasOneAssociation
 {
-    autoFetch: boolean,
-    autoFetchLimit: number,
-    delAccessor: string,// Function name
-    extension: boolean,
+    autoFetch:boolean,
+    autoFetchLimit:number,
+    delAccessor:string,// Function name
+    extension:boolean,
 
     /*
      Collection of fields which map to ID of referenced table
      */
-    field: {[propname: string] :
-        {
-            big?: boolean,
-            mapsTo?: string,
-            name: string,
-            required?: boolean,
-            size?: number,
-            time?: boolean,
-            type?: string,
-            unsigned?: boolean,
-            values?: any}},
-    getAccessor: string,// Function name
-    hasAccessor: string,// Function name
-    model: IModel,
+    field:{[propname:string]:{
+        big?:boolean,
+        mapsTo?:string,
+        name:string,
+        required?:boolean,
+        size?:number,
+        time?:boolean,
+        type?:string,
+        unsigned?:boolean,
+        values?:any}},
+    getAccessor:string,// Function name
+    hasAccessor:string,// Function name
+    model:IModel,
 
     /*
      Name of referenced table/class
      */
     name:string,
-    required: boolean,
+    required:boolean,
 
     /*
      Name of back reference (reversed) property
      */
-    reverse: string,
+    reverse:string,
 
     /*
      true for reversed property
@@ -276,18 +210,18 @@ interface IHasOneAssociation
 interface ISyncOptions
 {
     table:string;
-    properties:IPropertyDef[];
+    properties:{[propName:string]: INodeORMPropertyDef};
 
     extension:any;
     id?:string[]; // array of ID fields
-    allProperties:[string, IPropertyDef];
+    allProperties:{[propName:string]: INodeORMPropertyDef};
     indexes:any[];
     customTypes:any[];
     extend_associations:any[];
 
     one_associations:IHasOneAssociation[];
 
-    many_associations?: IHasManyAssociation[];
+    many_associations?:IHasManyAssociation[];
 }
 
 /*
@@ -308,76 +242,8 @@ interface Function
     sync<T>(thisArg, ...args):T;
 }
 
-declare const enum PROPERTY_TYPE
-{
-    text,
-    integer,
-    numeric,
-    boolean,
 
-    /*
-     Reference to collection
-     */
-    reference,
-    ENUM,
-    binary,
-    date,
-    datetime,
-    linked_value
-}
 
-declare const enum UI_COMPONENT
-{
-    text,
-    counter,
-    SWITCH,
-    slider,
-    combo,
-    checkbox,
-    radiobutton,
-    segmented
-}
-
-interface PropertyRules
-{
-    type:PROPERTY_TYPE;
-    required?:boolean;
-    minOccurences?:number;
-    maxOccurences?:number;
-}
-
-interface PropertyUISettings
-{
-    icon?:string;
-    component: UI_COMPONENT;
-}
-
-interface SchemaPropertyDefinition
-{
-    JSONPath: string;
-    ui: PropertyUISettings;
-    rules: PropertyRules;
-    referenceTo?:string;
-    reversedProperty?:string;
-}
-
-interface SchemaDefinition
-{
-    properties: {[propertyID:number]: SchemaPropertyDefinition
-    }
-    ;
-}
-
-interface CollectionPropertyDefinition
-{
-    name?:string;
-}
-
-interface CollectionDefinition
-{
-    capacity?:number;
-    properties: {[propertyID:number]: CollectionPropertyDefinition    }    ;
-}
 
 
 

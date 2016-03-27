@@ -1,0 +1,3 @@
+[submodule "sqlite-extensions"]
+	path = sqlite-extensions
+	url = https://github.com/slanska/sqlite-extensions

@@ -7,7 +7,7 @@
 /// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
 /// <reference path="../typings/tsd.d.ts" />
 'use strict';
-var Flexilite = require('../lib/misc/reverseEng');
+var ReverseEngine = require('../lib/misc/reverseEng');
 require('../lib/drivers/SQLite');
 var path = require('path');
 var orm = require("orm");
@@ -19,7 +19,7 @@ describe('Reverse Engineering for existing SQLite databases', function () {
     });
     function reverseEngineering(srcDBName, done) {
         Sync(function () {
-            var re = new Flexilite.ReverseEngine(srcDBName);
+            var re = new ReverseEngine(srcDBName);
             var schema = re.loadSchemaFromDatabase.sync(re);
             var destDBName = "" + path.join(__dirname, "data", "json_flexi.db");
             var connString = "flexilite://" + destDBName;
@@ -28,7 +28,7 @@ describe('Reverse Engineering for existing SQLite databases', function () {
                 var props = re.getPropertiesFromORMDriverSchema(model);
                 var dataClass = db.define(name, props);
                 db.sync.sync(db);
-                // Define relations
+                // TODO Define relations
                 console.log(name, model);
             });
             done();

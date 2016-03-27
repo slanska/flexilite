@@ -50,7 +50,7 @@ module Flexilite
         cid:number;
         name:string;
     }
-
+    
     interface SQLiteIndexXInfo extends SQLiteIndexInfo
     {
         unique:number | boolean;
@@ -173,10 +173,10 @@ module Flexilite
         /*
 
          */
-        public getPropertiesFromORMDriverSchema(schema:ISyncOptions):{[propName:string]:IPropertyDef}
+        public getPropertiesFromORMDriverSchema(schema:ISyncOptions):{[propName:string]:INodeORMPropertyDef}
         {
-            var result = {} as {[propName:string]:IPropertyDef};
-            _.forEach(schema.properties, (prop:IPropertyDef) =>
+            var result = {} as {[propName:string]:INodeORMPropertyDef};
+            _.forEach(schema.properties, (prop:INodeORMPropertyDef) =>
             {
                 result[prop.name] = prop;
             });
@@ -207,7 +207,7 @@ module Flexilite
                         var cols = self.db.all.sync(self.db, col_sql) as SQLiteColumn[];
                         _.forEach(cols, (col:SQLiteColumn) =>
                         {
-                            var prop = ReverseEngine.sqliteTypeToOrmType(col.type) as IPropertyDef;
+                            var prop = ReverseEngine.sqliteTypeToOrmType(col.type) as INodeORMPropertyDef;
                             prop.indexed = col.pk !== 0;
                             prop.name = col.name;
 
@@ -224,8 +224,8 @@ module Flexilite
                             }
 
                             if (!modelDef.properties)
-                                modelDef.properties = [];
-                            modelDef.properties.push(prop);
+                                modelDef.properties = {};
+                            modelDef.properties[prop.name] =  prop;
 
                         });
 
@@ -273,7 +273,7 @@ module Flexilite
     }
 }
 
-export = Flexilite;
+export = Flexilite.ReverseEngine;
 
 
 

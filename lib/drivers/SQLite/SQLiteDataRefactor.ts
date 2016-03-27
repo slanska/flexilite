@@ -12,40 +12,10 @@ declare interface IObjectFilter
     filter?: any;
 }
 
-/*
-
- */
-declare interface IPropertyDef
-{
-
-    jsonPath: string;
-    name: string;
-}
-
-/*
-
- */
-declare interface ISchemaDef
-{
-    properties: [number, IPropertyDef]
-}
-
-declare interface IClassPropertyDef
-{
-    propertyID: number;
-}
-
-declare interface IClassDef
-{
-    ClassID:number;
-    CurrentSchemaID:number;
-    Properties:[string, IClassPropertyDef];
-}
-
-import d = require( './Driver');
 
 
-// FIXME: rename to SQLiteDataRefactor
+
+// TODO: Extract methods to TypeScript interface
 export class SQLiteDataRefactor
 {
 
@@ -85,7 +55,7 @@ export class SQLiteDataRefactor
      Insert new object into JSONIC view with path (or extracted content?)
      -- Update old objects by removing content?
      */
-    public extractObject(filter:IObjectFilter, mappings:[IPropertyDef])
+    public extractObject(filter:IObjectFilter, mappings:[ISchemaPropertyDefinition])
     {
 
     }
@@ -95,7 +65,7 @@ export class SQLiteDataRefactor
      Same as extract but new object is stored as reference (JsonPath).
      If object is already mapped, JsonPath is concatenated
      */
-    public mapObject(filter:IObjectFilter, mappings:[IPropertyDef])
+    public mapObject(filter:IObjectFilter, mappings:[ISchemaPropertyDefinition])
     {
 
     }
@@ -105,7 +75,7 @@ export class SQLiteDataRefactor
      Update schema. Trigger will create new record with old data.
      Set Class.CurrentSchemaID = new.SchemaID
      */
-    addProperty(schema:ISchemaDef, propertyId:number, propDef:IPropertyDef)
+    addProperty(schema:ISchemaDefinition, propertyId:number, propDef:ISchemaPropertyDefinition)
     {
     }
 
@@ -141,13 +111,13 @@ export class SQLiteDataRefactor
     }
 
     // Delete property
-    deleteProperty(schema:ISchemaDef, propertyId:number)
+    deleteProperty(schema:ISchemaDefinition, propertyId:number)
     {
     }
 
 
     // Rename property
-    renameProperty(schema:ISchemaDef, propertyId:number, newPropertyName:string)
+    renameProperty(schema:ISchemaDefinition, propertyId:number, newPropertyName:string)
     {
     }
 
@@ -158,7 +128,7 @@ export class SQLiteDataRefactor
      - updates class.CurrentSchemaID
      - generates views for the class
      */
-    updateProperty(schema:ISchemaDef, propertyId:number, propDef:IPropertyDef)
+    updateProperty(schema:ISchemaDefinition, propertyId:number, propDef:ISchemaPropertyDefinition)
     {
 
     }

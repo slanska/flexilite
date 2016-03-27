@@ -3,27 +3,30 @@
  */
 
 /// <reference path="../../../typings/tsd.d.ts"/>
+/// <reference path="./DBInterfaces.d.ts"/>
 
 'use strict';
 
 import _ = require("lodash");
-import util = require("util");
+import util = require("../../misc/Util");
 import sqlite3 = require("sqlite3");
-// TODO import sqlquery = require("sql-query");
 var Query = require("sql-query").Query;
-// TODO var shared = require("./_shared");
-// TODO var DDL = require("./DDL/SQL");
 var Sync = require("syncho");
 import path = require('path');
 import ClassDef = require('../../models/ClassDef');
 import flex = require('../../models/index');
 import orm = require("orm");
-import {link} from "fs";
-import {Util} from "../../Util";
 import objectHash = require('object-hash');
+import SchemaConverter =require("../../misc/schemaConverter");
 
 namespace Flexilite.SQLite
 {
+    const enum SQLITE_OPEN_FLAGS
+    {
+        SHARED_CACHE = 0x00020000,
+        WAL = 0x00080000
+    }
+
     /*
      Implements Flexilite driver for node-orm.
      Uses SQLite as a backend storage
@@ -66,8 +69,15 @@ namespace Flexilite.SQLite
                 console.log(config);
                 var fn = ((config.host ? (win32 ? config.host + ":" : config.host) : "") + (config.pathname || "")) || ':memory:';
 
-                // SQLITE_OPEN_SHAREDCACHE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_WAL
-                this.db = sqlite3.cached.Database(fn, 0x00020000 | sqlite3.OPEN_READWRITE | 0x00080000);
+                this.db = sqlite3.cached.Database(fn, SQLITE_OPEN_FLAGS.SHARED_CACHE | sqlite3.OPEN_READWRITE | SQLITE_OPEN_FLAGS.WAL);
+
+                // FIXME dynamically determine library path based on OS and platform
+                let extLibPath = path.join(__dirname, "../../sqlite-extensions/bin/libsqlite_extensions.dylib");
+                Sync.Fiber(()=>
+                {
+                    // TODO Handle loading library
+                    (this.db as any).loadExtension.sync(this.db, extLibPath);
+                }).run();
             }
 
             this.aggregate_functions = ["ABS", "ROUND",
@@ -77,6 +87,7 @@ namespace Flexilite.SQLite
                 "DISTINCT"];
         }
 
+        // TODO Remove as it is not needed
         getViewName(table:string):string
         {
             return table;
@@ -122,7 +133,7 @@ namespace Flexilite.SQLite
         close(cb)
         {
             this.db.close();
-            if (typeof cb == "function")
+            if (_.isFunction(cb))
                 process.nextTick(cb);
         };
 
@@ -208,7 +219,7 @@ namespace Flexilite.SQLite
         }
 
         /*
-
+         Returns count of found records
          */
         count(table:string, conditions, opts, cb)
         {
@@ -252,38 +263,10 @@ namespace Flexilite.SQLite
         }
 
         /*
-         Registers class definition with className based on the sample data.
-         proceedExisting flag determines whether data will be processed for already registered
-         class. In this case, all additional data attributes that are not registered
-         will be registered.
-         If proceedExisting === false and class already exists, nothing will happen
-         */
-        registerClassDefFromObject(className:string, data:any, proceedExisting:boolean)
-        {
-            var classDef = this.getClassDefByName(className, true, true);
-            return classDef;
-        }
-
-        /*
-         Private method to generate new sequential object ID.
-         Returns int32 value. Must be called within Fiber context.
-         */
-        private generateObjectID():number
-        {
-            var self = this;
-            self.db.exec.sync(self.db, `insert or replace into [.generators] (name, seq) select '.objects',
-        coalesce((select seq from [.generators] where name = '.objects') , 0) + 1 ;`);
-
-            var objectID:number = self.db.get.sync(self.db,
-                `select seq from [.generators] where name = '.objects' limit 1;`).seq;
-            return objectID;
-        }
-
-        /*
          Iterates through all keys of given data and determines which keys are scalar and defined in class schema.
          Returns object with properties separates into these 2 groups: schema and extra.ß
          */
-        private extractSchemaProperties(classDef:ICollectionDef, data):IDataToSave
+        private extractSchemaProperties(classDef:IFlexiCollection, data):IDataToSave
         {
             var result:IDataToSave = {SchemaData: {}, ExtData: {}};
             for (var pi in data)
@@ -314,96 +297,96 @@ namespace Flexilite.SQLite
          @param schemaProps - object with all properties which are defined in schema
          @param nonSchemaProps - array of prop definitions which are not defined in class schema
          */
-        private processPropertyForSave(propInfo:IPropertyToSave, schemaProps:any, eavItems:IEAVItem[])
-        {
-            var self = this;
-
-            // Check if property is included into schema
-            var schemaProp = propInfo.classDef.Properties[propInfo.propName];
-
-            // Make sure that property is registered as class
-            var propClass = schemaProp ? self.getClassDefByID(schemaProp.PropertyID) : self.getClassDefByName(propInfo.propName, true, false);
-            var pid = propClass.CollectionID.toString();
-
-            function doProp(propIdPrefix:string)
-            {
-                if (propInfo.propIndex === 0 && schemaProp)
-                {
-                    schemaProps[propInfo.propName] = propInfo.value;
-                }
-                else
-                {
-                    pid = propIdPrefix + pid;
-                    eavItems.push({
-                        objectID: propInfo.objectID,
-                        hostID: propInfo.hostID,
-                        propID: propClass.CollectionID, propIndex: propInfo.propIndex,
-                        value: propInfo.value,
-                        classID: propClass.CollectionID,
-                        ctlv: schemaProp ? schemaProp.ctlv : VALUE_CONTROL_FLAGS.NONE
-                    });
-                }
-            }
-
-            // Determine actual property type
-            if (Buffer.isBuffer(propInfo.value))
-            // Binary (BLOB) value. Store as base64 string
-            {
-                propInfo.value = propInfo.value.toString('base64');
-                doProp('X');
-            }
-            else
-                if (_.isDate(propInfo.value))
-                // Date value. Store as Julian value (double value)
-                {
-                    propInfo.value = (<Date>propInfo.value).getMilliseconds();
-                    doProp('D');
-                }
-                else
-                    if (_.isArray(propInfo.value))
-                    // List of properties
-                    {
-                        propInfo.value.forEach(function (item, idx, arr)
-                        {
-                            var pi:IPropertyToSave = propInfo;
-                            pi.propIndex = idx + 1;
-                            self.processPropertyForSave(pi, schemaProps, eavItems);
-                        });
-                    }
-                    else
-                        if (_.isObject(propInfo.value))
-                        // Reference to another object
-                        {
-                            var refClassName:string;
-                            if (schemaProp)
-                            {
-                                var refClassID = schemaProp.ReferencedClassID;
-                                var refClass = self.getClassDefByID(refClassID);
-                                refClassName = refClass.NameID;
-                            }
-                            else
-                            {
-                                refClassName = propInfo.propName;
-                            }
-
-                            // TODO Check if object already exists???
-                            var refObjectID = self.saveObject(refClassName, propInfo.value, null, propInfo.hostID);
-                            eavItems.push({
-                                objectID: propInfo.objectID,
-                                hostID: propInfo.hostID,
-                                classID: propInfo.classDef.CollectionID,
-                                propID: propClass.CollectionID,
-                                propIndex: 0,
-                                ctlv: schemaProp ? schemaProp.ctlv : VALUE_CONTROL_FLAGS.REFERENCE_OWN,
-                                value: refObjectID
-                            });
-                        }
-                        else
-                        {
-                            // Regular scalar property
-                            doProp('');
-                        }
-        }
+        // private processPropertyForSave(propInfo:IPropertyToSave, schemaProps:any, eavItems:IEAVItem[])
+        // {
+        //     var self = this;
+        //
+        //     // Check if property is included into schema
+        //     var schemaProp = propInfo.classDef.Properties[propInfo.propName];
+        //
+        //     // Make sure that property is registered as class
+        //     var propClass = schemaProp ? self.getClassDefByID(schemaProp.PropertyID) : self.getClassDefByName(propInfo.propName, true, false);
+        //     var pid = propClass.CollectionID.toString();
+        //
+        //     function doProp(propIdPrefix:string)
+        //     {
+        //         if (propInfo.propIndex === 0 && schemaProp)
+        //         {
+        //             schemaProps[propInfo.propName] = propInfo.value;
+        //         }
+        //         else
+        //         {
+        //             pid = propIdPrefix + pid;
+        //             eavItems.push({
+        //                 objectID: propInfo.objectID,
+        //                 hostID: propInfo.hostID,
+        //                 propID: propClass.CollectionID, propIndex: propInfo.propIndex,
+        //                 value: propInfo.value,
+        //                 classID: propClass.CollectionID,
+        //                 ctlv: schemaProp ? schemaProp.ctlv : VALUE_CONTROL_FLAGS.NONE
+        //             });
+        //         }
+        //     }
+        //
+        //     // Determine actual property type
+        //     if (Buffer.isBuffer(propInfo.value))
+        //     // Binary (BLOB) value. Store as base64 string
+        //     {
+        //         propInfo.value = propInfo.value.toString('base64');
+        //         doProp('X');
+        //     }
+        //     else
+        //         if (_.isDate(propInfo.value))
+        //         // Date value. Store as Julian value (double value)
+        //         {
+        //             propInfo.value = (<Date>propInfo.value).getMilliseconds();
+        //             doProp('D');
+        //         }
+        //         else
+        //             if (_.isArray(propInfo.value))
+        //             // List of properties
+        //             {
+        //                 propInfo.value.forEach(function (item, idx, arr)
+        //                 {
+        //                     var pi:IPropertyToSave = propInfo;
+        //                     pi.propIndex = idx + 1;
+        //                     self.processPropertyForSave(pi, schemaProps, eavItems);
+        //                 });
+        //             }
+        //             else
+        //                 if (_.isObject(propInfo.value))
+        //                 // Reference to another object
+        //                 {
+        //                     var refClassName:string;
+        //                     if (schemaProp)
+        //                     {
+        //                         var refClassID = schemaProp.ReferencedClassID;
+        //                         var refClass = self.getClassDefByID(refClassID);
+        //                         refClassName = refClass.NameID;
+        //                     }
+        //                     else
+        //                     {
+        //                         refClassName = propInfo.propName;
+        //                     }
+        //
+        //                     // TODO Check if object already exists???
+        //                     var refObjectID = self.saveObject(refClassName, propInfo.value, null, propInfo.hostID);
+        //                     eavItems.push({
+        //                         objectID: propInfo.objectID,
+        //                         hostID: propInfo.hostID,
+        //                         classID: propInfo.classDef.CollectionID,
+        //                         propID: propClass.CollectionID,
+        //                         propIndex: 0,
+        //                         ctlv: schemaProp ? schemaProp.ctlv : VALUE_CONTROL_FLAGS.REFERENCE_OWN,
+        //                         value: refObjectID
+        //                     });
+        //                 }
+        //                 else
+        //                 {
+        //                     // Regular scalar property
+        //                     doProp('');
+        //                 }
+        // }
 
         /*
          Inserts or updates single object to the database.
@@ -413,7 +396,7 @@ namespace Flexilite.SQLite
         {
             var self = this;
 
-            var classDef = self.getClassDefByName(table, false, true);
+            var classDef = self.getCollectionDefByName(table, false, true);
             var q = '';
 
             if (!objectID)
@@ -439,7 +422,7 @@ namespace Flexilite.SQLite
                     objectID: objectID, hostID: hostID, classDef: classDef,
                     propName: propName, propIndex: 0, value: v
                 };
-                self.processPropertyForSave(propInfo, schemaProps, nonSchemaProps);
+                // TODO self.processPropertyForSave(propInfo, schemaProps, nonSchemaProps);
             }
 
             var info = self.db.all.sync(self.db, q);
@@ -779,26 +762,9 @@ namespace Flexilite.SQLite
         /*
          Overrides isSql property for driver
          */
-        public    get    isSql()
+        public get isSql()
         {
             return true;
-        }
-
-        /*
-
-         */
-
-        /*
-         Loads class definition with properties by class ID.
-         Class should exist, otherwise exception will be thrown
-         */
-        private    getClassDefByID(classID:number):ICollectionDef
-        {
-            var classDef = this.db.get.sync(this.db, 'select * from [.classes] where [ClassID] = ?', classID);
-            if (!classDef)
-                throw new Error(`Class with id=${classID} not found`);
-            classDef.Properties = this.db.all.sync(this.db, 'select * from [.class_properties] where [ClassID] = ?', classID);
-            return classDef;
         }
 
         /*
@@ -808,12 +774,12 @@ namespace Flexilite.SQLite
          If class does not exist and no new class should be registered, class def will
          be created in memory. In this case ClassID will be set to null, Properties - to empty object
          */
-        private getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):ICollectionDef
+        private getCollectionDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IFlexiCollection
         {
             var self = this;
-            var selStmt = self.db.prepare('select * from [.classes] where [ClassName] = ?');
+            var selStmt = self.db.prepare(`select * from [.collections] where [NameID] = (select [NameID] from [.names] where [Value] = ?)`);
             var rows = selStmt.all.sync(selStmt, className);
-            var classDef:ICollectionDef;
+            var classDef:IFlexiCollection;
 
             if (rows.length === 0)
             // Class not found
@@ -821,9 +787,10 @@ namespace Flexilite.SQLite
                 if (createIfNotExist)
                 {
                     var insCStmt = self.db.prepare(
-                        `insert or replace into [.classes] ([ClassName], [DBViewName]) values (?, ?);
-                    select * from [.classes] where [ClassName] = ?;`);
-                    insCStmt.run.sync(insCStmt, [className, className]);
+                        `insert or ignore into [.names] ([Value]) values (@name);
+                        insert or replace into [.collections] ([NameID], ViewOutdated) values (select [NameID] from [.names] where [Value] = @name), 1);
+                    select * from [.classes] where [ClassName] = @name;`);
+                    insCStmt.run.sync(insCStmt, {name: className});
 
                     // Reload class def with all updated properties
                     classDef = selStmt.all.sync(selStmt, className)[0];
@@ -871,7 +838,7 @@ namespace Flexilite.SQLite
         /*
          Registers a new class definition based on the sample data
          */
-        public registerClassByObject(className:string, data:any, saveData:boolean = false):ICollectionDef
+        public registerClassByObject(className:string, data:any, saveData:boolean = false):IFlexiCollection
         {
             var self = this;
             this.execSQL('savepoint a1;');
@@ -955,7 +922,8 @@ namespace Flexilite.SQLite
         /*
          Synchronizes node-orm model to .classes and .class_properties.
          Makes updates to the database.
-         Returns instance of IClass, with all changes applied
+         Returns instance of ICollectionDef, with all changes applied
+         NOTE: this function is intended to run inside Syncho wrapper
          */
 
         /*
@@ -967,22 +935,28 @@ namespace Flexilite.SQLite
 
          hasMany and hasOne are converted into reference properties
          */
-        private syncModelToSchema(model:ISyncOptions):ICollectionDef
+        private syncModelToSchema(model:ISyncOptions):IFlexiCollection
         {
             var self = this;
 
             // TODO
             // Normalize model
+            var converter = new SchemaConverter(self.db, model);
+            converter.convert();
+            var schemaData = converter.targetSchema;
 
             // Check if this schema is already defined.
             // By schema signature
-            var hashValue = objectHash(model);
-            var classID;
+            var hashValue = objectHash(schemaData);
 
-            self.execSQL(`select * from [.schemas] where ClassID = ? and Hash = ?`, classID, hashValue);
+            var schemas = self.db.all.sync(self.db, `select * from [.schemas] where Hash = ?`, hashValue);
+            _.find(schemas, (item:ISchemaDefinition)=>
+            {
+
+            });
 
             // Load existing model, if it exists
-            var result = this.getClassDefByName(model.table, true, true);
+            var result = this.getCollectionDefByName(model.table, true, true);
 
             // Assume all existing properties as candidates for removal
             var deletedProperties:string[] = [];
@@ -1031,7 +1005,7 @@ namespace Flexilite.SQLite
             // Check properties
             for (var propName in model.allProperties)
             {
-                var pd:IPropertyDef = model.allProperties[propName];
+                var pd:INodeORMPropertyDef = model.allProperties[propName];
 
                 // Unmark property from removal candidates list
                 _.remove(deletedProperties, (value)=> value == propName);
@@ -1084,7 +1058,7 @@ namespace Flexilite.SQLite
                         });
                         if (refOneProp)
                         {
-                            var refClass = this.getClassDefByName(refOneProp.model.table, true, true);
+                            var refClass = this.getCollectionDefByName(refOneProp.model.table, true, true);
                             cp.ReferencedClassID = refClass.CollectionID;
 
                             // FIXME create reverse property & set it as ReversePropertyID
@@ -1131,7 +1105,7 @@ namespace Flexilite.SQLite
                 cp.Indexed = true;
                 cp.MinOccurences = assoc.required ? 1 : 0;
                 cp.MaxOccurences = 1;
-                var refClass = self.getClassDefByName(assoc.model.table, true, true);
+                var refClass = self.getCollectionDefByName(assoc.model.table, true, true);
                 cp.ReferencedClassID = refClass.CollectionID;
 
                 // Set reverse property
@@ -1151,7 +1125,7 @@ namespace Flexilite.SQLite
                 cp.Indexed = true;
                 cp.MinOccurences = assoc.required ? 1 : 0;
                 cp.MaxOccurences = 1 << 31;
-                var refClass = self.getClassDefByName(assoc.model.table, true, true);
+                var refClass = self.getCollectionDefByName(assoc.model.table, true, true);
                 cp.ReferencedClassID = refClass.CollectionID;
 
                 // Set reverse property
@@ -1159,7 +1133,7 @@ namespace Flexilite.SQLite
                 saveClassProperty(cp);
             }
 
-            result = this.getClassDefByName(model.table, false, true);
+            result = this.getCollectionDefByName(model.table, false, true);
 
             return result;
         }
@@ -1180,7 +1154,7 @@ namespace Flexilite.SQLite
         /*
          Generates constraints for INSTEAD OF triggers for dynamic view
          */
-        private generateConstraintsForTrigger(classDef:ICollectionDef):string
+        private generateConstraintsForTrigger(classDef:IFlexiCollection):string
         {
             var result = '';
             // Iterate through all properties
@@ -1221,7 +1195,7 @@ namespace Flexilite.SQLite
         /*
 
          */
-        private    generateInsertValues(classDef:ICollectionDef):string
+        private generateInsertValues(classDef:IFlexiCollection):string
         {
             var result = '';
 
@@ -1243,7 +1217,7 @@ namespace Flexilite.SQLite
         /*
 
          */
-        private generateDeleteNullValues(classDef:ICollectionDef):string
+        private generateDeleteNullValues(classDef:IFlexiCollection):string
         {
             var result = '';
 
@@ -1272,9 +1246,9 @@ namespace Flexilite.SQLite
                 {
                     // Process data and save in .collections and  .schemas tables
                     // Sets .collections ViewOutdated
-                    var collectionDef:ICollectionDef = self.syncModelToSchema(opts);
+                    var collectionDef:IFlexiCollection = self.syncModelToSchema(opts);
 
-                    // Regenerate view
+                    // Regenerate view if needed
                     // Check if class schema needs synchronization
                     if (collectionDef.ViewOutdated !== 1)
                     {
@@ -1476,5 +1450,3 @@ namespace Flexilite.SQLite
 }
 
 export = Flexilite.SQLite.Driver;
-
-

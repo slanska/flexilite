@@ -6,7 +6,7 @@
 /*
 
  */
-declare  interface  IClassProperty
+interface  IClassProperty
 {
     ClassID?:number;
     PropertyID?:number;
@@ -26,7 +26,7 @@ declare  interface  IClassProperty
     ReferencedClassID?:number;
     ReversePropertyID?:number;
     ctlv?:number;
-    Indexed?: boolean;
+    Indexed?:boolean;
     ExtData?:any;
     ValidationRegex?:string;
 }

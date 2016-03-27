@@ -10,15 +10,15 @@
 /// <reference path="../node_modules/orm/lib/TypeScript/sql-query.d.ts" />
 
 /// <reference path="../lib/models/IClassProperty.ts" />
-/// <reference path="../lib/models/ICollectionDef.ts" />
-/// <reference path="../lib/models/INameDef.ts" />
-/// <reference path="../lib/models/IAccessRule.ts" />
-/// <reference path="../lib/models/IChangeLog.ts" />
-/// <reference path="../lib/models/IObject.ts" />
-/// <reference path="../lib/models/IValue.ts" />
+/// <reference path="../lib/models/ISchemaData.d.ts" />
+/// <reference path="../lib/models/ICollectionData.d.ts" />
+
 /// <reference path="../lib/models/IPropertyDef.ts" />
 /// <reference path="thrift/thrift.d.ts" />
 /// <reference path="../lib/models/definitions.d.ts" />
 /// <reference path="object-hash/object-hash.d.ts" />
+
+///<reference path="../lib/models/definitions.d.ts"/>
+/// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
 
 

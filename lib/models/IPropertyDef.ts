@@ -2,28 +2,24 @@
  * Created by slanska on 2015-11-09.
  */
 
+/// <reference path="./ISchemaData.d.ts"/>
+
 /*
 node-orm2 declaration of individual property
  */
-declare interface IPropertyDef
+//TODO: move to node-orm2 d.ts
+declare interface INodeORMPropertyDef
 {
-    ext?: {
-        mappedTo?: string,
-        trackChanges?: boolean;
-        minOccurences?: number;
-        maxOccurences?: number;
-        maxLength?: number;
-        titleSingle?: string;
-        titlePlural?: string;
-        validateRegex?: string;
-    };
-    klass?: string; // primary, hasOne, hasMany
+    ext?: ISchemaPropertyDefinition;
+    klass?: 'primary' | 'hasOne' | 'hasMany'
     mapsTo?: string;
     name?: string;
-    type?: string; // integer, enum (values), binary, text, boolean, serial, object
+    type?: string; // 'integer' | 'enum' (values) | 'binary' | 'text' | 'boolean' | 'serial' | 'object' | 'date' | 'number' | 'point'
+    time?:boolean;
     ui?: {view?: string, width?: number}; // TODO Other UI settings
     unique?: boolean;
     indexed?:boolean;
     defaultValue?: any;
     big?: boolean;
+    size?:number;
 }

@@ -183,7 +183,7 @@ describe('SQLite extensions: var', ()=>
         });
     });
 
-    it('get CurrentUserID', (done)=>
+    it('retrieves the same CurrentUserID', (done)=>
     {
         Sync(()=>
         {
@@ -194,7 +194,7 @@ describe('SQLite extensions: var', ()=>
         });
     });
 
-    it('run in a loop', (done)=>
+    it('does not have memory leaks', (done)=>
     {
         Sync(()=>
         {
@@ -212,7 +212,6 @@ describe('SQLite extensions: var', ()=>
             {
                 var newID = shortid();
                 db.run.sync(db, `select var('currentUserID', '${newID}');`);
-                //db.run.sync(db, `select var('currentUserID');`);
             }
             var newStats = getMemStats();
             db.run.sync(db, `select var('currentUserID', ?);`, savedStats.userID);
@@ -225,6 +224,36 @@ describe('SQLite extensions: var', ()=>
 
 describe('SQLite extensions: hash', ()=>
 {
+    var db:sqlite3.Database;
+
+    before((done)=>
+    {
+        Sync(()=>
+        {
+            db = helper.openMemoryDB();
+            done();
+        });
+    });
+
+    after((done)=>
+    {
+        Sync(()=>
+        {
+            db.close();
+            done();
+        });
+    });
+
+    it('generates basic hash', (done)=>
+    {
+        Sync(()=>
+        {
+            var rows = db.all.sync(db, `select hash('Crudbit will win!') as hash;`);
+            var hash = rows[0].hash;
+            console.log(`Hash: ${hash}`);
+            done();
+        });
+    });
 });
 
 describe('SQLite extensions: eval', ()=>
@@ -236,5 +265,9 @@ describe('SQLite extensions: fileio', ()=>
 });
 
 describe('SQLite extensions: regexp', ()=>
+{
+});
+
+describe('SQLite extensions: compress', ()=>
 {
 });

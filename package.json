@@ -1,6 +1,6 @@
 {
   "name": "Flexilite",
-  "description": "SQLite-based EAV ORM with flexible DB schema",
+  "description": "SQLite-based ORM with flexible DB schema",
   "version": "0.0.1",
   "author": "slanska",
   "private": false,

@@ -10,7 +10,7 @@
 
 'use strict';
 
-var Flexilite = require('../lib/misc/reverseEng');
+var ReverseEngine = require('../lib/misc/reverseEng');
 import mocha = require('mocha');
 require('../lib/drivers/SQLite');
 import path = require('path');
@@ -29,7 +29,7 @@ describe('Reverse Engineering for existing SQLite databases', () =>
     {
         Sync(()=>
         {
-            var re = new Flexilite.ReverseEngine(srcDBName);
+            var re = new ReverseEngine(srcDBName);
             var schema = re.loadSchemaFromDatabase.sync(re);
 
             var destDBName = `${path.join(__dirname, "data", "json_flexi.db")}`;
@@ -41,7 +41,7 @@ describe('Reverse Engineering for existing SQLite databases', () =>
                 var dataClass = db.define(name, props);
                 db.sync.sync(db);
 
-                // Define relations
+                // TODO Define relations
 
                 console.log(name, model);
             });
