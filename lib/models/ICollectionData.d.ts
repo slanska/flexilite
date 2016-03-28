@@ -3,16 +3,39 @@
  */
 
 /*
-Declarations for .collections Data 
+ Declarations for .collections Data
  */
-declare interface IClassPropertyDef
+
+/*
+ Collection property metadata
+ */
+interface ICollectionSchemaProperty
 {
-    propertyID:number;
+    indexed?:boolean;
+    unique?:boolean;
+    defaultValue?:any;
+
+    /*
+     Name ID for column name as it is presented in the database view
+     */
+    columnNameID?:number;
+
+    labelID?:number;
+
 }
 
-declare interface IClassDef
+/*
+ Structure of .collections.SchemaRules
+ */
+interface ICollectionSchemaRules
 {
-    ClassID:number;
-    CurrentSchemaID:number;
-    Properties:[string, IClassPropertyDef];
+    /*
+     Mapping to shortcut columns A..J
+     */
+    mapping:{[columnName:string]:number};
+
+    /*
+     Properties definition for view generation
+     */
+    properties:{[propID:number]:ICollectionSchemaProperty};
 }

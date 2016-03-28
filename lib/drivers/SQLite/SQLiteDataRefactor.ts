@@ -2,32 +2,32 @@
  * Created by slanska on 2016-01-16.
  */
 
+///<reference path="../../../typings/tsd.d.ts"/>
+
 /*
  Declares contract for defining list of objects either by objectID(s), filter and/or ClassID
  */
-declare interface IObjectFilter
+interface IObjectFilter
 {
-    objectId?: number | [number];
-    classId?: number;
-    filter?: any;
+    objectId?:number | [number];
+    classId?:number;
+    filter?:any;
 }
-
-
 
 
 // TODO: Extract methods to TypeScript interface
 export class SQLiteDataRefactor
 {
 
-    constructor (private ormDriver)
+    constructor(private ormDriver)
     {
 
     }
 
     // Create class
-    createClass(className:string, copyFrom:{classIdOrName?:number|string, schemaId?:number}):IClassDef
+    createCollection(className:string, copyFrom:{classIdOrName?:number|string, schemaId?:number}):IFlexiCollection
     {
-        var result:IClassDef;
+        var result:IFlexiCollection;
         return result;
     }
 

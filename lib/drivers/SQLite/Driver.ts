@@ -919,6 +919,18 @@ namespace Flexilite.SQLite
          save object
          */
 
+
+        /*
+
+         */
+        private getNameByID(name:string):number
+        {
+            var rows = this.db.run.sync(this.db, `insert or ignore into [.names] ([Value]) values (@name);
+            select NameID from [.names] where [Value] = @name limit 1`, {name: name});
+            var result = rows[0].NameID;
+            return result;
+        }
+
         /*
          Synchronizes node-orm model to .classes and .class_properties.
          Makes updates to the database.
@@ -942,6 +954,7 @@ namespace Flexilite.SQLite
             // TODO
             // Normalize model
             var converter = new SchemaConverter(self.db, model);
+            converter.getNameID = self.getNameByID.bind(self);
             converter.convert();
             var schemaData = converter.targetSchema;
 
@@ -950,10 +963,18 @@ namespace Flexilite.SQLite
             var hashValue = objectHash(schemaData);
 
             var schemas = self.db.all.sync(self.db, `select * from [.schemas] where Hash = ?`, hashValue);
-            _.find(schemas, (item:ISchemaDefinition)=>
+            var existingSchema = _.find(schemas, (item:IFlexiSchema)=>
             {
-
+                if (_.isEqual(item.Data, schemaData))
+                    return true;
             });
+
+            if (!existingSchema)
+            {
+                // create new one
+                let sql = `insert into [.schemas] into () values ();`;
+                self.db.run.sync(self.db, sql, );
+            }
 
             // Load existing model, if it exists
             var result = this.getCollectionDefByName(model.table, true, true);

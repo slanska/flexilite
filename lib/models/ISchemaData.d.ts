@@ -21,7 +21,8 @@ declare const enum PROPERTY_TYPE
     binary,
     date,
     datetime,
-    linked_value
+    linked_value,
+    time
 }
 
 /*
@@ -94,6 +95,8 @@ interface IPropertyMapSettings
      ['BoolProp1', 'BoolProp2', 'BoolProp3']. Presense of item in array means property `true` value.
      */
     itemInArray?:string;
+
+
 }
 
 interface ISchemaPropertyDefinition
