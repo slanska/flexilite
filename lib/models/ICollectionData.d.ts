@@ -13,8 +13,7 @@ interface ICollectionSchemaProperty
 {
     indexed?:boolean;
     unique?:boolean;
-    defaultValue?:any;
-
+    
     /*
      Name ID for column name as it is presented in the database view
      */

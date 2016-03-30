@@ -13,8 +13,6 @@ import sqlite3 = require("sqlite3");
 var Query = require("sql-query").Query;
 var Sync = require("syncho");
 import path = require('path');
-import ClassDef = require('../../models/ClassDef');
-import flex = require('../../models/index');
 import orm = require("orm");
 import objectHash = require('object-hash');
 import SchemaConverter =require("../../misc/schemaConverter");
@@ -266,7 +264,7 @@ namespace Flexilite.SQLite
          Iterates through all keys of given data and determines which keys are scalar and defined in class schema.
          Returns object with properties separates into these 2 groups: schema and extra.ß
          */
-        private extractSchemaProperties(classDef:IFlexiCollection, data):IDataToSave
+        private extractSchemaProperties(schemaDef:ISchemaDefinition, data):IDataToSave
         {
             var result:IDataToSave = {SchemaData: {}, ExtData: {}};
             for (var pi in data)
@@ -274,7 +272,7 @@ namespace Flexilite.SQLite
                 var schemaProp = false;
 
                 // Include only properties that are defined in class schema and NOT defined as reference properties
-                if (classDef.Properties.hasOwnProperty(pi) && !classDef.Properties[pi].ReferencedClassID)
+                if (schemaDef.properties.hasOwnProperty(pi) && !schemaDef.properties[pi].ReferencedClassID)
                 {
                     var v = data[pi];
                     if (!_.isObject(v) && !_.isArray(v))
@@ -396,15 +394,17 @@ namespace Flexilite.SQLite
         {
             var self = this;
 
-            var classDef = self.getCollectionDefByName(table, false, true);
+            var collDef = self.getCollectionDefByName(table, false, true);
             var q = '';
 
-            if (!objectID)
-                objectID = self.generateObjectID();
+            // TODO
+            // if (!objectID)
+            //     objectID = self.generateObjectID();
             if (!hostID)
                 hostID = objectID;
 
-            var schemaDef:IDataToSave = self.extractSchemaProperties(classDef, data);
+            var schemaDef:IDataToSave = null; // TODO
+            // // self.extractSchemaProperties(collDef, data);
 
             q = self.query.insert()
                     .into(this.getViewName(table))
@@ -412,26 +412,27 @@ namespace Flexilite.SQLite
                     .build() + ';';
 
             var schemaProps = {};
-            var nonSchemaProps:IEAVItem[] = [];
+            var nonSchemaProps:IFlexiRefValue[] = [];
 
             for (var propName in data)
             {
                 // Shortcut to property data
                 var v = data[propName];
-                var propInfo:IPropertyToSave = {
-                    objectID: objectID, hostID: hostID, classDef: classDef,
-                    propName: propName, propIndex: 0, value: v
-                };
+
+                // var propInfo:IFlexiRefValue = {
+                //     ObjectID: objectID, classDef: classDef,
+                //     propName: propName, propIndex: 0, value: v
+                // };
                 // TODO self.processPropertyForSave(propInfo, schemaProps, nonSchemaProps);
             }
 
             var info = self.db.all.sync(self.db, q);
 
-            nonSchemaProps.forEach(function (item:IEAVItem, idx, arr)
+            nonSchemaProps.forEach(function (item:IFlexiRefValue, idx, arr)
             {
-                self.execSQL(`insert or replace into [.values_view] (HostID, ObjectID, ClassID, PropertyID, PropIndex,
+                self.execSQL(`insert or replace into [.values_view] (ObjectID, ClassID, PropertyID, PropIndex,
                 [Value], [ctlv]) values (?, ?, ?, ?, ?, ?, ?)`,
-                    item.hostID, item.objectID, item.classID, item.propID, item.propIndex, item.value, item.ctlv);
+                    item.ObjectID, item.CollectionID, item.PropertyID, item.PropIndex, item.Value, item.ctlv);
                 //TODO Set ctlo. use propInfo?
             });
 
@@ -779,10 +780,10 @@ namespace Flexilite.SQLite
             var self = this;
             var selStmt = self.db.prepare(`select * from [.collections] where [NameID] = (select [NameID] from [.names] where [Value] = ?)`);
             var rows = selStmt.all.sync(selStmt, className);
-            var classDef:IFlexiCollection;
+            var collDef:IFlexiCollection;
 
             if (rows.length === 0)
-            // Class not found
+            // Collection not found
             {
                 if (createIfNotExist)
                 {
@@ -793,40 +794,41 @@ namespace Flexilite.SQLite
                     insCStmt.run.sync(insCStmt, {name: className});
 
                     // Reload class def with all updated properties
-                    classDef = selStmt.all.sync(selStmt, className)[0];
+                    collDef = selStmt.all.sync(selStmt, className)[0];
                 }
                 else
                 //
                 {
-                    classDef = new ClassDef.Flexilite.models.ClassDef();
-                    classDef.NameID = className;
-                    classDef.DBViewName = this.getViewName(className);
-                    classDef.CollectionID = null;
+                    collDef = {} as IFlexiCollection;
+
+                    // TODO collDef.NameID = className;
+
+                    collDef.CollectionID = null;
                 }
-                classDef.Properties = {};
+                // TODO collDef.Properties = {};
             }
             else
             {
-                classDef = rows[0];
-                classDef.Properties = {};
+                collDef = rows[0];
+                // TODO collDef.Properties = {};
                 if (loadProperties)
                 // Class found. Try to load properties
                 {
-                    var props = self.db.all.sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', classDef.CollectionID) || {};
+                    var props = self.db.all.sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', collDef.CollectionID) || {};
                     props.forEach(function (p, idx, propArray)
                     {
-                        classDef.Properties[p.PropertyName] = p;
+                        // TODO collDef.Properties[p.PropertyName] = p;
                     });
                 }
             }
 
-            return classDef;
+            return collDef;
         }
 
         /*
 
          */
-        private registerAttribute(attrName:string, pluralName?:string):number
+        private registerName(attrName:string, pluralName?:string):number
         {
             var self = this;
             var result = self.execSQL(`insert or replace [.attributes] (name, pluralName) values (?, ?); 
@@ -838,21 +840,21 @@ namespace Flexilite.SQLite
         /*
          Registers a new class definition based on the sample data
          */
-        public registerClassByObject(className:string, data:any, saveData:boolean = false):IFlexiCollection
+        public registerCollectionByObject(className:string, data:any, saveData:boolean = false):IFlexiCollection
         {
             var self = this;
             this.execSQL('savepoint a1;');
             try
             {
                 // Register properties and class name as attributes. Obtain their IDs
-                var classID:number = this.registerAttribute(className);
+                var classID:number = this.registerName(className);
 
                 // Process all properties
                 var classProps = {properties: {}};
                 var schemaProps = {properties: {}};
                 _.forEach(data, (prop, name:string) =>
                 {
-                    var propID = self.registerAttribute(name);
+                    var propID = self.registerName(name);
                     classProps.properties[propID] = {};
                     schemaProps.properties[propID] = {JSONPath: `$.${name}`};
 
@@ -947,7 +949,7 @@ namespace Flexilite.SQLite
 
          hasMany and hasOne are converted into reference properties
          */
-        private syncModelToSchema(model:ISyncOptions):IFlexiCollection
+        private syncModelToSchema(model:ISyncOptions):{collectionDef:IFlexiCollection,schemaDef:ISchemaDefinition}
         {
             var self = this;
 
@@ -973,15 +975,19 @@ namespace Flexilite.SQLite
             {
                 // create new one
                 let sql = `insert into [.schemas] into () values ();`;
-                self.db.run.sync(self.db, sql, );
+                self.db.run.sync(self.db, sql, {
+                    NameID: self.getNameByID(model.table),
+                    Data: JSON.stringify(schemaData),
+                    Hash: hashValue
+                } as IFlexiSchema);
             }
 
             // Load existing model, if it exists
-            var result = this.getCollectionDefByName(model.table, true, true);
+            var collectionDef = this.getCollectionDefByName(model.table, true, true);
 
             // Assume all existing properties as candidates for removal
             var deletedProperties:string[] = [];
-            for (var propName in result.Properties)
+            for (var propName in schemaData.properties)
             {
                 deletedProperties.push(propName);
             }
@@ -1007,7 +1013,7 @@ namespace Flexilite.SQLite
                 }
 
                 insCPStmt.run.sync(insCPStmt, [
-                    result.CollectionID,
+                    collectionDef.CollectionID,
                     propName,
                     cp.PropertyName,
                     cp.TrackChanges,
@@ -1031,10 +1037,10 @@ namespace Flexilite.SQLite
                 // Unmark property from removal candidates list
                 _.remove(deletedProperties, (value)=> value == propName);
 
-                var cp:IClassProperty = result.Properties[propName.toLowerCase()];
+                var cp:IClassProperty = schemaData.properties[propName.toLowerCase()];
                 if (!cp)
                 {
-                    result.Properties[propName.toLowerCase()] = cp = {};
+                    schemaData.properties[propName.toLowerCase()] = cp = {};
                 }
 
                 // Depending on klass, treat properties differently
@@ -1047,13 +1053,13 @@ namespace Flexilite.SQLite
                         cp.PropertyName = propName;
                         cp.Unique = pd.unique || cp.Unique;
                         cp.DefaultValue = pd.defaultValue || cp.DefaultValue;
-                        var ext = pd.ext || {};
+                        var ext = pd.ext || {} as ISchemaPropertyDefinition;
 
-                        cp.ColumnAssigned = ext.mappedTo || cp.ColumnAssigned;
-                        cp.MaxLength = ext.maxLength || cp.MaxLength;
-                        cp.MaxOccurences = ext.maxOccurences || cp.MaxOccurences;
-                        cp.MinOccurences = ext.minOccurences || cp.MinOccurences;
-                        cp.ValidationRegex = ext.validateRegex || cp.ValidationRegex;
+                        // TODO cp.ColumnAssigned = ext. || cp.ColumnAssigned;
+                        cp.MaxLength = ext.rules.maxLength || cp.MaxLength;
+                        cp.MaxOccurences = ext.rules.maxOccurences || cp.MaxOccurences;
+                        cp.MinOccurences = ext.rules.minOccurences || cp.MinOccurences;
+                        cp.ValidationRegex = ext.rules.regex || cp.ValidationRegex;
 
                         insCStmt.run.sync(insCStmt, [propName, cp.DefaultDataType, propName]);
 
@@ -1061,7 +1067,7 @@ namespace Flexilite.SQLite
                         {
                             var refModel:ISyncOptions;
 
-                            var refClass = this.registerClassDefFromObject(propName, null, true);
+                            var refClass = this.registerCollectionByObject(propName, null, true);
                             cp.ReferencedClassID = refClass.CollectionID;
                         }
                         else
@@ -1117,10 +1123,10 @@ namespace Flexilite.SQLite
             for (var oneRel in model.one_associations)
             {
                 var assoc:IHasOneAssociation = model.one_associations[oneRel];
-                var cp:IClassProperty = result.Properties[oneRel.toLowerCase()];
+                var cp:IClassProperty = schemaData.properties[oneRel.toLowerCase()];
                 if (!cp)
                 {
-                    result.Properties[oneRel.toLowerCase()] = cp = {};
+                    schemaData.properties[oneRel.toLowerCase()] = cp = {};
                     cp.PropertyName = oneRel;
                 }
                 cp.Indexed = true;
@@ -1137,10 +1143,10 @@ namespace Flexilite.SQLite
             for (var manyRel in model.many_associations)
             {
                 var assoc:IHasOneAssociation = model.one_associations[manyRel];
-                var cp:IClassProperty = result.Properties[manyRel.toLowerCase()];
+                var cp:IClassProperty = schemaData.properties[manyRel.toLowerCase()];
                 if (!cp)
                 {
-                    result.Properties[manyRel.toLowerCase()] = cp = {};
+                    schemaData.properties[manyRel.toLowerCase()] = cp = {};
                     cp.PropertyName = manyRel;
                 }
                 cp.Indexed = true;
@@ -1154,9 +1160,9 @@ namespace Flexilite.SQLite
                 saveClassProperty(cp);
             }
 
-            result = this.getCollectionDefByName(model.table, false, true);
+            collectionDef = this.getCollectionDefByName(model.table, false, true);
 
-            return result;
+            return {collectionDef: collectionDef, schemaDef: schemaData};
         }
 
         /*
@@ -1175,36 +1181,36 @@ namespace Flexilite.SQLite
         /*
          Generates constraints for INSTEAD OF triggers for dynamic view
          */
-        private generateConstraintsForTrigger(classDef:IFlexiCollection):string
+        private generateConstraintsForTrigger(collectionName:string, schemaDef:ISchemaDefinition):string
         {
             var result = '';
             // Iterate through all properties
-            for (var propName in classDef.Properties)
+            _.forEach(schemaDef.properties as any, (p:ISchemaPropertyDefinition, propID:number)=>
             {
-                var p:IClassProperty = classDef.Properties[propName];
-
+// TODO Get property name by ID
                 // Is required/not null?
-                if (p.MinOccurences > 0)
-                    result += `when new.[${p.PropertyName}] is null then '${p.PropertyName} is required'\n`;
+                if (p.rules.minOccurences > 0)
+                    result += `when new.[${propID}] is null then '${propID} is required'\n`;
 
                 // Is unique
                 // TODO Unique in Class.Property, unique in Property (all classes)
-                if (p.Unique)
-                    result += `when exists(select 1 from [${classDef.DBViewName}] v where v.[ObjectID] <> new.[ObjectID]
-        and v.[${p.PropertyName}] = new.[${p.PropertyName}]) then '${p.PropertyName} has to be unique'\n`;
+                //         if (p.Unique)
+                //             result += `when exists(select 1 from [${collectionName}] v where v.[ObjectID] <> new.[ObjectID]
+                // and v.[${propName}] = new.[${propName}]) then '${propName} has to be unique'\n`;
 
                 // Range validation
 
                 // Max length validation
-                if ((p.MaxLength || 0) !== 0 && (p.MaxLength || 0) !== -1)
-                    result += `when typeof(new.[${p.PropertyName}]) in ('text', 'blob')
-        and len(new.[${p.PropertyName}] > ${p.MaxLength}) then 'Length of ${p.PropertyName} exceeds max value of ${p.MaxLength}'\n`;
+                if ((p.rules.maxLength || 0) !== 0 && (p.rules.maxLength || 0) !== -1)
+                    result += `when typeof(new.[${propID}]) in ('text', 'blob')
+        and len(new.[${propID}] > ${p.rules.maxLength}) then 'Length of ${propID} exceeds max value of ${p.rules.maxLength}'\n`;
 
                 // Regex validation
                 // TODO Use extension library for Regex
 
                 // TODO Other validation rules?
-            }
+
+            });
 
             if (result.length > 0)
             {
@@ -1216,19 +1222,19 @@ namespace Flexilite.SQLite
         /*
 
          */
-        private generateInsertValues(classDef:IFlexiCollection):string
+        private generateInsertValues(collectionID:number, schemaDef:ISchemaDefinition):string
         {
             var result = '';
 
             // Iterate through all properties
-            for (var propName in classDef.Properties)
+            for (var propName in schemaDef.properties)
             {
-                var p:IClassProperty = classDef.Properties[propName];
+                var p:IClassProperty = schemaDef.properties[propName];
 
                 if (!p.ColumnAssigned)
                 {
                     result += `insert or replace into [Values] ([ObjectID], [ClassID], [PropertyID], [PropIndex], [ctlv], [Value])
-             select (new.ObjectID | (new.HostID << 31)), ${classDef.CollectionID}, ${p.PropertyID}, 0, ${p.ctlv}, new.[${p.PropertyName}]
+             select (new.ObjectID | (new.HostID << 31)), ${collectionID}, ${p.PropertyID}, 0, ${p.ctlv}, new.[${p.PropertyName}]
              where new.[${p.PropertyName}] is not null;\n`;
                 }
             }
@@ -1238,14 +1244,14 @@ namespace Flexilite.SQLite
         /*
 
          */
-        private generateDeleteNullValues(classDef:IFlexiCollection):string
+        private generateDeleteNullValues(schemaDef:ISchemaDefinition):string
         {
             var result = '';
 
             // Iterate through all properties
-            for (var propName in classDef.Properties)
+            for (var propName in schemaDef.properties)
             {
-                var p:IClassProperty = classDef.Properties[propName];
+                var p:IClassProperty = schemaDef.properties[propName];
                 //
                 //if (!p.ColumnAssigned)
                 //{
@@ -1267,28 +1273,28 @@ namespace Flexilite.SQLite
                 {
                     // Process data and save in .collections and  .schemas tables
                     // Sets .collections ViewOutdated
-                    var collectionDef:IFlexiCollection = self.syncModelToSchema(opts);
+                    var def = self.syncModelToSchema(opts);
 
                     // Regenerate view if needed
                     // Check if class schema needs synchronization
-                    if (collectionDef.ViewOutdated !== 1)
+                    if (def.collectionDef.ViewOutdated !== 1)
                     {
                         callback();
                         return;
                     }
 
-                    var viewSQL = `drop view if exists ${collectionDef.DBViewName};
-            \ncreate view if not exists ${collectionDef.DBViewName} as select
+                    var viewSQL = `drop view if exists ${opts.table};
+            \ncreate view if not exists ${opts.table} as select
             [ObjectID] >> 31 as HostID,
     ([ObjectID] & 2147483647) as ObjectID,`;
                     // Process properties
                     var propIdx = 0;
-                    for (var propName in collectionDef.Properties)
+                    for (var propName in def.schemaDef.properties)
                     {
                         if (propIdx > 0)
                             viewSQL += ', ';
                         propIdx++;
-                        var p:IClassProperty = collectionDef.Properties[propName];
+                        var p:IClassProperty = def.schemaDef.properties[propName];
                         if (p.ColumnAssigned)
                         // This property is stored directly in .objects table
                         {
@@ -1313,27 +1319,27 @@ namespace Flexilite.SQLite
                     //viewSQL += ` as [.non-schema-props]`;
 
                     viewSQL += ` from [.objects] o
-    where o.[ClassID] = ${collectionDef.CollectionID}`;
+    where o.[ClassID] = ${def.collectionDef.CollectionID}`;
 
-                    if (collectionDef.ctloMask !== 0)
-                        viewSQL += `and ((o.[ctlo] & ${collectionDef.ctloMask}) = ${collectionDef.ctloMask})`;
+                    if (def.collectionDef.ctloMask !== 0)
+                        viewSQL += `and ((o.[ctlo] & ${def.collectionDef.ctloMask}) = ${def.collectionDef.ctloMask})`;
 
                     viewSQL += ';\n';
 
                     // Insert trigger when ObjectID or HostID is null.
                     // In this case, recursively call insert statement with newly obtained ObjectID
-                    viewSQL += self.generateTriggerBegin(collectionDef.DBViewName, 'insert', 'whenNull',
+                    viewSQL += self.generateTriggerBegin(opts.table, 'insert', 'whenNull',
                         'when new.[ObjectID] is null or new.[HostID] is null');
 
                     // Generate new ID
                     viewSQL += `insert or replace into [.generators] (name, seq) select '.objects',
                 coalesce((select seq from [.generators] where name = '.objects') , 0) + 1 ;`;
-                    viewSQL += `insert into [${collectionDef.DBViewName}] ([ObjectID], [HostID]`;
+                    viewSQL += `insert into [${opts.table}] ([ObjectID], [HostID]`;
 
                     var cols = '';
-                    for (var propName in collectionDef.Properties)
+                    for (var propName in def.schemaDef.properties)
                     {
-                        var p:IClassProperty = collectionDef.Properties[propName];
+                        var p:IClassProperty = def.schemaDef.properties[propName];
                         viewSQL += `, [${p.PropertyName}]`;
                         cols += `, new.[${p.PropertyName}]`;
                     }
@@ -1357,15 +1363,15 @@ namespace Flexilite.SQLite
                     viewSQL += `end;\n`;
 
                     // Insert trigger when ObjectID is not null
-                    viewSQL += self.generateTriggerBegin(collectionDef.DBViewName, 'insert', 'whenNotNull',
+                    viewSQL += self.generateTriggerBegin(opts.table, 'insert', 'whenNotNull',
                         'when not (new.[ObjectID] is null or new.[HostID] is null)');
-                    viewSQL += self.generateConstraintsForTrigger(collectionDef);
+                    viewSQL += self.generateConstraintsForTrigger(opts.table, def.schemaDef);
 
                     viewSQL += `insert into [.objects] ([ObjectID], [ClassID], [ctlo]`;
                     cols = '';
-                    for (var propName in collectionDef.Properties)
+                    for (var propName in def.schemaDef.properties)
                     {
-                        var p:IClassProperty = collectionDef.Properties[propName];
+                        var p:IClassProperty = def.schemaDef.properties[propName];
 
                         // if column is assigned
                         if (p.ColumnAssigned)
@@ -1376,19 +1382,19 @@ namespace Flexilite.SQLite
                     }
 
                     viewSQL += `) values (new.HostID << 31 | (new.ObjectID & 2147483647),
-             ${collectionDef.CollectionID}, ${collectionDef.ctloMask}${cols});\n`;
+             ${def.collectionDef.CollectionID}, ${def.collectionDef.ctloMask}${cols});\n`;
 
-                    viewSQL += self.generateInsertValues(collectionDef);
+                    viewSQL += self.generateInsertValues(def.collectionDef.CollectionID, def.schemaDef);
                     viewSQL += 'end;\n';
 
                     // Update trigger
-                    viewSQL += self.generateTriggerBegin(collectionDef.DBViewName, 'update');
-                    viewSQL += self.generateConstraintsForTrigger(collectionDef);
+                    viewSQL += self.generateTriggerBegin(opts.table, 'update');
+                    viewSQL += self.generateConstraintsForTrigger(opts.table, def.schemaDef);
 
                     var columns = '';
-                    for (var propName in collectionDef.Properties)
+                    for (var propName in def.schemaDef.properties)
                     {
-                        var p:IClassProperty = collectionDef.Properties[propName];
+                        var p:IClassProperty = def.schemaDef.properties[propName];
 
                         // if column is assigned
                         if (p.ColumnAssigned)
@@ -1403,13 +1409,13 @@ namespace Flexilite.SQLite
                         viewSQL += `update [.objects] set ${columns} where [ObjectID] = new.[ObjectID];\n`;
                     }
 
-                    viewSQL += self.generateInsertValues(collectionDef);
-                    viewSQL += self.generateDeleteNullValues(collectionDef);
+                    viewSQL += self.generateInsertValues(def.collectionDef.CollectionID, def.schemaDef);
+                    viewSQL += self.generateDeleteNullValues(def.schemaDef);
                     viewSQL += 'end;\n';
 
                     // Delete trigger
-                    viewSQL += self.generateTriggerBegin(collectionDef.DBViewName, 'delete');
-                    viewSQL += `delete from [.objects] where [ObjectID] = new.[ObjectID] and [ClassID] = ${collectionDef.CollectionID};\n`;
+                    viewSQL += self.generateTriggerBegin(opts.table, 'delete');
+                    viewSQL += `delete from [.objects] where [ObjectID] = new.[ObjectID] and [CollectionID] = ${def.collectionDef.CollectionID};\n`;
                     viewSQL += 'end;\n';
 
                     console.log(viewSQL);

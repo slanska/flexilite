@@ -107,7 +107,7 @@ module Flexilite
                             sProp.rules.maxLength = item.size;
 
                         if (item.defaultValue)
-                            cProp.defaultValue = item.defaultValue;
+                            sProp.defaultValue = item.defaultValue;
 
                         if (item.unique || item.indexed)
                         {

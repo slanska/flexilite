@@ -114,6 +114,14 @@ interface ISchemaPropertyDefinition
      Property name ID (in `referenceTo` collection) used as reversed reference property for this one.
      */
     reversedPropertyID?:number;
+
+    defaultValue?:any;
+
+    /*
+    Name of this property before rename
+     */
+    $previousName?:string;
+
 }
 
 /*

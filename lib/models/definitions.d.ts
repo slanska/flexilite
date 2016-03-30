@@ -20,56 +20,6 @@ interface IDataToSave
     ExtData?:any;
 }
 
-/*
- Defines contract for basic EAV property data
- */
-interface IEAVBase
-{
-    /*
-     ID of object to be inserted/updated
-     */
-    objectID:number;
-
-    /*
-     ID of host object
-     */
-    hostID?:number;
-
-    /*
-     Optional property ID corresponding to property name
-     */
-    propID?:number;
-
-    /*
-     Property index (for array of values). For scalar property, it is 0.
-     */
-    propIndex:number;
-
-    /*
-     Property value
-     */
-    value?:any;
-}
-
-/*
- Declares contract for saving individual property in .values or .objects (A-P columns) table
- */
-interface IPropertyToSave extends IEAVBase
-{
-
-    /*
-     Class definition which hold this property.
-     Property definition is accessible via classDef.Properties[propName]
-     */
-    //classDef:IFlexiCollection;
-
-    /*
-     Name of property
-     */
-    propName:string;
-}
-
-
 interface IDropOptions
 {
     table:string;

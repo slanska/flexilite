@@ -81,7 +81,7 @@ interface IFlexiName
 interface IFlexiRefValue
 {
     ObjectID:number;
-    ClassID:number;
+    CollectionID:number;
     PropertyID:number;
     PropIndex?:number;
     ctlv:VALUE_CONTROL_FLAGS;
@@ -102,6 +102,11 @@ interface IFlexiCollection
      ID of collection name
      */
     NameID:number;
+
+    /*
+    Collection name, by NameID
+     */
+    Name?:string;
 
     /*
      Current base schema ID (latest version of base schema)
