@@ -173,10 +173,10 @@ module Flexilite
         /*
 
          */
-        public getPropertiesFromORMDriverSchema(schema:ISyncOptions):{[propName:string]:INodeORMPropertyDef}
+        public getPropertiesFromORMDriverSchema(schema:ISyncOptions):{[propName:string]:IORMPropertyDef}
         {
-            var result = {} as {[propName:string]:INodeORMPropertyDef};
-            _.forEach(schema.properties, (prop:INodeORMPropertyDef) =>
+            var result = {} as {[propName:string]:IORMPropertyDef};
+            _.forEach(schema.properties, (prop:IORMPropertyDef) =>
             {
                 result[prop.name] = prop;
             });
@@ -207,7 +207,7 @@ module Flexilite
                         var cols = self.db.all.sync(self.db, col_sql) as SQLiteColumn[];
                         _.forEach(cols, (col:SQLiteColumn) =>
                         {
-                            var prop = ReverseEngine.sqliteTypeToOrmType(col.type) as INodeORMPropertyDef;
+                            var prop = ReverseEngine.sqliteTypeToOrmType(col.type) as IORMPropertyDef;
                             prop.indexed = col.pk !== 0;
                             prop.name = col.name;
 

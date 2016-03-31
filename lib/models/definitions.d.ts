@@ -81,7 +81,7 @@ interface IHasManyAssociation
     autoFetch:boolean,
     autoFetchLimit:number,
     delAccessor:string,// Function name
-    field:{[key:string]:INodeORMPropertyDef},
+    field:{[key:string]:IORMPropertyDef},
     getAccessor:string,// Function name
     hasAccessor:string,// Function name
 
@@ -93,12 +93,12 @@ interface IHasManyAssociation
     /*
      Name of properties in referenced class (detail/linked)
      */
-    mergeAssocId:{[key:string]:INodeORMPropertyDef},
+    mergeAssocId:{[key:string]:IORMPropertyDef},
 
     /*
      Names of properties in the referencing class (master)
      */
-    mergeId:{[key:string]:INodeORMPropertyDef},
+    mergeId:{[key:string]:IORMPropertyDef},
 
     mergeTable:string, // Many2Many table name
     model:IModel,
@@ -160,11 +160,11 @@ interface IHasOneAssociation
 interface ISyncOptions
 {
     table:string;
-    properties:{[propName:string]: INodeORMPropertyDef};
+    properties:{[propName:string]: IORMPropertyDef};
 
     extension:any;
     id?:string[]; // array of ID fields
-    allProperties:{[propName:string]: INodeORMPropertyDef};
+    allProperties:{[propName:string]: IORMPropertyDef};
     indexes:any[];
     customTypes:any[];
     extend_associations:any[];

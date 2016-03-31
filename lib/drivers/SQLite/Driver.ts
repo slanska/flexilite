@@ -1032,7 +1032,7 @@ namespace Flexilite.SQLite
             // Check properties
             for (var propName in model.allProperties)
             {
-                var pd:INodeORMPropertyDef = model.allProperties[propName];
+                var pd:IORMPropertyDef = model.allProperties[propName];
 
                 // Unmark property from removal candidates list
                 _.remove(deletedProperties, (value)=> value == propName);
@@ -1428,8 +1428,8 @@ namespace Flexilite.SQLite
                 catch (err)
                 {
                     console.log(err);
-                    throw err;
-                    //callback(err);
+                    // TODO throw err;
+                    callback(err);
                 }
             });
         }

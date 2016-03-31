@@ -89,7 +89,7 @@ module Flexilite
             var s = this._targetSchema;
             var c = this._targetCollectionSchema;
 
-            _.forEach(this.sourceSchema.allProperties, (item:INodeORMPropertyDef, propName:string) =>
+            _.forEach(this.sourceSchema.allProperties, (item:IORMPropertyDef, propName:string) =>
             {
                 let propID = this.getNameID(propName);
                 let sProp = item.ext || {} as ISchemaPropertyDefinition;

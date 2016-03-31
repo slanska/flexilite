@@ -8,7 +8,7 @@
 node-orm2 declaration of individual property
  */
 //TODO: move to node-orm2 d.ts
-declare interface INodeORMPropertyDef
+declare interface IORMPropertyDef
 {
     ext?: ISchemaPropertyDefinition;
     klass?: 'primary' | 'hasOne' | 'hasMany'
