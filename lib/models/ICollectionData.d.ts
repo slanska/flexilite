@@ -29,9 +29,16 @@ interface ICollectionSchemaProperty
 interface ICollectionSchemaRules
 {
     /*
-     Mapping to shortcut columns A..J
+     Mapping to shortcut columns 'A'..'J'
      */
     mapping:{[columnName:string]:number};
+
+    /*
+    Optional regex for filtering schemas that can be selected for a new item
+     */
+    schemaNameRegex?: string;
+
+    ranges?:[{from:number, to:number, schemaNameRegex:string}];
 
     /*
      Properties definition for view generation

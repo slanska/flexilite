@@ -1,5 +1,9 @@
 # flexilite
 
+> "Smart data structures and dumb code works a lot better than the other way around." 
+> Eric S. Raymond, The Cathedral and The Bazaar.
+
+
 #What is Flexilite?
 Flexilite ("F") is a node.js library and set of SQL scripts to convert ordinary SQLite database 
 into repository of data classes, objects 
@@ -10,7 +14,8 @@ evolutional design of relational databases. "F" covers most of known db schema r
 *Main idea*
 In few sentences:
 Traditional way to design db schema becomes noticeably outdated in the modern ever-changing world. What was good 
-30 years ago (RDBMS) does not match real life complexity. When designing new system or maintaining existing one, 
+30 years ago (RDBMS) does not match real life complexity nowadays. 
+When designing new system or maintaining existing one, 
 db schema has to go through many iterations of refactoring.
 
 The goal of this project is to provide proof of concept and at the same time production ready, easy-to-use, 
@@ -23,106 +28,107 @@ Flexilite is based on node-orm2 library for node.js and implements custom DB dri
 
 Here is a very brief demonstration of Flexilite concept and what sort of problems it is designed to solve.
  
- Typical scenario of database design and ongoing maintenance may be demonstrated in the following list of schema iterations:
- 1) Create DB table Person, with columns: PersonID, Name, Email, Phone, AddressLine1, AddressLine2, City, 
- ProvinceOrState, PostalCode, Country
- 2) Added columns WorkEmail, WorkPhone and renamed Email to PersonalEmail, Phone - to CellPhone
-  3) Create table Phones, with columns: PhoneNumber, PersonID, PhoneType 
-  moved value from Phone column in Person table, with assigning PersonID. (setup one-to-many relation)
-   4) Do the same for Email column, by creating table called Email, with columns: PersonID, Email, EmailType.
-   5) For maintaining database integrity create tables EmailType and PhoneType
-   6) In table Person create columns FirstName and LastName, split value of Person.Name into these 2
-   new columns, drop column Name, created computed column Name = FirstName + ' ' + LastName
-   7) Create table Address, with columns AddressID, AddressLine1, AddressLine2, City, ProvinceOrState, PostalCode, Country
-   8) Move address info from Person table to Address table, add column AddressID, set it
-   to ID of newly associated Address row, at the end dropped address columns from 
-   Person table
-   9) Create table CountryID, with columns CountryCode, CountryName
-   10) Extracted country data from table Address, replacing Country with CountryCode. Also, apply fuzzy logic
-   to process possible misspelling of country names
+Typical scenario of database design and ongoing maintenance may be 
+demonstrated in the following list of schema iterations:
+1) Create DB table Person, with columns: PersonID, Name, Email, Phone, AddressLine1, AddressLine2, City, 
+ProvinceOrState, PostalCode, Country
+2) Added columns WorkEmail, WorkPhone and renamed Email to PersonalEmail, Phone - to CellPhone
+3) Create table Phones, with columns: PhoneNumber, PersonID, PhoneType 
+moved value from Phone column in Person table, with assigning PersonID. (setup one-to-many relation)
+4) Do the same for Email column, by creating table called Email, with columns: PersonID, Email, EmailType.
+5) For maintaining database integrity create tables EmailType and PhoneType
+6) In table Person create columns FirstName and LastName, split value of Person.Name into these 2
+new columns, drop column Name, created computed column Name = FirstName + ' ' + LastName
+7) Create table Address, with columns AddressID, AddressLine1, AddressLine2, City, ProvinceOrState, PostalCode, Country
+8) Move address info from Person table to Address table, add column AddressID, set it
+to ID of newly associated Address row, at the end dropped address columns from 
+Person table
+9) Create table CountryID, with columns CountryCode, CountryName
+10) Extracted country data from table Address, replacing Country with CountryCode. Also, apply fuzzy logic
+to process possible misspelling of country names
+
+Needless to mention that every step from this list would normally require:
+a) writing script to migrate database schema
+b) writing script to move existing data (or reset existing database and start from fresh new, if change happens in the
+middle of development and data are not worthy to keep).
+
+(We omit here other things that also need to be done after DB schema changes - updating UI forms, and very likely, 
+revisiting UI flow, changing navigation, handling different typical cases and so on.
+These tasks can be as time and effort consuming as direct DB changes, but we will ignore this class of changes as it goes too far
+from the scope).
+
+In major percentage of cases database schema in its evolution shifts towards complication, and decomposition. 
+I.e. schema requires new tables/classes to be introduced, new columns/attributes. 
+
+Database schema migration patterns described above present just a subset of typical issues that database and application
+developer needs to address when designing, developing and maintaining real world business software.
    
-   Needless to mention that every step from this list would normally require:
-   a) writing script to migrate database schema
-   b) writing script to move existing data (or reset existing database and start from fresh new, if change happens in the
-   middle of development and data are not worthy to keep).
-   
-   (We omit here other things that also need to be done after DB schema changes - updating UI forms, and very likely, 
-   revisiting UI flow, changing navigation, handling different typical cases and so on.
-   These tasks can be as time and effort consuming as direct DB changes, but we will ignore this class of changes as it goes too far
-   from the scope).
-   
-   In major percentage of cases database schema in its evolution shifts towards complication, and decomposition. 
-   I.e. schema requires new tables/classes to be introduced, new columns/attributes. 
-   
-   Database schema migration patterns described above present just a subset of typical issues that database and application
-   developer needs to address when designing, developing and maintaining real world business software.
-   
-   Besides, there is whole set of other data related tasks that are not covered by a traditional RDBMS (or NoSQL) systems, and
-   require case-by-case resolving. Short list of such tasks might look as follows:
-    1) many-to-many relations. In RDBMS world, there is no out-of-box way to implement this. Usually this kind of relation is handled by adding special table 
-    which would hold IDs for both related tables.
-    2) re-ordering items in the list. While this type of functionality is completely ignored by RDBMS concept, it is rather 
-    popular requirement/nice-to-have features in the real world application. Again, like #1, if required, this feature needs to be
-    dealt with case-by-case basis.
-    3) data to the same collection/table/class is collected from various sources with a (likely) different 
-    structure and a (possibly) extra data, 
-    which is not included into original schema.
-    While different structures can be handled during loading phase via transformation, handling extra data (if needed to preserve) 
-    require either adding generic field (JSON, BLOB or memo), or extending schema with one or more additional tables/collections to store these data.
-    4) user-defined-fields(or attributes), i.e. providing ability for the end user (non programmer) to extend db schema with his/her own data.
-    Having this feature supported would require additional efforts from developers team to preserve this data during application
-     upgrade and their own database schema changes.
-     5) sort of special case for #4 - ability for the end user (normally, in 'Database Manager' role) to define new data classes
-     and give 'Data Entry' users to extend individual objects with these custom classes (compose mixin objects). Typical example is online store
-     with products categorized into many groups and sub-groups, with their own attributes (e.g. TV Sets and GPS both have ScreenSize 
-     attribute, but belong to different product groups).
+Besides, there is whole set of other data related tasks that are not covered by a traditional RDBMS (or NoSQL) systems, and
+require case-by-case resolving. Short list of such tasks might look as follows:
+1) many-to-many relations. In RDBMS world, there is no out-of-box way to implement this. Usually this kind of relation is handled by adding special table 
+which would hold IDs for both related tables.
+2) re-ordering items in the list. While this type of functionality is completely ignored by RDBMS concept, it is rather 
+popular requirement/nice-to-have features in the real world application. Again, like #1, if required, this feature needs to be
+dealt with case-by-case basis.
+3) data to the same collection/table/class is collected from various sources with a (likely) different 
+structure and a (possibly) extra data, 
+which is not included into original schema.
+While different structures can be handled during loading phase via transformation, handling extra data (if needed to preserve) 
+require either adding generic field (JSON, BLOB or memo), or extending schema with one or more additional tables/collections to store these data.
+4) user-defined-fields(or attributes), i.e. providing ability for the end user (non programmer) to extend db schema with his/her own data.
+Having this feature supported would require additional efforts from developers team to preserve this data during application
+upgrade and their own database schema changes.
+5) sort of special case for #4 - ability for the end user (normally, in 'Database Manager' role) to define new data classes
+and give 'Data Entry' users to extend individual objects with these custom classes (compose mixin objects). Typical example is online store
+with products categorized into many groups and sub-groups, with their own attributes (e.g. TV Sets and GPS both have ScreenSize 
+attribute, but belong to different product groups).
      
-     6) Multi-language support for database metadata (class and attribute names), including input field labels, column titles, descriptions,
-     hints, tool tips, place holder texts etc.
-     
-     7) *Enum* support. Almost every master table (like Person, Product, Order etc.) has one or more enumerated fields (for status, category and so on). 
-     Definitions of these enum attributes vary from fixed lists of 2-3 items to user extendable lists of dozens or even hundreds elements.
-     Total number of such enums in the real life database can easily reach hundreds. Handling this can be challenging as developers need to 
-     make decision on how to design and manage these definitions. Possible solutions usually include one of those: a) hard coded constraints 
-     directly in table definition, b) creating whole bunch of tiny separate tables, 1 table per enum and 1 row per enum item, 
-     c) creating one table for all enums, with 
-     additional column (something like 'EnumType'). Also, proper handling of enums might require support for multi-language representation of items to
-     the user. Implementation of such requirements, coupled together with necessity to translate table/column metadata, tend to lead to cumbersome, complicated 
-     design. As for me, this kind of work always makes me feel that I had to re-invent the wheel again and again.
-     
-     8) Adding full text search for some text fields. Needs to be handled on case-by-case basis, by implementing individual indexes. 
-     Ability to do search for text values in the scope of entire database or subset of certain fields requires non-trivial design and significant implementation
-      efforts.
-      
-      9) Change tracking, i.e. ability to keep history of changes for certain classes/tables. 
-      10) Add time-serie support, i.e. ability to keep time-based state for simple objects or their subsets 
-      (this task is somehow related tp #9). Examples:
-      current rates, employee salary history, tracking fleet and other assets and so on.
+6) Multi-language support for database metadata (class and attribute names), including input field labels, column titles, descriptions,
+hints, tool tips, place holder texts etc.
+
+7) *Enum* support. Almost every master table (like Person, Product, Order etc.) has one or more enumerated fields (for status, category and so on). 
+Definitions of these enum attributes vary from fixed lists of 2-3 items to user extendable lists of dozens or even hundreds elements.
+Total number of such enums in the real life database can easily reach hundreds. Handling this can be challenging as developers need to 
+make decision on how to design and manage these definitions. Possible solutions usually include one of those: a) hard coded constraints 
+directly in table definition, b) creating whole bunch of tiny separate tables, 1 table per enum and 1 row per enum item, 
+c) creating one table for all enums, with 
+additional column (something like 'EnumType'). Also, proper handling of enums might require support for multi-language representation of items to
+the user. Implementation of such requirements, coupled together with necessity to translate table/column metadata, tend to lead to cumbersome, complicated 
+design. As for me, this kind of work always makes me feel that I had to re-invent the wheel again and again.
+
+8) Adding full text search for some text fields. Needs to be handled on case-by-case basis, by implementing individual indexes. 
+Ability to do search for text values in the scope of entire database or subset of certain fields requires non-trivial design and significant implementation
+efforts.
+
+9) Change tracking, i.e. ability to keep history of changes for certain classes/tables. 
+10) Add time-serie support, i.e. ability to keep time-based state for simple objects or their subsets 
+(this task is somehow related tp #9). Examples:
+current rates, employee salary history, tracking fleet and other assets and so on.
     
 ## How Flexilite can help?
-   In order to help with the challenhes listed above, "F" introduces simple and clean concept. 
-   It is based on SQLite capabilities and features, so that 
-   implementation of "F" is compact, light and efficient. "F" utilizes the following SQLite features:
-   - type affinity (any cell in the table may have value of any data type)
-   - updatable views, which can be used as replacement for physical tables with help of INSTEAD OF triggers
-    - recently added support for JSON data type and manipulation based on JSON path
-    - clustered (i.e. WITHOUT ROWID) indexes
-    - triggers
-    - common table expressions
-    - full text search
-    - R-trees
-    
-   Basic concept of "F":
-   -All data and metadata are stored in the fixed number of physical tables (< 10 tables).
-   -"F" provides out-of-box solutions for typical patterns of database schema evolution as well as general database features (listed above).
-   - "F" heavily uses JSON for processing semi-structured data, for both metadata and records.
+In order to help with the challenhes listed above, "F" introduces simple and clean concept. 
+It is based on SQLite capabilities and features, so that 
+implementation of "F" is compact, light and efficient. "F" utilizes the following SQLite features:
+- type affinity (any cell in the table may have value of any data type)
+- updatable views, which can be used as replacement for physical tables with help of INSTEAD OF triggers
+- recently added support for JSON data type and manipulation based on JSON path
+- clustered (i.e. WITHOUT ROWID) indexes
+- triggers
+- common table expressions
+- full text search
+- R-trees
+
+Basic concept of "F":
+- All data and metadata are stored in the fixed number of physical tables (< 10 tables).
+- "F" provides out-of-box solutions for typical patterns of database schema evolution as well as general database features (listed above).
+- "F" heavily uses JSON for processing semi-structured data, for both metadata and records.
     
  
- Structure of tables below are trimmed for 
-the sake of this example. 
+Structure of tables below has been trimmed for 
+the sake of clarity. 
 
-###Table .attributes
-Holds key-value pairs for all semantical attribute names registered in the system
+### Table .names
+Holds key-value pairs for all semantical names registered in the system
 These attributes include class names and property names.
 Note that name case does not matter: semantically, from the point of Flexilite - Person == person, Age == age
 
@@ -209,7 +215,7 @@ by Flexilite on class or schema change.
 
 In a bit simplified way, definition of *Person* view will look as follows:
 
-```
+```sql
 create view if not exists [Persons] as 
 select
 (json_extract(o.Data, json_extract(s.Data, '$.11.jsonPath'))) as Name,
@@ -256,9 +262,9 @@ Flexilite can help you as a developer to deal with both major cases mentioned ab
  
 ## Features of Flexilite
 - create tables similar to ordinary RDBMS tables: with plain list of scalar typed columns
-- define indexes on those columns (single column indeces only)
-- define full text search indexes on any column and do full text search
-- enable tracking all changes (enabled by default) for full traceability
+- define indexes on those columns (single column indexes only)
+- define full text search indexes on any column 
+- enable tracking of all changes (enabled by default) for full traceability
 - convert scalar column or group columns to array, or extract it to a separate table
 - create columns with special types: geospatial, for example, with ability to perform efficient lookup on these columns using reversed indexes
 - related data (like order and its details) may be grouped together and stored physically in the same area of data file. Such data can be retrieved all in the single request reducing loading time   
@@ -323,7 +329,7 @@ transparent access to data, identical to normal SQL queries.
 
 Here is an example of such a view:
 
-```
+```sql
 create view if not exists Orders as
  select o.A as OrderID,
  o.B as CustomerID, 
@@ -331,7 +337,6 @@ create view if not exists Orders as
  (select Value from v where PropertyID = 123 and PropIndex = 0) as CommentLine1
  from Objects o, (select * from Values vv where vv.ObjectID = o.ObjectID) v
 ```
-
 
 
 ##Is it alternative to NoSQL?
@@ -344,11 +349,12 @@ SQLite supports metadata natively. It means that it combines schema and schemale
 
 ## Why SQLite?
 SQLite is widely used - from smartphones, to moderately used websites, from embedded devices, 
-to rich desktop applications. It is reliable, fast and fun to use. 
-And most importantly, SQLite has all features needed for achieving of Flexilite goals. 
+to rich desktop applications. It is reliable, fast, cross-platform and fun to use. 
+And most importantly, SQLite has all features needed for achieving Flexilite goals. 
 When properly configured, SQLite can be a perfect database storage for small workgroups (8-10 simultaneous users 
 creating new content). By proper configuration we mean: use larger page sizes (8KB is default for Flexilite),
-use memory for temporary storage, use WAL for journaling mode, and use shared cache. Optimal configuration will be 
+memory for temporary storage, WAL for journaling mode, use shared cache
+and connection pooling. Optimal configuration will be 
 covered in a separate article.
 
 ## Are other databases supported?
