@@ -1,3 +1,5 @@
+**This project is at early development phase!**
+
 # flexilite
 
 > "Smart data structures and dumb code works a lot better than the other way around." 
