@@ -3,8 +3,11 @@
 # flexilite
 
 > "Smart data structures and dumb code works a lot better than the other way around." 
+> 
 > Eric S. Raymond, The Cathedral and The Bazaar.
 
+> "Bad programmers worry about the code. Good programmers worry about data structures and their relationships."
+> Linus Torvalds
 
 #What is Flexilite?
 Flexilite ("F") is a node.js library and set of SQL scripts to convert ordinary SQLite database 
@@ -160,8 +163,8 @@ RDBMS. Column *'Properties'* holds JSON string with list of class properties.
 
 Every class has ID (foreign key to .attributes.ID), name (alias to attribute name), and collection of properties.
 Properties can be:
-- primitive (integer, string, boolean)
--collection of primitive (string[])
+* primitive (integer, string, boolean)
+* collection of primitive (string[])
 - dependent object (owned and deleted by master object)
 - collection of dependent objects
 -reference to independent object

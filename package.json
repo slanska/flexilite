@@ -5,18 +5,14 @@
   "author": "slanska",
   "private": false,
   "dependencies": {
-    "asyncawait": "^1.0.3",
-    "faker": "^3.0.1",
     "lodash": "^3.10.1",
     "object-hash": "^1.1.2",
     "orm": "^2.1.27",
     "orm-transaction": "0.0.2",
     "shortid": "^2.2.2",
-    "sql-ddl-sync": "^0.3.11",
     "sql-query": "^0.1.26",
     "sqlite3": "^3.1.1",
-    "syncho": "^0.2.5",
-    "thrift": "^0.9.3"
+    "syncho": "^0.2.5"
   },
   "repository": {
     "type": "git",
@@ -29,6 +25,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "faker": "^3.0.1",
     "chai": "^3.3.0",
     "mocha": "^2.3.3",
     "should": "^7.1.0",

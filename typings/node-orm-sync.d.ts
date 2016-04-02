@@ -1,23 +1,35 @@
 /**
- * Created by slanska on 2015-12-09.
+ * Created by slanska on 2016-04-01.
  */
-
-/// <reference path="../../typings/tsd.d.ts"/>
 
 /*
- Defines contract for object data to be inserted or updated.
+References to node-orm TypeScript definitions and
+missing in the original library definitions for custom driver development.
+TODO: Merge these changes with node-orm master
  */
-interface IDataToSave
-{
-    /*
-     Portion of object data which is defined by object's class ("schema" data)
-     */
-    SchemaData?:any;
 
-    /*
-     Portion of object data which is NOT defined by object's class ("non-schema" data)
-     */
-    ExtData?:any;
+/// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
+/// <reference path="../node_modules/orm/lib/TypeScript/sql-query.d.ts" />
+
+/// <reference path="tsd.d.ts"/>
+
+/*
+ node-orm2 declaration of individual property
+ */
+//TODO: move to node-orm2 d.ts
+declare interface IORMPropertyDef
+{
+    klass?: 'primary' | 'hasOne' | 'hasMany'
+    mapsTo?: string;
+    name?: string;
+    type?: string; // 'integer' | 'enum' (values) | 'binary' | 'text' | 'boolean' | 'serial' | 'object' | 'date' | 'number' | 'point'
+    time?:boolean;
+    ui?: {view?: string, width?: number}; // TODO Other UI settings
+    unique?: boolean;
+    indexed?:boolean;
+    defaultValue?: any;
+    big?: boolean;
+    size?:number;
 }
 
 interface IDropOptions
@@ -72,7 +84,6 @@ interface IModel
     sync(cb);
     table:string;
     uid:string;
-
 }
 
 interface IHasManyAssociation
@@ -174,23 +185,6 @@ interface ISyncOptions
     many_associations?:IHasManyAssociation[];
 }
 
-/*
- Integer constants defined as enum
- */
-declare const enum FLEXILITE_LIMITS
-{
-    MaxOccurences = 1 << 31,
-    MaxObjectID = 1 << 31
-}
-
-/*
- Extend functions to allow sync calls
- */
-interface Function
-{
-    sync(thisArg, ...args):any;
-    sync<T>(thisArg, ...args):T;
-}
 
 
 

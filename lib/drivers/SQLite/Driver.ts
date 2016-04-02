@@ -19,12 +19,6 @@ import SchemaConverter =require("../../misc/schemaConverter");
 
 namespace Flexilite.SQLite
 {
-    const enum SQLITE_OPEN_FLAGS
-    {
-        SHARED_CACHE = 0x00020000,
-        WAL = 0x00080000
-    }
-
     /*
      Implements Flexilite driver for node-orm.
      Uses SQLite as a backend storage
@@ -394,7 +388,7 @@ namespace Flexilite.SQLite
         {
             var self = this;
 
-            var collDef = self.getCollectionDefByName(table, false, true);
+            var collDef = self.getClassDefByName(table, false, true);
             var q = '';
 
             // TODO
@@ -432,7 +426,7 @@ namespace Flexilite.SQLite
             {
                 self.execSQL(`insert or replace into [.values_view] (ObjectID, ClassID, PropertyID, PropIndex,
                 [Value], [ctlv]) values (?, ?, ?, ?, ?, ?, ?)`,
-                    item.ObjectID, item.CollectionID, item.PropertyID, item.PropIndex, item.Value, item.ctlv);
+                    item.ObjectID, item.ClassID, item.PropertyID, item.PropIndex, item.Value, item.ctlv);
                 //TODO Set ctlo. use propInfo?
             });
 
@@ -775,12 +769,12 @@ namespace Flexilite.SQLite
          If class does not exist and no new class should be registered, class def will
          be created in memory. In this case ClassID will be set to null, Properties - to empty object
          */
-        private getCollectionDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IFlexiCollection
+        private getClassDefByName(className:string, createIfNotExist:boolean, loadProperties:boolean):IFlexiClass
         {
             var self = this;
             var selStmt = self.db.prepare(`select * from [.collections] where [NameID] = (select [NameID] from [.names] where [Value] = ?)`);
             var rows = selStmt.all.sync(selStmt, className);
-            var collDef:IFlexiCollection;
+            var collDef:IFlexiClass;
 
             if (rows.length === 0)
             // Collection not found
@@ -799,11 +793,11 @@ namespace Flexilite.SQLite
                 else
                 //
                 {
-                    collDef = {} as IFlexiCollection;
+                    collDef = {} as IFlexiClass;
 
                     // TODO collDef.NameID = className;
 
-                    collDef.CollectionID = null;
+                    collDef.ClassID = null;
                 }
                 // TODO collDef.Properties = {};
             }
@@ -814,7 +808,7 @@ namespace Flexilite.SQLite
                 if (loadProperties)
                 // Class found. Try to load properties
                 {
-                    var props = self.db.all.sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', collDef.CollectionID) || {};
+                    var props = self.db.all.sync(self.db, 'select * from [.class_properties] where [ClassID] = ?', collDef.ClassID) || {};
                     props.forEach(function (p, idx, propArray)
                     {
                         // TODO collDef.Properties[p.PropertyName] = p;
@@ -840,7 +834,7 @@ namespace Flexilite.SQLite
         /*
          Registers a new class definition based on the sample data
          */
-        public registerCollectionByObject(className:string, data:any, saveData:boolean = false):IFlexiCollection
+        public registerCollectionByObject(className:string, data:any, saveData:boolean = false):IFlexiClass
         {
             var self = this;
             this.execSQL('savepoint a1;');
@@ -949,16 +943,18 @@ namespace Flexilite.SQLite
 
          hasMany and hasOne are converted into reference properties
          */
-        private syncModelToSchema(model:ISyncOptions):{collectionDef:IFlexiCollection,schemaDef:ISchemaDefinition}
+        private generateClassAndSchemaDefForSync(model:ISyncOptions):IClassAndSchema
         {
             var self = this;
 
             // TODO
             // Normalize model
-            var converter = new SchemaConverter(self.db, model);
+            var converter = new SchemaHelper(self.db, model);
             converter.getNameID = self.getNameByID.bind(self);
             converter.convert();
-            var schemaData = converter.targetSchema;
+            var schemaData = {} as IFlexiSchema;
+            schemaData.Data = converter.targetSchema;
+            converter.targetClass
 
             // Check if this schema is already defined.
             // By schema signature
@@ -967,30 +963,31 @@ namespace Flexilite.SQLite
             var schemas = self.db.all.sync(self.db, `select * from [.schemas] where Hash = ?`, hashValue);
             var existingSchema = _.find(schemas, (item:IFlexiSchema)=>
             {
-                if (_.isEqual(item.Data, schemaData))
+                if (_.isEqual(item.Data, schemaData.Data))
                     return true;
             });
 
             if (!existingSchema)
             {
                 // create new one
-                let sql = `insert into [.schemas] into () values ();`;
-                self.db.run.sync(self.db, sql, {
-                    NameID: self.getNameByID(model.table),
-                    Data: JSON.stringify(schemaData),
-                    Hash: hashValue
-                } as IFlexiSchema);
+                let sql = `insert into [.schemas] into (NameID, Data, Hash) values (@NameID, @Data, @Hash);`;
+                self.db.run.sync(self.db, sql,
+                    {
+                        NameID: self.getNameByID(model.table),
+                        Data: JSON.stringify(schemaData.Data),
+                        Hash: hashValue
+                    } as IFlexiSchema);
             }
 
             // Load existing model, if it exists
-            var collectionDef = this.getCollectionDefByName(model.table, true, true);
+            var classDef = this.getClassDefByName(model.table, true, true);
 
             // Assume all existing properties as candidates for removal
-            var deletedProperties:string[] = [];
-            for (var propName in schemaData.properties)
+            var deletedProperties:number[] = [];
+            _.forEach(classDef.Data.properties, (prop, propID)=>
             {
-                deletedProperties.push(propName);
-            }
+                deletedProperties.push(propID);
+            });
 
             var insCStmt = self.db.prepare(
                 `insert or ignore into [.classes] ([ClassName], [DefaultScalarType], [ClassID])
@@ -1013,7 +1010,7 @@ namespace Flexilite.SQLite
                 }
 
                 insCPStmt.run.sync(insCPStmt, [
-                    collectionDef.CollectionID,
+                    classDef.ClassID,
                     propName,
                     cp.PropertyName,
                     cp.TrackChanges,
@@ -1068,7 +1065,7 @@ namespace Flexilite.SQLite
                             var refModel:ISyncOptions;
 
                             var refClass = this.registerCollectionByObject(propName, null, true);
-                            cp.ReferencedClassID = refClass.CollectionID;
+                            cp.ReferencedClassID = refClass.ClassID;
                         }
                         else
                         {
@@ -1085,8 +1082,8 @@ namespace Flexilite.SQLite
                         });
                         if (refOneProp)
                         {
-                            var refClass = this.getCollectionDefByName(refOneProp.model.table, true, true);
-                            cp.ReferencedClassID = refClass.CollectionID;
+                            var refClass = this.getClassDefByName(refOneProp.model.table, true, true);
+                            cp.ReferencedClassID = refClass.ClassID;
 
                             // FIXME create reverse property & set it as ReversePropertyID
                             //cp.ReversePropertyID =
@@ -1132,8 +1129,8 @@ namespace Flexilite.SQLite
                 cp.Indexed = true;
                 cp.MinOccurences = assoc.required ? 1 : 0;
                 cp.MaxOccurences = 1;
-                var refClass = self.getCollectionDefByName(assoc.model.table, true, true);
-                cp.ReferencedClassID = refClass.CollectionID;
+                var refClass = self.getClassDefByName(assoc.model.table, true, true);
+                cp.ReferencedClassID = refClass.ClassID;
 
                 // Set reverse property
 
@@ -1152,17 +1149,17 @@ namespace Flexilite.SQLite
                 cp.Indexed = true;
                 cp.MinOccurences = assoc.required ? 1 : 0;
                 cp.MaxOccurences = 1 << 31;
-                var refClass = self.getCollectionDefByName(assoc.model.table, true, true);
-                cp.ReferencedClassID = refClass.CollectionID;
+                var refClass = self.getClassDefByName(assoc.model.table, true, true);
+                cp.ReferencedClassID = refClass.ClassID;
 
                 // Set reverse property
 
                 saveClassProperty(cp);
             }
 
-            collectionDef = this.getCollectionDefByName(model.table, false, true);
+            classDef = this.getClassDefByName(model.table, false, true);
 
-            return {collectionDef: collectionDef, schemaDef: schemaData};
+            return {Class: classDef, Schema: schemaData};
         }
 
         /*
@@ -1273,11 +1270,11 @@ namespace Flexilite.SQLite
                 {
                     // Process data and save in .collections and  .schemas tables
                     // Sets .collections ViewOutdated
-                    var def = self.syncModelToSchema(opts);
+                    var def = self.generateClassAndSchemaDefForSync(opts);
 
                     // Regenerate view if needed
                     // Check if class schema needs synchronization
-                    if (def.collectionDef.ViewOutdated !== 1)
+                    if (def.classDef.ViewOutdated !== 1)
                     {
                         callback();
                         return;
@@ -1289,6 +1286,9 @@ namespace Flexilite.SQLite
     ([ObjectID] & 2147483647) as ObjectID,`;
                     // Process properties
                     var propIdx = 0;
+                    _.forEach(def.classDef.properties, ()=>
+                    {
+                    });
                     for (var propName in def.schemaDef.properties)
                     {
                         if (propIdx > 0)
@@ -1319,10 +1319,10 @@ namespace Flexilite.SQLite
                     //viewSQL += ` as [.non-schema-props]`;
 
                     viewSQL += ` from [.objects] o
-    where o.[ClassID] = ${def.collectionDef.CollectionID}`;
+    where o.[ClassID] = ${def.classDef.ClassID}`;
 
-                    if (def.collectionDef.ctloMask !== 0)
-                        viewSQL += `and ((o.[ctlo] & ${def.collectionDef.ctloMask}) = ${def.collectionDef.ctloMask})`;
+                    if (def.classDef.ctloMask !== 0)
+                        viewSQL += `and ((o.[ctlo] & ${def.classDef.ctloMask}) = ${def.classDef.ctloMask})`;
 
                     viewSQL += ';\n';
 
@@ -1382,9 +1382,9 @@ namespace Flexilite.SQLite
                     }
 
                     viewSQL += `) values (new.HostID << 31 | (new.ObjectID & 2147483647),
-             ${def.collectionDef.CollectionID}, ${def.collectionDef.ctloMask}${cols});\n`;
+             ${def.classDef.ClassID}, ${def.classDef.ctloMask}${cols});\n`;
 
-                    viewSQL += self.generateInsertValues(def.collectionDef.CollectionID, def.schemaDef);
+                    viewSQL += self.generateInsertValues(def.classDef.ClassID, def.schemaDef);
                     viewSQL += 'end;\n';
 
                     // Update trigger
@@ -1409,13 +1409,13 @@ namespace Flexilite.SQLite
                         viewSQL += `update [.objects] set ${columns} where [ObjectID] = new.[ObjectID];\n`;
                     }
 
-                    viewSQL += self.generateInsertValues(def.collectionDef.CollectionID, def.schemaDef);
+                    viewSQL += self.generateInsertValues(def.classDef.ClassID, def.schemaDef);
                     viewSQL += self.generateDeleteNullValues(def.schemaDef);
                     viewSQL += 'end;\n';
 
                     // Delete trigger
                     viewSQL += self.generateTriggerBegin(opts.table, 'delete');
-                    viewSQL += `delete from [.objects] where [ObjectID] = new.[ObjectID] and [CollectionID] = ${def.collectionDef.CollectionID};\n`;
+                    viewSQL += `delete from [.objects] where [ObjectID] = new.[ObjectID] and [CollectionID] = ${def.classDef.ClassID};\n`;
                     viewSQL += 'end;\n';
 
                     console.log(viewSQL);

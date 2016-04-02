@@ -1,12 +1,16 @@
 ## Flexilite conceptual model
 
-Main concepts in the Flexilite are *classes*, *properties*, **schemas*,*collections*,
+Main concepts in the Flexilite ("F") are *classes*, *properties*, **schemas*,*collections*,
  *items* and *names*.
  
 ### Class
 Corresponds to table structure in RDBMS. Has plain list of properties. Has constraints,
 validation rules and other metadata. Class definitions are stored in
-`.classes` table.
+`.classes` table. Every class maintains updatable SQLite view, named after
+class name. This view provides table-like access to class data (including 
+insert, update, delete and indexed select operations), 
+transparent to the end user. View structure includes all scalar 
+properties as well as properties
 
 ### Object
 Instance of class. Can be standalone, with its own ID or nested 
@@ -58,6 +62,18 @@ by mapping to actual payload structure. Every class has default schema (used for
 new objects)
 
 ## Duck Typing
+Classes in "F" are standalone. There is no formal relationship like
+inheritance between classes. Instead, "F" utilizes concept of duck typing:
+if it looks like a duck, swims like a duck, walks like a duck (etc. etc.)
+then this is a duck. In other words, if class A has all properties of class
+B (compared by their `nameAs` attributes, rather than by property IDs), then
+B is considered as a subclass of A.
+  
+## Nested classes and polymorphism
+
+### Resolve class 
+
+### Select class
 
 
  

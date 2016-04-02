@@ -2,7 +2,7 @@
  * Created by slanska on 2016-03-26.
  */
 
-///<reference path="../models/definitions.d.ts"/>
+///<reference path="../def/definitions.d.ts"/>
 /// <reference path="../../typings/node/node.d.ts"/>
 /// <reference path="../../node_modules/orm/lib/TypeScript/orm.d.ts" />
 /// <reference path="../../typings/tsd.d.ts" />
@@ -20,7 +20,7 @@ import orm = require('orm');
  */
 module Flexilite
 {
-    export class SchemaConverter
+    export class SchemaHelper
     {
         constructor(private db:sqlite3.Database, public sourceSchema:ISyncOptions)
         {
@@ -33,11 +33,11 @@ module Flexilite
             return this._targetSchema
         };
 
-        private _targetCollectionSchema = {} as ICollectionSchemaRules;
+        private _targetClass = {} as IClassDefinition;
 
-        public get targetCollectionShema()
+        public get targetClass()
         {
-            return this._targetCollectionSchema;
+            return this._targetClass;
         }
 
         public getNameID:(name:string)=>number;
@@ -83,31 +83,31 @@ module Flexilite
             if (!_.isFunction(this.getNameID))
                 throw new Error('getNameID() is not assigned');
 
-            this._targetCollectionSchema = {properties: {}} as ICollectionSchemaRules;
+            this._targetClass = {properties: {}} as IClassDefinition;
             this._targetSchema = {properties: {}} as ISchemaDefinition;
 
             var s = this._targetSchema;
-            var c = this._targetCollectionSchema;
+            var c = this._targetClass;
 
             _.forEach(this.sourceSchema.allProperties, (item:IORMPropertyDef, propName:string) =>
             {
                 let propID = this.getNameID(propName);
                 let sProp = item.ext || {} as ISchemaPropertyDefinition;
-                sProp.rules = sProp.rules || {} as IPropertyRulesSettings;
-                sProp.map = sProp.map || {} as IPropertyMapSettings;
-                sProp.ui = sProp.ui || {} as IPropertyUISettings;
+                let cProp = {} as IClassProperty;
+                cProp.rules = cProp.rules || {} as IPropertyRulesSettings;
+                cProp.map = cProp.map || {} as IPropertyMapSettings;
+                cProp.ui = cProp.ui || {} as IPropertyUISettings;
 
-                let cProp = {} as ICollectionSchemaProperty;
 
                 switch (item.klass)
                 {
                     case 'primary':
-                        sProp.rules.type = SchemaConverter.nodeOrmTypeToFlexiliteType(item.type);
+                        cProp.rules.type = SchemaHelper.nodeOrmTypeToFlexiliteType(item.type);
                         if (item.size)
-                            sProp.rules.maxLength = item.size;
+                            cProp.rules.maxLength = item.size;
 
                         if (item.defaultValue)
-                            sProp.defaultValue = item.defaultValue;
+                            cProp.defaultValue = item.defaultValue;
 
                         if (item.unique || item.indexed)
                         {
@@ -142,4 +142,4 @@ module Flexilite
     }
 }
 
-export = Flexilite.SchemaConverter;
+export = Flexilite.SchemaHelper;

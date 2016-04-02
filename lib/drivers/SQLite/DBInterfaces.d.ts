@@ -2,8 +2,10 @@
  * Created by slanska on 2016-03-26.
  */
 
+///<reference path="../../../typings/lib.d.ts"/>
+
 /*
-Set of interfaces and constants to Flexilite's driver for SQLite database
+ Set of interfaces and constants to Flexilite's driver for SQLite database tables
  */
 
 /*
@@ -64,13 +66,13 @@ declare const enum VALUE_CONTROL_FLAGS
  */
 
 /*
-.names
+ .names
  */
 interface IFlexiName
 {
     NameID:number;
     Value:string;
-    Data:any;
+    Data:any; // TODO Finalize structure. Multi language support?
     PluralOf?:number;
     AliasOf?:number;
 }
@@ -81,22 +83,26 @@ interface IFlexiName
 interface IFlexiRefValue
 {
     ObjectID:number;
-    CollectionID:number;
+    ClassID:number;
     PropertyID:number;
     PropIndex?:number;
     ctlv:VALUE_CONTROL_FLAGS;
+
+    /*
+    Scalar value or linked object ID
+     */
     Value:any;
 }
 
 /*
  Mapping to .collections table
  */
-interface IFlexiCollection
+interface IFlexiClass
 {
     /*
      Unique auto-incremented collection ID
      */
-    CollectionID?:number;
+    ClassID?:number;
 
     /*
      ID of collection name
@@ -104,31 +110,26 @@ interface IFlexiCollection
     NameID:number;
 
     /*
-    Collection name, by NameID
+     Class name, by NameID
      */
     Name?:string;
 
     /*
      Current base schema ID (latest version of base schema)
      */
-    BaseSchemaNameID?:number;
+    BaseSchemaID:number;
 
     /*
      If true, defines collection as system: this one cannot be modified or deleted by end user
      */
-    SystemCollection?:boolean;
+    SystemClass?:boolean;
 
     /*
      If true, indicates that view definition is outdated and needs to be regenerated
      */
-    ViewOutdated?:boolean | number;
+    ViewOutdated?:boolean;
 
     ctloMask?:OBJECT_CONTROL_FLAGS;
-
-    /*
-     Optional maximum number of items in the collection
-     */
-    Capacity?:number;
 
     /*
      Optional property IDs for mapped columns
@@ -143,10 +144,17 @@ interface IFlexiCollection
     H?:number;
     I?:number;
     J?:number;
+
+    // Data signature for the fast access
+    Hash:string;
+
+    // JSON text
+    Data?:IClassDefinition | string;
 }
 
+
 /*
-.access_rules
+ .access_rules
  */
 interface  IFlexiAccessRule
 {
@@ -157,7 +165,7 @@ interface  IFlexiAccessRule
 }
 
 /*
-.change_log
+ .change_log
  */
 interface  IFlexiChangeLog
 {
@@ -171,22 +179,25 @@ interface  IFlexiChangeLog
 }
 
 /*
-.schemas
+ .schemas
  */
 interface IFlexiSchema
 {
-    SchemaID:number;
-    Variation:number;
+    // Auto increment primary key
+    SchemaID?:number;
+
+    // Class name ID
     NameID:number;
 
-    // JSON
-    Data:any;
-
+    // Data signature for the fast access
     Hash:string;
+
+    // JSON text
+    Data:ISchemaDefinition | string;
 }
 
 /*
-.objects
+ .objects
  */
 interface IFlexiObject
 {
@@ -196,12 +207,12 @@ interface IFlexiObject
     ctlo:OBJECT_CONTROL_FLAGS;
 
     /*
-    JSON text
+     JSON text
      */
-    Data: any;
+    Data:any;
 
     /*
-    Field shortcuts (values extracted from Data)
+     Field shortcuts (values extracted from Data)
      */
     A?:any;
     B?:any;
@@ -213,6 +224,15 @@ interface IFlexiObject
     H?:any;
     I?:any;
     J?:any;
+}
+
+/*
+Composite object for both, class and schema definitions
+ */
+interface IClassAndSchema
+{
+    Class?: IFlexiClass;
+    Schema?: IFlexiSchema;
 }
 
 

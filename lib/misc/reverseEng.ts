@@ -3,7 +3,7 @@
  */
 
 
-///<reference path="../models/definitions.d.ts"/>
+///<reference path="../def/definitions.d.ts"/>
 /// <reference path="../../typings/node/node.d.ts"/>
 /// <reference path="../../node_modules/orm/lib/TypeScript/orm.d.ts" />
 /// <reference path="../../typings/tsd.d.ts" />

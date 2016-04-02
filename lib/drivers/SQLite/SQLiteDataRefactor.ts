@@ -4,19 +4,11 @@
 
 ///<reference path="../../../typings/tsd.d.ts"/>
 
-/*
- Declares contract for defining list of objects either by objectID(s), filter and/or ClassID
- */
-interface IObjectFilter
-{
-    objectId?:number | [number];
-    classId?:number;
-    filter?:any;
-}
+
 
 
 // TODO: Extract methods to TypeScript interface
-export class SQLiteDataRefactor
+export class SQLiteDataRefactor // TODO implements IDBRefactory
 {
 
     constructor(private ormDriver)
@@ -25,9 +17,9 @@ export class SQLiteDataRefactor
     }
 
     // Create class
-    createCollection(className:string, copyFrom:{classIdOrName?:number|string, schemaId?:number}):IFlexiCollection
+    createCollection(className:string, copyFrom:{classIdOrName?:number|string, schemaId?:number}):IFlexiClass
     {
-        var result:IFlexiCollection;
+        var result:IFlexiClass;
         return result;
     }
 
