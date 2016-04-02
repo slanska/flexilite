@@ -85,13 +85,14 @@ interface IFlexiRefValue
     ObjectID:number;
     ClassID:number;
     PropertyID:number;
-    PropIndex?:number;
+    PropIndex:number;
     ctlv:VALUE_CONTROL_FLAGS;
 
     /*
-    Scalar value or linked object ID
+     Scalar value linked object ID
      */
-    Value:any;
+    Value?:any;
+    RefObjectID?:number;
 }
 
 /*
@@ -145,11 +146,26 @@ interface IFlexiClass
     I?:number;
     J?:number;
 
-    // Data signature for the fast access
-    Hash:string;
+    // [Data] signature for the fast lookup
+    Hash?:string;
 
-    // JSON text
-    Data?:IClassDefinition | string;
+    Data:IClassDefinition;
+}
+
+/*
+ Mapping to [.class_properties] table and [vw_class_properties] view
+ */
+interface IFlexiClassProperty
+{
+    PropertyID?:number;
+    ClassID:number;
+    NameID:number;
+    Name?:string;
+
+    /*
+     JSON text. Computed property taken from [.classes]
+     */
+    Data?:IClassProperty;
 }
 
 
@@ -170,7 +186,7 @@ interface  IFlexiAccessRule
 interface  IFlexiChangeLog
 {
     ID:number;
-    TimeStamp:number, // Julianday with fractional time, following SQLite format
+    TimeStamp:number, // Julian day with fractional time (SQLite format)
     OldKey:any;
     OldValue:any;
     Key:any;
@@ -193,7 +209,7 @@ interface IFlexiSchema
     Hash:string;
 
     // JSON text
-    Data:ISchemaDefinition | string;
+    Data:ISchemaDefinition ;
 }
 
 /*
@@ -202,14 +218,14 @@ interface IFlexiSchema
 interface IFlexiObject
 {
     ObjectID:number;
-    CollectionID:number;
+    ClassID:number;
     SchemaID:number;
     ctlo:OBJECT_CONTROL_FLAGS;
 
     /*
-     JSON text
+     Arbitrary JSON text
      */
-    Data:any;
+    Data?:any;
 
     /*
      Field shortcuts (values extracted from Data)
@@ -227,12 +243,12 @@ interface IFlexiObject
 }
 
 /*
-Composite object for both, class and schema definitions
+ Composite object for both, class and schema definitions
  */
 interface IClassAndSchema
 {
-    Class?: IFlexiClass;
-    Schema?: IFlexiSchema;
+    Class?:IFlexiClass;
+    Schema?:IFlexiSchema;
 }
 
 

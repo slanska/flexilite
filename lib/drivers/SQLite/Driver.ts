@@ -15,7 +15,8 @@ var Sync = require("syncho");
 import path = require('path');
 import orm = require("orm");
 import objectHash = require('object-hash');
-import SchemaConverter =require("../../misc/schemaConverter");
+import SchemaHelper =require("../../misc/SchemaHelper");
+import {SQLiteDataRefactor} from "./SQLiteDataRefactor";
 
 namespace Flexilite.SQLite
 {
@@ -954,7 +955,6 @@ namespace Flexilite.SQLite
             converter.convert();
             var schemaData = {} as IFlexiSchema;
             schemaData.Data = converter.targetSchema;
-            converter.targetClass
 
             // Check if this schema is already defined.
             // By schema signature
@@ -1126,9 +1126,9 @@ namespace Flexilite.SQLite
                     schemaData.properties[oneRel.toLowerCase()] = cp = {};
                     cp.PropertyName = oneRel;
                 }
-                cp.Indexed = true;
-                cp.MinOccurences = assoc.required ? 1 : 0;
-                cp.MaxOccurences = 1;
+                cp.indexed = true;
+                cp.rules.minOccurences = assoc.required ? 1 : 0;
+                cp.rules.maxOccurences = 1;
                 var refClass = self.getClassDefByName(assoc.model.table, true, true);
                 cp.ReferencedClassID = refClass.ClassID;
 
@@ -1143,12 +1143,12 @@ namespace Flexilite.SQLite
                 var cp:IClassProperty = schemaData.properties[manyRel.toLowerCase()];
                 if (!cp)
                 {
-                    schemaData.properties[manyRel.toLowerCase()] = cp = {};
+                    schemaData.properties[manyRel.toLowerCase()] = cp = {} as IClassProperty;
                     cp.PropertyName = manyRel;
                 }
-                cp.Indexed = true;
-                cp.MinOccurences = assoc.required ? 1 : 0;
-                cp.MaxOccurences = 1 << 31;
+                cp.indexed = true;
+                cp.rules.minOccurences = assoc.required ? 1 : 0;
+                cp.rules.maxOccurences = 1 << 31;
                 var refClass = self.getClassDefByName(assoc.model.table, true, true);
                 cp.ReferencedClassID = refClass.ClassID;
 
@@ -1178,11 +1178,11 @@ namespace Flexilite.SQLite
         /*
          Generates constraints for INSTEAD OF triggers for dynamic view
          */
-        private generateConstraintsForTrigger(collectionName:string, schemaDef:ISchemaDefinition):string
+        private generateConstraintsForTrigger(className:string, classDef:IClassDefinition):string
         {
             var result = '';
             // Iterate through all properties
-            _.forEach(schemaDef.properties as any, (p:ISchemaPropertyDefinition, propID:number)=>
+            _.forEach(classDef.properties as any, (p:IClassProperty, propID:number)=>
             {
 // TODO Get property name by ID
                 // Is required/not null?
@@ -1219,14 +1219,14 @@ namespace Flexilite.SQLite
         /*
 
          */
-        private generateInsertValues(collectionID:number, schemaDef:ISchemaDefinition):string
+        private generateInsertValues(collectionID:number, classDef:IClassDefinition):string
         {
             var result = '';
 
             // Iterate through all properties
-            for (var propName in schemaDef.properties)
+            for (var propName in classDef.properties)
             {
-                var p:IClassProperty = schemaDef.properties[propName];
+                var p:IClassProperty = classDef.properties[propName];
 
                 if (!p.ColumnAssigned)
                 {
@@ -1241,14 +1241,14 @@ namespace Flexilite.SQLite
         /*
 
          */
-        private generateDeleteNullValues(schemaDef:ISchemaDefinition):string
+        private generateDeleteNullValues(classDef:IClassDefinition):string
         {
             var result = '';
 
             // Iterate through all properties
-            for (var propName in schemaDef.properties)
+            for (var propName in classDef.properties)
             {
-                var p:IClassProperty = schemaDef.properties[propName];
+                var p:IClassProperty = classDef.properties[propName];
                 //
                 //if (!p.ColumnAssigned)
                 //{
@@ -1271,164 +1271,15 @@ namespace Flexilite.SQLite
                     // Process data and save in .collections and  .schemas tables
                     // Sets .collections ViewOutdated
                     var def = self.generateClassAndSchemaDefForSync(opts);
+                    var refactor = new SQLiteDataRefactor(self.db);
 
-                    // Regenerate view if needed
-                    // Check if class schema needs synchronization
-                    if (def.classDef.ViewOutdated !== 1)
-                    {
-                        callback();
-                        return;
-                    }
-
-                    var viewSQL = `drop view if exists ${opts.table};
-            \ncreate view if not exists ${opts.table} as select
-            [ObjectID] >> 31 as HostID,
-    ([ObjectID] & 2147483647) as ObjectID,`;
-                    // Process properties
-                    var propIdx = 0;
-                    _.forEach(def.classDef.properties, ()=>
-                    {
-                    });
-                    for (var propName in def.schemaDef.properties)
-                    {
-                        if (propIdx > 0)
-                            viewSQL += ', ';
-                        propIdx++;
-                        var p:IClassProperty = def.schemaDef.properties[propName];
-                        if (p.ColumnAssigned)
-                        // This property is stored directly in .objects table
-                        {
-                            viewSQL += `o.[${p.ColumnAssigned}] as [${p.PropertyName}]\n`;
-                        }
-                        else
-                        // This property is stored in Values table. Need to use subquery for access
-                        {
-                            viewSQL += `\n(select v.[Value] from [.values] v
-                    where v.[ObjectID] = o.[ObjectID]
-    and v.[PropIndex] = 0 and v.[PropertyID] = ${p.PropertyID}`;
-                            if ((p.ctlv & 1) === 1)
-                                viewSQL += ` and (v.[ctlv] & 1 = 1)`;
-                            viewSQL += `) as [${p.PropertyName}]`;
-                        }
-                    }
-
-                    // non-schema properties are returned as single JSON
-                    //if (propIdx > 0)
-                    //    viewSQL += ', ';
-                    //
-                    //viewSQL += ` as [.non-schema-props]`;
-
-                    viewSQL += ` from [.objects] o
-    where o.[ClassID] = ${def.classDef.ClassID}`;
-
-                    if (def.classDef.ctloMask !== 0)
-                        viewSQL += `and ((o.[ctlo] & ${def.classDef.ctloMask}) = ${def.classDef.ctloMask})`;
-
-                    viewSQL += ';\n';
-
-                    // Insert trigger when ObjectID or HostID is null.
-                    // In this case, recursively call insert statement with newly obtained ObjectID
-                    viewSQL += self.generateTriggerBegin(opts.table, 'insert', 'whenNull',
-                        'when new.[ObjectID] is null or new.[HostID] is null');
-
-                    // Generate new ID
-                    viewSQL += `insert or replace into [.generators] (name, seq) select '.objects',
-                coalesce((select seq from [.generators] where name = '.objects') , 0) + 1 ;`;
-                    viewSQL += `insert into [${opts.table}] ([ObjectID], [HostID]`;
-
-                    var cols = '';
-                    for (var propName in def.schemaDef.properties)
-                    {
-                        var p:IClassProperty = def.schemaDef.properties[propName];
-                        viewSQL += `, [${p.PropertyName}]`;
-                        cols += `, new.[${p.PropertyName}]`;
-                    }
-
-                    // HostID is expected to be either (a) ID of another (hosting) object
-                    // or (b) 0 or null - means that object will be self-hosted
-                    viewSQL += `) select
-            [NextID],
-             case
-                when new.[HostID] is null or new.[HostID] = 0 then [NextID]
-                else new.[HostID]
-             end
-
-             ${cols} from
-             (SELECT coalesce(new.[ObjectID],
-             (select (seq)
-          FROM [.generators]
-          WHERE name = '.objects' limit 1)) AS [NextID])
-
-             ;\n`;
-                    viewSQL += `end;\n`;
-
-                    // Insert trigger when ObjectID is not null
-                    viewSQL += self.generateTriggerBegin(opts.table, 'insert', 'whenNotNull',
-                        'when not (new.[ObjectID] is null or new.[HostID] is null)');
-                    viewSQL += self.generateConstraintsForTrigger(opts.table, def.schemaDef);
-
-                    viewSQL += `insert into [.objects] ([ObjectID], [ClassID], [ctlo]`;
-                    cols = '';
-                    for (var propName in def.schemaDef.properties)
-                    {
-                        var p:IClassProperty = def.schemaDef.properties[propName];
-
-                        // if column is assigned
-                        if (p.ColumnAssigned)
-                        {
-                            viewSQL += `, [${p.ColumnAssigned}]`;
-                            cols += `, new.[${p.PropertyName}]`;
-                        }
-                    }
-
-                    viewSQL += `) values (new.HostID << 31 | (new.ObjectID & 2147483647),
-             ${def.classDef.ClassID}, ${def.classDef.ctloMask}${cols});\n`;
-
-                    viewSQL += self.generateInsertValues(def.classDef.ClassID, def.schemaDef);
-                    viewSQL += 'end;\n';
-
-                    // Update trigger
-                    viewSQL += self.generateTriggerBegin(opts.table, 'update');
-                    viewSQL += self.generateConstraintsForTrigger(opts.table, def.schemaDef);
-
-                    var columns = '';
-                    for (var propName in def.schemaDef.properties)
-                    {
-                        var p:IClassProperty = def.schemaDef.properties[propName];
-
-                        // if column is assigned
-                        if (p.ColumnAssigned)
-                        {
-                            if (columns !== '')
-                                columns += ',';
-                            columns += `[${p.ColumnAssigned}] = new.[${p.PropertyName}]`;
-                        }
-                    }
-                    if (columns !== '')
-                    {
-                        viewSQL += `update [.objects] set ${columns} where [ObjectID] = new.[ObjectID];\n`;
-                    }
-
-                    viewSQL += self.generateInsertValues(def.classDef.ClassID, def.schemaDef);
-                    viewSQL += self.generateDeleteNullValues(def.schemaDef);
-                    viewSQL += 'end;\n';
-
-                    // Delete trigger
-                    viewSQL += self.generateTriggerBegin(opts.table, 'delete');
-                    viewSQL += `delete from [.objects] where [ObjectID] = new.[ObjectID] and [CollectionID] = ${def.classDef.ClassID};\n`;
-                    viewSQL += 'end;\n';
-
-                    console.log(viewSQL);
-
-                    // Run view script
-                    self.db.exec.sync(self.db, viewSQL);
+                    // Check if class exists of not
+                    refactor.createClass(opts.table, def.Class.Data, def.Schema.Data);
 
                     callback();
                 }
                 catch (err)
                 {
-                    console.log(err);
-                    // TODO throw err;
                     callback(err);
                 }
             });
@@ -1442,8 +1293,7 @@ namespace Flexilite.SQLite
             //one_associations
             //many_associations
 
-            var qry = `select * from [.classes] where [ClassName] = ${opts.table};
-    `;
+            var qry = `select * from [.classes] where [ClassName] = ${opts.table};    `;
             this.db.exec(qry);
 
             // TODO Delete objects?

@@ -2,11 +2,7 @@
  * Created by slanska on 2016-03-04.
  */
 
-
-///<reference path="../def/definitions.d.ts"/>
-/// <reference path="../../typings/node/node.d.ts"/>
-/// <reference path="../../node_modules/orm/lib/TypeScript/orm.d.ts" />
-/// <reference path="../../typings/tsd.d.ts" />
+/// <reference path="../../typings/lib.d.ts" />
 
 'use strict';
 
@@ -50,7 +46,7 @@ module Flexilite
         cid:number;
         name:string;
     }
-    
+
     interface SQLiteIndexXInfo extends SQLiteIndexInfo
     {
         unique:number | boolean;
@@ -127,7 +123,7 @@ module Flexilite
         /*
 
          */
-        private static sqliteTypeToOrmType(type:string):{type: string, size?: number, time?: boolean}
+        private static sqliteTypeToOrmType(type:string):{type:string, size?:number, time?:boolean}
         {
             if (_.isNull(type))
                 return {type: 'text'};
@@ -192,7 +188,7 @@ module Flexilite
             var self = this;
             Sync(()=>
             {
-                var result:{[name:string]: ISyncOptions} = {};
+                var result:{[name:string]:ISyncOptions} = {};
                 try
                 {
                     var tables = self.db.all.sync(self.db,
@@ -225,7 +221,7 @@ module Flexilite
 
                             if (!modelDef.properties)
                                 modelDef.properties = {};
-                            modelDef.properties[prop.name] =  prop;
+                            modelDef.properties[prop.name] = prop;
 
                         });
 

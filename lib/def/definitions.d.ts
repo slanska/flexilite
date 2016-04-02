@@ -24,6 +24,15 @@ declare const enum FLEXILITE_LIMITS
 }
 
 /*
+ Extend ORM property definition with typed 'ext' attribute
+ */
+declare interface IORMPropertyDef
+{
+    ext?:ISchemaPropertyDefinition;
+}
+
+
+/*
  Defines contract for object data to be inserted or updated.
  */
 // TODO Needed?

@@ -16,7 +16,7 @@ import orm = require('orm');
 
 /*
  Converts node-orm2 schema definition as it is passed to sync method,
- to Flexilite format
+ to Flexilite class and schema definitions
  */
 module Flexilite
 {
@@ -40,7 +40,15 @@ module Flexilite
             return this._targetClass;
         }
 
+        /*
+         Callback to return ID for the given name value
+         */
         public getNameID:(name:string)=>number;
+
+        /*
+         Callback to get class ID by class' name
+         */
+        public getClassIDbyName:(className:string)=>number;
 
         public static nodeOrmTypeToFlexiliteType(ormType:string):PROPERTY_TYPE
         {
@@ -49,25 +57,25 @@ module Flexilite
             {
                 case 'serial':
                 case 'integer':
-                    return PROPERTY_TYPE.integer;
+                    return PROPERTY_TYPE.INTEGER;
 
                 case 'number':
-                    return PROPERTY_TYPE.number;
+                    return PROPERTY_TYPE.NUMBER;
 
                 case'binary':
-                    return PROPERTY_TYPE.binary;
+                    return PROPERTY_TYPE.BINARY;
 
                 case 'text':
-                    return PROPERTY_TYPE.text;
+                    return PROPERTY_TYPE.TEXT;
 
                 case 'boolean':
-                    return PROPERTY_TYPE.boolean;
+                    return PROPERTY_TYPE.BOOLEAN;
 
                 case 'object':
-                    return PROPERTY_TYPE.reference;
+                    return PROPERTY_TYPE.OBJECT;
 
                 case 'date':
-                    return PROPERTY_TYPE.date;
+                    return PROPERTY_TYPE.DATETIME;
 
                 case 'enum':
                     return PROPERTY_TYPE.ENUM;
@@ -80,64 +88,105 @@ module Flexilite
         // Expects to be running inside of Syncho call
         public convert()
         {
-            if (!_.isFunction(this.getNameID))
+            let self = this;
+
+            if (!_.isFunction(self.getNameID))
                 throw new Error('getNameID() is not assigned');
+            if (!_.isFunction(self.getClassIDbyName))
+                throw new Error('getClassIDbyName() is not assigned');
 
-            this._targetClass = {properties: {}} as IClassDefinition;
-            this._targetSchema = {properties: {}} as ISchemaDefinition;
+            self._targetClass = {properties: {}} as IClassDefinition;
+            self._targetSchema = {properties: {}} as ISchemaDefinition;
 
-            var s = this._targetSchema;
-            var c = this._targetClass;
+            var s = self._targetSchema;
+            var c = self._targetClass;
 
             _.forEach(this.sourceSchema.allProperties, (item:IORMPropertyDef, propName:string) =>
-            {
-                let propID = this.getNameID(propName);
-                let sProp = item.ext || {} as ISchemaPropertyDefinition;
-                let cProp = {} as IClassProperty;
-                cProp.rules = cProp.rules || {} as IPropertyRulesSettings;
-                cProp.map = cProp.map || {} as IPropertyMapSettings;
-                cProp.ui = cProp.ui || {} as IPropertyUISettings;
-
-
-                switch (item.klass)
                 {
-                    case 'primary':
-                        cProp.rules.type = SchemaHelper.nodeOrmTypeToFlexiliteType(item.type);
-                        if (item.size)
-                            cProp.rules.maxLength = item.size;
+                    let propID = self.getNameID(propName);
+                    let sProp = item.ext || {} as ISchemaPropertyDefinition;
+                    let cProp = {} as IClassProperty;
+                    cProp.rules = cProp.rules || {} as IPropertyRulesSettings;
+                    sProp.map = sProp.map || {} as IPropertyMapSettings;
+                    cProp.ui = cProp.ui || {} as IPropertyUISettings;
 
-                        if (item.defaultValue)
-                            cProp.defaultValue = item.defaultValue;
+                    switch (item.klass)
+                    {
+                        case 'primary':
+                            cProp.rules.type = SchemaHelper.nodeOrmTypeToFlexiliteType(item.type);
+                            if (item.size)
+                                cProp.rules.maxLength = item.size;
 
-                        if (item.unique || item.indexed)
-                        {
-                            cProp.unique = item.unique;
-                            cProp.indexed = true;
-                        }
+                            if (item.defaultValue)
+                                cProp.defaultValue = item.defaultValue;
 
-                        if (item.mapsTo && !_.isEqual(item.mapsTo, propName))
-                            cProp.columnNameID = this.getNameID(item.mapsTo);
+                            if (item.unique || item.indexed)
+                            {
+                                cProp.unique = item.unique;
+                                cProp.indexed = true;
+                            }
 
-                        // TODO item.big
-                        // TODO item.time
+                            // mapsTo allows to apply basic customization to schema mapping
+                            if (!_.isEmpty(item.mapsTo) && !_.isEqual(item.mapsTo, propName))
+                                sProp.map.jsonPath = `.${String(item.mapsTo)}`;
+                            else sProp.map.jsonPath = `.${propID}`;
 
-                        s.properties[propID] = sProp;
-                        c.properties[propID] = cProp;
+                            switch (cProp.rules.type)
+                            {
+                                case PROPERTY_TYPE.DATETIME:
 
-                        break;
+                                    if (item.time === false)
+                                    {
+                                        cProp.dateTime = 'dateOnly';
+                                    }
+                                    else
+                                    {
+                                        cProp.dateTime = 'dateTime';
+                                    }
+                                    break;
 
-                    case 'hasOne':
-                        // Generate relation
-                        sProp.rules.type = PROPERTY_TYPE.reference;
-                        //this.sourceSchema.one_associations[propName].
-                        //sProp.referenceTo =
-                        break;
+                                case PROPERTY_TYPE.ENUM:
+                                    cProp.enumDef = {items: []} as IEnumPropertyDefinition;
+                                    _.forEach(item.items, (enumItem)=>
+                                    {
+                                        let name = self.getNameID(enumItem);
+                                        cProp.enumDef.items.push({ID: name, NameID: name});
+                                    });
+                                    break;
+                            }
 
-                    case 'hasMany':
-                        // Generate relation
-                        break;
+                            s.properties[propID] = sProp;
+                            c.properties[propID] = cProp;
+
+                            break;
+
+                        case 'hasOne':
+                            // Generate relation
+                            cProp.rules.type = PROPERTY_TYPE.OBJECT;
+                            let oneRel = self.sourceSchema.one_associations[propName];
+                            cProp.reference = {} as IObjectPropertyDefinition;
+                            cProp.reference.autoFetch = oneRel.autoFetch;
+                            cProp.reference.autoFetchLimit = oneRel.autoFetchLimit;
+                            cProp.reference.type = OBJECT_REFERENCE_TYPE.BOXED_REFERENCE;
+                            cProp.reference.classID = self.getClassIDbyName(oneRel.model.table);
+                            cProp.reference.reversePropertyID = oneRel.reverse;
+
+                            break;
+
+                        case 'hasMany':
+                            // Generate relation
+                            cProp.rules.type = PROPERTY_TYPE.OBJECT;
+                            let manyRel = self.sourceSchema.many_associations[propName];
+                            cProp.reference = {} as IObjectPropertyDefinition;
+                            cProp.reference.autoFetch = manyRel.autoFetch;
+                            cProp.reference.autoFetchLimit = manyRel.autoFetchLimit;
+                            cProp.reference.type = OBJECT_REFERENCE_TYPE.LINKED_OBJECT;
+
+                            cProp.reference.classID = self.getClassIDbyName(manyRel.model.table);
+                            break;
+                    }
                 }
-            });
+            );
         }
     }
 }

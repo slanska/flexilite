@@ -2,12 +2,7 @@
  * Created by slanska on 2016-03-27.
  */
 
-/// <reference path="../typings/mocha/mocha.d.ts"/>
-// / <reference path="../typings/node/node.d.ts"/>
-// / <reference path="../typings/chai/chai.d.ts" />
-/// <reference path="../typings/tsd.d.ts" />
-/// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts"/>
-/// <reference path="../node_modules/orm/lib/TypeScript/sql-query.d.ts"/>
+/// <reference path="../typings/tests.d.ts"/>
 
 var Sync = require('syncho');
 import helper = require('./helper');
@@ -18,7 +13,7 @@ import _ = require('lodash');
 import chai = require('chai');
 var shortid = require('shortid');
 import ReverseEngine = require( '../lib/misc/reverseEng');
-import SchemaConverter = require('../lib/misc/schemaConverter');
+import SchemaHelper = require('../lib/misc/SchemaHelper');
 
 var expect = chai.expect;
 
@@ -54,7 +49,7 @@ describe('Flexilite schema processing', ()=>
 
             _.forEach(schema, (item:ISyncOptions, className:string)=>
             {
-                let conv = new SchemaConverter(db, item);
+                let conv = new SchemaHelper(db, item);
                 conv.convert();
                 console.log(conv.targetSchema);
             });

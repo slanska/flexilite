@@ -1,54 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="BookmarkManager">
-    <bookmark url="file://$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts" line="107" />
+    <bookmark url="file://$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts" line="108" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" readonly="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/lib/def/IClassDefinition.d.ts" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/lib/def/IDBRefactory.d.ts" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/lib/def/definitions.d.ts" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/lib/misc/SchemaHelper.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/lib/misc/SchemaHelper.js.map" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/typings/lib.d.ts" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/typings/node-orm-sync.d.ts" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/typings/tests.d.ts" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/DDL/SQL.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/Debug.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/_shared.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/Util.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/Util.js.map" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/Util.ts" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/extension_library/json-functions.c" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/extension_library/json-functions.h" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/sqlite-schema.sql" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/misc/schemaConverter.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/misc/schemaConverter.js.map" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/models/IClassProperty.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/models/IClassProperty.js.map" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/models/IClassProperty.ts" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/models/ICollectionData.d.ts" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/models/IPropertyDef.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/models/IPropertyDef.js.map" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/models/IPropertyDef.ts" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/lib/models/definitions.d.ts" afterPath="" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/lib/misc/schemaConverter.ts" afterPath="$PROJECT_DIR$/lib/misc/SchemaHelper.ts" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/lib/models/ISchemaData.d.ts" afterPath="$PROJECT_DIR$/lib/def/ISchemaDefinition.d.ts" />
+    <list default="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/def/IClassDefinition.d.ts" afterPath="$PROJECT_DIR$/lib/def/IClassDefinition.d.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/def/IDBRefactory.d.ts" afterPath="$PROJECT_DIR$/lib/def/IDBRefactory.d.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/def/ISchemaDefinition.d.ts" afterPath="$PROJECT_DIR$/lib/def/ISchemaDefinition.d.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/def/definitions.d.ts" afterPath="$PROJECT_DIR$/lib/def/definitions.d.ts" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/Driver.js" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/Driver.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/Driver.js.map" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/Driver.js.map" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.js" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.js.map" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.js.map" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/Util.js" afterPath="$PROJECT_DIR$/lib/misc/Util.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/Util.js.map" afterPath="$PROJECT_DIR$/lib/misc/Util.js.map" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/SchemaHelper.js" afterPath="$PROJECT_DIR$/lib/misc/SchemaHelper.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/SchemaHelper.js.map" afterPath="$PROJECT_DIR$/lib/misc/SchemaHelper.js.map" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/SchemaHelper.ts" afterPath="$PROJECT_DIR$/lib/misc/SchemaHelper.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/reverseEng.js" afterPath="$PROJECT_DIR$/lib/misc/reverseEng.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/reverseEng.js.map" afterPath="$PROJECT_DIR$/lib/misc/reverseEng.js.map" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/reverseEng.ts" afterPath="$PROJECT_DIR$/lib/misc/reverseEng.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/package.json" afterPath="$PROJECT_DIR$/package.json" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tsd.json" afterPath="$PROJECT_DIR$/tsd.json" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/typings/tsd.d.ts" afterPath="$PROJECT_DIR$/typings/tsd.d.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/wiki/concept.md" afterPath="$PROJECT_DIR$/wiki/concept.md" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/flexi_get.js" afterPath="$PROJECT_DIR$/tests/flexi_get.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/flexi_get.js.map" afterPath="$PROJECT_DIR$/tests/flexi_get.js.map" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/flexi_get.ts" afterPath="$PROJECT_DIR$/tests/flexi_get.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js" afterPath="$PROJECT_DIR$/tests/helper.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js.map" afterPath="$PROJECT_DIR$/tests/helper.js.map" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/reverseEng.spec.js" afterPath="$PROJECT_DIR$/tests/reverseEng.spec.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/reverseEng.spec.js.map" afterPath="$PROJECT_DIR$/tests/reverseEng.spec.js.map" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/reverseEng.spec.ts" afterPath="$PROJECT_DIR$/tests/reverseEng.spec.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/schema_processing.js" afterPath="$PROJECT_DIR$/tests/schema_processing.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/schema_processing.js.map" afterPath="$PROJECT_DIR$/tests/schema_processing.js.map" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/schema_processing.ts" afterPath="$PROJECT_DIR$/tests/schema_processing.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/typings/lib.d.ts" afterPath="$PROJECT_DIR$/typings/lib.d.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/typings/node-orm-sync.d.ts" afterPath="$PROJECT_DIR$/typings/node-orm-sync.d.ts" />
     </list>
     <ignored path="flexilite.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -63,59 +50,39 @@
   <component name="CreatePatchCommitExecutor">
     <option name="PATCH_PATH" value="" />
   </component>
-  <component name="DockManager">
-    <window id="3">
-      <content type="file-editors">
-        <state>
-          <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-            <file leaf-file-name="reverseEng.spec.ts" pinned="false" current-in-tab="true">
-              <entry file="file://$PROJECT_DIR$/tests/reverseEng.spec.ts">
-                <provider selected="true" editor-type-id="text-editor">
-                  <state relative-caret-position="240">
-                    <caret line="12" column="54" selection-start-line="12" selection-start-column="54" selection-end-line="12" selection-end-column="54" />
-                    <folding>
-                      <element signature="e#0#44#0" expanded="false" />
-                    </folding>
-                  </state>
-                </provider>
-              </entry>
-            </file>
-          </leaf>
-        </state>
-      </content>
-    </window>
-    <window id="2">
-      <content type="file-editors">
-        <state>
-          <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-            <file leaf-file-name="reverseEng.spec.ts" pinned="false" current-in-tab="true">
-              <entry file="file://$PROJECT_DIR$/tests/reverseEng.spec.ts">
-                <provider selected="true" editor-type-id="text-editor">
-                  <state relative-caret-position="24">
-                    <caret line="52" column="21" selection-start-line="52" selection-start-column="21" selection-end-line="52" selection-end-column="21" />
-                    <folding>
-                      <element signature="e#0#44#0" expanded="false" />
-                    </folding>
-                  </state>
-                </provider>
-              </entry>
-            </file>
-          </leaf>
-        </state>
-      </content>
-    </window>
-  </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FavoritesManager">
     <favorites_list name="flexilite" />
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="Driver.ts" pinned="false" current-in-tab="true">
+      <file leaf-file-name="reverseEng.spec.ts" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/tests/reverseEng.spec.ts">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="210">
+              <caret line="27" column="31" selection-start-line="27" selection-start-column="31" selection-end-line="27" selection-end-column="31" />
+              <folding>
+                <element signature="e#0#44#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="reverseEng.ts" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/lib/misc/reverseEng.ts">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="6048">
+              <caret line="252" column="20" selection-start-line="252" selection-start-column="20" selection-end-line="252" selection-end-column="20" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Driver.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="812">
-              <caret line="985" column="40" selection-start-line="985" selection-start-column="40" selection-end-line="985" selection-end-column="40" />
+            <state relative-caret-position="198">
+              <caret line="1273" column="49" selection-start-line="1273" selection-start-column="49" selection-end-line="1273" selection-end-column="49" />
               <folding>
                 <element signature="n#!!block;n#execSimpleQuery#0;n#Driver#0;n#SQLite#0;n#Flexilite#0" expanded="false" />
                 <element signature="n#!!block;n#find#0;n#Driver#0;n#SQLite#0;n#Flexilite#0" expanded="false" />
@@ -128,33 +95,10 @@
       <file leaf-file-name="SchemaHelper.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/misc/SchemaHelper.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-455">
-              <caret line="19" column="3" selection-start-line="19" selection-start-column="3" selection-end-line="19" selection-end-column="3" />
+            <state relative-caret-position="4128">
+              <caret line="174" column="0" selection-start-line="174" selection-start-column="0" selection-end-line="174" selection-end-column="0" />
               <folding>
                 <element signature="e#0#44#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ISchemaDefinition.d.ts" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/lib/def/ISchemaDefinition.d.ts">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="432">
-              <caret line="20" column="0" selection-start-line="20" selection-start-column="0" selection-end-line="20" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="IClassDefinition.d.ts" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/lib/def/IClassDefinition.d.ts">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="625">
-              <caret line="114" column="0" selection-start-line="114" selection-start-column="0" selection-end-line="114" selection-end-column="0" />
-              <folding>
-                <element signature="n#!!doc" expanded="true" />
-                <element signature="e#2033#2496#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -163,8 +107,8 @@
       <file leaf-file-name="DBInterfaces.d.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="216">
-              <caret line="151" column="13" selection-start-line="151" selection-start-column="13" selection-end-line="151" selection-end-column="13" />
+            <state relative-caret-position="434">
+              <caret line="211" column="27" selection-start-line="211" selection-start-column="27" selection-end-line="211" selection-end-column="27" />
               <folding />
             </state>
           </provider>
@@ -173,8 +117,8 @@
       <file leaf-file-name="lib.d.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/typings/lib.d.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="73">
-              <caret line="6" column="27" selection-start-line="6" selection-start-column="27" selection-end-line="6" selection-end-column="27" />
+            <state relative-caret-position="288">
+              <caret line="14" column="27" selection-start-line="14" selection-start-column="27" selection-end-line="14" selection-end-column="27" />
               <folding />
             </state>
           </provider>
@@ -183,11 +127,29 @@
       <file leaf-file-name="SQLiteDataRefactor.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="192">
-              <caret line="129" column="0" selection-start-line="129" selection-start-column="0" selection-end-line="139" selection-end-column="5" />
-              <folding>
-                <element signature="n#!!doc;n#SQLiteDataRefactor#0" expanded="false" />
-              </folding>
+            <state relative-caret-position="-341">
+              <caret line="16" column="4" selection-start-line="16" selection-start-column="4" selection-end-line="16" selection-end-column="4" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="flexi_get.ts" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/tests/flexi_get.ts">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-1920">
+              <caret line="14" column="0" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="schema_processing.ts" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/tests/schema_processing.ts">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-720">
+              <caret line="11" column="29" selection-start-line="11" selection-start-column="29" selection-end-line="11" selection-end-column="29" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -195,21 +157,11 @@
       <file leaf-file-name="IDBRefactory.d.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/def/IDBRefactory.d.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="216">
-              <caret line="69" column="27" selection-start-line="69" selection-start-column="27" selection-end-line="69" selection-end-column="27" />
+            <state relative-caret-position="0">
+              <caret line="6" column="22" selection-start-line="6" selection-start-column="10" selection-end-line="6" selection-end-column="22" />
               <folding>
                 <element signature="n#!!doc;n#IDBRefactory#0" expanded="false" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="node-orm-sync.d.ts" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/typings/node-orm-sync.d.ts">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="144">
-              <caret line="10" column="58" selection-start-line="10" selection-start-column="58" selection-end-line="10" selection-end-column="58" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -249,10 +201,6 @@
         <option value="$PROJECT_DIR$/lib/models/ICollectionDef.ts" />
         <option value="$PROJECT_DIR$/lib/models/IAccessRule.ts" />
         <option value="$PROJECT_DIR$/lib/misc/Util.ts" />
-        <option value="$PROJECT_DIR$/tests/flexi_get.ts" />
-        <option value="$PROJECT_DIR$/tests/reverseEng.spec.ts" />
-        <option value="$PROJECT_DIR$/lib/misc/reverseEng.ts" />
-        <option value="$PROJECT_DIR$/tests/schema_processing.ts" />
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/Util.ts" />
         <option value="$PROJECT_DIR$/lib/models/ICollectionData.d.ts" />
         <option value="$PROJECT_DIR$/dbstructure.md" />
@@ -268,18 +216,22 @@
         <option value="$PROJECT_DIR$/package.json" />
         <option value="$PROJECT_DIR$/lib/models/IPropertyDef.ts" />
         <option value="$PROJECT_DIR$/lib/models/ISchemaData.d.ts" />
-        <option value="$PROJECT_DIR$/typings/node-orm-sync.d.ts" />
         <option value="$PROJECT_DIR$/lib/models/definitions.d.ts" />
+        <option value="$PROJECT_DIR$/lib/misc/schemaConverter.ts" />
+        <option value="$PROJECT_DIR$/lib/def/IDBRefactory.d.ts" />
         <option value="$PROJECT_DIR$/lib/def/definitions.d.ts" />
+        <option value="$PROJECT_DIR$/lib/def/ISchemaDefinition.d.ts" />
+        <option value="$PROJECT_DIR$/typings/node-orm-sync.d.ts" />
+        <option value="$PROJECT_DIR$/lib/def/IClassDefinition.d.ts" />
+        <option value="$PROJECT_DIR$/lib/misc/SchemaHelper.ts" />
         <option value="$PROJECT_DIR$/typings/lib.d.ts" />
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts" />
-        <option value="$PROJECT_DIR$/lib/def/ISchemaDefinition.d.ts" />
-        <option value="$PROJECT_DIR$/lib/def/IClassDefinition.d.ts" />
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts" />
-        <option value="$PROJECT_DIR$/lib/misc/schemaConverter.ts" />
-        <option value="$PROJECT_DIR$/lib/misc/SchemaHelper.ts" />
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts" />
-        <option value="$PROJECT_DIR$/lib/def/IDBRefactory.d.ts" />
+        <option value="$PROJECT_DIR$/tests/flexi_get.ts" />
+        <option value="$PROJECT_DIR$/tests/schema_processing.ts" />
+        <option value="$PROJECT_DIR$/tests/reverseEng.spec.ts" />
+        <option value="$PROJECT_DIR$/lib/misc/reverseEng.ts" />
       </list>
     </option>
   </component>
@@ -297,10 +249,9 @@
     <data>$PROJECT_DIR$/node_modules/mocha</data>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="1280" />
     <option name="y" value="23" />
-    <option name="width" value="1920" />
-    <option name="height" value="1032" />
+    <option name="width" value="1280" />
+    <option name="height" value="752" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <OptionsSetting value="true" id="Add" />
@@ -327,6 +278,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -355,20 +308,6 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="wiki" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
               <option name="myItemId" value="typings" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -383,6 +322,20 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
+              <option name="myItemId" value="tests" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
               <option name="myItemId" value="lib" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -402,93 +355,11 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="misc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="lib" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="misc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="SchemaHelper.ts" />
-              <option name="myItemType" value="com.intellij.lang.typescript.compiler.ui.projectView.TypeScriptNestingTreeNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="lib" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="drivers" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="SQLite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="lib" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="drivers" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="lib" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="def" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -712,7 +583,9 @@
       <workItem from="1459119554826" duration="4307000" />
       <workItem from="1459309660134" duration="1425000" />
       <workItem from="1459384513410" duration="20696000" />
-      <workItem from="1459565318978" duration="7044000" />
+      <workItem from="1459565318978" duration="7795000" />
+      <workItem from="1459606077566" duration="566000" />
+      <workItem from="1459607486809" duration="12456000" />
     </task>
     <task id="LOCAL-00001" summary="documentation, formatting etc.">
       <created>1445225214061</created>
@@ -945,7 +818,14 @@
       <option name="project" value="LOCAL" />
       <updated>1459481766284</updated>
     </task>
-    <option name="localTasksCounter" value="34" />
+    <task id="LOCAL-00034" summary="major code refactoring">
+      <created>1459572466447</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1459572466447</updated>
+    </task>
+    <option name="localTasksCounter" value="35" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -981,23 +861,22 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="56011000" />
+    <option name="totallyTimeSpent" value="69784000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1280" y="23" width="1920" height="1032" extended-state="6" />
+    <frame x="0" y="23" width="1280" height="752" extended-state="6" />
     <editor active="false" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="DB Browser" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.101387404" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.07363927" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="DB Execution Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27748132" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.30898023" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2796158" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.15364583" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23125" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="LuaJ" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.22411953" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.30416223" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -1009,13 +888,14 @@
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="REST Client" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.40065145" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22411953" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
     <layout-to-restore>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="DB Browser" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.10197869" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.07363927" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="DB Execution Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
@@ -1025,12 +905,12 @@
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="REST Client" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.40065145" sideWeight="0.5" order="14" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.27853882" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2800609" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23046875" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.20821114" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2796158" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23125" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="LuaJ" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32111436" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22411953" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
@@ -1071,39 +951,35 @@
     <MESSAGE value="stubs for tests" />
     <MESSAGE value="fixed syntax errors" />
     <MESSAGE value="doc and sql script update" />
-    <option name="LAST_COMMIT_MESSAGE" value="doc and sql script update" />
+    <MESSAGE value="major code refactoring" />
+    <option name="LAST_COMMIT_MESSAGE" value="major code refactoring" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/lib/misc/reverseEng.ts</url>
-          <line>267</line>
-          <option name="timeStamp" value="221" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/tests/reverseEng.spec.ts</url>
-          <line>34</line>
+          <line>30</line>
           <option name="timeStamp" value="244" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/tests/flexi_get.ts</url>
-          <line>216</line>
+          <line>211</line>
           <option name="timeStamp" value="245" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/tests/flexi_get.ts</url>
-          <line>250</line>
+          <line>245</line>
           <option name="timeStamp" value="246" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/tests/schema_processing.ts</url>
-          <line>50</line>
+          <line>45</line>
           <option name="timeStamp" value="248" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/tests/schema_processing.ts</url>
-          <line>56</line>
+          <line>51</line>
           <option name="timeStamp" value="253" />
         </line-breakpoint>
       </breakpoints>
@@ -1124,47 +1000,10 @@
     </watches-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/tests/helper.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="720">
-          <caret line="30" column="1" selection-start-line="30" selection-start-column="1" selection-end-line="30" selection-end-column="1" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/concept.md">
-      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
-        <state />
-      </provider>
-      <provider selected="true" editor-type-id="split-provider[text-editor;MultiMarkdownPreviewEditor]">
-        <state split_layout="FIRST">
-          <first_editor relative-caret-position="0">
-            <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-            <folding />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/dbstructure.md">
-      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
-        <state />
-      </provider>
-      <provider selected="true" editor-type-id="split-provider[text-editor;MultiMarkdownPreviewEditor]">
-        <state split_layout="FIRST">
-          <first_editor relative-caret-position="690">
-            <caret line="58" column="12" selection-start-line="58" selection-start-column="12" selection-end-line="58" selection-end-column="12" />
-            <folding />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1997">
           <caret line="1121" column="28" selection-start-line="1121" selection-start-column="28" selection-end-line="1121" selection-end-column="28" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1176,31 +1015,29 @@
         <state split_layout="FIRST">
           <first_editor relative-caret-position="-816">
             <caret line="35" column="0" selection-start-line="35" selection-start-column="0" selection-end-line="35" selection-end-column="0" />
-            <folding />
           </first_editor>
           <second_editor />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
+      <provider editor-type-id="MultiMarkdownFxHtmlEditor">
+        <state />
+      </provider>
       <provider editor-type-id="MultiMarkdownFxPreviewEditor">
         <state />
       </provider>
-      <provider editor-type-id="MultiMarkdownFxHtmlEditor">
-        <state />
+      <provider editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="11" column="42" selection-start-line="11" selection-start-column="42" selection-end-line="11" selection-end-column="42" />
+        </state>
       </provider>
       <provider selected="true" editor-type-id="split-provider[text-editor;MultiMarkdownPreviewEditor]">
         <state split_layout="FIRST">
           <first_editor relative-caret-position="192">
             <caret line="9" column="12" selection-start-line="9" selection-start-column="12" selection-end-line="9" selection-end-column="12" />
-            <folding />
           </first_editor>
           <second_editor />
-        </state>
-      </provider>
-      <provider editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="11" column="42" selection-start-line="11" selection-start-column="42" selection-end-line="11" selection-end-column="42" />
         </state>
       </provider>
     </entry>
@@ -1212,7 +1049,6 @@
         <state split_layout="FIRST">
           <first_editor relative-caret-position="288">
             <caret line="12" column="22" selection-start-line="12" selection-start-column="22" selection-end-line="12" selection-end-column="22" />
-            <folding />
           </first_editor>
           <second_editor />
         </state>
@@ -1332,9 +1168,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="n#!!doc" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1343,7 +1176,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="120">
           <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1351,7 +1183,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="648">
           <caret line="27" column="0" selection-start-line="27" selection-start-column="0" selection-end-line="27" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1359,21 +1190,10 @@
     <entry file="file://$PROJECT_DIR$/lib/models/IClassDefinition.d.ts" />
     <entry file="file://$PROJECT_DIR$/lib/models/ISchemaDefinition.d.ts" />
     <entry file="file://$PROJECT_DIR$/lib/models/definitions.d.ts" />
-    <entry file="file://$PROJECT_DIR$/tests/reverseEng.spec.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="12" column="54" selection-start-line="12" selection-start-column="54" selection-end-line="12" selection-end-column="54" />
-          <folding>
-            <element signature="e#0#44#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tsd.json">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="24">
           <caret line="4" column="0" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1381,126 +1201,139 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="168">
           <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/DDL/SQL.js">
+    <entry file="file://$PROJECT_DIR$/lib/DDL/SQL.js" />
+    <entry file="file://$PROJECT_DIR$/lib/def/IClassProperty.ts" />
+    <entry file="file://$PROJECT_DIR$/node_modules/orm/lib/TypeScript/orm.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="264">
-          <caret line="12" column="23" selection-start-line="12" selection-start-column="23" selection-end-line="12" selection-end-column="23" />
-          <folding />
+        <state relative-caret-position="138">
+          <caret line="173" column="66" selection-start-line="173" selection-start-column="66" selection-end-line="173" selection-end-column="66" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/def/IClassProperty.ts">
+    <entry file="file://$PROJECT_DIR$/typings/node-orm-sync.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="96">
-          <caret line="10" column="0" selection-start-line="10" selection-start-column="0" selection-end-line="30" selection-end-column="28" />
+        <state relative-caret-position="504">
+          <caret line="32" column="21" selection-start-line="32" selection-start-column="21" selection-end-line="32" selection-end-column="21" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/def/definitions.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="381">
-          <caret line="29" column="15" selection-start-line="29" selection-start-column="15" selection-end-line="29" selection-end-column="15" />
-          <folding>
-            <element signature="n#!!doc" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="216">
-          <caret line="151" column="13" selection-start-line="151" selection-start-column="13" selection-end-line="151" selection-end-column="13" />
+        <state relative-caret-position="168">
+          <caret line="26" column="18" selection-start-line="26" selection-start-column="18" selection-end-line="26" selection-end-column="18" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/def/ISchemaDefinition.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="432">
-          <caret line="20" column="0" selection-start-line="20" selection-start-column="0" selection-end-line="20" selection-end-column="0" />
+        <state relative-caret-position="0">
+          <caret line="38" column="7" selection-start-line="38" selection-start-column="7" selection-end-line="38" selection-end-column="7" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/def/IClassDefinition.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="625">
-          <caret line="114" column="0" selection-start-line="114" selection-start-column="0" selection-end-line="114" selection-end-column="0" />
+        <state relative-caret-position="216">
+          <caret line="208" column="23" selection-start-line="208" selection-start-column="23" selection-end-line="208" selection-end-column="23" />
           <folding>
             <element signature="n#!!doc" expanded="true" />
-            <element signature="e#2033#2496#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/typings/lib.d.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="73">
-          <caret line="6" column="27" selection-start-line="6" selection-start-column="27" selection-end-line="6" selection-end-column="27" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/node_modules/orm/lib/TypeScript/orm.d.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="138">
-          <caret line="173" column="66" selection-start-line="173" selection-start-column="66" selection-end-line="173" selection-end-column="66" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/typings/node-orm-sync.d.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="144">
-          <caret line="10" column="58" selection-start-line="10" selection-start-column="58" selection-end-line="10" selection-end-column="58" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/misc/SchemaHelper.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-455">
-          <caret line="19" column="3" selection-start-line="19" selection-start-column="3" selection-end-line="19" selection-end-column="3" />
-          <folding>
-            <element signature="e#0#44#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="192">
-          <caret line="129" column="0" selection-start-line="129" selection-start-column="0" selection-end-line="139" selection-end-column="5" />
-          <folding>
-            <element signature="n#!!doc;n#SQLiteDataRefactor#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/def/IDBRefactory.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="216">
-          <caret line="69" column="27" selection-start-line="69" selection-start-column="27" selection-end-line="69" selection-end-column="27" />
+        <state relative-caret-position="0">
+          <caret line="6" column="22" selection-start-line="6" selection-start-column="10" selection-end-line="6" selection-end-column="22" />
           <folding>
             <element signature="n#!!doc;n#IDBRefactory#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/typings/lib.d.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="288">
+          <caret line="14" column="27" selection-start-line="14" selection-start-column="27" selection-end-line="14" selection-end-column="27" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/misc/SchemaHelper.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4128">
+          <caret line="174" column="0" selection-start-line="174" selection-start-column="0" selection-end-line="174" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#44#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="434">
+          <caret line="211" column="27" selection-start-line="211" selection-start-column="27" selection-end-line="211" selection-end-column="27" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="812">
-          <caret line="985" column="40" selection-start-line="985" selection-start-column="40" selection-end-line="985" selection-end-column="40" />
+        <state relative-caret-position="198">
+          <caret line="1273" column="49" selection-start-line="1273" selection-start-column="49" selection-end-line="1273" selection-end-column="49" />
           <folding>
             <element signature="n#!!block;n#execSimpleQuery#0;n#Driver#0;n#SQLite#0;n#Flexilite#0" expanded="false" />
             <element signature="n#!!block;n#find#0;n#Driver#0;n#SQLite#0;n#Flexilite#0" expanded="false" />
             <element signature="n#!!block;n#count#0;n#Driver#0;n#SQLite#0;n#Flexilite#0" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-341">
+          <caret line="16" column="4" selection-start-line="16" selection-start-column="4" selection-end-line="16" selection-end-column="4" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/flexi_get.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1920">
+          <caret line="14" column="0" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/schema_processing.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-720">
+          <caret line="11" column="29" selection-start-line="11" selection-start-column="29" selection-end-line="11" selection-end-column="29" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/reverseEng.spec.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="210">
+          <caret line="27" column="31" selection-start-line="27" selection-start-column="31" selection-end-line="27" selection-end-column="31" />
+          <folding>
+            <element signature="e#0#44#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/misc/reverseEng.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="6048">
+          <caret line="252" column="20" selection-start-line="252" selection-start-column="20" selection-end-line="252" selection-end-column="20" />
+          <folding />
         </state>
       </provider>
     </entry>

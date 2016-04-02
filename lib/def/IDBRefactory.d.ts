@@ -34,7 +34,7 @@ interface IDBRefactory
      Extracts existing properties from class definition and creates a new property of NESTED_OBJECT type.
      New class will be created/or existing one will be updated. Object data will not be affected
      */
-    plainPropertiesToNestedObject(classID:number, propIDs:PropertyIDs, newRefProp:IClassProperty, filter:IObjectFilter, targetClassID:number);
+    plainPropertiesToBoxedObject(classID:number, propIDs:PropertyIDs, newRefProp:IClassProperty, filter:IObjectFilter, targetClassID:number);
 
     /*
      Extracts existing properties to external linked object. Existing object data might be updated or stay untouched.
@@ -47,10 +47,10 @@ interface IDBRefactory
                                   updateData:boolean, sourceKeyPropID:PropertyIDs, targetKeyPropID:PropertyIDs);
 
     /*
-     Action opposite to extracting nested object: existing nested object will be disassembled into individual properties
+     Action opposite to extracting boxed object: existing boxed object will be disassembled into individual properties
      and these properties will be added to the master class
      */
-    nestedObjectToPlainProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap);
+    boxedObjectToPlainProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap);
 
     /*
      Action opposite to extracting linked object: existing linked object will be disassembled into individual properties
@@ -92,6 +92,21 @@ interface IDBRefactory
      Merge many properties into one: use SQL expressions
      */
     mergeProperties(classID:number, sourcePropIDs:number[], targetProp:IClassProperty, expression:string);
+
+    /*
+
+     */
+    alterClassProperty(classID:number, propertyName:string, propDef:IClassProperty, newPropName?:string);
+
+    /*
+
+     */
+    createClassProperty(classID:number, propertyName:string, propDef:IClassProperty);
+
+    /*
+    
+     */
+    dropClassProperty(classID:number, propertyName:string);
 }
 
 /*

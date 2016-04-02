@@ -30,6 +30,7 @@ declare interface IORMPropertyDef
     defaultValue?: any;
     big?: boolean;
     size?:number;
+    items?: string[];
 }
 
 interface IDropOptions

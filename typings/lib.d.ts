@@ -8,11 +8,11 @@
 
 /// <reference path="../lib/def/IClassDefinition.d.ts" />
 /// <reference path="../lib/def/ISchemaDefinition.d.ts" />
-
+/// <reference path="../lib/def/IDBRefactory.d.ts" />
 ///<reference path="../lib/def/definitions.d.ts"/>
 
 /*
- Extend functions to allow sync calls
+ Extend Function prototype to allow sync calls
  */
 interface Function
 {
