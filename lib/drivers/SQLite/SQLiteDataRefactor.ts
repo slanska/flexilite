@@ -94,10 +94,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         {
 
         }
-        else
-        {
-
-        }
+        else throw new Error(`Flexilite.alterClass: class with ID '${classID}' not found`);
     }
 
     /*
@@ -266,16 +263,15 @@ export class SQLiteDataRefactor implements IDBRefactory
         var result = '';
 
         // Iterate through all properties
-        for (var propName in classDef.properties)
+        _.forEach(classDef.properties as any, (p:IClassProperty, propID:number) =>
         {
-            var p:IClassProperty = classDef.properties[propName];
             //
             //if (!p.ColumnAssigned)
             //{
             //    result += `delete from [.values] where [ObjectID] = (old.ObjectID | (old.HostID << 31)) and [PropertyID] = ${p.PropertyID}
             //    and [PropIndex] = 0 and [ClassID] = ${classDef.ClassID} and new.[${p.PropertyName}] is not null;\n`;
             //}
-        }
+        });
         return result;
     }
 
@@ -449,7 +445,6 @@ export class SQLiteDataRefactor implements IDBRefactory
     {
         var self = this;
 
-        // TODO
         // Normalize model
         var converter = new SchemaHelper(self.DB, model);
         converter.getNameID = self.getNameByID.bind(self);
@@ -494,191 +489,15 @@ export class SQLiteDataRefactor implements IDBRefactory
 
         }
 
-        let sql = `insert or replace [.classes] (NameID, ctlo, Data) values ();`;
+        if (classDef)
+        {
+            this.alterClass(classDef.ClassID, converter.targetClass, converter.targetSchema);
+        }
+        else
+        {
+            this.createClass(model.table, converter.targetClass, converter.targetSchema);
+        }
 
-
-        //
-        //    // Load existing model, if it exists
-        //    var classDef = this.getClassDefByName(model.table);
-        //
-        //    // Assume all existing properties as candidates for removal
-        //    var deletedProperties:number[] = [];
-        //    _.forEach(classDef.Data.properties, (prop, propID)=>
-        //    {
-        //        deletedProperties.push(propID);
-        //    });
-        //
-        //    var insCStmt = self.DB.prepare(
-        //        `insert or ignore into [.classes] ([ClassName], [DefaultScalarType], [ClassID])
-        //        select ?, ?, (select ClassID from [.classes] where ClassName = ? limit 1);`);
-        //
-        //    var insCPStmt = null;
-        //
-        //    function saveClassProperty(cp:IClassProperty)
-        //    {
-        //        if (!insCPStmt || insCPStmt === null)
-        //        {
-        //            insCPStmt = self.DB.prepare(`insert or replace into [.class_properties]
-        //            ([ClassID], [PropertyID],
-        // [PropertyName], [TrackChanges], [DefaultValue], [DefaultDataType],
-        // [MinOccurences], [MaxOccurences], [Unique], [MaxLength], [ReferencedClassID],
-        // [ReversePropertyID], [ColumnAssigned]) values (?,
-        // (select [ClassID] from [.classes] where [ClassName] = ? limit 1),
-        //  ?, ?, ?, ?,
-        //  ?, ?, ?, ?, ?, ?, ?);`);
-        //        }
-        //
-        //        insCPStmt.run.sync(insCPStmt, [
-        //            classDef.ClassID,
-        //            propName,
-        //            cp.PropertyName,
-        //            cp.TrackChanges,
-        //            cp.DefaultValue,
-        //            cp.DefaultDataType,
-        //            cp.MinOccurences,
-        //            cp.MaxOccurences,
-        //            cp.Unique,
-        //            cp.MaxLength,
-        //            cp.ReferencedClassID,
-        //            cp.ReversePropertyID,
-        //            null
-        //        ]);
-        //    }
-        //
-        //    // Check properties
-        //    for (var propName in model.allProperties)
-        //    {
-        //        var pd:IORMPropertyDef = model.allProperties[propName];
-        //
-        //        // Unmark property from removal candidates list
-        //        _.remove(deletedProperties, (value)=> value == propName);
-        //
-        //        var cp:IClassProperty = schemaData.properties[propName.toLowerCase()];
-        //        if (!cp)
-        //        {
-        //            schemaData.properties[propName.toLowerCase()] = cp = {};
-        //        }
-        //
-        //        // Depending on klass, treat properties differently
-        //        // Possible values: primary, hasOne, hasMany
-        //        switch (pd.klass)
-        //        {
-        //            case 'primary':
-        //                cp.DefaultDataType = pd.type || cp.DefaultDataType;
-        //                cp.Indexed = pd.indexed || cp.Indexed;
-        //                cp.PropertyName = propName;
-        //                cp.Unique = pd.unique || cp.Unique;
-        //                cp.DefaultValue = pd.defaultValue || cp.DefaultValue;
-        //                var ext = pd.ext || {} as ISchemaPropertyDefinition;
-        //
-        //                // TODO cp.ColumnAssigned = ext. || cp.ColumnAssigned;
-        //                cp.MaxLength = ext.rules.maxLength || cp.MaxLength;
-        //                cp.MaxOccurences = ext.rules.maxOccurences || cp.MaxOccurences;
-        //                cp.MinOccurences = ext.rules.minOccurences || cp.MinOccurences;
-        //                cp.ValidationRegex = ext.rules.regex || cp.ValidationRegex;
-        //
-        //                insCStmt.run.sync(insCStmt, [propName, cp.DefaultDataType, propName]);
-        //
-        //                if (pd.type === 'object')
-        //                {
-        //                    var refModel:ISyncOptions;
-        //
-        //                    var refClass = this.registerCollectionByObject(propName, null, true);
-        //                    cp.ReferencedClassID = refClass.ClassID;
-        //                }
-        //                else
-        //                {
-        //
-        //                }
-        //
-        //
-        //                break;
-        //
-        //            case 'hasOne':
-        //                var refOneProp = <IHasOneAssociation>_.find(model.one_associations, function (item:IHasOneAssociation, idx, arr)
-        //                {
-        //                    return (item.field.hasOwnProperty(propName));
-        //                });
-        //                if (refOneProp)
-        //                {
-        //                    var refClass = this.getClassDefByName(refOneProp.model.table, true, true);
-        //                    cp.ReferencedClassID = refClass.ClassID;
-        //
-        //                    // FIXME create reverse property & set it as ReversePropertyID
-        //                    //cp.ReversePropertyID =
-        //
-        //                    cp.MinOccurences = refOneProp.required ? 1 : 0;
-        //                    cp.MaxOccurences = 1;
-        //                }
-        //                else
-        //                {
-        //                    throw '';
-        //                }
-        //                break;
-        //
-        //            case 'hasMany':
-        //                var refManyProp = <IHasManyAssociation>_.find(model.many_associations, function (item:IHasManyAssociation, idx, arr)
-        //                {
-        //                    return (item.field.hasOwnProperty(propName));
-        //                });
-        //
-        //                if (refManyProp)
-        //                {
-        //                }
-        //                else
-        //                {
-        //                    throw '';
-        //                }
-        //                break;
-        //        }
-        //
-        //        saveClassProperty(cp);
-        //
-        //    }
-        //
-        //    for (var oneRel in model.one_associations)
-        //    {
-        //        var assoc:IHasOneAssociation = model.one_associations[oneRel];
-        //        var cp:IClassProperty = schemaData.properties[oneRel.toLowerCase()];
-        //        if (!cp)
-        //        {
-        //            schemaData.properties[oneRel.toLowerCase()] = cp = {};
-        //            cp.PropertyName = oneRel;
-        //        }
-        //        cp.indexed = true;
-        //        cp.rules.minOccurences = assoc.required ? 1 : 0;
-        //        cp.rules.maxOccurences = 1;
-        //        var refClass = self.getClassDefByName(assoc.model.table, true, true);
-        //        cp.ReferencedClassID = refClass.ClassID;
-        //
-        //        // Set reverse property
-        //
-        //        saveClassProperty(cp);
-        //    }
-        //
-        //    for (var manyRel in model.many_associations)
-        //    {
-        //        var assoc:IHasOneAssociation = model.one_associations[manyRel];
-        //        var cp:IClassProperty = schemaData.properties[manyRel.toLowerCase()];
-        //        if (!cp)
-        //        {
-        //            schemaData.properties[manyRel.toLowerCase()] = cp = {} as IClassProperty;
-        //            cp.PropertyName = manyRel;
-        //        }
-        //        cp.indexed = true;
-        //        cp.rules.minOccurences = assoc.required ? 1 : 0;
-        //        cp.rules.maxOccurences = 1 << 31;
-        //        var refClass = self.getClassDefByName(assoc.model.table, true, true);
-        //        cp.ReferencedClassID = refClass.ClassID;
-        //
-        //        // Set reverse property
-        //
-        //        saveClassProperty(cp);
-        //    }
-        //
-        //    classDef = this.getClassDefByName(model.table, false, true);
-
-        // TODO
         return {Class: classDef, Schema: schemaData};
     }
 
