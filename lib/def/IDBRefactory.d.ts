@@ -6,10 +6,6 @@
 
 interface IDBRefactory
 {
-    ClassID:number;
-
-    ClassDefinition:IClassDefinition;
-
     /*
      Returns report on results of last refactoring action
      */
