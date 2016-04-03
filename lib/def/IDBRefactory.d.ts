@@ -6,6 +6,10 @@
 
 interface IDBRefactory
 {
+    ClassID:number;
+
+    ClassDefinition:IClassDefinition;
+
     /*
      Returns report on results of last refactoring action
      */
@@ -31,7 +35,7 @@ interface IDBRefactory
     dropClass(classID:number);
 
     /*
-     Extracts existing properties from class definition and creates a new property of NESTED_OBJECT type.
+     Extracts existing properties from class definition and creates a new property of BOXED_OBJECT type.
      New class will be created/or existing one will be updated. Object data will not be affected
      */
     plainPropertiesToBoxedObject(classID:number, propIDs:PropertyIDs, newRefProp:IClassProperty, filter:IObjectFilter, targetClassID:number);
@@ -51,6 +55,12 @@ interface IDBRefactory
      and these properties will be added to the master class
      */
     boxedObjectToPlainProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap);
+
+    // TODO Needed?
+    // /*
+    //
+    //  */
+    // boxedObjectToLinkedObject(classID:number, refPropID:number);
 
     /*
      Action opposite to extracting linked object: existing linked object will be disassembled into individual properties
@@ -104,7 +114,7 @@ interface IDBRefactory
     createClassProperty(classID:number, propertyName:string, propDef:IClassProperty);
 
     /*
-    
+
      */
     dropClassProperty(classID:number, propertyName:string);
 }

@@ -175,10 +175,9 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   */
   [BaseSchemaID] INTEGER NOT NULL,
 
+   -- System class is used internally by the system and cannot be changed or deleted by end-user
 
-    -- System class is used internally by the system and cannot be changed or deleted by end-user
-
-  [SystemClass] BOOL     NOT NULL             DEFAULT 0,
+  [SystemClass] BOOL NOT NULL DEFAULT 0,
 
 -- Optional mappings for JSON property shortcuts and/or indexing
 -- Values are property IDs
@@ -196,12 +195,8 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   -- Control bitmask for objects belonging to this class
   [ctloMask] INTEGER NOT NULL DEFAULT 0,
 
--- If set, defines maximum number of objects in class
-  Capacity INTEGER NULL,
-
--- TODO What's this for?
-  SchemaRules JSON1 NULL,
-  AccessRules JSON1 NULL
+  AccessRules JSON1 NULL,
+  Data JSON1 NOT NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClasses_byNameID] ON [.classes] ([NameID]);
@@ -438,7 +433,6 @@ ON [.classes]
 FOR EACH ROW
 BEGIN
   -- Update objects with shortcuts if needed
-    -- TODO Use internal view to get access to properties
   update [.objects] set
         [ctlo] = new.[ctloMask],
         [A] = flexi_get(new.A, ObjectID, SchemaID, [Data]),
@@ -525,8 +519,41 @@ BEGIN
   );
 END;
 
-
 ------------------------------------------------------------------------------------------
+-- .class_properties
+------------------------------------------------------------------------------------------
+create table if not exists [.class_properties]
+ (
+    [PropertyID] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    [ClassID]  INTEGER NOT NULL CONSTRAINT [fkClassPropertiesToClasses]
+        REFERENCES [.classes] ([ClassID]) ON DELETE CASCADE ON UPDATE CASCADE,
+    [NameID] INTEGER NOT NULL constraint [fkClassPropertiesToNames] references [.names] ([NameID])
+        on delete restrict on update restrict,
+    [ColumnAssigned] CHAR NULL CHECK  (RealColumn >= 'A' and RealColumn <= 'J'),
+    [TempColumnAssigned] CHAR NULL CHECK  (RealColumn >= 'A' and RealColumn <= 'J'),
+    [ctlv] INTEGER NOT NULL DEFAULT 0
+ );
+
+ create unique index if not exists [idxClassPropertiesByClassAndName] on [.class_properties]
+ (ClassID, NameID);
+
+ create unique index if not exists [idxClassPropertiesByRealColumn] on [.class_properties]
+ (ClassID, RealColumn) where RealColumn is not null;
+
+ create view if not exists [.vw_class_properties] as
+ select
+    [PropertyID],
+    [ClassID],
+    [NameID],
+    (select [Value] from [.names] n where n.NameID = NameID limit 1) as Name,
+    [ColumnAssigned],
+    [TempColumnAssigned],
+    ctlv,
+    (select json_extract(Data, printf('$.properties.%d', [PropertyID])) from [.classes] c where c.ClassID = ClassID limit 1) as Data
+
+ from [.class_properties];
+
+ ------------------------------------------------------------------------------------------
 -- .full_text_data
 ------------------------------------------------------------------------------------------
 CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (

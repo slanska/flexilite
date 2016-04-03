@@ -150,6 +150,10 @@ interface IFlexiClass
     Hash?:string;
 
     Data:IClassDefinition;
+
+    AccessRules?: any;
+
+    Properties?: IFlexiClassProperty[];
 }
 
 /*
@@ -161,6 +165,9 @@ interface IFlexiClassProperty
     ClassID:number;
     NameID:number;
     Name?:string;
+    ColumnAssigned?:string;
+    TempColumnAssigned?:string;
+    ctlv: VALUE_CONTROL_FLAGS;
 
     /*
      JSON text. Computed property taken from [.classes]

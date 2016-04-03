@@ -257,5 +257,5 @@ interface IClassDefinition
     /*
      Properties definition for view generation
      */
-    properties:{[propID:number]:IClassProperty};
+    properties: {[propID:number]:IClassProperty};
 }
