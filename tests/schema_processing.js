@@ -33,7 +33,7 @@ describe('Flexilite schema processing', function () {
             var schema = revEng.loadSchemaFromDatabase.sync(revEng);
             _.forEach(schema, function (item, className) {
                 var conv = new SchemaHelper(db, item);
-                conv.convert();
+                conv.convertFromNodeOrmSync();
                 console.log(conv.targetSchema);
             });
             done();

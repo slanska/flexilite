@@ -50,7 +50,7 @@ describe('Flexilite schema processing', ()=>
             _.forEach(schema, (item:ISyncOptions, className:string)=>
             {
                 let conv = new SchemaHelper(db, item);
-                conv.convert();
+                conv.convertFromNodeOrmSync();
                 console.log(conv.targetSchema);
             });
 

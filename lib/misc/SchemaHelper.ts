@@ -26,14 +26,14 @@ module Flexilite
         {
         }
 
-        private _targetSchema = {} as ISchemaDefinition;
+        private _targetSchema = {} as ISchemaPropertyDictionary;
 
         public get targetSchema()
         {
             return this._targetSchema
         };
 
-        private _targetClass = {} as IClassDefinition;
+        private _targetClass = {} as IClassPropertyDictionary;
 
         public get targetClass()
         {
@@ -72,7 +72,7 @@ module Flexilite
                     return PROPERTY_TYPE.BOOLEAN;
 
                 case 'object':
-                    return PROPERTY_TYPE.OBJECT;
+                    return PROPERTY_TYPE.JSON;
 
                 case 'date':
                     return PROPERTY_TYPE.DATETIME;
@@ -85,8 +85,13 @@ module Flexilite
             }
         }
 
-        // Expects to be running inside of Syncho call
-        public convert()
+        /*
+        Converts node-orm2 model definition as it is passed to sync() method,
+        to Flexilite structure. Result is placed to targetClass and targetSchema properties
+        which are dictionaries set property name.
+         NOTE: Expects to be running inside of Syncho call
+         */
+        public convertFromNodeOrmSync()
         {
             let self = this;
 
@@ -95,8 +100,8 @@ module Flexilite
             if (!_.isFunction(self.getClassIDbyName))
                 throw new Error('getClassIDbyName() is not assigned');
 
-            self._targetClass = {properties: {}} as IClassDefinition;
-            self._targetSchema = {properties: {}} as ISchemaDefinition;
+            self._targetClass = {} as IClassPropertyDictionary;
+            self._targetSchema = {} as ISchemaPropertyDictionary;
 
             var s = self._targetSchema;
             var c = self._targetClass;
@@ -155,9 +160,6 @@ module Flexilite
                                     break;
                             }
 
-                            s.properties[propID] = sProp;
-                            c.properties[propID] = cProp;
-
                             break;
 
                         case 'hasOne':
@@ -185,6 +187,11 @@ module Flexilite
                             cProp.reference.classID = self.getClassIDbyName(manyRel.model.table);
                             break;
                     }
+
+
+                    s[item.name] = sProp;
+                    c[item.name] = cProp;
+
                 }
             );
         }

@@ -151,9 +151,9 @@ interface IFlexiClass
 
     Data:IClassDefinition;
 
-    AccessRules?: any;
+    AccessRules?:any;
 
-    Properties?: IFlexiClassProperty[];
+    Properties?:IFlexiClassProperty[];
 }
 
 /*
@@ -167,7 +167,7 @@ interface IFlexiClassProperty
     Name?:string;
     ColumnAssigned?:string;
     TempColumnAssigned?:string;
-    ctlv: VALUE_CONTROL_FLAGS;
+    ctlv:VALUE_CONTROL_FLAGS;
 
     /*
      JSON text. Computed property taken from [.classes]
@@ -257,5 +257,7 @@ interface IClassAndSchema
     Class?:IFlexiClass;
     Schema?:IFlexiSchema;
 }
+
+declare type IFlexiClassPropDictionary = {[propName:string]: IFlexiClassProperty};
 
 

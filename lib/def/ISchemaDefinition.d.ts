@@ -58,5 +58,8 @@ interface ISchemaDefinition
     properties:{[propertyID:number]:ISchemaPropertyDefinition};
 }
 
+type ISchemaPropertyDictionary = {[propName:string]: ISchemaPropertyDefinition};
+
+
 
 

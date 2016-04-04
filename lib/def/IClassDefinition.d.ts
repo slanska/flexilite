@@ -58,7 +58,8 @@ declare const enum PROPERTY_TYPE
     /*
      Presented as text but internally stored as name ID. Provides localization
      */
-    NAME
+    NAME,
+    JSON
 
 }
 
@@ -259,3 +260,5 @@ interface IClassDefinition
      */
     properties: {[propID:number]:IClassProperty};
 }
+
+type IClassPropertyDictionary = {[propName:string]: IClassProperty};
