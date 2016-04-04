@@ -425,12 +425,6 @@ export class SQLiteDataRefactor implements IDBRefactory
     {
     }
 
-    private static IsPropertyBoxedObject(p:IClassProperty)
-    {
-        return p.rules && p.rules.type === PROPERTY_TYPE.OBJECT && p.reference
-            && p.reference.type === OBJECT_REFERENCE_TYPE.BOXED_OBJECT;
-    }
-
     /*
      Synchronizes node-orm model to .classes and .class_properties.
      Makes updates to the database.
@@ -509,8 +503,9 @@ export class SQLiteDataRefactor implements IDBRefactory
             var replaceSchema = '';
             var newBoxedObjProps = _.forEach(converter.targetClass, (p:IClassProperty, propName:string)=>
             {
-                if (SQLiteDataRefactor.IsPropertyBoxedObject(p)
-                    && !SQLiteDataRefactor.IsPropertyBoxedObject(existingProps[propName].Data))
+                if ((p.rules.type === PROPERTY_TYPE.OBJECT || p.rules.type === PROPERTY_TYPE.LINK)
+                    && !(existingProps[propName].Data.rules.type === PROPERTY_TYPE.OBJECT
+                    || existingProps[propName].Data.rules.type === PROPERTY_TYPE.LINK))
                 {
                     if (replaceSchema === '')
                         replaceSchema = `json_set([Data] `;

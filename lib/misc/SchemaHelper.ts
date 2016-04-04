@@ -155,7 +155,7 @@ module Flexilite
                                     _.forEach(item.items, (enumItem)=>
                                     {
                                         let name = self.getNameID(enumItem);
-                                        cProp.enumDef.items.push({ID: name, NameID: name});
+                                        cProp.enumDef.items.push({ID: name, TextID: name});
                                     });
                                     break;
                             }
@@ -169,7 +169,6 @@ module Flexilite
                             cProp.reference = {} as IObjectPropertyDefinition;
                             cProp.reference.autoFetch = oneRel.autoFetch;
                             cProp.reference.autoFetchLimit = oneRel.autoFetchLimit;
-                            cProp.reference.type = OBJECT_REFERENCE_TYPE.BOXED_REFERENCE;
                             cProp.reference.classID = self.getClassIDbyName(oneRel.model.table);
                             cProp.reference.reversePropertyID = oneRel.reverse;
 
@@ -182,7 +181,6 @@ module Flexilite
                             cProp.reference = {} as IObjectPropertyDefinition;
                             cProp.reference.autoFetch = manyRel.autoFetch;
                             cProp.reference.autoFetchLimit = manyRel.autoFetchLimit;
-                            cProp.reference.type = OBJECT_REFERENCE_TYPE.LINKED_OBJECT;
 
                             cProp.reference.classID = self.getClassIDbyName(manyRel.model.table);
                             break;

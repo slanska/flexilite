@@ -83,7 +83,6 @@ interface IFlexiName
 interface IFlexiRefValue
 {
     ObjectID:number;
-    ClassID:number;
     PropertyID:number;
     PropIndex:number;
     ctlv:VALUE_CONTROL_FLAGS;
@@ -92,6 +91,10 @@ interface IFlexiRefValue
      Scalar value linked object ID
      */
     Value?:any;
+
+    /*
+    for references, referenced object ID
+     */
     RefObjectID?:number;
 }
 

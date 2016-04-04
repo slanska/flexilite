@@ -9,19 +9,14 @@
     <list default="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/def/IClassDefinition.d.ts" afterPath="$PROJECT_DIR$/lib/def/IClassDefinition.d.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/def/ISchemaDefinition.d.ts" afterPath="$PROJECT_DIR$/lib/def/ISchemaDefinition.d.ts" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.js" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.js.map" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.js.map" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql" afterPath="$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/SchemaHelper.js" afterPath="$PROJECT_DIR$/lib/misc/SchemaHelper.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/SchemaHelper.js.map" afterPath="$PROJECT_DIR$/lib/misc/SchemaHelper.js.map" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib/misc/SchemaHelper.ts" afterPath="$PROJECT_DIR$/lib/misc/SchemaHelper.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js" afterPath="$PROJECT_DIR$/tests/helper.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js.map" afterPath="$PROJECT_DIR$/tests/helper.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/schema_processing.js" afterPath="$PROJECT_DIR$/tests/schema_processing.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/schema_processing.js.map" afterPath="$PROJECT_DIR$/tests/schema_processing.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/schema_processing.ts" afterPath="$PROJECT_DIR$/tests/schema_processing.ts" />
     </list>
     <ignored path="flexilite.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -58,8 +53,8 @@
       <file leaf-file-name="SchemaHelper.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/misc/SchemaHelper.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="352">
-              <caret line="35" column="43" selection-start-line="35" selection-start-column="43" selection-end-line="35" selection-end-column="43" />
+            <state relative-caret-position="256">
+              <caret line="182" column="84" selection-start-line="182" selection-start-column="84" selection-end-line="182" selection-end-column="84" />
               <folding>
                 <element signature="e#0#44#0" expanded="false" />
               </folding>
@@ -80,8 +75,8 @@
       <file leaf-file-name="DBInterfaces.d.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="473">
-              <caret line="57" column="19" selection-start-line="57" selection-start-column="19" selection-end-line="57" selection-end-column="19" />
+            <state relative-caret-position="161">
+              <caret line="94" column="6" selection-start-line="94" selection-start-column="6" selection-end-line="94" selection-end-column="6" />
               <folding />
             </state>
           </provider>
@@ -90,8 +85,8 @@
       <file leaf-file-name="IClassDefinition.d.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/def/IClassDefinition.d.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="59">
-              <caret line="255" column="6" selection-start-line="255" selection-start-column="6" selection-end-line="255" selection-end-column="6" />
+            <state relative-caret-position="373">
+              <caret line="330" column="12" selection-start-line="330" selection-start-column="12" selection-end-line="330" selection-end-column="12" />
               <folding>
                 <element signature="n#!!doc" expanded="true" />
               </folding>
@@ -109,21 +104,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SQLiteDataRefactor.ts" pinned="false" current-in-tab="true">
+      <file leaf-file-name="SQLiteDataRefactor.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="107">
-              <caret line="543" column="51" selection-start-line="543" selection-start-column="51" selection-end-line="543" selection-end-column="51" />
+            <state relative-caret-position="163">
+              <caret line="542" column="51" selection-start-line="542" selection-start-column="51" selection-end-line="542" selection-end-column="51" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="dbschema.sql" pinned="false" current-in-tab="false">
+      <file leaf-file-name="dbschema.sql" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="432">
-              <caret line="533" column="37" selection-start-line="533" selection-start-column="37" selection-end-line="533" selection-end-column="37" />
+            <state relative-caret-position="45">
+              <caret line="1241" column="7" selection-start-line="1241" selection-start-column="7" selection-end-line="1241" selection-end-column="7" />
               <folding />
             </state>
           </provider>
@@ -132,8 +127,8 @@
       <file leaf-file-name="IDBRefactory.d.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/def/IDBRefactory.d.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="144">
-              <caret line="8" column="0" selection-start-line="8" selection-start-column="0" selection-end-line="8" selection-end-column="0" />
+            <state relative-caret-position="413">
+              <caret line="129" column="0" selection-start-line="129" selection-start-column="0" selection-end-line="129" selection-end-column="0" />
               <folding>
                 <element signature="n#!!doc;n#IDBRefactory#0" expanded="false" />
               </folding>
@@ -199,14 +194,14 @@
         <option value="$PROJECT_DIR$/tests/reverseEng.spec.ts" />
         <option value="$PROJECT_DIR$/lib/misc/reverseEng.ts" />
         <option value="$PROJECT_DIR$/tests/flexi_get.ts" />
-        <option value="$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql" />
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts" />
         <option value="$PROJECT_DIR$/lib/def/IDBRefactory.d.ts" />
         <option value="$PROJECT_DIR$/lib/def/ISchemaDefinition.d.ts" />
-        <option value="$PROJECT_DIR$/lib/def/IClassDefinition.d.ts" />
-        <option value="$PROJECT_DIR$/lib/misc/SchemaHelper.ts" />
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts" />
+        <option value="$PROJECT_DIR$/lib/def/IClassDefinition.d.ts" />
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts" />
+        <option value="$PROJECT_DIR$/lib/misc/SchemaHelper.ts" />
+        <option value="$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql" />
       </list>
     </option>
   </component>
@@ -260,6 +255,16 @@
             <PATH_ELEMENT>
               <option name="myItemId" value="flexilite" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
@@ -491,7 +496,7 @@
       <workItem from="1459565318978" duration="7795000" />
       <workItem from="1459606077566" duration="566000" />
       <workItem from="1459607486809" duration="26758000" />
-      <workItem from="1459722832939" duration="4961000" />
+      <workItem from="1459722832939" duration="11539000" />
     </task>
     <task id="LOCAL-00001" summary="documentation, formatting etc.">
       <created>1445225214061</created>
@@ -759,7 +764,14 @@
       <option name="project" value="LOCAL" />
       <updated>1459654129900</updated>
     </task>
-    <option name="localTasksCounter" value="39" />
+    <task id="LOCAL-00039" summary="major code refactoring">
+      <created>1459743366916</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1459743366916</updated>
+    </task>
+    <option name="localTasksCounter" value="40" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -795,10 +807,10 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="89047000" />
+    <option name="totallyTimeSpent" value="95625000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="1280" height="752" extended-state="6" />
+    <frame x="0" y="23" width="1280" height="752" extended-state="0" />
     <editor active="false" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -807,7 +819,7 @@
       <window_info id="DB Execution Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.29984778" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.29984778" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2796158" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24609375" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="LuaJ" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -839,7 +851,7 @@
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="REST Client" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.40065145" sideWeight="0.5" order="14" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.29984778" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.29984778" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2796158" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24609375" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
@@ -1212,56 +1224,56 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/def/IDBRefactory.d.ts">
+    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="144">
-          <caret line="8" column="0" selection-start-line="8" selection-start-column="0" selection-end-line="8" selection-end-column="0" />
-          <folding>
-            <element signature="n#!!doc;n#IDBRefactory#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="432">
-          <caret line="533" column="37" selection-start-line="533" selection-start-column="37" selection-end-line="533" selection-end-column="37" />
+        <state relative-caret-position="161">
+          <caret line="94" column="6" selection-start-line="94" selection-start-column="6" selection-end-line="94" selection-end-column="6" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/misc/SchemaHelper.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="352">
-          <caret line="35" column="43" selection-start-line="35" selection-start-column="43" selection-end-line="35" selection-end-column="43" />
-          <folding>
-            <element signature="e#0#44#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/def/IClassDefinition.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="59">
-          <caret line="255" column="6" selection-start-line="255" selection-start-column="6" selection-end-line="255" selection-end-column="6" />
+        <state relative-caret-position="373">
+          <caret line="330" column="12" selection-start-line="330" selection-start-column="12" selection-end-line="330" selection-end-column="12" />
           <folding>
             <element signature="n#!!doc" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/DBInterfaces.d.ts">
+    <entry file="file://$PROJECT_DIR$/lib/misc/SchemaHelper.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="473">
-          <caret line="57" column="19" selection-start-line="57" selection-start-column="19" selection-end-line="57" selection-end-column="19" />
-          <folding />
+        <state relative-caret-position="256">
+          <caret line="182" column="84" selection-start-line="182" selection-start-column="84" selection-end-line="182" selection-end-column="84" />
+          <folding>
+            <element signature="e#0#44#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/def/IDBRefactory.d.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="413">
+          <caret line="129" column="0" selection-start-line="129" selection-start-column="0" selection-end-line="129" selection-end-column="0" />
+          <folding>
+            <element signature="n#!!doc;n#IDBRefactory#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="107">
-          <caret line="543" column="51" selection-start-line="543" selection-start-column="51" selection-end-line="543" selection-end-column="51" />
+        <state relative-caret-position="163">
+          <caret line="542" column="51" selection-start-line="542" selection-start-column="51" selection-end-line="542" selection-end-column="51" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="45">
+          <caret line="1241" column="7" selection-start-line="1241" selection-start-column="7" selection-end-line="1241" selection-end-column="7" />
           <folding />
         </state>
       </provider>
