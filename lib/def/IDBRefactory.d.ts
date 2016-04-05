@@ -52,11 +52,10 @@ interface IDBRefactory
      */
     boxedObjectToPlainProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap);
 
-    // TODO Needed?
-    // /*
-    //
-    //  */
-    // boxedObjectToLinkedObject(classID:number, refPropID:number);
+    /*
+
+     */
+    boxedObjectToLinkedObject(classID:number, refPropID:number);
 
     /*
      Action opposite to extracting linked object: existing linked object will be disassembled into individual properties

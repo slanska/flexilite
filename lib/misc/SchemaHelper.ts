@@ -33,11 +33,11 @@ module Flexilite
             return this._targetSchema
         };
 
-        private _targetClass = {} as IClassPropertyDictionary;
+        private _targetClassProps = {} as IClassPropertyDictionary;
 
-        public get targetClass()
+        public get targetClassProps()
         {
-            return this._targetClass;
+            return this._targetClassProps;
         }
 
         /*
@@ -100,11 +100,11 @@ module Flexilite
             if (!_.isFunction(self.getClassIDbyName))
                 throw new Error('getClassIDbyName() is not assigned');
 
-            self._targetClass = {} as IClassPropertyDictionary;
+            self._targetClassProps = {} as IClassPropertyDictionary;
             self._targetSchema = {} as ISchemaPropertyDictionary;
 
             var s = self._targetSchema;
-            var c = self._targetClass;
+            var c = self._targetClassProps;
 
             _.forEach(this.sourceSchema.allProperties, (item:IORMPropertyDef, propName:string) =>
                 {

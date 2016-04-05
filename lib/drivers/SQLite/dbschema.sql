@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   [ClassID]           INTEGER  NOT NULL PRIMARY KEY AUTOINCREMENT,
   [NameID]         INTEGER NOT NULL CONSTRAINT [fkClassesNameID]
                                          REFERENCES [.names] ([NameID]) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  [ViewOutdated] BOOL NOT NULL DEFAULT 0,
+  [ViewOutdated] BOOL NOT NULL DEFAULT 1,
 
   /*
   Schema ID
