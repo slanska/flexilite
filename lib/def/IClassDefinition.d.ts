@@ -312,6 +312,8 @@ interface IClassProperty
     defaultValue?:any;
 }
 
+type IClassPropertyDictionary = {[propID:number]:IClassProperty};
+
 /*
  Structure of .classes.Data
  */
@@ -334,7 +336,9 @@ interface IClassDefinition
     /*
      Properties definition for view generation
      */
-    properties:{[propID:number]:IClassProperty};
+    properties:IClassPropertyDictionary;
 }
 
-type IClassPropertyDictionary = {[propName:string]:IClassProperty};
+type IClassPropertyDictionaryByName = {[propName:string]:IClassProperty};
+
+

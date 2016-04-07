@@ -57,7 +57,8 @@ declare const enum VALUE_CONTROL_FLAGS
     REFERENCE_DEPENDENT_BOTH = 14,
     FULL_TEXT_INDEX = 16,
     RANGE_INDEX = 32,
-    NO_TRACK_CHANGES = 64
+    NO_TRACK_CHANGES = 64,
+    UNIQUE_INDEX = 128
 }
 
 
@@ -168,9 +169,8 @@ interface IFlexiClassProperty
     ClassID:number;
     NameID:number;
     Name?:string;
-    ColumnAssigned?:string;
-    TempColumnAssigned?:string;
     ctlv:VALUE_CONTROL_FLAGS;
+    ColumnAssigned?:string;
 
     /*
      JSON text. Computed property taken from [.classes]
@@ -219,7 +219,7 @@ interface IFlexiSchema
     Hash:string;
 
     // JSON text
-    Data:ISchemaDefinition ;
+    Data:ISchemaDefinition;
 }
 
 /*
@@ -261,6 +261,7 @@ interface IClassAndSchema
     Schema?:IFlexiSchema;
 }
 
-declare type IFlexiClassPropDictionary = {[propName:string]: IFlexiClassProperty};
+declare type IFlexiClassPropDictionaryByName = {[propName:string]: IFlexiClassProperty};
+declare type IFlexiClassPropDictionaryByID = {[propID:number]: IFlexiClassProperty};
 
 

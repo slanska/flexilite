@@ -187,9 +187,10 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   [ViewOutdated] BOOL NOT NULL DEFAULT 1,
 
   /*
-  Schema ID
+  Base Schema ID. Can be set to null for a newly created class
   */
-  [BaseSchemaID] INTEGER NOT NULL ,
+  [BaseSchemaID] INTEGER NULL CONSTRAINT [fkClassesBaseSchemaID]
+                                         REFERENCES [.schemas] ([SchemaID]) ON DELETE RESTRICT ON UPDATE RESTRICT,
 
    -- System class is used internally by the system and cannot be changed or deleted by end-user
 
@@ -214,9 +215,10 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   AccessRules JSON1 NULL,
 
   /*
-  IClassDefinition
+  IClassDefinition. Can be set to null for a newly created class
   */
-  Data JSON1 NOT NULL
+  Data JSON1 NULL,
+  Hash TEXT(40) NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClasses_byNameID] ON [.classes] ([NameID]);
@@ -527,15 +529,11 @@ create table if not exists [.class_properties]
         */
     [NameID] INTEGER NOT NULL constraint [fkClassPropertiesToNames] references [.names] ([NameID])
         on delete restrict on update restrict,
-    [ColumnAssigned] CHAR NULL CHECK  (ColumnAssigned >= 'A' and ColumnAssigned <= 'J'),
     [ctlv] INTEGER NOT NULL DEFAULT 0
  );
 
  create unique index if not exists [idxClassPropertiesByClassAndName] on [.class_properties]
  (ClassID, NameID);
-
- create unique index if not exists [idxClassPropertiesByColumnAssigned] on [.class_properties]
- (ClassID, ColumnAssigned) where ColumnAssigned is not null;
 
  create view if not exists [.vw_class_properties] as
  select
@@ -543,12 +541,23 @@ create table if not exists [.class_properties]
     [ClassID],
     [NameID],
     (select [Value] from [.names] n where n.NameID = NameID limit 1) as Name,
-    [ColumnAssigned],
+    case
+        when c.A = PropertyID then 'A'
+        when c.B = PropertyID then 'B'
+        when c.C = PropertyID then 'C'
+        when c.D = PropertyID then 'D'
+        when c.E = PropertyID then 'E'
+        when c.F = PropertyID then 'F'
+        when c.G = PropertyID then 'G'
+        when c.H = PropertyID then 'H'
+        when c.I = PropertyID then 'I'
+        when c.J = PropertyID then 'J'
+        else null
+    end as [ColumnAssigned],
     ctlv,
-    (select json_extract(c.Data, printf('$.properties.%d', [PropertyID])) from [.classes] c
-    where c.ClassID = ClassID limit 1) as Data
+    (json_extract(c.Data, printf('$.properties.%d', [PropertyID]))) as Data
 
- from [.class_properties];
+ from [.class_properties] cp join [.classes] c on cp.ClassID = c.ClassID;
 
  /*
  TODO Triggers on insert, update, delete
@@ -1026,8 +1035,8 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
 
   /*
   ctlv is used for index control. Possible values:
-      0 - Index
-      1-3 - reference
+      bit 0 - Index
+      bits 1-3 - reference
           2(3 as bit 0 is set) - regular ref
           4(5) - ref: A -> B. When A deleted, delete B
           6(7) - when B deleted, delete A
@@ -1036,9 +1045,10 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
           12(13) - cannot delete B until this reference exists
           14(15) - cannot delete A nor B until this reference exist
 
-      16 - full text data
-      32 - range data
-      64 - DON'T track changes
+      bit 4 (16) - full text data
+      bit 5 (32) - range data
+      bit 6 (64) - DON'T track changes
+      bit 7 (128) - unique index
   */
   [ctlv]       INTEGER,
   RefObjectID INTEGER NULL,
@@ -1048,6 +1058,8 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
 CREATE INDEX IF NOT EXISTS [idxClassReversedRefs] ON [.ref-values] ([RefObjectID], [PropertyID]) WHERE [ctlv] & 14;
 
 CREATE INDEX IF NOT EXISTS [idxValuesByPropValue] ON [.ref-values] ([PropertyID], [Value]) WHERE ([ctlv] & 1);
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxValuesByPropUniqueValue] ON [.ref-values] ([PropertyID], [Value]) WHERE ([ctlv] & 128);
 
 CREATE TRIGGER IF NOT EXISTS [trigValuesAfterInsert]
 AFTER INSERT

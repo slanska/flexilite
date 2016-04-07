@@ -7,10 +7,14 @@
 
 import sqlite3 = require('sqlite3');
 import objectHash = require('object-hash');
-import SchemaHelper = require('../../misc/SchemaHelper');
+import {SchemaHelper, IShemaHelper} from '../../misc/SchemaHelper';
 
 export class SQLiteDataRefactor implements IDBRefactory
 {
+    boxedObjectToLinkedObject(classID:number, refPropID:number)
+    {
+    }
+
     constructor(private DB:sqlite3.Database)
     {
 
@@ -426,6 +430,15 @@ export class SQLiteDataRefactor implements IDBRefactory
     }
 
     /*
+
+     */
+    public generateView(classID:number)
+    {
+
+    }
+
+
+    /*
      Synchronizes node-orm model to .classes and .class_properties.
      Makes updates to the database.
      Returns instance of ICollectionDef, with all changes applied
@@ -441,136 +454,172 @@ export class SQLiteDataRefactor implements IDBRefactory
 
      hasMany and hasOne are converted into reference properties
      */
+    // TODO Callback, Sync version
     generateClassAndSchemaDefForSync(model:ISyncOptions):IClassAndSchema
     {
         var self = this;
 
-        // Normalize model
-        var converter = new SchemaHelper(self.DB, model);
-        converter.getNameID = self.getNameByID.bind(self);
-        converter.convertFromNodeOrmSync();
+        var vars = {} as ISyncVariables;
+        vars.DB = self.DB;
 
-        // Now we have mapping schema and class properties. Need to transform them before saving
-        var schemaData = {} as IFlexiSchema;
-        // Fill schema
-
-        // Initialize properties
-        var newProps = {} as IFlexiClassPropDictionary;
-        _.forEach(converter.targetClassProps, (p:IClassProperty, propName:string)=>
+        // Get mapping schema and class properties.
+        // They come as Dictionary of IClassProperty by property name and
+        // Dictionary of schema property def by property name
+        // Need to transform them before saving to dictionaries by property ID
+        vars.converter = new SchemaHelper(self.DB, model);
+        vars.converter.getNameID = self.getNameByID.bind(self);
+        vars.converter.getClassIDbyName = (name:string)=>
         {
+            return self.getClassDefByName(name).ClassID;
+        };
+        vars.converter.convertFromNodeOrmSync();
+
+        /*
+         0.1 Init variables: existing properties, properties to delete
+         1. Find class
+         1.1 exists? get existing properties and properties to delete
+         1.2 no? create new class, save in database to get class ID. BaseSchemaID is not set yet
+         2.1 Get name IDs for new properties
+         2.2 Prepare list of existing column assignments: dictionary by column name (A..J) to property Name ID. Also include
+         priority level: 100 for ID role, 90 - Code, 80 - unique index, 70 - index, 60 - scalar required,
+         50 - scalar not required, 0 - others
+         2.3 for every prop check if it needs/wishes to have fixed column assigned. Rule is:
+         if there is existing property with column assigned, keep it unless there are new properties with higher
+         priority level
+
+         4. Check if there are some properties which switch from BOXED_OBJECT to FKEY ->
+         process them by creating new objects, copy property values, delete properties from existing records
+         5. Delete obsolete properties
+         6. Insert or replace new/existing properties
+         7. Update class: BaseSchemaID, ViewOutdated, Data, Hash
+         8. Generate view with triggers
+         */
+
+        // Initialize
+        vars.existingProps = {} as IFlexiClassPropDictionaryByID; // Dictionary by property name
+        vars.propsToDelete = [] as IFlexiClassProperty[]; // Array of properties
+        vars.schemaData = {Data: {properties: {}}} as IFlexiSchema; // future Schema.Data
+        vars.newProps = {} as IFlexiClassPropDictionaryByName; // Dictionary by property name
+        vars.columnAssignments = {};
+
+        // Init items for [.class_properties]
+        _.forEach(vars.converter.targetClassProps, (p:IClassProperty, n:string)=>
+        {
+            let nameID = self.getNameByValue(n).NameID;
             let np = {} as IFlexiClassProperty;
-            np.ClassID = classDef.ClassID;
+            np.NameID = nameID;
+            np.ctlv = 0; // TODO to set later
             np.Data = p;
-            np.NameID = self.getNameByValue(propName).NameID;
-
-            np.ctlv = 0;
-            if (p.indexed)
-            {
-                np.ctlv |= VALUE_CONTROL_FLAGS.INDEX;
-            }
-
-            // TODO set other ctlv flags
-
-            newProps[propName] = np;
-
-            // Process column assignment
-            // TODO
+            vars.newProps[n] = np;
         });
 
         // Load existing class definition if exists
-        var classDef = self.getClassDefByName(model.table);
-        if (classDef)
+        var classNameID = self.getNameByValue(model.table).NameID;
+        vars.classDef = self.getClassDefByName(model.table);
+        if (vars.classDef)
         // Class already exists. It would be ALTER CLASS rather than CREATE CLASS
         {
-            var classProps = <IFlexiClassProperty[]>self.DB.all.sync(self.DB,
-                `select * from [.vw_class_properties] where ClassID = $ClassID;`, {$ClassID: classDef.ClassID});
-
-            var existingProps = {} as IFlexiClassPropDictionary;
-            var propsToDelete = [] as IFlexiClassProperty[];
-            _.forEach(classProps, (p:IFlexiClassProperty)=>
-            {
-                if (converter.targetClassProps.hasOwnProperty(p.Name))
-                    existingProps[p.Name] = p;
-                else
-                    propsToDelete.push(p);
-            });
-
-            _.forEach(newProps, (np:IFlexiClassProperty, propName:string)=>
-            {
-                let ep = existingProps[propName];
-                if (ep)
-                {
-                    np.PropertyID = ep.PropertyID;
-                }
-            });
-
-            // Fill updated properties
-            var updPropStmt = self.DB.prepare(`insert or replace into [.class_properties] 
-                (PropertyID, ClassID, NameID, ColumnAssigned, ctlv, Data) 
-                values ($PropertyID, $ClassID, $NameID, $ColumnAssigned, $ctlv, $Data);`);
-            _.forEach(newProps, (p:IFlexiClassProperty, propName:string)=>
-            {
-                updPropStmt.run.sync(updPropStmt, {
-                    $PropertyID: p.PropertyID,
-                    $ClassID: p.ClassID,
-                    $NameID: p.NameID,
-                    $ColumnAssigned: p.ColumnAssigned,
-                    $ctlv: p.ctlv,
-                    $Data: JSON.stringify(p.Data)
-                });
-            });
-
-            var delPropStmt = self.DB.prepare(`delete from [.class_properties] where PropertyID = $propID`);
-            // Remove properties that are not in the new structure
-            _.forEach(propsToDelete, (p:IFlexiClassProperty, idx)=>
-            {
-                delPropStmt.run.sync(delPropStmt, {$propID: p.PropertyID});
-            });
-
-            // Check if this schema is already defined.
-            // By schema signature
-            var hashValue = objectHash(schemaData);
-
-            var schemas = self.DB.all.sync(self.DB, `select * from [.schemas] where Hash = $hash and NameID = $classNameID`,
-                {hash: hashValue, NameID: classDef.NameID});
-            existingSchema = _.find(schemas, (item:IFlexiSchema)=>
-            {
-                if (_.isEqual(item.Data, schemaData.Data))
-                    return true;
-            });
+            self.initWhenClassExists(self, vars);
         }
         else
-        // Class does not exist. Insert new one
+        // Class does not exist. Insert new one to get ClassID
         {
-            classDef = {} as IFlexiClass;
-            classDef.NameID = self.getNameByValue(model.table).NameID;
-            classDef.BaseSchemaID = 0;
-            classDef.ctloMask = 0; // TODO
-            classDef.Data = newProps;
-            classDef.Hash = objectHash(newProps);
-
-            let clsID = self.DB.all.sync(self.DB, `insert into [.classes] (NameID, BaseSchemaID, ctloMask, A, B, C, D, E, F, G, H, I, J) 
-                values ($NameID, $BaseSchemaID, $ctloMask, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J); select last_insert_rowid();`, {
-                $NameID: classDef.NameID,
-                $BaseSchemaID: classDef.BaseSchemaID,
-                $ctloMask: classDef.ctloMask,
-                $A: classDef.A,
-                $B: classDef.B,
-                $C: classDef.C,
-                $D: classDef.D,
-                $E: classDef.E,
-                $F: classDef.F,
-                $G: classDef.G,
-                $H: classDef.H,
-                $I: classDef.I,
-                $J: classDef.J,
-                $Hash: classDef.Hash,
-                $Data: JSON.stringify(classDef.Data)
-            });
+            self.saveNewClass(self, vars, model);
         }
 
+        this.initExistingColAssignment(vars);
 
-        if (!existingSchema)
+        self.initAndSaveProperties(self, vars);
+        // Now vars.newProps are saved and have property IDs assigned
+
+        // Set column assignments
+        _.forEach(vars.newProps as any, (p:IFlexiClassProperty, id:number)=>
+        {
+            let prior = 0;
+            prior = self.determineColAssignmentPriority(p.Data, id);
+            if (prior !== 0)
+            {
+                // Try to find available columns
+                _.forEach(vars.columnAssignments, (ca:IColumnAssignmentInfo, col:string)=>
+                {
+                    if (ca.propID && ca.propID !== id && ca.priority < prior)
+                    {
+
+                    }
+                });
+            }
+        });
+
+        // Set class properties
+
+        // Check if
+
+        self.initSchemaData(self, vars, model);
+        self.prepareSchemaData(self, vars);
+        self.saveSchema(self, vars, classNameID);
+
+        return {Class: vars.classDef, Schema: vars.schemaData};
+    }
+
+    /*
+
+     */
+    private initExistingColAssignment(vars:ISyncVariables)
+    {
+        // Set column assignment
+        let cols = 'ABCDEFGHIJ';
+        for (var c = 0; c < cols.length; c++)
+        {
+            let pid = vars.classDef[cols[c]];
+            let prior = 0;
+            if (pid)
+            {
+                prior = this.determineColAssignmentPriority(vars.classDef.Data.properties[pid], pid);
+            }
+            vars.columnAssignments[c] = {propID: pid, priority: prior};
+        }
+    }
+
+    /*
+
+     */
+    private determineColAssignmentPriority(cp:IClassProperty, pid:any)
+    {
+        let prior = 0;
+
+        if (cp.role & PROPERTY_ROLE.ID)
+            prior = 100;
+        else
+            if (cp.role & PROPERTY_ROLE.Code)
+                prior = 90;
+            else
+                if (cp.unique)
+                    prior = 80;
+                else
+                    if (cp.indexed)
+                        prior = 70;
+                    else
+                    {
+                        switch (cp.rules.type)
+                        {
+                            case PROPERTY_TYPE.BINARY:
+                            case PROPERTY_TYPE.JSON:
+                            case PROPERTY_TYPE.LINK:
+                            case PROPERTY_TYPE.OBJECT:
+                                prior = 0;
+                                break;
+                            default:
+                                if (cp.rules.maxOccurences === 1 && cp.rules.minOccurences === 1)
+                                    prior = 60;
+                                else prior = 50;
+                        }
+                    }
+        return prior;
+    }
+
+    private initSchemaData(self:SQLiteDataRefactor, vars:ISyncVariables, model:ISyncOptions)
+    {
+        if (!vars.schemaData)
         {
             // Schema match not found. Create new one
             let sql = `insert into [.schemas] into (NameID, Data, Hash) values ($NameID, $Data, $Hash);
@@ -578,18 +627,206 @@ export class SQLiteDataRefactor implements IDBRefactory
             var rows = self.DB.all.sync(self.DB, sql,
                 {
                     $NameID: self.getNameByValue(model.table).NameID,
-                    $Data: JSON.stringify(schemaData.Data),
-                    $Hash: hashValue
+                    $Data: JSON.stringify(vars.schemaData.Data),
+                    $Hash: objectHash(vars.schemaData.Data)
                 });
-            existingSchema = rows[0] as IFlexiSchema;
+            vars.schemaData = rows[0] as IFlexiSchema;
         }
         else
         {
 
         }
-
-        return {Class: classDef, Schema: schemaData};
     }
 
+    private initAndSaveProperties(self:SQLiteDataRefactor, vars:ISyncVariables)
+    {
+        // Fill updated properties
+        var updPropStmt = self.DB.prepare(`insert or replace into [.class_properties] 
+                (PropertyID, ClassID, NameID, ctlv) 
+                values ($PropertyID, $ClassID, $NameID, $ctlv);`);
 
+        // Initialize properties
+        _.forEach(vars.converter.targetClassProps, (p:IClassProperty, propName:string)=>
+        {
+            let np = {} as IFlexiClassProperty;
+            np.ClassID = vars.classDef.ClassID;
+            np.NameID = self.getNameByValue(propName).NameID;
+            np.ctlv = 0;
+            if (p.unique)
+            {
+                np.ctlv |= VALUE_CONTROL_FLAGS.UNIQUE_INDEX;
+            }
+            else
+                if (p.indexed)
+                {
+                    np.ctlv |= VALUE_CONTROL_FLAGS.INDEX;
+                }
+
+            if (p.fastTextSearch)
+            {
+                np.ctlv |= VALUE_CONTROL_FLAGS.FULL_TEXT_INDEX;
+            }
+            vars.newProps[propName] = np;
+
+            updPropStmt.run.sync(updPropStmt, {
+                $PropertyID: np.PropertyID,
+                $ClassID: np.ClassID,
+                $NameID: np.NameID,
+                $ctlv: np.ctlv
+            });
+        });
+    }
+
+    private saveNewClass(self:SQLiteDataRefactor, vars:ISyncVariables, model:ISyncOptions)
+    {
+        vars.classDef = {} as IFlexiClass;
+        vars.classDef.NameID = self.getNameByValue(model.table).NameID;
+        // Skip BaseSchemaID now - will set it later
+        vars.classDef.ctloMask = 0; // TODO
+        // TODO set later: vars.classDef.Data = {properties: vars.newProps};
+        //vars.classDef.Hash = objectHash(vars.classDef.Data);
+
+        let clsID = self.DB.all.sync(self.DB, `insert or replace into [.classes] (NameID, BaseSchemaID, ctloMask, A, B, C, D, E, F, G, H, I, J) 
+                values ($NameID, $BaseSchemaID, $ctloMask, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J); select last_insert_rowid();`, {
+            $NameID: vars.classDef.NameID,
+            $BaseSchemaID: vars.classDef.BaseSchemaID,
+            $ctloMask: vars.classDef.ctloMask,
+            $A: vars.classDef.A,
+            $B: vars.classDef.B,
+            $C: vars.classDef.C,
+            $D: vars.classDef.D,
+            $E: vars.classDef.E,
+            $F: vars.classDef.F,
+            $G: vars.classDef.G,
+            $H: vars.classDef.H,
+            $I: vars.classDef.I,
+            $J: vars.classDef.J,
+            $Hash: vars.classDef.Hash,
+            $Data: JSON.stringify(vars.classDef.Data)
+        });
+        vars.classDef.ClassID = clsID;
+    }
+
+    private saveSchema(self:SQLiteDataRefactor, vars:ISyncVariables, classNameID:number)
+    {
+        self.DB.run.sync(self.DB, `insert or replace into [.schemas] (SchemaID, NameID, Hash, Data) 
+                values ($SchemaID, $NameID, $Hash, $Data);`, {
+            $SchemaID: vars.schemaData.SchemaID,
+            $NameID: classNameID,
+            $Hash: objectHash(vars.schemaData.Data),
+            $Data: JSON.stringify(vars.schemaData.Data)
+        });
+    }
+
+    /*
+     Initializes vars with data from existing class
+     */
+    private initWhenClassExists(self:SQLiteDataRefactor, vars:ISyncVariables)
+    {
+        // Load .class_properties
+        var classProps = <IFlexiClassProperty[]>self.DB.all.sync(self.DB,
+            `select * from [.vw_class_properties] where ClassID = $ClassID;`, {$ClassID: vars.classDef.ClassID});
+
+        // Add property to either existing list or to candidates for removal
+        _.forEach(classProps, (p:IFlexiClassProperty)=>
+        {
+            if (vars.converter.targetClassProps[p.Name])
+                vars.existingProps[p.PropertyID] = p;
+            else
+                vars.propsToDelete.push(p);
+        });
+
+        // Set IDs for existing properties
+        _.forEach(vars.newProps as any, (np:IFlexiClassProperty, id:number)=>
+        {
+            let ep = vars.existingProps[np.NameID];
+            if (ep)
+            {
+                np.PropertyID = ep.PropertyID;
+            }
+        });
+
+        var delPropStmt = self.DB.prepare(`delete from [.class_properties] where PropertyID = $propID`);
+        // Remove properties that are not in the new structure
+        _.forEach(vars.propsToDelete, (p:IFlexiClassProperty, idx)=>
+        {
+            delPropStmt.run.sync(delPropStmt, {$propID: p.PropertyID});
+        });
+    }
+
+    /*
+     Converts schema data from Dictionary<name:string> to Dictionary<nameID>
+     */
+    private prepareSchemaData(self:SQLiteDataRefactor, vars:ISyncVariables)
+    {
+        _.forEach(vars.converter.targetSchema, (p:ISchemaPropertyDefinition, n:string)=>
+        {
+            let nameID = self.getNameByValue(n).NameID;
+            vars.schemaData.Data.properties[nameID] = p;
+        });
+
+        // Check if this schema is already defined.
+        // By schema signature
+        var hashValue = objectHash(vars.schemaData);
+
+        var schemas = self.DB.all.sync(self.DB, `select * from [.schemas] where Hash = $hash and NameID = $classNameID`,
+            {hash: hashValue, NameID: vars.classDef.NameID});
+        let foundSchema = _.find(schemas, (item:IFlexiSchema)=>
+        {
+            if (_.isEqual(item.Data, vars.schemaData.Data))
+            {
+                vars.schemaData = item;
+                return true;
+            }
+        });
+    }
+}
+
+type IColumnAssignmentInfo = {propID?:number, priority:number};
+
+/*
+ Internally used set of parameters for synchronization
+ Grouped together for easy passing between functions
+ */
+interface ISyncVariables
+{
+    /*
+     Loaded existing properties. Dictionary by property ID
+     */
+    existingProps:IFlexiClassPropDictionaryByID;
+
+    /*
+     Array of properties to delete
+     */
+    propsToDelete:IFlexiClassProperty[]; // Array of properties
+
+    /*
+     [.schemas] row.
+     */
+    schemaData:IFlexiSchema;
+
+    /*
+     Properties to be inserted/updated. Dictionary by property name
+     */
+    newProps:IFlexiClassPropDictionaryByID;
+
+    /*
+
+     */
+    columnAssignments:{[col:string]:IColumnAssignmentInfo};
+
+    /*
+
+     */
+    classDef:IFlexiClass;
+
+    /*
+
+     */
+    converter:IShemaHelper;
+
+    /*
+
+     */
+    DB:sqlite3.Database;
 }
