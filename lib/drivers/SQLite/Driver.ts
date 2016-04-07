@@ -425,9 +425,9 @@ namespace Flexilite.SQLite
 
             nonSchemaProps.forEach(function (item:IFlexiRefValue, idx, arr)
             {
-                self.execSQL(`insert or replace into [.values_view] (ObjectID, ClassID, PropertyID, PropIndex,
+                self.execSQL(`insert or replace into [.values_view] (ObjectID, PropertyID, PropIndex,
                 [Value], [ctlv]) values (?, ?, ?, ?, ?, ?, ?)`,
-                    item.ObjectID, item.ClassID, item.PropertyID, item.PropIndex, item.Value, item.ctlv);
+                    item.ObjectID, item.PropertyID, item.PropIndex, item.Value, item.ctlv);
                 //TODO Set ctlo. use propInfo?
             });
 
@@ -930,13 +930,8 @@ namespace Flexilite.SQLite
             {
                 try
                 {
-                    // Process data and save in .collections and  .schemas tables
-                    // Sets .collections ViewOutdated
                     var refactor = new SQLiteDataRefactor(self.db);
-                    var def = refactor.generateClassAndSchemaDefForSync(opts);
-
-                    // Check if class exists of not
-                    refactor.createClass(opts.table, def.Class.Data, def.Schema.Data);
+                    refactor.generateClassAndSchemaDefForSync(opts);
 
                     callback();
                 }

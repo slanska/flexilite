@@ -9,6 +9,27 @@ import sqlite3 = require('sqlite3');
 import objectHash = require('object-hash');
 import {SchemaHelper, IShemaHelper} from '../../misc/SchemaHelper';
 
+/*
+ Level of priority for property to have fixed column assigned
+ */
+const enum COLUMN_ASSIGN_PRIORITY
+{
+    /*
+     for indexed and ID/Code properties
+     */
+    REQUIRED = 2,
+
+    /*
+     For scalar properties
+     */
+    DESIRED = 1,
+
+    /*
+     Assignment is not set or not required
+     */
+    NOT_SET = 0
+}
+
 export class SQLiteDataRefactor implements IDBRefactory
 {
     boxedObjectToLinkedObject(classID:number, refPropID:number)
@@ -434,9 +455,14 @@ export class SQLiteDataRefactor implements IDBRefactory
      */
     public generateView(classID:number)
     {
-
+        var classDef = this.getClassDefByID(classID);
+        this.doGenerateView(classDef);
     }
 
+    private doGenerateView(classDef:IFlexiClass)
+    {
+
+    }
 
     /*
      Synchronizes node-orm model to .classes and .class_properties.
@@ -455,9 +481,11 @@ export class SQLiteDataRefactor implements IDBRefactory
      hasMany and hasOne are converted into reference properties
      */
     // TODO Callback, Sync version
-    generateClassAndSchemaDefForSync(model:ISyncOptions):IClassAndSchema
+    generateClassAndSchemaDefForSync(model:ISyncOptions)
     {
         var self = this;
+
+        // TODO SQLite checkpoint
 
         var vars = {} as ISyncVariables;
         vars.DB = self.DB;
@@ -533,32 +561,84 @@ export class SQLiteDataRefactor implements IDBRefactory
         // Now vars.newProps are saved and have property IDs assigned
 
         // Set column assignments
-        _.forEach(vars.newProps as any, (p:IFlexiClassProperty, id:number)=>
-        {
-            let prior = 0;
-            prior = self.determineColAssignmentPriority(p.Data, id);
-            if (prior !== 0)
-            {
-                // Try to find available columns
-                _.forEach(vars.columnAssignments, (ca:IColumnAssignmentInfo, col:string)=>
-                {
-                    if (ca.propID && ca.propID !== id && ca.priority < prior)
-                    {
-
-                    }
-                });
-            }
-        });
+        this.assignColumns(self, vars, COLUMN_ASSIGN_PRIORITY.REQUIRED);
+        this.assignColumns(self, vars, COLUMN_ASSIGN_PRIORITY.DESIRED);
 
         // Set class properties
+        // ctloMask
+        vars.classDef.ctloMask = OBJECT_CONTROL_FLAGS.NONE;
 
-        // Check if
+        // Column assignments
+        let cols = 'ABCDEFGHIJ';
+        for (let idx = 0; idx < cols.length; idx++)
+        {
+            let propID = vars.columnAssignments[cols[idx]].propID;
+            vars.classDef[cols[idx]] = propID;
+            if (propID)
+            {
+                let ch_offset = cols[idx].charCodeAt(0) - 'A'.charCodeAt(0);
+                let p:IFlexiClassProperty = vars.newProps[propID];
+                if (p.Data.unique || (p.Data.role & PROPERTY_ROLE.Code) || (p.Data.role & PROPERTY_ROLE.ID))
+                {
+                    vars.classDef.ctloMask |= 1 << (1 + ch_offset);
+                }
+                else
+                    if (p.Data.indexed)
+                    {
+                        vars.classDef.ctloMask |= 1 << (13 + ch_offset);
+                    }
+                    else
+                        if (p.Data.fastTextSearch)
+                        {
+                            vars.classDef.ctloMask |= 1 << (25 + ch_offset);
+                        }
+                // TODO range index is not supported yet
+            }
+        }
+
+        // Check if there are properties that have changed from OBJECT to LINK
+// TODO
 
         self.initSchemaData(self, vars, model);
         self.prepareSchemaData(self, vars);
         self.saveSchema(self, vars, classNameID);
 
-        return {Class: vars.classDef, Schema: vars.schemaData};
+        self.doGenerateView(vars.classDef);
+    }
+
+    /*
+
+     */
+    private assignColumns(self:SQLiteDataRefactor, vars:ISyncVariables, target_priority:COLUMN_ASSIGN_PRIORITY)
+    {
+        _.forEach(vars.newProps as any, (p:IFlexiClassProperty, id:number)=>
+        {
+            let prop_priority = self.determineColAssignmentPriority(p.Data);
+            if (prop_priority === target_priority)
+            {
+                // Find unused columns first
+                let ca = _.find(vars.columnAssignments, (ca:IColumnAssignmentInfo) =>
+                {
+                    return ca.priority === COLUMN_ASSIGN_PRIORITY.NOT_SET;
+                });
+                if (ca)
+                {
+                    ca.propID = id;
+                    return;
+                }
+
+                // Find already assigned columns, but associated with lower-priority properties
+                ca = _.find(vars.columnAssignments, (ca:IColumnAssignmentInfo) =>
+                {
+                    return ca.priority < target_priority;
+                });
+                if (ca)
+                {
+                    ca.propID = id;
+                    return;
+                }
+            }
+        });
     }
 
     /*
@@ -571,49 +651,39 @@ export class SQLiteDataRefactor implements IDBRefactory
         for (var c = 0; c < cols.length; c++)
         {
             let pid = vars.classDef[cols[c]];
-            let prior = 0;
+            let prior = COLUMN_ASSIGN_PRIORITY.NOT_SET;
             if (pid)
             {
-                prior = this.determineColAssignmentPriority(vars.classDef.Data.properties[pid], pid);
+                prior = this.determineColAssignmentPriority(vars.classDef.Data.properties[pid]);
             }
             vars.columnAssignments[c] = {propID: pid, priority: prior};
         }
     }
 
+
     /*
 
      */
-    private determineColAssignmentPriority(cp:IClassProperty, pid:any)
+    private determineColAssignmentPriority(cp:IClassProperty)
     {
-        let prior = 0;
+        let prior = COLUMN_ASSIGN_PRIORITY.NOT_SET;
 
-        if (cp.role & PROPERTY_ROLE.ID)
-            prior = 100;
+        if ((cp.role & PROPERTY_ROLE.ID) || (cp.role & PROPERTY_ROLE.Code) || cp.unique || cp.indexed)
+            prior = COLUMN_ASSIGN_PRIORITY.REQUIRED;
         else
-            if (cp.role & PROPERTY_ROLE.Code)
-                prior = 90;
-            else
-                if (cp.unique)
-                    prior = 80;
-                else
-                    if (cp.indexed)
-                        prior = 70;
-                    else
-                    {
-                        switch (cp.rules.type)
-                        {
-                            case PROPERTY_TYPE.BINARY:
-                            case PROPERTY_TYPE.JSON:
-                            case PROPERTY_TYPE.LINK:
-                            case PROPERTY_TYPE.OBJECT:
-                                prior = 0;
-                                break;
-                            default:
-                                if (cp.rules.maxOccurences === 1 && cp.rules.minOccurences === 1)
-                                    prior = 60;
-                                else prior = 50;
-                        }
-                    }
+        {
+            switch (cp.rules.type)
+            {
+                case PROPERTY_TYPE.BINARY:
+                case PROPERTY_TYPE.JSON:
+                case PROPERTY_TYPE.LINK:
+                case PROPERTY_TYPE.OBJECT:
+                    prior = COLUMN_ASSIGN_PRIORITY.NOT_SET;
+                    break;
+                default:
+                    prior = COLUMN_ASSIGN_PRIORITY.DESIRED;
+            }
+        }
         return prior;
     }
 
@@ -782,7 +852,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     }
 }
 
-type IColumnAssignmentInfo = {propID?:number, priority:number};
+type IColumnAssignmentInfo = {propID?:number, priority:COLUMN_ASSIGN_PRIORITY};
 
 /*
  Internally used set of parameters for synchronization

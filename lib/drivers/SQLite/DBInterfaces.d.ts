@@ -23,7 +23,47 @@
 declare const enum OBJECT_CONTROL_FLAGS
 {
     NONE = 0,
-    WEAK_OBJECT = 1,
+    WEAK_OBJECT = 1 << 0,
+    A_UNIQUE = 1 << 1,
+    B_UNIQUE = 1 << 2,
+    C_UNIQUE = 1 << 3,
+    D_UNIQUE = 1 << 4,
+    E_UNIQUE = 1 << 5,
+    F_UNIQUE = 1 << 6,
+    G_UNIQUE = 1 << 7,
+    H_UNIQUE = 1 << 8,
+    I_UNIQUE = 1 << 9,
+    J_UNIQUE = 1 << 10,
+    A_INDEXED = 1 << 13,
+    B_INDEXED = 1 << 14,
+    C_INDEXED = 1 << 15,
+    D_INDEXED = 1 << 16,
+    E_INDEXED = 1 << 17,
+    F_INDEXED = 1 << 18,
+    G_INDEXED = 1 << 19,
+    H_INDEXED = 1 << 20,
+    I_INDEXED = 1 << 21,
+    J_INDEXED = 1 << 22,
+    A_FTS = 1 << 25,
+    B_FTS = 1 << 26,
+    C_FTS = 1 << 27,
+    D_FTS = 1 << 28,
+    E_FTS = 1 << 29,
+    F_FTS = 1 << 30,
+    G_FTS = 1 << 31,
+    H_FTS = 1 << 32,
+    I_FTS = 1 << 33,
+    J_FTS = 1 << 34,
+    A_RANGE = 1 << 37,
+    B_RANGE = 1 << 38,
+    C_RANGE = 1 << 39,
+    D_RANGE = 1 << 40,
+    E_RANGE = 1 << 41,
+    F_RANGE = 1 << 42,
+    G_RANGE = 1 << 43,
+    H_RANGE = 1 << 44,
+    I_RANGE = 1 << 45,
+    J_RANGE = 1 << 46,
     NO_TRACK_CHANGES = 1 << 49,
     SCHEMA_NOT_ENFORCED = 1 << 50
 }
@@ -94,7 +134,7 @@ interface IFlexiRefValue
     Value?:any;
 
     /*
-    for references, referenced object ID
+     for references, referenced object ID
      */
     RefObjectID?:number;
 }
@@ -261,7 +301,7 @@ interface IClassAndSchema
     Schema?:IFlexiSchema;
 }
 
-declare type IFlexiClassPropDictionaryByName = {[propName:string]: IFlexiClassProperty};
-declare type IFlexiClassPropDictionaryByID = {[propID:number]: IFlexiClassProperty};
+declare type IFlexiClassPropDictionaryByName = {[propName:string]:IFlexiClassProperty};
+declare type IFlexiClassPropDictionaryByID = {[propID:number]:IFlexiClassProperty};
 
 

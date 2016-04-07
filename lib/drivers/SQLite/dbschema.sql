@@ -592,10 +592,11 @@ CREATE TABLE IF NOT EXISTS [.objects] (
   /*
   This is bit mask which regulates index storage.
   Bit 0: this object is a WEAK object and must be auto deleted after last reference to this object gets deleted.
-  Bits 1-10: columns A-J should be indexed for fast lookup. These bits are checked by partial indexes
-  Bits 13-22: columns A-J should be indexed for full text search
-  Bits 25-34: columns A-J should be treated as range values and indexed for range (spatial search) search
-  Bits 37-46: columns A-J should be indexed and be unique
+   Bits 1-10: columns A-J should be indexed and be unique
+  Bits 13-22: columns A-J should be indexed for fast lookup. These bits are checked by partial indexes
+  Bits 25-34: columns A-J should be indexed for full text search
+  Bits 37-46: columns A-J should be treated as range values and indexed for range (spatial search) search
+
   Bit 49: DON'T track changes
   Bit 50: Schema is not validated. Normally, this bit is set when object was referenced in other object
   but it was not defined in the schema
@@ -618,46 +619,46 @@ CREATE TABLE IF NOT EXISTS [.objects] (
 CREATE INDEX IF NOT EXISTS [idxObjectsByClassSchema] ON [.objects] ([ClassID], [SchemaID]);
 
 -- Conditional indexes
-CREATE INDEX IF NOT EXISTS [idxObjectsByA] ON [.objects] ([ClassID], [A]) WHERE (ctlo AND (1 << 1)) <> 0 AND [A] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByA] ON [.objects] ([ClassID], [A]) WHERE (ctlo AND (1 << 13)) <> 0 AND [A] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByB] ON [.objects] ([ClassID], [B]) WHERE (ctlo AND (1 << 2)) <> 0 AND [B] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByB] ON [.objects] ([ClassID], [B]) WHERE (ctlo AND (1 << 14)) <> 0 AND [B] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByC] ON [.objects] ([ClassID], [C]) WHERE (ctlo AND (1 << 3)) <> 0 AND [C] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByC] ON [.objects] ([ClassID], [C]) WHERE (ctlo AND (1 << 15)) <> 0 AND [C] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByD] ON [.objects] ([ClassID], [D]) WHERE (ctlo AND (1 << 4)) <> 0 AND [D] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByD] ON [.objects] ([ClassID], [D]) WHERE (ctlo AND (1 << 16)) <> 0 AND [D] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByE] ON [.objects] ([ClassID], [E]) WHERE (ctlo AND (1 << 5)) <> 0 AND [E] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByE] ON [.objects] ([ClassID], [E]) WHERE (ctlo AND (1 << 17)) <> 0 AND [E] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByF] ON [.objects] ([ClassID], [F]) WHERE (ctlo AND (1 << 6)) <> 0 AND [F] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByF] ON [.objects] ([ClassID], [F]) WHERE (ctlo AND (1 << 18)) <> 0 AND [F] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByG] ON [.objects] ([ClassID], [G]) WHERE (ctlo AND (1 << 7)) <> 0 AND [G] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByG] ON [.objects] ([ClassID], [G]) WHERE (ctlo AND (1 << 19)) <> 0 AND [G] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByH] ON [.objects] ([ClassID], [H]) WHERE (ctlo AND (1 << 8)) <> 0 AND [H] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByH] ON [.objects] ([ClassID], [H]) WHERE (ctlo AND (1 << 20)) <> 0 AND [H] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByI] ON [.objects] ([ClassID], [I]) WHERE (ctlo AND (1 << 9)) <> 0 AND [I] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByI] ON [.objects] ([ClassID], [I]) WHERE (ctlo AND (1 << 21)) <> 0 AND [I] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByJ] ON [.objects] ([ClassID], [J]) WHERE (ctlo AND (1 << 10)) <> 0 AND [J] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByJ] ON [.objects] ([ClassID], [J]) WHERE (ctlo AND (1 << 22)) <> 0 AND [J] IS NOT NULL;
 
 -- Unique conditional indexes
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByA] ON [.objects] ([ClassID], [A]) WHERE (ctlo AND (1 << 37)) <> 0 AND [A] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByA] ON [.objects] ([ClassID], [A]) WHERE (ctlo AND (1 << 1)) <> 0 AND [A] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByB] ON [.objects] ([ClassID], [B]) WHERE (ctlo AND (1 << 38)) <> 0 AND [B] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByB] ON [.objects] ([ClassID], [B]) WHERE (ctlo AND (1 << 2)) <> 0 AND [B] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByC] ON [.objects] ([ClassID], [C]) WHERE (ctlo AND (1 << 39)) <> 0 AND [C] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByC] ON [.objects] ([ClassID], [C]) WHERE (ctlo AND (1 << 3)) <> 0 AND [C] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByD] ON [.objects] ([ClassID], [D]) WHERE (ctlo AND (1 << 40)) <> 0 AND [D] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByD] ON [.objects] ([ClassID], [D]) WHERE (ctlo AND (1 << 4)) <> 0 AND [D] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByE] ON [.objects] ([ClassID], [E]) WHERE (ctlo AND (1 << 41)) <> 0 AND [E] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByE] ON [.objects] ([ClassID], [E]) WHERE (ctlo AND (1 << 5)) <> 0 AND [E] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByF] ON [.objects] ([ClassID], [F]) WHERE (ctlo AND (1 << 42)) <> 0 AND [F] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByF] ON [.objects] ([ClassID], [F]) WHERE (ctlo AND (1 << 6)) <> 0 AND [F] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByG] ON [.objects] ([ClassID], [G]) WHERE (ctlo AND (1 << 43)) <> 0 AND [G] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByG] ON [.objects] ([ClassID], [G]) WHERE (ctlo AND (1 << 7)) <> 0 AND [G] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByH] ON [.objects] ([ClassID], [H]) WHERE (ctlo AND (1 << 44)) <> 0 AND [H] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByH] ON [.objects] ([ClassID], [H]) WHERE (ctlo AND (1 << 8)) <> 0 AND [H] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByI] ON [.objects] ([ClassID], [I]) WHERE (ctlo AND (1 << 45)) <> 0 AND [I] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByI] ON [.objects] ([ClassID], [I]) WHERE (ctlo AND (1 << 9)) <> 0 AND [I] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByJ] ON [.objects] ([ClassID], [J]) WHERE (ctlo AND (1 << 46)) <> 0 AND [J] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByJ] ON [.objects] ([ClassID], [J]) WHERE (ctlo AND (1 << 10)) <> 0 AND [J] IS NOT NULL;
 
 -- Triggers
 CREATE TRIGGER IF NOT EXISTS [trigObjectsAfterInsert]
@@ -962,7 +963,7 @@ BEGIN
       printf('#%s#', new.[ObjectID]),
       '#0#',
       new.[Value]
-    WHERE new.[ColumnAssigned] IS NOT NULL AND new.ctlo & (1 << (12 + unicode(new.[ColumnAssigned]) - unicode('A'))) AND
+    WHERE new.[ColumnAssigned] IS NOT NULL AND new.ctlo & (1 << (25 + unicode(new.[ColumnAssigned]) - unicode('A'))) AND
           typeof(new.[Value]) = 'text';
 END;
 
@@ -974,7 +975,7 @@ BEGIN
   DELETE FROM [.full_text_data]
   WHERE
     new.[ColumnAssigned] IS NOT NULL AND
-    new.oldctlo & (1 << (12 + unicode(new.[ColumnAssigned]) - unicode('A'))) AND typeof(new.[oldValue]) = 'text'
+    new.oldctlo & (1 << (25 + unicode(new.[ColumnAssigned]) - unicode('A'))) AND typeof(new.[oldValue]) = 'text'
     AND [PropertyID] MATCH printf('#%s#', new.[ColumnAssigned])
     AND [ClassID] MATCH printf('#%s#', new.[oldClassID])
     AND [ObjectID] MATCH printf('#%s#', new.[oldObjectID])
@@ -987,7 +988,7 @@ BEGIN
       printf('#%s#', new.[ObjectID]),
       '#0#',
       new.[Value]
-    WHERE new.[ColumnAssigned] IS NOT NULL AND new.ctlo & (1 << (12 + unicode(new.[ColumnAssigned]) - unicode('A'))) AND
+    WHERE new.[ColumnAssigned] IS NOT NULL AND new.ctlo & (1 << (25 + unicode(new.[ColumnAssigned]) - unicode('A'))) AND
           typeof(new.[Value]) = 'text';
 END;
 
@@ -999,7 +1000,7 @@ BEGIN
   DELETE FROM [.full_text_data]
   WHERE
     old.[ColumnAssigned] IS NOT NULL AND
-    old.oldctlo & (1 << (12 + unicode(old.[ColumnAssigned]) - unicode('A'))) AND typeof(old.[oldValue]) = 'text'
+    old.oldctlo & (1 << (25 + unicode(old.[ColumnAssigned]) - unicode('A'))) AND typeof(old.[oldValue]) = 'text'
     AND [PropertyID] MATCH printf('#%s#', old.[ColumnAssigned])
     AND [ClassID] MATCH printf('#%s#', old.[oldClassID])
     AND [ObjectID] MATCH printf('#%s#', old.[oldObjectID])
