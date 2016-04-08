@@ -32,6 +32,8 @@ const enum COLUMN_ASSIGN_PRIORITY
 
 export class SQLiteDataRefactor implements IDBRefactory
 {
+    static COLUMN_LETTERS = 'ABCDEFGHIJ';
+
     boxedObjectToLinkedObject(classID:number, refPropID:number)
     {
     }
@@ -137,9 +139,24 @@ export class SQLiteDataRefactor implements IDBRefactory
         }
 
         var viewName = self.getNameByID(classDef.ClassID).Value;
+        if (viewName[0] === '.')
+            throw new Error(`Invalid class name ${viewName}. Class name may not start from dot ('.')`);
+
         var viewSQL = `drop view if exists [${viewName}];
             \ncreate view if not exists ${viewName} as select
             [ObjectID]`;
+
+        // Init column assignment map
+        let colMap = {} as{[propID:number]:string};
+        for (let idx = 0; idx < SQLiteDataRefactor.COLUMN_LETTERS.length; idx++)
+        {
+            let ch = SQLiteDataRefactor.COLUMN_LETTERS[idx];
+            let propID = classDef[ch];
+            if (propID)
+            {
+                colMap[propID] = ch;
+            }
+        }
 
         // Process properties
         var propIdx = 0;
@@ -149,31 +166,28 @@ export class SQLiteDataRefactor implements IDBRefactory
                 viewSQL += ', ';
             propIdx++;
 
-            let propName = self.getNameByID(p.NameID);
-            if (p.ColumnAssigned)
-            // This property is stored directly in .objects table
+            let propName = self.getNameByID(p.NameID).Value;
+
+            let colLetter = colMap[p.PropertyID];
+            if (colLetter)
+            // This property is stored directly in .objects table in A..J columns
             {
-                viewSQL += `o.[${p.ColumnAssigned}] as [${propName}]\n`;
+                viewSQL += `o.[${colLetter}] as [${propName}]\n`;
             }
             else
-            // This property is stored in Values table. Need to use subquery for access
             {
-                viewSQL += `\n(select v.[Value] from [.values] v
-                    where v.[ObjectID] = o.[ObjectID]
-    and v.[PropIndex] = 0 and v.[PropertyID] = ${p.PropertyID}`;
-                if ((p.ctlv & 1) === 1)
-                    viewSQL += ` and (v.[ctlv] & 1 = 1)`;
-                viewSQL += `) as [${propName}]`;
+                viewSQL += `flexi_get(${p.PropertyID}, o.[ObjectID], s.[Data], o.[Data]`;
+                if (p.Data.defaultValue)
+                {
+                    if (_.isString(p.Data.defaultValue))
+                        viewSQL += `'${p.Data.defaultValue}'`;
+                    else viewSQL += `${p.Data.defaultValue}`;
+                }
+                viewSQL += `) as [${propName}]\n`;
             }
         });
 
-        // non-schema properties are returned as single JSON
-        //if (propIdx > 0)
-        //    viewSQL += ', ';
-        //
-        //viewSQL += ` as [.non-schema-props]`;
-
-        viewSQL += ` from [.objects] o
+        viewSQL += `, o.[Data] as [.json-data] from [.objects] o join [.schemas] s on o.SchemaID = s.SchemaID
     where o.[ClassID] = ${classDef.ClassID}`;
 
         if (classDef.ctloMask !== 0)
@@ -181,15 +195,15 @@ export class SQLiteDataRefactor implements IDBRefactory
 
         viewSQL += ';\n';
 
-        // Insert trigger when ObjectID or HostID is null.
+        // Insert trigger when ObjectID is null.
         // In this case, recursively call insert statement with newly obtained ObjectID
         viewSQL += self.generateTriggerBegin(viewName, 'insert', 'whenNull',
-            'when new.[ObjectID] is null or new.[HostID] is null');
+            'when new.[ObjectID] is null ');
 
         // Generate new ID
-        viewSQL += `insert or replace into [.generators] (name, seq) select '.objects',
-                coalesce((select seq from [.generators] where name = '.objects') , 0) + 1 ;`;
-        viewSQL += `insert into [${viewName}] ([ObjectID], [HostID]`;
+        viewSQL += `insert or replace into [sqlite_sequence] (name, seq) select '.objects',
+                coalesce((select seq from [sqlite_sequence] where name = '.objects'), 0) + 1;`;
+        viewSQL += `insert into [${viewName}] ([ObjectID]`;
 
         var cols = '';
         _.forEach(classDef.Properties, (p, propID)=>
@@ -203,42 +217,44 @@ export class SQLiteDataRefactor implements IDBRefactory
         // or (b) 0 or null - means that object will be self-hosted
         viewSQL += `) select
             [NextID],
-             case
-                when new.[HostID] is null or new.[HostID] = 0 then [NextID]
-                else new.[HostID]
-             end
-
              ${cols} from
              (SELECT coalesce(new.[ObjectID],
              (select (seq)
-          FROM [.generators]
+          FROM [sqlite_sequence]
           WHERE name = '.objects' limit 1)) AS [NextID])
-
              ;\n`;
         viewSQL += `end;\n`;
 
         // Insert trigger when ObjectID is not null
         viewSQL += self.generateTriggerBegin(viewName, 'insert', 'whenNotNull',
-            'when not (new.[ObjectID] is null or new.[HostID] is null)');
+            'when new.[ObjectID] is not null');
         viewSQL += self.generateConstraintsForTrigger(viewName, classDef);
 
-        viewSQL += `insert into [.objects] ([ObjectID], [ClassID], [ctlo]`;
+        viewSQL += `insert into [.objects] ([ObjectID], [ClassID], [ctlo], [Data]`;
         cols = '';
+        let jsonData = `json_set({}`;
         for (var propID in classDef.Data.properties)
         {
             var p:IFlexiClassProperty = classDef.Properties[propID];
             let propName = self.getNameByID(p.NameID).Value;
 
+            let colLetter = colMap[p.PropertyID];
             // if column is assigned
-            if (p.ColumnAssigned)
+            if (colLetter)
             {
-                viewSQL += `, [${p.ColumnAssigned}]`;
-                cols += `, new.[${propName}]`;
+                viewSQL += `, [${colLetter}]`;
+                cols += `, flexi_json_value(new.[${propName}])`;
+            }
+            else
+            {
+                let jsp = schemaDef.Data.properties[propID].map.jsonPath;
+                jsonData += `, '$${jsp}', new.[${propName}]`;
             }
         }
 
-        viewSQL += `) values (new.HostID << 31 | (new.ObjectID & 2147483647),
-             ${classDef.ClassID}, ${classDef.ctloMask}${cols});\n`;
+        viewSQL += `) values (new.ObjectID,
+             ${classDef.ClassID}, ${classDef.ctloMask}${cols},
+             ${jsonData}));\n`;
 
         viewSQL += self.generateInsertValues(classDef.ClassID, classDef);
         viewSQL += 'end;\n';
@@ -250,13 +266,14 @@ export class SQLiteDataRefactor implements IDBRefactory
         var columns = '';
         _.forEach(classDef.Properties, (p, propID)=>
         {
+            let colLetter = colMap[p.PropertyID];
             // if column is assigned
-            if (p.ColumnAssigned)
+            if (colLetter)
             {
                 let propName = self.getNameByID(p.NameID).Value;
                 if (columns !== '')
                     columns += ',';
-                columns += `[${p.ColumnAssigned}] = new.[${propName}]`;
+                columns += `[${colLetter}] = new.[${propName}]`;
             }
         });
         if (columns !== '')
@@ -277,7 +294,6 @@ export class SQLiteDataRefactor implements IDBRefactory
 
         // Run view script
         self.DB.exec.sync(self.DB, viewSQL);
-
     }
 
     /*
@@ -357,7 +373,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    private generateInsertValues(collectionID:number, classDef:IFlexiClass):string
+    private generateInsertValues(classID:number, classDef:IFlexiClass):string
     {
         var self = this;
         var result = '';
@@ -370,13 +386,12 @@ export class SQLiteDataRefactor implements IDBRefactory
             if (!p.ColumnAssigned)
             {
                 result += `insert or replace into [Values] ([ObjectID], [ClassID], [PropertyID], [PropIndex], [ctlv], [Value])
-             select (new.ObjectID | (new.HostID << 31)), ${collectionID}, ${p.PropertyID}, 0, ${p.ctlv}, new.[${propName}]
+             select (new.ObjectID, ${classID}, ${p.PropertyID}, 0, ${p.ctlv}, new.[${propName}]
              where new.[${propName}] is not null;\n`;
             }
         });
         return result;
     }
-
 
     /*
 
@@ -450,18 +465,20 @@ export class SQLiteDataRefactor implements IDBRefactory
     {
     }
 
+    private getSchemaByID(schemaID:number):IFlexiSchema
+    {
+        var rows = this.DB.all.sync(this.DB, `select * from [.schemas] where SchemaID=$SchemaID`, {$SchemaID: schemaID});
+        return rows[0] as IFlexiSchema;
+    }
+
     /*
 
      */
     public generateView(classID:number)
     {
         var classDef = this.getClassDefByID(classID);
-        this.doGenerateView(classDef);
-    }
-
-    private doGenerateView(classDef:IFlexiClass)
-    {
-
+        var schemaDef = this.getSchemaByID(classDef.BaseSchemaID);
+        this.applyClassDefinition(classDef, schemaDef);
     }
 
     /*
@@ -569,14 +586,14 @@ export class SQLiteDataRefactor implements IDBRefactory
         vars.classDef.ctloMask = OBJECT_CONTROL_FLAGS.NONE;
 
         // Column assignments
-        let cols = 'ABCDEFGHIJ';
-        for (let idx = 0; idx < cols.length; idx++)
+        for (let idx = 0; idx < SQLiteDataRefactor.COLUMN_LETTERS.length; idx++)
         {
-            let propID = vars.columnAssignments[cols[idx]].propID;
-            vars.classDef[cols[idx]] = propID;
+            let ch = SQLiteDataRefactor.COLUMN_LETTERS[idx];
+            let propID = vars.columnAssignments[ch].propID;
+            vars.classDef[ch] = propID;
             if (propID)
             {
-                let ch_offset = cols[idx].charCodeAt(0) - 'A'.charCodeAt(0);
+                let ch_offset = ch.charCodeAt(0) - 'A'.charCodeAt(0);
                 let p:IFlexiClassProperty = vars.newProps[propID];
                 if (p.Data.unique || (p.Data.role & PROPERTY_ROLE.Code) || (p.Data.role & PROPERTY_ROLE.ID))
                 {
@@ -603,7 +620,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         self.prepareSchemaData(self, vars);
         self.saveSchema(self, vars, classNameID);
 
-        self.doGenerateView(vars.classDef);
+        self.applyClassDefinition(vars.classDef, vars.schemaData);
     }
 
     /*
@@ -647,10 +664,9 @@ export class SQLiteDataRefactor implements IDBRefactory
     private initExistingColAssignment(vars:ISyncVariables)
     {
         // Set column assignment
-        let cols = 'ABCDEFGHIJ';
-        for (var c = 0; c < cols.length; c++)
+        for (var c = 0; c < SQLiteDataRefactor.COLUMN_LETTERS.length; c++)
         {
-            let pid = vars.classDef[cols[c]];
+            let pid = vars.classDef[SQLiteDataRefactor.COLUMN_LETTERS[c]];
             let prior = COLUMN_ASSIGN_PRIORITY.NOT_SET;
             if (pid)
             {
