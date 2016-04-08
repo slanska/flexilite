@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <alloca.h>
 #include "../../lib/sqlite/sqlite3ext.h"
 #include "../util/hash.h"
 
@@ -17,8 +18,6 @@ static void sqlVarFunc(
 )
 {
     assert(argc == 1 || argc == 2);
-
-    sqlite3_int64 memUsed = sqlite3_memory_used();
 
     struct Hash *varHash = sqlite3_user_data(context);
     const char *localVarName = (const char *) sqlite3_value_text(argv[0]);
@@ -45,6 +44,7 @@ static void sqlVarFunc(
     if (argc == 2)
     {
         int valueType = sqlite3_value_type(argv[1]);
+
         if (valueType == SQLITE_NULL)
         {
             sqlite3HashInsert(varHash, varName, NULL);
@@ -56,9 +56,9 @@ static void sqlVarFunc(
         }
     }
     else
+    {
         sqlite3_free(varName);
-
-    sqlite3_int64 memUsed2 = sqlite3_memory_used();
+    }
 }
 
 /*
@@ -71,10 +71,6 @@ static void sqlVarFunc_Destroy(void *userData)
         sqlite3HashClear(varHash);
     sqlite3_free(varHash);
 }
-
-#ifdef _WIN32
-__declspec(dllexport)
-#endif
 
 int sqlite3_var_init(
         sqlite3 *db,

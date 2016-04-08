@@ -22,9 +22,6 @@ static void sqlHashFunc(
     sqlite3_result_int(context, result);
 }
 
-#ifdef _WIN32
-__declspec(dllexport)
-#endif
 
 int sqlite3_hash_init(
         sqlite3 *db,

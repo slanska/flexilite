@@ -262,16 +262,17 @@ static int flexi_get_value(sqlite3 *db, sqlite3_int64 iPropID, struct flexi_get_
  * Uses database structure defined in Flexilite database to dynamically process
  * defined data schema and returns actual value for the given property.
  * Process schemas in loop, via linked properties and stops when either value is found, or linked schemas are exhausted.
- * Expects 4 parameters:
- * property ID to retrieve
- * object ID
- * schema JSON1 data or schema ID.
+ * Expects 4 or 5 parameters:
+ * -property ID to retrieve
+ * -object ID
+ * -schema JSON1 data or schema ID.
  *      if JSON is passed, it is expected to be in the following format, as defined by Flexilite:
  *      properties: {[propID:number]: {map: {jsonPath:string, link: {refPropID: number, wherePropertyID: number;
  *      whereValue: any; orderByPropID: number;
  *      orderByDesc: boolean;
  *      linkedPropID: number}}}}
- * data JSON1 data
+ * -data JSON1 data
+ * -(optional) default value
   */
 static void sqlFlexiGetFunc(
         sqlite3_context *context,
@@ -352,10 +353,6 @@ static void sqlFlexiGet_Destroy(void *userData)
     }
     sqlite3_free(dataContext);
 }
-
-#ifdef _WIN32
-__declspec(dllexport)
-#endif
 
 int sqlite3_flexi_get_init(
         sqlite3 *db,
