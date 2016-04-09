@@ -14,12 +14,106 @@ SQLITE_EXTENSION_INIT3
  * Internally used structures, subclassed from SQLite structs
  */
 
+struct flexi_prop_col_map
+{
+    sqlite3_int64 iPropID;
+    int iCol;
+};
+
+struct flexi_prop_metadata
+{
+    sqlite3_int64 iPropID;
+    sqlite3_int64 iNameID;
+    int type;
+    const unsigned char *regex;
+    sqlite3_value *maxValue;
+    sqlite3_value *minValue;
+    int maxLength;
+    int minOccurences;
+    int maxOccurences;
+    sqlite3_value *defaultValue;
+    int bIndexed;
+    int bUnique;
+    int bFullTextIndex;
+    int xRole;
+};
+
 struct flexi_vtab
 {
     unsigned char base[sizeof(sqlite3_vtab)];
     sqlite3 *db;
     sqlite3_int64 iClassID;
+
+    /*
+     * Number of columns, i.e. items in property and column arrays
+     */
+    int nCols;
+
+    // Sorted array of mapping between property ID and column index
+    struct flexi_prop_col_map *pSortedProps;
+
+    // Array of property metadata, by column index
+    struct flexi_prop_metadata *pProps;
+
+    unsigned const char *zHash;
+    sqlite3_int64 iNameID;
+    int bSystemClass;
+    int xCtloMask;
 };
+
+/*
+ *
+ */
+static void flexi_vtab_prop_free(struct flexi_prop_metadata const *prop)
+{
+    sqlite3_free(prop->defaultValue);
+    sqlite3_free(prop->maxValue);
+    sqlite3_free(prop->minValue);
+}
+
+/*
+ * Sorts flexi_vtab->pSortedProps, using bubble sort (should be good enough for this case as we expect only 2-3 dozens of items, at most).
+ */
+static void flexi_sort_cols_by_prop_id(struct flexi_vtab *vtab)
+{
+    for (int i = 0; i < vtab->nCols; i++)
+    {
+        for (int j = 0; j < (vtab->nCols - i - 1); j++)
+        {
+            if (vtab->pSortedProps[j].iPropID > vtab->pSortedProps[j + 1].iPropID)
+            {
+                struct flexi_prop_col_map temp = vtab->pSortedProps[j];
+                vtab->pSortedProps[j] = vtab->pSortedProps[j + 1];
+                vtab->pSortedProps[j + 1] = temp;
+            }
+        }
+    }
+}
+
+/*
+ * Performs binary search on sorted array of propertyID-column index map
+ */
+static int flex_get_col_idx_by_prop_id(struct flexi_vtab *vtab, sqlite3_int64 iPropID)
+{
+    int low = 1;
+    int mid;
+    int high = vtab->nCols;
+    do
+    {
+        mid = (low + high) / 2;
+        if (iPropID < vtab->pSortedProps[mid].iPropID)
+            high = mid - 1;
+        else
+            if (iPropID > vtab->pSortedProps[mid].iPropID)
+                low = mid + 1;
+    } while (iPropID != vtab->pSortedProps[mid].iPropID && low <= high);
+    if (iPropID == vtab->pSortedProps[mid].iPropID)
+    {
+        return mid;
+    }
+
+    return -1;
+}
 
 struct flexi_column_data
 {
@@ -56,8 +150,36 @@ struct flexi_vtab_cursor
     int bEof;
 };
 
+// Utility macros
 #define strAppend(SB, S)    jsonAppendRaw(SB, S, strlen(S))
 #define strFree(SB)         jsonReset(SB)
+#define CHECK(result)       CHECK2(result, FAILURE)
+#define CHECK2(result, label)       if (result != SQLITE_OK) goto label;
+#define CHECK_CALL(call)       result = (call); \
+        if (result != SQLITE_OK) goto FAILURE;
+
+static void flexi_vtab_free(struct flexi_vtab *vtab)
+{
+    if (vtab != NULL)
+    {
+        if (vtab->pProps != NULL)
+        {
+            struct flexi_prop_metadata *prop = vtab->pProps;
+            for(int idx = 0 ; idx < vtab->nCols; idx++)
+            {
+                flexi_vtab_prop_free(prop);
+                prop++;
+            }
+        }
+
+        sqlite3_free(vtab->pSortedProps);
+        sqlite3_free(vtab->pProps);
+        sqlite3_free((void *) vtab->zHash);
+        sqlite3_free(vtab->pSortedProps);
+        sqlite3_free(vtab->pProps);
+        sqlite3_free(vtab);
+    }
+}
 
 /*
  * Creates new class
@@ -67,7 +189,7 @@ static int flexiEavCreate(sqlite3 *db,
                           void *pAux,
                           int argc,
 
-        // argv[0] - module name
+        // argv[0] - module name. Will be 'flexi_eav'
         // argv[1] - database name ("main", "temp" etc.)
         // argv [2] - name of new table (class)
         // argv[3+] - arguments (property specifications/column declarations)
@@ -102,18 +224,123 @@ static int flexiEavCreate(sqlite3 *db,
 
     strFree(zCreate);
 
-    if (result == SQLITE_OK)
+    if (result != SQLITE_OK)
+        return result;
+
+    struct flexi_vtab *vtab = sqlite3_malloc(sizeof(struct flexi_vtab));
+    if (vtab == NULL)
+        return SQLITE_NOMEM;
+
+    *ppVTab = (void *) vtab;
+    memset(vtab, 0, sizeof(*vtab));
+
+    // Init table data
+    vtab->db = db;
+    vtab->nCols = argc - 3;
+    vtab->pSortedProps = sqlite3_malloc(vtab->nCols * sizeof(struct flexi_prop_col_map));
+    vtab->pProps = sqlite3_malloc(vtab->nCols * sizeof(struct flexi_prop_metadata));
+
+    if (vtab->pProps == NULL || vtab->pSortedProps == NULL)
     {
-        struct flexi_vtab *vtab = sqlite3_malloc(sizeof(struct flexi_vtab));
-        if (vtab == NULL)
-            return SQLITE_NOMEM;
-        *ppVTab = (void *) vtab;
-        memset(vtab, 0, sizeof(*vtab));
-        vtab->db = db;
+        result = SQLITE_NOMEM;
+        goto FAILURE;
     }
+
+    memset(vtab->pSortedProps, 0, vtab->nCols * sizeof(struct flexi_prop_col_map));
+    memset(vtab->pProps, 0, vtab->nCols * sizeof(struct flexi_prop_metadata));
+
+    // Init property metadata
+    const char *zGetClassSQL = "select "
+            "ClassID, " // 0
+            "NameID, " // 1
+            "SystemClass, " // 2
+            "ctloMask, " // 3
+            "Hash " // 4
+            "from [.classes] "
+            "where NameID = (select NameID from [.names] where [Value] = :1) limit 1;";
+    sqlite3_stmt *pGetClassStmt = NULL;
+    CHECK_CALL(sqlite3_prepare_v2(db, zGetClassSQL, (int) strlen(zGetClassSQL), &pGetClassStmt, NULL));
+
+    result = sqlite3_bind_text(pGetClassStmt, 1, argv[2], (int) strlen(argv[2]), NULL);
+    CHECK_CALL(sqlite3_step(pGetClassStmt));
+    if (sqlite3_step(pGetClassStmt) != SQLITE_ROW)
+        goto FAILURE;
+
+    vtab->iClassID = sqlite3_column_int64(pGetClassStmt, 0);
+    vtab->iNameID = sqlite3_column_int64(pGetClassStmt, 1);
+    vtab->bSystemClass = sqlite3_column_int(pGetClassStmt, 2);
+    vtab->xCtloMask = sqlite3_column_int(pGetClassStmt, 3);
+    vtab->zHash = sqlite3_column_text(pGetClassStmt, 4);
+
+    sqlite3_stmt *pGetClsPropStmt = NULL;
+    const char *zGetClsPropSQL = "select "
+            "cp.NameID, " // 0
+            "cp.PropertyID, " // 1
+            "json_extract(c.Data, printf('$.properties.%d.indexed', cp.PropertyID)) as indexed," // 2
+            "json_extract(c.Data, printf('$.properties.%d.unique', cp.PropertyID)) as unique," // 3
+            "json_extract(c.Data, printf('$.properties.%d.fastTextSearch', cp.PropertyID)) as fastTextSearch," // 4
+            "json_extract(c.Data, printf('$.properties.%d.role', cp.PropertyID)) as role," // 5
+            "json_extract(c.Data, printf('$.properties.%d.rules.type', cp.PropertyID)) as type," // 6
+            "json_extract(c.Data, printf('$.properties.%d.rules.regex', cp.PropertyID)) as regex," // 7
+            "json_extract(c.Data, printf('$.properties.%d.rules.minOccurences', cp.PropertyID)) as minOccurences," // 8
+            "json_extract(c.Data, printf('$.properties.%d.rules.maxOccurences', cp.PropertyID)) as maxOccurences," // 9
+            "json_extract(c.Data, printf('$.properties.%d.rules.maxLength', cp.PropertyID)) as maxLength," // 10
+            "json_extract(c.Data, printf('$.properties.%d.rules.minValue', cp.PropertyID)) as minValue, " // 11
+            "json_extract(c.Data, printf('$.properties.%d.rules.maxValue', cp.PropertyID)) as maxValue, " // 12
+            "json_extract(c.Data, printf('$.properties.%d.defaultValue', cp.PropertyID)) as defaultValue " // 13
+            "from [.class_properties] cp "
+            "join [.classes] c on cp.ClassID = c.ClassID"
+            "where cp.ClassID = :1 order by PropertyID;";
+    CHECK_CALL(sqlite3_prepare_v2(db, zGetClsPropSQL, (int) strlen(zGetClsPropSQL), &pGetClassStmt, NULL));
+    sqlite3_bind_int64(pGetClsPropStmt, 1, vtab->iClassID);
+
+    int nPropIdx = 0;
+    do
+    {
+        int stepResult = sqlite3_step(pGetClsPropStmt);
+        if (stepResult != SQLITE_ROW)
+            break;
+
+        nPropIdx++;
+        vtab->pProps[nPropIdx].iNameID = sqlite3_column_int64(pGetClsPropStmt, 0);
+        vtab->pProps[nPropIdx].iPropID = sqlite3_column_int64(pGetClsPropStmt, 1);
+        vtab->pProps[nPropIdx].bIndexed = sqlite3_column_int(pGetClsPropStmt, 2);
+        vtab->pProps[nPropIdx].bUnique = sqlite3_column_int(pGetClsPropStmt, 3);
+        vtab->pProps[nPropIdx].bFullTextIndex = sqlite3_column_int(pGetClsPropStmt, 4);
+        vtab->pProps[nPropIdx].xRole = sqlite3_column_int(pGetClsPropStmt, 5);
+        vtab->pProps[nPropIdx].type = sqlite3_column_int(pGetClsPropStmt, 6);
+        vtab->pProps[nPropIdx].regex = sqlite3_column_text(pGetClsPropStmt, 7);
+        vtab->pProps[nPropIdx].minOccurences = sqlite3_column_int(pGetClsPropStmt, 8);
+        vtab->pProps[nPropIdx].maxOccurences = sqlite3_column_int(pGetClsPropStmt, 9);
+        vtab->pProps[nPropIdx].maxLength = sqlite3_column_int(pGetClsPropStmt, 10);
+        vtab->pProps[nPropIdx].minValue = sqlite3_value_dup(sqlite3_column_value(pGetClsPropStmt, 11));
+        vtab->pProps[nPropIdx].maxValue = sqlite3_value_dup(sqlite3_column_value(pGetClsPropStmt, 12));
+        vtab->pProps[nPropIdx].defaultValue = sqlite3_value_dup(sqlite3_column_value(pGetClsPropStmt, 13));
+
+    } while (1);
+
+    // Check if number of loaded properties matches expected number of columns in the vtable definition
+    if (nPropIdx != argc - 3)
+    {
+        result = SQLITE_CONSTRAINT_VTAB;
+        goto FAILURE;
+    }
+
+    // Init property-column map (unsorted)
+
+
+    // Sort prop-col map
+    flexi_sort_cols_by_prop_id(vtab);
 
     return result;
 
+    FAILURE:
+    flexi_vtab_free(vtab);
+
+    sqlite3_finalize(pGetClassStmt);
+    sqlite3_finalize(pGetClsPropStmt);
+
+    return result;
 }
 
 /* Connects to flexi_eav virtual table. */
@@ -137,7 +364,7 @@ static int flexiEavConnect(
  */
 static int flexiEavDisconnect(sqlite3_vtab *pVTab)
 {
-    sqlite3_free(pVTab);
+    flexi_vtab_free((void *) pVTab);
     return SQLITE_OK;
 }
 
@@ -204,6 +431,11 @@ static int flexiEavBestIndex(
 
     // For regexp - will do scan
 
+    pIdxInfo->idxNum = 1;
+    pIdxInfo->estimatedCost = 40;
+    pIdxInfo->idxStr = "1";
+    pIdxInfo->aConstraintUsage[0].argvIndex = 1;
+
     return SQLITE_OK;
 
 }
@@ -264,6 +496,11 @@ static int flexiEavClose(sqlite3_vtab_cursor *pCursor)
 static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
                           int argc, sqlite3_value **argv)
 {
+    if (argc > 0)
+    {
+        const unsigned char *v = sqlite3_value_text(argv[0]);
+        // Apply passed parameters to index
+    }
     return SQLITE_OK;
 }
 
