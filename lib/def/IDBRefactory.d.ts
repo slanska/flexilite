@@ -34,7 +34,7 @@ interface IDBRefactory
      Extracts existing properties from class definition and creates a new property of BOXED_OBJECT type.
      New class will be created/or existing one will be updated. Object data will not be affected
      */
-    plainPropertiesToBoxedObject(classID:number, propIDs:PropertyIDs, newRefProp:IClassProperty, filter:IObjectFilter, targetClassID:number);
+    plainPropertiesToBoxedObject(classID:number, newRefProp:IClassProperty, targetClassID:number, propMap:IPropertyMap, filter:IObjectFilter);
 
     /*
      Extracts existing properties to external linked object. Existing object data might be updated or stay untouched.
@@ -112,6 +112,12 @@ interface IDBRefactory
 
      */
     dropClassProperty(classID:number, propertyName:string);
+
+    /*
+
+     */
+    // TODO
+    //changePositionInList()
 }
 
 /*

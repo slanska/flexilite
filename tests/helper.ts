@@ -2,9 +2,7 @@
  * Created by Ruslan Skorynin on 04.10.2015.
  */
 
-/// <reference path="../typings/tsd.d.ts" />
-/// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts"/>
-/// <reference path="../node_modules/orm/lib/TypeScript/sql-query.d.ts"/>
+/// <reference path="../typings/tests.d.ts" />
 
 'use strict';
 
@@ -30,7 +28,8 @@ import fs = require('fs');
 export function openMemoryDB():sqlite3.Database
 {
     var result = new sqlite3.Database(':memory:');
-    var libPath = path.join(__dirname, '../deps/sqlite_extensions/darwin-x64/libsqlite_extensions');
+    // var libPath = path.join(__dirname, '../deps/sqlite_extensions/darwin-x64/libsqlite_extensions');
+    var libPath = '/Users/ruslanskorynin/sqlite-extensions/bin/libsqlite_extensions';
     (result as any).loadExtension.sync(result, libPath);
     var currentUserID = result.all.sync(result, `select randomblob(16) as uuid;`)[0]['uuid'];
     var sqlScript = fs.readFileSync(path.join(__dirname, '../lib/drivers/SQLite/dbschema.sql'), 'UTF-8');

@@ -413,7 +413,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     {
     }
 
-    plainPropertiesToBoxedObject(classID:number, propIDs:PropertyIDs, newRefProp:IClassProperty, filter:IObjectFilter, targetClassID:number)
+    plainPropertiesToBoxedObject(classID:number, newRefProp:IClassProperty, targetClassID:number, propMap:IPropertyMap, filter:IObjectFilter)
     {
     }
 

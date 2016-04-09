@@ -13,7 +13,7 @@ create table if not exists [.names]
     NameID INTEGER  NOT NULL PRIMARY KEY AUTOINCREMENT,
 
     -- Case sensitive
-    [Value] TEXT COLLATE BINARY NOT NULL CONSTRAINT CHECK (rtrim(ltrim([Value])) <> ''),
+    [Value] TEXT COLLATE BINARY NOT NULL CHECK (rtrim(ltrim([Value])) <> ''),
 
     PluralOf integer null
             CONSTRAINT [fkNamesByPluralOf]
