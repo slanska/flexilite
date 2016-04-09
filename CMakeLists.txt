@@ -38,8 +38,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c89")
 
 
 set(EXT_FILES
-
-
         src/main.c
 
         # compress.c is temporarily disabled because of the following error: Undefined symbols for architecture x86_64:
@@ -60,7 +58,8 @@ set(EXT_FILES
         src/misc/hash.c
 
         src/misc/memstat.c
-        src/flexilite/flexi_json_value.c src/flexilite/flexi_json_value.h)
+        src/flexilite/flexi_json_value.c
+        src/flexi_eav/flexieav_vtable.c)
 
 add_library(sqlite_extensions SHARED ${EXT_FILES})
 

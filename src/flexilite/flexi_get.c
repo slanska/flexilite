@@ -10,8 +10,6 @@
 
 SQLITE_EXTENSION_INIT3
 
-#include <string.h>
-
 // SQL statement parameters
 #define WHERE_PROPERTY_INDEX 1
 #define WHERE_VALUE_INDEX 2

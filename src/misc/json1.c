@@ -87,27 +87,6 @@ static const char jsonIsSpace[] = {
 };
 #define safe_isspace(x) (jsonIsSpace[(unsigned char)x])
 
-/* An instance of this object represents a JSON string
-** under construction.  Really, this is a generic string accumulator
-** that can be and is used to create strings other than JSON.
-*/
-struct JsonString
-{
-    sqlite3_context *pCtx;
-    /* Function context - put error messages here */
-    char *zBuf;
-    /* Append JSON content here */
-    u64 nAlloc;
-    /* Bytes of storage available in zBuf[] */
-    u64 nUsed;
-    /* Bytes of zBuf[] currently used */
-    u8 bStatic;
-    /* True if zBuf is static space */
-    u8 bErr;
-    /* True if an error has been encountered */
-    char zSpace[100];        /* Initial static space */
-};
-
 /* JSON type values
 */
 #define JSON_NULL     0
@@ -154,7 +133,7 @@ static void jsonZero(JsonString *p)
 
 /* Initialize the JsonString object
 */
-static void jsonInit(JsonString *p, sqlite3_context *pCtx)
+void jsonInit(JsonString *p, sqlite3_context *pCtx)
 {
     p->pCtx = pCtx;
     p->bErr = 0;
@@ -165,7 +144,7 @@ static void jsonInit(JsonString *p, sqlite3_context *pCtx)
 /* Free all allocated memory and reset the JsonString object back to its
 ** initial state.
 */
-static void jsonReset(JsonString *p)
+void jsonReset(JsonString *p)
 {
     if (!p->bStatic) sqlite3_free(p->zBuf);
     jsonZero(p);
@@ -217,7 +196,7 @@ static int jsonGrow(JsonString *p, u32 N)
 
 /* Append N bytes from zIn onto the end of the JsonString string.
 */
-static void jsonAppendRaw(JsonString *p, const char *zIn, u32 N)
+void jsonAppendRaw(JsonString *p, const char *zIn, u32 N)
 {
     if ((N + p->nUsed >= p->nAlloc) && jsonGrow(p, N) != 0) return;
     memcpy(p->zBuf + p->nUsed, zIn, N);
@@ -260,7 +239,7 @@ static void jsonAppendSeparator(JsonString *p)
 ** any double-quotes or backslash characters contained within the
 ** string.
 */
-static void jsonAppendString(JsonString *p, const char *zIn, u32 N)
+void jsonAppendString(JsonString *p, const char *zIn, u32 N)
 {
     u32 i;
     if ((N + p->nUsed + 2 >= p->nAlloc) && jsonGrow(p, N + 2) != 0) return;
