@@ -175,8 +175,6 @@ static void flexi_vtab_free(struct flexi_vtab *vtab)
         sqlite3_free(vtab->pSortedProps);
         sqlite3_free(vtab->pProps);
         sqlite3_free((void *) vtab->zHash);
-        sqlite3_free(vtab->pSortedProps);
-        sqlite3_free(vtab->pProps);
         sqlite3_free(vtab);
     }
 }
@@ -231,6 +229,9 @@ static int flexiEavCreate(sqlite3 *db,
     if (vtab == NULL)
         return SQLITE_NOMEM;
 
+    sqlite3_stmt *pGetClsPropStmt = NULL;
+    sqlite3_stmt *pGetClassStmt = NULL;
+
     *ppVTab = (void *) vtab;
     memset(vtab, 0, sizeof(*vtab));
 
@@ -258,7 +259,6 @@ static int flexiEavCreate(sqlite3 *db,
             "Hash " // 4
             "from [.classes] "
             "where NameID = (select NameID from [.names] where [Value] = :1) limit 1;";
-    sqlite3_stmt *pGetClassStmt = NULL;
     CHECK_CALL(sqlite3_prepare_v2(db, zGetClassSQL, (int) strlen(zGetClassSQL), &pGetClassStmt, NULL));
 
     result = sqlite3_bind_text(pGetClassStmt, 1, argv[2], (int) strlen(argv[2]), NULL);
@@ -272,7 +272,6 @@ static int flexiEavCreate(sqlite3 *db,
     vtab->xCtloMask = sqlite3_column_int(pGetClassStmt, 3);
     vtab->zHash = sqlite3_column_text(pGetClassStmt, 4);
 
-    sqlite3_stmt *pGetClsPropStmt = NULL;
     const char *zGetClsPropSQL = "select "
             "cp.NameID, " // 0
             "cp.PropertyID, " // 1
