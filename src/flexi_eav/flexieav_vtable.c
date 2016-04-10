@@ -25,9 +25,9 @@ struct flexi_prop_metadata
     sqlite3_int64 iPropID;
     sqlite3_int64 iNameID;
     int type;
-    const unsigned char *regex;
-    sqlite3_value *maxValue;
-    sqlite3_value *minValue;
+    unsigned char *regex;
+    double maxValue;
+    double minValue;
     int maxLength;
     int minOccurences;
     int maxOccurences;
@@ -36,6 +36,7 @@ struct flexi_prop_metadata
     int bUnique;
     int bFullTextIndex;
     int xRole;
+    unsigned char *zName;
 };
 
 struct flexi_vtab
@@ -48,6 +49,11 @@ struct flexi_vtab
      * Number of columns, i.e. items in property and column arrays
      */
     int nCols;
+
+    /*
+     * Actual length of pProps array (>= nCols)
+     */
+    int nPropColsAllocated;
 
     // Sorted array of mapping between property ID and column index
     struct flexi_prop_col_map *pSortedProps;
@@ -66,9 +72,9 @@ struct flexi_vtab
  */
 static void flexi_vtab_prop_free(struct flexi_prop_metadata const *prop)
 {
-    sqlite3_free(prop->defaultValue);
-    sqlite3_free(prop->maxValue);
-    sqlite3_free(prop->minValue);
+    sqlite3_value_free(prop->defaultValue);
+    sqlite3_free(prop->zName);
+    sqlite3_free(prop->regex);
 }
 
 /*
@@ -151,12 +157,14 @@ struct flexi_vtab_cursor
 };
 
 // Utility macros
-#define strAppend(SB, S)    jsonAppendRaw(SB, S, strlen(S))
+#define strAppend(SB, S)    jsonAppendRaw(SB, (const char *)S, strlen((const char *)S))
 #define strFree(SB)         jsonReset(SB)
 #define CHECK(result)       CHECK2(result, FAILURE)
 #define CHECK2(result, label)       if (result != SQLITE_OK) goto label;
 #define CHECK_CALL(call)       result = (call); \
-        if (result != SQLITE_OK) goto FAILURE;
+        if (result != SQLITE_OK) goto CATCH;
+#define CHECK_MALLOC(v, s) v = sqlite3_malloc(s); \
+        if (v == NULL) { result = SQLITE_NOMEM; goto CATCH;}
 
 static void flexi_vtab_free(struct flexi_vtab *vtab)
 {
@@ -165,7 +173,7 @@ static void flexi_vtab_free(struct flexi_vtab *vtab)
         if (vtab->pProps != NULL)
         {
             struct flexi_prop_metadata *prop = vtab->pProps;
-            for(int idx = 0 ; idx < vtab->nCols; idx++)
+            for (int idx = 0; idx < vtab->nCols; idx++)
             {
                 flexi_vtab_prop_free(prop);
                 prop++;
@@ -182,73 +190,163 @@ static void flexi_vtab_free(struct flexi_vtab *vtab)
 /*
  * Creates new class
  */
-static int flexiEavCreate(sqlite3 *db,
+static int flexiEavCreate(
+        sqlite3 *db,
         // User data
-                          void *pAux,
-                          int argc,
+        void *pAux,
+        int argc,
 
         // argv[0] - module name. Will be 'flexi_eav'
         // argv[1] - database name ("main", "temp" etc.)
         // argv [2] - name of new table (class)
         // argv[3+] - arguments (property specifications/column declarations)
-                          const char *const *argv,
+        const char *const *argv,
 
         // Result of function - table spec
-                          sqlite3_vtab **ppVTab,
-                          char **pzErr)
+        sqlite3_vtab **ppVTab,
+        char **pzErr)
 {
-    StringBuilder *zCreate = sqlite3_malloc(sizeof(StringBuilder));
-    jsonInit(zCreate, NULL);
+    assert(argc >= 4);
 
-    // TODO insert into .classes
+    int result = SQLITE_OK;
+
+    // Disposable resources
+    sqlite3_stmt *pGetClsPropStmt = NULL;
+    sqlite3_stmt *pGetClassStmt = NULL;
+    sqlite3_stmt *pExtractProps = NULL;
+    sqlite3_stmt *pInsClsStmt = NULL;
+    sqlite3_stmt *pInsPropStmt = NULL;
+    struct flexi_vtab *vtab = NULL;
+    StringBuilder *zCreate = NULL;
+
+    CHECK_MALLOC(vtab, sizeof(struct flexi_vtab));
+    memset(vtab, 0, sizeof(*vtab));
+
+    CHECK_MALLOC(zCreate, sizeof(StringBuilder));
+
+    jsonInit(zCreate, NULL);
 
     strAppend(zCreate, "create table [");
     strAppend(zCreate, argv[2]);
     strAppend(zCreate, "] (");
 
-    // TODO For now just iterate through column definition and append them to the CREATE TABLE
-    for (int idx = 3; idx < argc; idx++)
-    {
-        if (idx != 3)
-            strAppend(zCreate, ",");
-        strAppend(zCreate, argv[idx]);
+    // We expect 1st argument passed (at argv[3]) to be valid JSON which describes class
+    // (should follow IClassDefinition specification)
 
-        // TODO insert into .class_properties
+    const char *zExtractPropSQL = "select"
+            "coalesce(json_extract(value, '$.indexed'), 0) as indexed," // 0
+            "coalesce(json_extract(value, '$.unique'), 0) as unique," // 1
+            "coalesce(json_extract(value, '$.fastTextSearch'), 0) as fastTextSearch," // 2
+            "coalesce(json_extract(value, '$.role'), 0) as role," // 3
+            "coalesce(json_extract(value, '$.rules.type'), 0) as type," // 4
+            "json_extract(value, '$.rules.regex') as regex," // 5
+            "coalesce(json_extract(value, '$.rules.minOccurences'), 0) as minOccurences," // 6
+            "coalesce(json_extract(value, '$.rules.maxOccurences'), 1) as maxOccurences," // 7
+            "json_extract(value, '$.rules.maxLength') as maxLength," // 8
+            "json_extract(value, '$.rules.minValue') as minValue, " // 9
+            "json_extract(value, '$.rules.maxValue') as maxValue, " // 10
+            "json_extract(value, '$.defaultValue') as defaultValue, " // 11
+            "key as prop_name" // 12
+            "from json_each(:1, '$.properties')";
+
+    CHECK_CALL(sqlite3_prepare_v2(db, zExtractPropSQL, (int) strlen(zExtractPropSQL), &pExtractProps, NULL));
+    CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, argv[2], (int) strlen(argv[2]), NULL));
+
+    int iPropCnt = 0;
+
+    // Initially allocate 10 property slots
+    vtab->nPropColsAllocated = 10;
+    CHECK_MALLOC(vtab->pProps, vtab->nPropColsAllocated * sizeof(struct flexi_prop_metadata));
+    while (1)
+    {
+        int iStep = sqlite3_step(pExtractProps);
+        if (iStep == SQLITE_DONE)
+            break;
+
+        if (iStep != SQLITE_ROW)
+        {
+            result = iStep;
+            goto CATCH;
+        }
+
+        if (iPropCnt >= vtab->nPropColsAllocated)
+        {
+            vtab->nPropColsAllocated += 10;
+            void *tmpProps;
+            int newLen = vtab->nPropColsAllocated * sizeof(struct flexi_prop_metadata);
+            CHECK_MALLOC(tmpProps, newLen);
+            memcpy(tmpProps, vtab->pProps, iPropCnt * sizeof(struct flexi_prop_metadata));
+            vtab->pProps = tmpProps;
+        }
+
+        vtab->pProps[iPropCnt].bIndexed = sqlite3_column_int(pExtractProps, 0);
+        vtab->pProps[iPropCnt].bUnique = sqlite3_column_int(pExtractProps, 1);
+        vtab->pProps[iPropCnt].bFullTextIndex = sqlite3_column_int(pExtractProps, 2);
+        vtab->pProps[iPropCnt].xRole = sqlite3_column_int(pExtractProps, 3);
+        vtab->pProps[iPropCnt].type = sqlite3_column_int(pExtractProps, 4);
+        vtab->pProps[iPropCnt].regex = (unsigned char *) sqlite3_column_text(pExtractProps, 5);
+        vtab->pProps[iPropCnt].minOccurences = sqlite3_column_int(pExtractProps, 6);
+        vtab->pProps[iPropCnt].maxOccurences = sqlite3_column_int(pExtractProps, 7);
+        vtab->pProps[iPropCnt].maxLength = sqlite3_column_int(pExtractProps, 8);
+        vtab->pProps[iPropCnt].minValue = sqlite3_column_double(pExtractProps, 9);
+        vtab->pProps[iPropCnt].maxValue = sqlite3_column_double(pExtractProps, 10);
+        vtab->pProps[iPropCnt].defaultValue = sqlite3_value_dup(sqlite3_column_value(pExtractProps, 11));
+        vtab->pProps[iPropCnt].zName = (unsigned char *) sqlite3_column_text(pExtractProps, 12);
+
+        if (iPropCnt != 0)
+        {
+            strAppend(zCreate, ",");
+        }
+        strAppend(zCreate, "[");
+        strAppend(zCreate, vtab->pProps[iPropCnt].zName);
+        strAppend(zCreate, "]");
+
+        iPropCnt++;
     }
+    vtab->nCols = iPropCnt;
+
     strAppend(zCreate, ");");
 
+    // insert into .classes
+    const char *zInsClsSQL = "insert or replace into [.names] ([Value]) values (:1);"
+            "insert into [.classes] (NameID, ) values ((select NameID from [.names] where [Value] = :1 limit 1),"
+            " :2, :3);select last_insert_rowid();";
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsClsSQL, (int) strlen(zInsClsSQL), &pInsClsStmt, NULL));
+    sqlite3_bind_text(pInsClsStmt, 1, argv[2], (int) strlen(argv[2]), NULL);
+    if (sqlite3_step(pInsClsStmt) != SQLITE_ROW)
+    {
+        result = SQLITE_NOTFOUND;
+        goto CATCH;
+    }
+    vtab->iClassID = sqlite3_column_int64(pInsClsStmt, 0);
+
+    const char *zInsPropSQL = "insert or replace into [.names] ([Value]) values (:1);"
+            "insert into [.class_properties] (ClassID, NameID) values (:2, "
+            "(select NameID from [.names] where [Value] = :1 limit 1));";
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, (int) strlen(zInsPropSQL), &pInsPropStmt, NULL));
+
+    struct flexi_prop_metadata *pProp = vtab->pProps;
+    for (int idx = 0; idx < vtab->nCols; idx++, pProp++)
+    {
+        sqlite3_reset(pInsPropStmt);
+        sqlite3_bind_int64(pInsPropStmt, 2, vtab->iClassID);
+        sqlite3_step(pInsPropStmt);
+    }
+
+    // Fix strange issue with terminating zero
     zCreate->zBuf[zCreate->nUsed] = 0;
-    int result = sqlite3_declare_vtab(db, zCreate->zBuf);
-
-    strFree(zCreate);
-
-    if (result != SQLITE_OK)
-        return result;
-
-    struct flexi_vtab *vtab = sqlite3_malloc(sizeof(struct flexi_vtab));
-    if (vtab == NULL)
-        return SQLITE_NOMEM;
-
-    sqlite3_stmt *pGetClsPropStmt = NULL;
-    sqlite3_stmt *pGetClassStmt = NULL;
+    CHECK_CALL(sqlite3_declare_vtab(db, zCreate->zBuf));
 
     *ppVTab = (void *) vtab;
-    memset(vtab, 0, sizeof(*vtab));
 
     // Init table data
     vtab->db = db;
-    vtab->nCols = argc - 3;
-    vtab->pSortedProps = sqlite3_malloc(vtab->nCols * sizeof(struct flexi_prop_col_map));
-    vtab->pProps = sqlite3_malloc(vtab->nCols * sizeof(struct flexi_prop_metadata));
-
-    if (vtab->pProps == NULL || vtab->pSortedProps == NULL)
-    {
-        result = SQLITE_NOMEM;
-        goto FAILURE;
-    }
+    vtab->nCols = iPropCnt;
+    CHECK_MALLOC(vtab->pSortedProps, vtab->nCols * sizeof(struct flexi_prop_col_map));
+    //CHECK_MALLOC(vtab->pProps, vtab->nCols * sizeof(struct flexi_prop_metadata));
 
     memset(vtab->pSortedProps, 0, vtab->nCols * sizeof(struct flexi_prop_col_map));
-    memset(vtab->pProps, 0, vtab->nCols * sizeof(struct flexi_prop_metadata));
+    // memset(vtab->pProps, 0, vtab->nCols * sizeof(struct flexi_prop_metadata));
 
     // Init property metadata
     const char *zGetClassSQL = "select "
@@ -260,11 +358,30 @@ static int flexiEavCreate(sqlite3 *db,
             "from [.classes] "
             "where NameID = (select NameID from [.names] where [Value] = :1) limit 1;";
     CHECK_CALL(sqlite3_prepare_v2(db, zGetClassSQL, (int) strlen(zGetClassSQL), &pGetClassStmt, NULL));
+    CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, argv[2], (int) strlen(argv[2]), NULL));
+    while (1)
+    {
+        result = sqlite3_step(pExtractProps);
+        if (result == SQLITE_DONE)
+            break;
 
-    result = sqlite3_bind_text(pGetClassStmt, 1, argv[2], (int) strlen(argv[2]), NULL);
-    CHECK_CALL(sqlite3_step(pGetClassStmt));
+        if (result != SQLITE_ROW)
+            goto CATCH;
+
+    }
+
+    CHECK_CALL(sqlite3_bind_text(pGetClassStmt, 1, argv[2], (int) strlen(argv[2]), NULL));
+    result = (sqlite3_step(pGetClassStmt));
+    if (result == SQLITE_DONE)
+        // No class found. Return error
+    {
+        result = SQLITE_NOTFOUND;
+        *pzErr = "Cannot find Flexilite class"; // TODO inject class name
+        goto CATCH;
+    }
+
     if (sqlite3_step(pGetClassStmt) != SQLITE_ROW)
-        goto FAILURE;
+        goto CATCH;
 
     vtab->iClassID = sqlite3_column_int64(pGetClassStmt, 0);
     vtab->iNameID = sqlite3_column_int64(pGetClassStmt, 1);
@@ -308,21 +425,21 @@ static int flexiEavCreate(sqlite3 *db,
         vtab->pProps[nPropIdx].bFullTextIndex = sqlite3_column_int(pGetClsPropStmt, 4);
         vtab->pProps[nPropIdx].xRole = sqlite3_column_int(pGetClsPropStmt, 5);
         vtab->pProps[nPropIdx].type = sqlite3_column_int(pGetClsPropStmt, 6);
-        vtab->pProps[nPropIdx].regex = sqlite3_column_text(pGetClsPropStmt, 7);
+        vtab->pProps[nPropIdx].regex = (unsigned char *) sqlite3_column_text(pGetClsPropStmt, 7);
         vtab->pProps[nPropIdx].minOccurences = sqlite3_column_int(pGetClsPropStmt, 8);
         vtab->pProps[nPropIdx].maxOccurences = sqlite3_column_int(pGetClsPropStmt, 9);
         vtab->pProps[nPropIdx].maxLength = sqlite3_column_int(pGetClsPropStmt, 10);
-        vtab->pProps[nPropIdx].minValue = sqlite3_value_dup(sqlite3_column_value(pGetClsPropStmt, 11));
-        vtab->pProps[nPropIdx].maxValue = sqlite3_value_dup(sqlite3_column_value(pGetClsPropStmt, 12));
+        vtab->pProps[nPropIdx].minValue = sqlite3_column_double(pGetClsPropStmt, 11);
+        vtab->pProps[nPropIdx].maxValue = sqlite3_column_double(pGetClsPropStmt, 12);
         vtab->pProps[nPropIdx].defaultValue = sqlite3_value_dup(sqlite3_column_value(pGetClsPropStmt, 13));
 
     } while (1);
 
     // Check if number of loaded properties matches expected number of columns in the vtable definition
-    if (nPropIdx != argc - 3)
+    if (nPropIdx != iPropCnt)
     {
         result = SQLITE_CONSTRAINT_VTAB;
-        goto FAILURE;
+        goto CATCH;
     }
 
     // Init property-column map (unsorted)
@@ -331,13 +448,20 @@ static int flexiEavCreate(sqlite3 *db,
     // Sort prop-col map
     flexi_sort_cols_by_prop_id(vtab);
 
-    return result;
+    goto FINALLY;
 
-    FAILURE:
+    CATCH:
+    // Release resources because of errors (catch)
     flexi_vtab_free(vtab);
 
+    FINALLY:
+    // Release all temporary resources
+    strFree(zCreate);
     sqlite3_finalize(pGetClassStmt);
     sqlite3_finalize(pGetClsPropStmt);
+    sqlite3_finalize(pExtractProps);
+    sqlite3_finalize(pInsClsStmt);
+    sqlite3_finalize(pInsPropStmt);
 
     return result;
 }
