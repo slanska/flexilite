@@ -59,7 +59,7 @@ set(EXT_FILES
 
         src/misc/memstat.c
         src/flexilite/flexi_json_value.c
-        src/flexi_eav/flexieav_vtable.c)
+        src/flexi_eav/flexieav_vtable.c src/flexi_eav/flexi_eav.h)
 
 add_library(sqlite_extensions SHARED ${EXT_FILES})
 
