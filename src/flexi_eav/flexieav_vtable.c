@@ -4,7 +4,7 @@
 
 #include <string.h>
 #include <printf.h>
-#include <math.h>
+#include <float.h>
 #include <limits.h>
 #include <assert.h>
 #include "../../lib/sqlite/sqlite3ext.h"
@@ -42,6 +42,7 @@ struct flexi_prop_metadata
     char bIndexed;
     char bUnique;
     char bFullTextIndex;
+    int xCtlv;
 };
 
 /*
@@ -56,10 +57,9 @@ struct flexi_prop_metadata
 #define STMT_INS_FTS            5
 #define STMT_UPD_FTS            6
 #define STMT_DEL_PROP           7
-#define STMT_UPD_PROP_OBJ       8
-#define STMT_UPD_OBJ_ID         9
+#define STMT_UPD_OBJ_ID         8
 // Should be last one in the list
-#define STMT_DEL_FTS            10
+#define STMT_DEL_FTS            9
 
 struct flexi_vtab
 {
@@ -265,7 +265,7 @@ static int flexi_load_class_def(
             "Hash " // 4
             "from [.classes] "
             "where NameID = (select NameID from [.names] where [Value] = :1) limit 1;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zGetClassSQL, (int) strlen(zGetClassSQL), &pGetClassStmt, NULL));
+    CHECK_CALL(sqlite3_prepare_v2(db, zGetClassSQL, -1, &pGetClassStmt, NULL));
     CHECK_CALL(sqlite3_bind_text(pGetClassStmt, 1, zClassName, (int) strlen(zClassName), NULL));
     while (1)
     {
@@ -311,11 +311,12 @@ static int flexi_load_class_def(
             "json_extract(c.Data, printf('$.properties.%d.rules.minValue', cp.PropertyID)) as minValue, " // 11
             "json_extract(c.Data, printf('$.properties.%d.rules.maxValue', cp.PropertyID)) as maxValue, " // 12
             "json_extract(c.Data, printf('$.properties.%d.defaultValue', cp.PropertyID)) as defaultValue, " // 13
-            "(select [Value] from [.names] n where n.NameID = cp.NameID limit 1) as Name" // 14
+            "(select [Value] from [.names] n where n.NameID = cp.NameID limit 1) as Name," // 14
+            "cp.ctlo as ctlo" // 15
             "from [.class_properties] cp "
             "join [.classes] c on cp.ClassID = c.ClassID"
             "where cp.ClassID = :1 order by PropertyID;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zGetClsPropSQL, (int) strlen(zGetClsPropSQL), &pGetClassStmt, NULL));
+    CHECK_CALL(sqlite3_prepare_v2(db, zGetClsPropSQL, -1, &pGetClassStmt, NULL));
     sqlite3_bind_int64(pGetClsPropStmt, 1, vtab->iClassID);
 
     int nPropIdx = 0;
@@ -387,7 +388,7 @@ static int flexi_load_class_def(
         {
             sqlite3_value *v = sqlite3_column_value(pGetClsPropStmt, 11);
             if (sqlite3_value_type(v) == SQLITE_NULL)
-                p->minValue = -MAXFLOAT;
+                p->minValue = DBL_MIN;
             p->minValue = sqlite3_value_numeric_type(v);
         }
 
@@ -395,12 +396,13 @@ static int flexi_load_class_def(
         {
             sqlite3_value *v = sqlite3_column_value(pGetClsPropStmt, 12);
             if (sqlite3_value_type(v) == SQLITE_NULL)
-                p->maxValue = MAXFLOAT;
+                p->maxValue = DBL_MAX;
             p->maxValue = sqlite3_value_numeric_type(v);
         }
 
         p->defaultValue = sqlite3_value_dup(sqlite3_column_value(pGetClsPropStmt, 13));
         p->zName = (unsigned char *) sqlite3_column_text(pGetClsPropStmt, 14);
+        p->xCtlv = sqlite3_column_int(pGetClsPropStmt, 15);
 
         if (nPropIdx != 0)
         {
@@ -482,13 +484,14 @@ static int flexiEavCreate(
 
     // insert into .classes
     const char *zInsClsSQL = "insert or replace into [.names] ([Value]) values (:1);"
-            "insert into [.classes] (NameID, ) values ((select NameID from [.names] where [Value] = :1 limit 1),"
-            " :2, :3);select last_insert_rowid();";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsClsSQL, (int) strlen(zInsClsSQL), &pInsClsStmt, NULL));
+            "insert into [.classes] (NameID) values ((select NameID from [.names] where [Value] = :1 limit 1)"
+            " );select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);";
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsClsSQL, -1, &pInsClsStmt, NULL));
     sqlite3_bind_text(pInsClsStmt, 1, zClassName, (int) strlen(zClassName), NULL);
-    if (sqlite3_step(pInsClsStmt) != SQLITE_ROW)
+    int stepResult = sqlite3_step(pInsClsStmt);
+    if (stepResult != SQLITE_ROW)
     {
-        result = SQLITE_NOTFOUND;
+        result = stepResult;
         goto CATCH;
     }
 
@@ -498,7 +501,7 @@ static int flexiEavCreate(
     const char *zInsPropSQL = "insert or replace into [.names] ([Value]) values (:1);"
             "insert into [.class_properties] (ClassID, NameID, ctlv) values (:2, "
             "(select NameID from [.names] where [Value] = :1 limit 1), :3);";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, (int) strlen(zInsPropSQL), &pInsPropStmt, NULL));
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, -1, &pInsPropStmt, NULL));
 
     // We expect 1st argument passed (at argv[3]) to be valid JSON which describes class
     // (should follow IClassDefinition specification)
@@ -513,7 +516,7 @@ static int flexiEavCreate(
             "value as prop_def" // 6 - Original property definition JSON
             "from json_each(:1, '$.properties')";
 
-    CHECK_CALL(sqlite3_prepare_v2(db, zExtractPropSQL, (int) strlen(zExtractPropSQL), &pExtractProps, NULL));
+    CHECK_CALL(sqlite3_prepare_v2(db, zExtractPropSQL, -1, &pExtractProps, NULL));
     CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, zClassName, (int) strlen(zClassName), NULL));
 
     int iPropCnt = 0;
@@ -581,7 +584,7 @@ static int flexiEavCreate(
 
     // Update class with new JSON data
     const char *zUpdClsSQL = "update [.classes] set Data = :1, ctloMask= :2 where ClassID = :3";
-    CHECK_CALL(sqlite3_prepare_v2(db, zUpdClsSQL, (int) strlen(zUpdClsSQL), &pUpdClsStmt, NULL));
+    CHECK_CALL(sqlite3_prepare_v2(db, zUpdClsSQL, -1, &pUpdClsStmt, NULL));
     sqlite3_bind_text(pUpdClsStmt, 1, sbClassDefJSON.zBuf, (int) strlen(sbClassDefJSON.zBuf), NULL);
     sqlite3_bind_int(pUpdClsStmt, 2, xCtloMask);
     sqlite3_bind_int64(pUpdClsStmt, 3, iClassID);
@@ -739,11 +742,11 @@ static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
     cur->lObjectID = -1;
     struct flexi_vtab *vtab = (void *) pVTab;
     const char *zObjSql = "select ObjectID, ClassID, ctlo from [.objects]";
-    int result = sqlite3_prepare_v2(vtab->db, zObjSql, (int) strlen(zObjSql), &cur->pObjectIterator, NULL);
+    int result = sqlite3_prepare_v2(vtab->db, zObjSql, -1, &cur->pObjectIterator, NULL);
     if (result == SQLITE_OK)
     {
         const char *zPropSql = "select * from [.ref-values] where ObjectID = $ObjectID";
-        result = sqlite3_prepare_v2(vtab->db, zPropSql, (int) strlen(zPropSql), &cur->pPropertyIterator, NULL);
+        result = sqlite3_prepare_v2(vtab->db, zPropSql, -1, &cur->pPropertyIterator, NULL);
     }
 
     return result;
@@ -889,35 +892,56 @@ static int flexi_validate_prop_data(struct flexi_vtab *pVTab, int iCol, sqlite3_
     switch (pProp->type)
     {
         case PROP_TYPE_BINARY:
+            // Do nothing?
             break;
 
         case PROP_TYPE_DATETIME:
+        {
+            // Convert from string?
             break;
-
-        case PROP_TYPE_DECIMAL:
-            break;
+        }
 
         case PROP_TYPE_ENUM:
+        {
             // Check if value is in the list
+// TODO
             break;
+        }
 
+        case PROP_TYPE_DECIMAL:
         case PROP_TYPE_INTEGER:
+        {
             // Check range
+            sqlite3_int64 i = sqlite3_value_int64(v);
+            double d = (double) i;
+
+            // Check minValue, maxValue
+            if (d < pProp->minValue || d > pProp->maxValue)
+            {
+                pVTab->base.zErrMsg = "Value is not within range";
+                goto CATCH;
+            }
 
             break;
+        }
 
         case PROP_TYPE_NUMBER:
-            // Check minValue, maxValue
-
+        {
+            double d = sqlite3_value_double(v);
             if (t != SQLITE_FLOAT)
             {
+                // TODO
                 t = sqlite3_value_numeric_type(v);
-                if (t != SQLITE_INTEGER || t != SQLITE_FLOAT)
-                {
-                    pVTab->base.zErrMsg = "Invalid data type";
-                    goto CATCH;
-                }
+
             }
+
+            // Check minValue, maxValue
+            if (d < pProp->minValue || d > pProp->maxValue)
+            {
+                pVTab->base.zErrMsg = "Value is not within range";
+                goto CATCH;
+            }
+        }
             break;
 
         case PROP_TYPE_NAME:
@@ -984,7 +1008,8 @@ static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
             sqlite3_bind_int64(pStmt, 1, lObjectID);
             sqlite3_bind_int64(pStmt, 2, pVTab->pProps[ii - 2].iPropID);
             sqlite3_bind_int(pStmt, 3, 0);
-            sqlite3_bind_value(pStmt, 4, argv[ii]);
+            sqlite3_bind_int(pStmt, 4, pVTab->pProps[ii - 2].xCtlv);
+            sqlite3_bind_value(pStmt, 5, argv[ii]);
             CHECK_CALL(sqlite3_step(pStmt));
         }
         else
@@ -1039,11 +1064,10 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
     int result = SQLITE_OK;
     struct flexi_vtab *vtab = (struct flexi_vtab *) pVTab;
 
-    sqlite3_int64 lOldID = sqlite3_value_int64(argv[0]);
-
     if (argc == 1)
         // Delete
     {
+        sqlite3_int64 lOldID = sqlite3_value_int64(argv[0]);
         sqlite3_stmt *pDel = vtab->pDBEnv->pStmts[STMT_DEL_OBJ];
         assert(pDel);
         CHECK_CALL(sqlite3_reset(pDel));
@@ -1061,8 +1085,10 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
             assert(pInsObj);
 
             CHECK_CALL(sqlite3_reset(pInsObj));
-            sqlite3_bind_value(pInsObj, 1, argv[1]);
+            sqlite3_bind_value(pInsObj, 1, argv[1]); // Object ID, normally null
             sqlite3_bind_int64(pInsObj, 2, vtab->iClassID);
+            sqlite3_bind_int(pInsObj, 3, vtab->xCtloMask);
+
             CHECK_CALL(sqlite3_step(pInsObj));
             if (argv[1] == NULL)
                 *pRowid = sqlite3_column_int64(pInsObj, 1);
@@ -1073,11 +1099,12 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
         }
         else
         {
+            sqlite3_int64 lNewID = sqlite3_value_int64(argv[1]);
+            *pRowid = lNewID;
             if (argv[0] != argv[1])
                 // Special case - Object ID update
             {
-                sqlite3_int64 lNewID = sqlite3_value_int64(argv[1]);
-                *pRowid = lNewID;
+                sqlite3_int64 lOldID = sqlite3_value_int64(argv[0]);
 
                 sqlite3_stmt *pUpdObjID = vtab->pDBEnv->pStmts[STMT_UPD_OBJ_ID];
                 CHECK_CALL(sqlite3_reset(pUpdObjID));
@@ -1085,17 +1112,10 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
                 sqlite3_bind_int64(pUpdObjID, 2, vtab->iClassID);
                 sqlite3_bind_int64(pUpdObjID, 3, lOldID);
                 CHECK_CALL(sqlite3_step(pUpdObjID));
+            }
 
-                sqlite3_stmt *pUpdProp = vtab->pDBEnv->pStmts[STMT_UPD_PROP_OBJ];
-                CHECK_CALL(flexi_upsert_props(vtab, *pRowid, pUpdProp, 1, argc, argv));
-            }
-            else
-            {
-                sqlite3_int64 lNewID = sqlite3_value_int64(argv[1]);
-                *pRowid = lNewID;
-                sqlite3_stmt *pUpdProp = vtab->pDBEnv->pStmts[STMT_UPD_PROP];
-                CHECK_CALL(flexi_upsert_props(vtab, *pRowid, pUpdProp, 1, argc, argv));
-            }
+            sqlite3_stmt *pUpdProp = vtab->pDBEnv->pStmts[STMT_UPD_PROP];
+            CHECK_CALL(flexi_upsert_props(vtab, *pRowid, pUpdProp, 1, argc, argv));
         }
     }
 
@@ -1124,7 +1144,7 @@ static int flexiEavRename(sqlite3_vtab *pVtab, const char *zNew)
     int result = SQLITE_OK;
     const char *zErrMsg;
     sqlite3_stmt *pStmt;
-    CHECK_CALL(sqlite3_prepare_v2(pTab->db, zSql, (int) strlen(zSql), &pStmt, &zErrMsg));
+    CHECK_CALL(sqlite3_prepare_v2(pTab->db, zSql, -1, &pStmt, &zErrMsg));
     sqlite3_bind_text(pStmt, 1, zNew, (int) strlen(zNew), NULL);
     sqlite3_bind_int64(pStmt, 2, pTab->iClassID);
     CHECK_CALL(sqlite3_step(pStmt));
@@ -1185,44 +1205,42 @@ int sqlite3_flexieav_vtable_init(
 {
     int result = SQLITE_OK;
     struct flexi_db_env *data = NULL;
-    // Init connection wide settings (prepated statements etc.)
+    // Init connection wide settings (prepared statements etc.)
     CHECK_MALLOC(data, sizeof(*data));
     memset(data, 0, sizeof(*data));
 
     const char *zDelObjSQL = "delete from [.objects] where ObjectID = :1;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zDelObjSQL, (int) strlen(zDelObjSQL), &data->pStmts[STMT_DEL_OBJ], NULL));
+    CHECK_CALL(sqlite3_prepare_v2(db, zDelObjSQL, -1, &data->pStmts[STMT_DEL_OBJ], NULL));
 
-    const char *zDelFtsSQL = "delete from [.full_text_data] where id = :1;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zDelFtsSQL, (int) strlen(zDelFtsSQL), &data->pStmts[STMT_DEL_FTS], NULL));
+//    const char *zDelFtsSQL = "delete from [.full_text_data] where id = :1;";
+//    CHECK_CALL(sqlite3_prepare_v2(db, zDelFtsSQL, -1, &data->pStmts[STMT_DEL_FTS], NULL));
 
-    const char *zInsFtsSQL = "delete from [.objects] where ObjectID = :1;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsFtsSQL, (int) strlen(zInsFtsSQL), &data->pStmts[STMT_INS_FTS], NULL));
+//    const char *zInsFtsSQL = "insert into [.full_text_data] (id, ObjectID, PropertyID, PropIndex, [Value]) "
+//            "values (:1, :2, :3, :4, :5);";
+//    CHECK_CALL(sqlite3_prepare_v2(db, zInsFtsSQL, -1, &data->pStmts[STMT_INS_FTS], NULL));
 
-    const char *zInsObjSQL = "insert into [.objects] (ClassID, ctlo) values (:1, :2); select last_insert_rowid();";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsObjSQL, (int) strlen(zInsObjSQL), &data->pStmts[STMT_INS_OBJ], NULL));
+    const char *zInsObjSQL = "insert into [.objects] (ObjectID, ClassID, ctlo) values (:1, :2, :3); "
+            "select last_insert_rowid();";
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsObjSQL, -1, &data->pStmts[STMT_INS_OBJ], NULL));
 
     const char *zInsPropSQL = "insert into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
             " values (:1, :2, :3, :4, :5);";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, (int) strlen(zInsPropSQL), &data->pStmts[STMT_INS_PROP], NULL));
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, -1, &data->pStmts[STMT_INS_PROP], NULL));
 
-    const char *zUpdPropSQL = "insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])\"\n"
-            "            \" values (:1, :2, :3, :4, :5);";
-    CHECK_CALL(sqlite3_prepare_v2(db, zUpdPropSQL, (int) strlen(zUpdPropSQL), &data->pStmts[STMT_UPD_PROP], NULL));
-
-    const char *zUpdPropObjSQL = "insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])\"\n"
-            "            \" values (:1, :2, :3, :4, :5);";
-    CHECK_CALL(sqlite3_prepare_v2(db, zUpdPropObjSQL, (int) strlen(zUpdPropObjSQL), &data->pStmts[STMT_UPD_PROP_OBJ],
-                                  NULL));
+    const char *zUpdPropSQL = "insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
+            " values (:1, :2, :3, :4, :5);";
+    CHECK_CALL(sqlite3_prepare_v2(db, zUpdPropSQL, -1, &data->pStmts[STMT_UPD_PROP], NULL));
 
     const char *zDelPropSQL = "delete from [.ref-values] where ObjectID = :1 and PropertyID = :2 and PropIndex = :3;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zDelPropSQL, (int) strlen(zDelPropSQL), &data->pStmts[STMT_DEL_PROP], NULL));
+    CHECK_CALL(sqlite3_prepare_v2(db, zDelPropSQL, -1, &data->pStmts[STMT_DEL_PROP], NULL));
 
-    const char *zUpdObjIdSQL = "update [.objects] set ObjectID = :1, ClassID = :2 where ObjectID = :3;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zUpdObjIdSQL, (int) strlen(zUpdObjIdSQL), &data->pStmts[STMT_UPD_OBJ_ID], NULL));
+//    const char *zUpdObjIdSQL = "update [.objects] set ObjectID = :1, ClassID = :2 where ObjectID = :3;";
+//    CHECK_CALL(sqlite3_prepare_v2(db, zUpdObjIdSQL, -1, &data->pStmts[STMT_UPD_OBJ_ID], NULL));
 
     // Init module
     CHECK_CALL(sqlite3_create_module_v2(db, "flexi_eav", &flexiEavModule, data, flexiEavModuleDestroy));
 
+    result = SQLITE_OK;
     goto FINALLY;
 
     CATCH:
