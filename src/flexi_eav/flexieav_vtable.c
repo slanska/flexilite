@@ -549,8 +549,10 @@ static int flexiEavCreate(
             "value as prop_def" // 6 - Original property definition JSON
             " from json_each(:1, '$.properties');";
 
+    // Need to remove leading and traliling quotes
+    int iJSONLen = strlen(argv[3]);
     CHECK_CALL(sqlite3_prepare_v2(db, zExtractPropSQL, -1, &pExtractProps, NULL));
-    CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, argv[3], -1, NULL));
+    CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, argv[3] + sizeof(char), iJSONLen - 2, NULL));
 
     int iPropCnt = 0;
 
@@ -594,10 +596,9 @@ static int flexiEavCreate(
             sqlite3_bind_int64(pInsPropStmt, 2, iClassID);
             sqlite3_bind_int(pInsPropStmt, 3, xCtlv);
             int stepResult = sqlite3_step(pInsPropStmt);
-            if (stepResult != SQLITE_ROW)
+            if (stepResult != SQLITE_DONE)
             {
-                if (stepResult == SQLITE_DONE)
-                    stepResult = SQLITE_NOTFOUND;
+                result = stepResult;
                 goto CATCH;
             }
         }
@@ -646,8 +647,10 @@ static int flexiEavCreate(
     sqlite3_finalize(pInsClsStmt);
     sqlite3_finalize(pUpdClsStmt);
     sqlite3_finalize(pInsPropStmt);
-    sqlite3_free((void *) zPropDefJSON);
-    sqlite3_free((void *) zPropName);
+    if (zPropDefJSON)
+        sqlite3_free((void *) zPropDefJSON);
+    if (zPropName)
+        sqlite3_free((void *) zPropName);
     strReset(&sbClassDefJSON);
 
     return result;
@@ -1269,7 +1272,8 @@ int sqlite3_flexieav_vtable_init(
     const char *zDelPropSQL = "delete from [.ref-values] where ObjectID = :1 and PropertyID = :2 and PropIndex = :3;";
     CHECK_CALL(sqlite3_prepare_v2(db, zDelPropSQL, -1, &data->pStmts[STMT_DEL_PROP], NULL));
 
-    const char *zInsNameSQL = "insert or replace into [.names] ([Value]) values (:1);";
+    const char *zInsNameSQL = "insert or replace into [.names] ([Value], NameID)"
+            " values (:1, (select NameID from [.names] where Value = :1 limit 1));";
     CHECK_CALL(sqlite3_prepare_v2(db, zInsNameSQL, -1, &data->pStmts[STMT_INS_NAME], NULL));
 
     CHECK_CALL(sqlite3_prepare_v2(
