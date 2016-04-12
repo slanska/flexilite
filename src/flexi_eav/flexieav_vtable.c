@@ -58,8 +58,10 @@ struct flexi_prop_metadata
 #define STMT_UPD_FTS            6
 #define STMT_DEL_PROP           7
 #define STMT_UPD_OBJ_ID         8
+#define STMT_INS_NAME            9
+#define STMT_SEL_CLS_BY_NAME            10
 // Should be last one in the list
-#define STMT_DEL_FTS            9
+#define STMT_DEL_FTS            11
 
 struct flexi_vtab
 {
@@ -442,6 +444,20 @@ static int flexi_load_class_def(
 }
 
 /*
+ * Ensures that there is given Name in [.names] table
+ */
+static int db_insert_name(struct flexi_db_env *pDBEnv, const char *zName)
+{
+    sqlite3_stmt *p = pDBEnv->pStmts[STMT_INS_NAME];
+    assert(p);
+    sqlite3_bind_text(p, 1, zName, -1, NULL);
+    int stepRes = sqlite3_step(p);
+    if (stepRes != SQLITE_DONE)
+        return stepRes;
+    return SQLITE_OK;
+}
+
+/*
  * Creates new class
  */
 static int flexiEavCreate(
@@ -469,10 +485,11 @@ static int flexiEavCreate(
     sqlite3_stmt *pInsClsStmt = NULL;
     sqlite3_stmt *pInsPropStmt = NULL;
     sqlite3_stmt *pUpdClsStmt = NULL;
-    struct flexi_vtab *vtab = NULL;
     const char *zPropName = NULL;
     const unsigned char *zPropDefJSON = NULL;
     StringBuilder sbClassDefJSON;
+
+    struct flexi_db_env *pDBEnv = pAux;
 
     jsonInit(&sbClassDefJSON, NULL);
 
@@ -482,47 +499,62 @@ static int flexiEavCreate(
 
     struct flexi_prop_metadata dProp;
 
+    CHECK_CALL(db_insert_name(pDBEnv, zClassName));
+
     // insert into .classes
-    const char *zInsClsSQL = "insert or replace into [.names] ([Value]) values (:1);"
-            "insert into [.classes] (NameID) values ((select NameID from [.names] where [Value] = :1 limit 1)"
-            " );select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsClsSQL, -1, &pInsClsStmt, NULL));
-    sqlite3_bind_text(pInsClsStmt, 1, zClassName, (int) strlen(zClassName), NULL);
-    int stepResult = sqlite3_step(pInsClsStmt);
-    if (stepResult != SQLITE_ROW)
     {
-        result = stepResult;
-        goto CATCH;
+        const char *zInsClsSQL = "insert into [.classes] (NameID) select NameID from [.names] where [Value] = :1 limit 1;";
+
+        CHECK_CALL(sqlite3_prepare_v2(db, zInsClsSQL, -1, &pInsClsStmt, NULL));
+        sqlite3_bind_text(pInsClsStmt, 1, zClassName, -1, NULL);
+        int stepResult = sqlite3_step(pInsClsStmt);
+        if (stepResult != SQLITE_DONE)
+        {
+            result = stepResult;
+            goto CATCH;
+        }
     }
 
-    sqlite3_int64 iClassID = sqlite3_column_int64(pInsClsStmt, 0);
+    sqlite3_int64 iClassID;
+    {
+        sqlite3_stmt *p = pDBEnv->pStmts[STMT_SEL_CLS_BY_NAME];
+        assert(p);
+        sqlite3_bind_text(p, 1, zClassName, -1, NULL);
+        int stepRes = sqlite3_step(p);
+        if (stepRes != SQLITE_ROW)
+        {
+            result = stepRes;
+            goto CATCH;
+        }
+
+        iClassID = sqlite3_column_int64(p, 0);
+    }
+
     int xCtloMask = 0;
 
-    const char *zInsPropSQL = "insert or replace into [.names] ([Value]) values (:1);"
-            "insert into [.class_properties] (ClassID, NameID, ctlv) values (:2, "
+    const char *zInsPropSQL = "insert into [.class_properties] (ClassID, NameID, ctlv) values (:2, "
             "(select NameID from [.names] where [Value] = :1 limit 1), :3);";
     CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, -1, &pInsPropStmt, NULL));
 
     // We expect 1st argument passed (at argv[3]) to be valid JSON which describes class
     // (should follow IClassDefinition specification)
 
-    const char *zExtractPropSQL = "select"
+    const char *zExtractPropSQL = "select "
             "coalesce(json_extract(value, '$.indexed'), 0) as indexed," // 0
-            "coalesce(json_extract(value, '$.unique'), 0) as unique," // 1
+            "coalesce(json_extract(value, '$.unique'), 0) as [unique]," // 1
             "coalesce(json_extract(value, '$.fastTextSearch'), 0) as fastTextSearch," // 2
             "coalesce(json_extract(value, '$.role'), 0) as role," // 3
             "coalesce(json_extract(value, '$.rules.type'), 0) as type," // 4
             "key as prop_name," // 5
             "value as prop_def" // 6 - Original property definition JSON
-            "from json_each(:1, '$.properties')";
+            " from json_each(:1, '$.properties');";
 
     CHECK_CALL(sqlite3_prepare_v2(db, zExtractPropSQL, -1, &pExtractProps, NULL));
-    CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, zClassName, (int) strlen(zClassName), NULL));
+    CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, argv[3], -1, NULL));
 
     int iPropCnt = 0;
 
     // Initially allocate 10 property slots
-    CHECK_MALLOC(vtab->pProps, vtab->nPropColsAllocated * sizeof(struct flexi_prop_metadata));
     while (1)
     {
         int iStep = sqlite3_step(pExtractProps);
@@ -554,16 +586,20 @@ static int flexiEavCreate(
         if (dProp.bFullTextIndex)
             xCtlv |= CTLV_FULL_TEXT_INDEX;
 
-        sqlite3_reset(pInsPropStmt);
-        sqlite3_bind_text(pInsPropStmt, 1, zPropName, (int) strlen(zPropName), NULL);
-        sqlite3_bind_int64(pInsPropStmt, 2, iClassID);
-        sqlite3_bind_int(pInsPropStmt, 3, xCtlv);
-        int stepResult = sqlite3_step(pInsPropStmt);
-        if (stepResult != SQLITE_ROW)
+        CHECK_CALL(db_insert_name(pDBEnv, zPropName));
+
         {
-            if (stepResult == SQLITE_DONE)
-                stepResult = SQLITE_NOTFOUND;
-            goto CATCH;
+            sqlite3_reset(pInsPropStmt);
+            sqlite3_bind_text(pInsPropStmt, 1, zPropName, (int) strlen(zPropName), NULL);
+            sqlite3_bind_int64(pInsPropStmt, 2, iClassID);
+            sqlite3_bind_int(pInsPropStmt, 3, xCtlv);
+            int stepResult = sqlite3_step(pInsPropStmt);
+            if (stepResult != SQLITE_ROW)
+            {
+                if (stepResult == SQLITE_DONE)
+                    stepResult = SQLITE_NOTFOUND;
+                goto CATCH;
+            }
         }
 
         // Get new property ID
@@ -603,7 +639,6 @@ static int flexiEavCreate(
 
     CATCH:
     // Release resources because of errors (catch)
-    flexi_vtab_free(vtab);
 
     FINALLY:
     // Release all temporary resources
@@ -741,11 +776,11 @@ static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
     cur->bEof = 0;
     cur->lObjectID = -1;
     struct flexi_vtab *vtab = (void *) pVTab;
-    const char *zObjSql = "select ObjectID, ClassID, ctlo from [.objects]";
+    const char *zObjSql = "select ObjectID, ClassID, ctlo from [.objects];";
     int result = sqlite3_prepare_v2(vtab->db, zObjSql, -1, &cur->pObjectIterator, NULL);
     if (result == SQLITE_OK)
     {
-        const char *zPropSql = "select * from [.ref-values] where ObjectID = $ObjectID";
+        const char *zPropSql = "select * from [.ref-values] where ObjectID = :1;";
         result = sqlite3_prepare_v2(vtab->db, zPropSql, -1, &cur->pPropertyIterator, NULL);
     }
 
@@ -1134,14 +1169,14 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
  */
 static int flexiEavRename(sqlite3_vtab *pVtab, const char *zNew)
 {
+    int result = SQLITE_OK;
     struct flexi_vtab *pTab = (void *) pVtab;
     assert(pTab->iClassID != 0);
-    const char *zSql = "insert or replace into [.names] (NameID, [Value]) "
-            "select NameID, :1 from [.names] where Value = :1 limit 1;"
-            "update [.classes] set NameID = (select NameID from [.names] where Value = :1 limit 1) "
+
+    CHECK_CALL(db_insert_name(pTab->pDBEnv, zNew));
+    const char *zSql = "update [.classes] set NameID = (select NameID from [.names] where Value = :1 limit 1) "
             "where ClassID = :2;";
 
-    int result = SQLITE_OK;
     const char *zErrMsg;
     sqlite3_stmt *pStmt;
     CHECK_CALL(sqlite3_prepare_v2(pTab->db, zSql, -1, &pStmt, &zErrMsg));
@@ -1233,6 +1268,14 @@ int sqlite3_flexieav_vtable_init(
 
     const char *zDelPropSQL = "delete from [.ref-values] where ObjectID = :1 and PropertyID = :2 and PropIndex = :3;";
     CHECK_CALL(sqlite3_prepare_v2(db, zDelPropSQL, -1, &data->pStmts[STMT_DEL_PROP], NULL));
+
+    const char *zInsNameSQL = "insert or replace into [.names] ([Value]) values (:1);";
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsNameSQL, -1, &data->pStmts[STMT_INS_NAME], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);",
+            -1, &data->pStmts[STMT_SEL_CLS_BY_NAME], NULL));
 
 //    const char *zUpdObjIdSQL = "update [.objects] set ObjectID = :1, ClassID = :2 where ObjectID = :3;";
 //    CHECK_CALL(sqlite3_prepare_v2(db, zUpdObjIdSQL, -1, &data->pStmts[STMT_UPD_OBJ_ID], NULL));
