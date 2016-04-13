@@ -7,6 +7,7 @@
 #include <float.h>
 #include <limits.h>
 #include <assert.h>
+#include <alloca.h>
 #include "../../lib/sqlite/sqlite3ext.h"
 #include "../../src/misc/json1.h"
 #include "./flexi_eav.h"
@@ -60,8 +61,9 @@ struct flexi_prop_metadata
 #define STMT_UPD_OBJ_ID         8
 #define STMT_INS_NAME            9
 #define STMT_SEL_CLS_BY_NAME            10
+#define STMT_INS_CLS_PROP            11
 // Should be last one in the list
-#define STMT_DEL_FTS            11
+#define STMT_DEL_FTS            12
 
 struct flexi_vtab
 {
@@ -268,18 +270,7 @@ static int flexi_load_class_def(
             "from [.classes] "
             "where NameID = (select NameID from [.names] where [Value] = :1) limit 1;";
     CHECK_CALL(sqlite3_prepare_v2(db, zGetClassSQL, -1, &pGetClassStmt, NULL));
-    CHECK_CALL(sqlite3_bind_text(pGetClassStmt, 1, zClassName, (int) strlen(zClassName), NULL));
-    while (1)
-    {
-        result = sqlite3_step(pGetClassStmt);
-        if (result == SQLITE_DONE)
-            break;
-
-        if (result != SQLITE_ROW)
-            goto CATCH;
-    }
-
-    CHECK_CALL(sqlite3_bind_text(pGetClassStmt, 1, zClassName, (int) strlen(zClassName), NULL));
+    sqlite3_bind_text(pGetClassStmt, 1, zClassName, (int) strlen(zClassName) + 1, NULL);
     result = (sqlite3_step(pGetClassStmt));
     if (result == SQLITE_DONE)
         // No class found. Return error
@@ -325,8 +316,13 @@ static int flexi_load_class_def(
     do
     {
         int stepResult = sqlite3_step(pGetClsPropStmt);
-        if (stepResult != SQLITE_ROW)
+        if (stepResult == SQLITE_DONE)
             break;
+        if (stepResult != SQLITE_ROW)
+        {
+            result = stepResult;
+            goto CATCH;
+        }
 
         if (nPropIdx >= vtab->nPropColsAllocated)
         {
@@ -434,11 +430,15 @@ static int flexi_load_class_def(
 
     CATCH:
     flexi_vtab_free(vtab);
+    if (*pzErr == NULL)
+        *pzErr = (char *) sqlite3_errstr(result);
 
     FINALLY:
     strReset(&sbClassDef);
-    sqlite3_finalize(pGetClassStmt);
-    sqlite3_finalize(pGetClsPropStmt);
+    if (pGetClassStmt)
+        sqlite3_finalize(pGetClassStmt);
+    if (pGetClsPropStmt)
+        sqlite3_finalize(pGetClsPropStmt);
 
     return result;
 }
@@ -450,12 +450,15 @@ static int db_insert_name(struct flexi_db_env *pDBEnv, const char *zName)
 {
     sqlite3_stmt *p = pDBEnv->pStmts[STMT_INS_NAME];
     assert(p);
+    assert(zName);
+    sqlite3_reset(p);
     sqlite3_bind_text(p, 1, zName, -1, NULL);
     int stepRes = sqlite3_step(p);
     if (stepRes != SQLITE_DONE)
         return stepRes;
     return SQLITE_OK;
 }
+
 
 /*
  * Creates new class
@@ -485,8 +488,8 @@ static int flexiEavCreate(
     sqlite3_stmt *pInsClsStmt = NULL;
     sqlite3_stmt *pInsPropStmt = NULL;
     sqlite3_stmt *pUpdClsStmt = NULL;
-    const char *zPropName = NULL;
-    const unsigned char *zPropDefJSON = NULL;
+    char *zPropName = NULL;
+    unsigned char *zPropDefJSON = NULL;
     StringBuilder sbClassDefJSON;
 
     struct flexi_db_env *pDBEnv = pAux;
@@ -519,6 +522,7 @@ static int flexiEavCreate(
     {
         sqlite3_stmt *p = pDBEnv->pStmts[STMT_SEL_CLS_BY_NAME];
         assert(p);
+        sqlite3_reset(p);
         sqlite3_bind_text(p, 1, zClassName, -1, NULL);
         int stepRes = sqlite3_step(p);
         if (stepRes != SQLITE_ROW)
@@ -550,7 +554,7 @@ static int flexiEavCreate(
             " from json_each(:1, '$.properties');";
 
     // Need to remove leading and traliling quotes
-    int iJSONLen = strlen(argv[3]);
+    int iJSONLen = (int) strlen(argv[3]);
     CHECK_CALL(sqlite3_prepare_v2(db, zExtractPropSQL, -1, &pExtractProps, NULL));
     CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, argv[3] + sizeof(char), iJSONLen - 2, NULL));
 
@@ -575,8 +579,13 @@ static int flexiEavCreate(
         dProp.bFullTextIndex = (char) sqlite3_column_int(pExtractProps, 2);
         dProp.xRole = (short int) sqlite3_column_int(pExtractProps, 3);
         dProp.type = sqlite3_column_int(pExtractProps, 4);
-        zPropName = (const char *) sqlite3_column_text(pExtractProps, 5);
-        zPropDefJSON = sqlite3_column_text(pExtractProps, 6);
+
+        sqlite3_free((void *) zPropName);
+        sqlite3_free((void *) zPropDefJSON);
+        zPropName = sqlite3_malloc(sqlite3_column_bytes(pExtractProps, 5) + 1);
+        zPropDefJSON = sqlite3_malloc(sqlite3_column_bytes(pExtractProps, 6) + 1);
+        strcpy(zPropName, (const char *) sqlite3_column_text(pExtractProps, 5));
+        strcpy((char *) zPropDefJSON, (const char *) sqlite3_column_text(pExtractProps, 6));
 
         int xCtlv = 0;
 
@@ -592,7 +601,7 @@ static int flexiEavCreate(
 
         {
             sqlite3_reset(pInsPropStmt);
-            sqlite3_bind_text(pInsPropStmt, 1, zPropName, (int) strlen(zPropName), NULL);
+            sqlite3_bind_text(pInsPropStmt, 1, zPropName, -1, NULL);
             sqlite3_bind_int64(pInsPropStmt, 2, iClassID);
             sqlite3_bind_int(pInsPropStmt, 3, xCtlv);
             int stepResult = sqlite3_step(pInsPropStmt);
@@ -643,14 +652,17 @@ static int flexiEavCreate(
 
     FINALLY:
     // Release all temporary resources
-    sqlite3_finalize(pExtractProps);
-    sqlite3_finalize(pInsClsStmt);
-    sqlite3_finalize(pUpdClsStmt);
-    sqlite3_finalize(pInsPropStmt);
-    if (zPropDefJSON)
-        sqlite3_free((void *) zPropDefJSON);
-    if (zPropName)
-        sqlite3_free((void *) zPropName);
+    sqlite3_free((void *) zPropName);
+    sqlite3_free((void *) zPropDefJSON);
+    if (pExtractProps)
+        sqlite3_finalize(pExtractProps);
+    if (pInsClsStmt)
+        sqlite3_finalize(pInsClsStmt);
+    if (pUpdClsStmt)
+        sqlite3_finalize(pUpdClsStmt);
+    if (pInsPropStmt)
+        sqlite3_finalize(pInsPropStmt);
+
     strReset(&sbClassDefJSON);
 
     return result;
@@ -1230,7 +1242,8 @@ static void flexiEavModuleDestroy(void *data)
     // Release prepared SQL statements
     for (int ii = 0; ii <= STMT_DEL_FTS; ii++)
     {
-        sqlite3_finalize(pDBEnv->pStmts[ii]);
+        if (pDBEnv->pStmts[ii])
+            sqlite3_finalize(pDBEnv->pStmts[ii]);
     }
     sqlite3_free(data);
 }
@@ -1280,6 +1293,11 @@ int sqlite3_flexieav_vtable_init(
             db,
             "select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);",
             -1, &data->pStmts[STMT_SEL_CLS_BY_NAME], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "insert into [.class_properties] (ClassID, NameID, ctlv) values (:1, :2, :3);",
+            -1, &data->pStmts[STMT_INS_CLS_PROP], NULL));
 
 //    const char *zUpdObjIdSQL = "update [.objects] set ObjectID = :1, ClassID = :2 where ObjectID = :3;";
 //    CHECK_CALL(sqlite3_prepare_v2(db, zUpdObjIdSQL, -1, &data->pStmts[STMT_UPD_OBJ_ID], NULL));
