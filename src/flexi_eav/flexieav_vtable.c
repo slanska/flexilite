@@ -5,9 +5,7 @@
 #include <string.h>
 #include <printf.h>
 #include <float.h>
-#include <limits.h>
 #include <assert.h>
-#include <alloca.h>
 #include "../../lib/sqlite/sqlite3ext.h"
 #include "../../src/misc/json1.h"
 #include "./flexi_eav.h"
@@ -38,7 +36,7 @@ struct flexi_prop_metadata
     int minOccurences;
     int maxOccurences;
     sqlite3_value *defaultValue;
-    unsigned char *zName;
+    char *zName;
     short int xRole;
     char bIndexed;
     char bUnique;
@@ -88,7 +86,7 @@ struct flexi_vtab
     // Array of property metadata, by column index
     struct flexi_prop_metadata *pProps;
 
-    unsigned const char *zHash;
+    char *zHash;
     sqlite3_int64 iNameID;
     int bSystemClass;
     int xCtloMask;
@@ -228,6 +226,28 @@ static void flexi_vtab_free(struct flexi_vtab *vtab)
 }
 
 /*
+ * Gets name ID by value. Name is expected to exist
+ */
+static int db_get_name_id(struct flexi_db_env *pDBEnv,
+                          const char *zName, sqlite3_int64 *pNameID)
+{
+    if (pNameID)
+    {
+        sqlite3_stmt *p = pDBEnv->pStmts[STMT_SEL_NAME_ID];
+        assert(p);
+        sqlite3_reset(p);
+        sqlite3_bind_text(p, 1, zName, -1, NULL);
+        int stepRes = sqlite3_step(p);
+        if (stepRes != SQLITE_ROW)
+            return stepRes;
+
+        *pNameID = sqlite3_column_int64(p, 0);
+    }
+
+    return SQLITE_OK;
+}
+
+/*
  * Loads class definition from [.classes] and [.class_properties] tables
  * into ppVTab (casted to flexi_vtab).
  * Used by Create and Connect methods
@@ -261,6 +281,9 @@ static int flexi_load_class_def(
 
     *ppVTab = (void *) vtab;
 
+    sqlite3_int64 lClassNameID;
+    CHECK_CALL(db_get_name_id(vtab->pDBEnv, zClassName, &lClassNameID));
+
     // Init property metadata
     const char *zGetClassSQL = "select "
             "ClassID, " // 0
@@ -269,9 +292,9 @@ static int flexi_load_class_def(
             "ctloMask, " // 3
             "Hash " // 4
             "from [.classes] "
-            "where NameID = (select NameID from [.names] where [Value] = :1) limit 1;";
+            "where NameID = :1;";
     CHECK_CALL(sqlite3_prepare_v2(db, zGetClassSQL, -1, &pGetClassStmt, NULL));
-    sqlite3_bind_text(pGetClassStmt, 1, zClassName, -1, NULL);
+    sqlite3_bind_int64(pGetClassStmt, 1, lClassNameID);
     result = (sqlite3_step(pGetClassStmt));
     if (result == SQLITE_DONE)
         // No class found. Return error
@@ -288,16 +311,24 @@ static int flexi_load_class_def(
     vtab->iNameID = sqlite3_column_int64(pGetClassStmt, 1);
     vtab->bSystemClass = sqlite3_column_int(pGetClassStmt, 2);
     vtab->xCtloMask = sqlite3_column_int(pGetClassStmt, 3);
-    vtab->zHash = sqlite3_column_text(pGetClassStmt, 4);
+
+    {
+        int iHashLen = sqlite3_column_bytes(pGetClassStmt, 4);
+        if (iHashLen > 0)
+        {
+            vtab->zHash = sqlite3_malloc(iHashLen + 1);
+            strcpy(vtab->zHash, (char *) sqlite3_column_text(pGetClassStmt, 4));
+        }
+    }
 
     const char *zGetClsPropSQL = "select "
             "cp.NameID, " // 0
             "cp.PropertyID, " // 1
             "json_extract(c.Data, printf('$.properties.%d.indexed', cp.PropertyID)) as indexed," // 2
-            "json_extract(c.Data, printf('$.properties.%d.unique', cp.PropertyID)) as unique," // 3
+            "json_extract(c.Data, printf('$.properties.%d.unique', cp.PropertyID)) as [unique]," // 3
             "json_extract(c.Data, printf('$.properties.%d.fastTextSearch', cp.PropertyID)) as fastTextSearch," // 4
             "json_extract(c.Data, printf('$.properties.%d.role', cp.PropertyID)) as role," // 5
-            "json_extract(c.Data, printf('$.properties.%d.rules.type', cp.PropertyID)) as type," // 6
+            "json_extract(c.Data, printf('$.properties.%d.rules.type', cp.PropertyID)) as [type]," // 6
             "json_extract(c.Data, printf('$.properties.%d.rules.regex', cp.PropertyID)) as regex," // 7
             "json_extract(c.Data, printf('$.properties.%d.rules.minOccurences', cp.PropertyID)) as minOccurences," // 8
             "json_extract(c.Data, printf('$.properties.%d.rules.maxOccurences', cp.PropertyID)) as maxOccurences," // 9
@@ -306,11 +337,11 @@ static int flexi_load_class_def(
             "json_extract(c.Data, printf('$.properties.%d.rules.maxValue', cp.PropertyID)) as maxValue, " // 12
             "json_extract(c.Data, printf('$.properties.%d.defaultValue', cp.PropertyID)) as defaultValue, " // 13
             "(select [Value] from [.names] n where n.NameID = cp.NameID limit 1) as Name," // 14
-            "cp.ctlo as ctlo" // 15
+            "cp.ctlv as ctlv " // 15
             "from [.class_properties] cp "
-            "join [.classes] c on cp.ClassID = c.ClassID"
+            "join [.classes] c on cp.ClassID = c.ClassID "
             "where cp.ClassID = :1 order by PropertyID;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zGetClsPropSQL, -1, &pGetClassStmt, NULL));
+    CHECK_CALL(sqlite3_prepare_v2(db, zGetClsPropSQL, -1, &pGetClsPropStmt, NULL));
     sqlite3_bind_int64(pGetClsPropStmt, 1, vtab->iClassID);
 
     int nPropIdx = 0;
@@ -329,10 +360,14 @@ static int flexi_load_class_def(
         {
             vtab->nPropColsAllocated += 4;
 
-            void *tmpProps;
             int newLen = vtab->nPropColsAllocated * sizeof(*vtab->pProps);
-            CHECK_MALLOC(tmpProps, newLen);
-            memcpy(tmpProps, vtab->pProps, nPropIdx * sizeof(*vtab->pProps));
+            void *tmpProps = sqlite3_realloc(vtab->pProps, newLen);
+            if (tmpProps == NULL)
+            {
+                result = SQLITE_NOMEM;
+                goto CATCH;
+            }
+
             memset(tmpProps + (nPropIdx * sizeof(*vtab->pProps)), 0,
                    sizeof(*vtab->pProps) * (vtab->nPropColsAllocated - nPropIdx));
             vtab->pProps = tmpProps;
@@ -346,10 +381,14 @@ static int flexi_load_class_def(
         p->bFullTextIndex = (char) sqlite3_column_int(pGetClsPropStmt, 4);
         p->xRole = (short int) sqlite3_column_int(pGetClsPropStmt, 5);
         p->type = sqlite3_column_int(pGetClsPropStmt, 6);
-        p->regex = (char *) sqlite3_column_text(pGetClsPropStmt, 7);
-        // Pre-compile regexp expression, if needed
-        if (p->regex)
+
+        int iRxLen = sqlite3_column_bytes(pGetClsPropStmt, 7);
+        if (iRxLen > 0)
         {
+            p->regex = sqlite3_malloc(iRxLen + 1);
+            strcpy(p->regex, (char *) sqlite3_column_text(pGetClsPropStmt, 7));
+            // Pre-compile regexp expression, if needed
+
             const char *zRegexErr = re_compile(&p->pRegexCompiled, p->regex, 0);
             if (zRegexErr)
             {
@@ -400,7 +439,10 @@ static int flexi_load_class_def(
         }
 
         p->defaultValue = sqlite3_value_dup(sqlite3_column_value(pGetClsPropStmt, 13));
-        p->zName = (unsigned char *) sqlite3_column_text(pGetClsPropStmt, 14);
+
+        p->zName = sqlite3_malloc(sqlite3_column_bytes(pGetClsPropStmt, 14) + 1);
+        strcpy(p->zName, (char *) sqlite3_column_text(pGetClsPropStmt, 14));
+
         p->xCtlv = sqlite3_column_int(pGetClsPropStmt, 15);
 
         if (nPropIdx != 0)
@@ -484,20 +526,9 @@ static int db_insert_name(struct flexi_db_env *pDBEnv, const char *zName, sqlite
             return stepRes;
     }
 
-    if (pNameID)
-    {
-        sqlite3_stmt *p = pDBEnv->pStmts[STMT_SEL_NAME_ID];
-        assert(p);
-        sqlite3_reset(p);
-        sqlite3_bind_text(p, 1, zName, -1, NULL);
-        int stepRes = sqlite3_step(p);
-        if (stepRes != SQLITE_ROW)
-            return stepRes;
+    int result = db_get_name_id(pDBEnv, zName, pNameID);
 
-        *pNameID = sqlite3_column_int64(p, 0);
-    }
-
-    return SQLITE_OK;
+    return result;
 }
 
 
@@ -537,7 +568,7 @@ static int flexiEavCreate(
 
     jsonInit(&sbClassDefJSON, NULL);
 
-    strAppend(&sbClassDefJSON, "{properties:{");
+    strAppend(&sbClassDefJSON, "{\"properties\":{");
 
     const char *zClassName = argv[2];
 
@@ -601,7 +632,6 @@ static int flexiEavCreate(
 
     int iPropCnt = 0;
 
-    // Initially allocate 10 property slots
     while (1)
     {
         int iStep = sqlite3_step(pExtractProps);
@@ -649,7 +679,6 @@ static int flexiEavCreate(
             int stepResult = sqlite3_step(pInsPropStmt);
             if (stepResult != SQLITE_DONE)
             {
-                printf("%s", sqlite3_errmsg(db));
                 result = stepResult;
                 goto CATCH;
             }
@@ -692,6 +721,7 @@ static int flexiEavCreate(
 
     CATCH:
     // Release resources because of errors (catch)
+    printf("%s", sqlite3_errmsg(db));
 
     FINALLY:
     // Release all temporary resources
@@ -823,10 +853,10 @@ static int flexiEavDestroy(sqlite3_vtab *pVTab)
  */
 static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
 {
+    int result = SQLITE_OK;
     // Cursor will have 2 prepared sqlite statements: 1) find object IDs by property values (either with index or not), 2) to iterate through found objects' properties
-    struct flexi_vtab_cursor *cur = sqlite3_malloc(sizeof(struct flexi_vtab_cursor));
-    if (cur == NULL)
-        return SQLITE_NOMEM;
+    struct flexi_vtab_cursor *cur = NULL;
+    CHECK_MALLOC(cur, sizeof(struct flexi_vtab_cursor));
 
     *ppCursor = (void *) cur;
     memset(cur, 0, sizeof(*cur));
@@ -835,13 +865,16 @@ static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
     cur->lObjectID = -1;
     struct flexi_vtab *vtab = (void *) pVTab;
     const char *zObjSql = "select ObjectID, ClassID, ctlo from [.objects];";
-    int result = sqlite3_prepare_v2(vtab->db, zObjSql, -1, &cur->pObjectIterator, NULL);
-    if (result == SQLITE_OK)
-    {
-        const char *zPropSql = "select * from [.ref-values] where ObjectID = :1;";
-        result = sqlite3_prepare_v2(vtab->db, zPropSql, -1, &cur->pPropertyIterator, NULL);
-    }
+    CHECK_CALL(sqlite3_prepare_v2(vtab->db, zObjSql, -1, &cur->pObjectIterator, NULL));
 
+    const char *zPropSql = "select * from [.ref-values] where ObjectID = :1;";
+    CHECK_CALL(sqlite3_prepare_v2(vtab->db, zPropSql, -1, &cur->pPropertyIterator, NULL));
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+    FINALLY:
     return result;
 }
 
