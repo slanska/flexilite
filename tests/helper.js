@@ -28,12 +28,12 @@
      */
     function openMemoryDB() {
         var result = new sqlite3.Database(':memory:');
-        // var libPath = path.join(__dirname, '../deps/sqlite_extensions/darwin-x64/libsqlite_extensions');
-        var libPath = '/Users/ruslanskorynin/sqlite-extensions/bin/libsqlite_extensions';
-        result.loadExtension.sync(result, libPath);
         var currentUserID = result.all.sync(result, "select randomblob(16) as uuid;")[0]['uuid'];
         var sqlScript = fs.readFileSync(path.join(__dirname, '../lib/drivers/SQLite/dbschema.sql'), 'UTF-8');
         result.exec.sync(result, sqlScript);
+        // var libPath = path.join(__dirname, '../deps/sqlite_extensions/darwin-x64/libsqlite_extensions');
+        var libPath = '/Users/ruslanskorynin/sqlite-extensions/bin/libsqlite_extensions';
+        result.loadExtension.sync(result, libPath);
         result["CurrentUserID"] = currentUserID;
         result.run.sync(result, "select var('CurrentUserID', ?);", currentUserID);
         return result;

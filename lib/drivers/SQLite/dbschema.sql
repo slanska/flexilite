@@ -245,8 +245,8 @@ AFTER INSERT
 ON [.classes]
 FOR EACH ROW
 BEGIN
-SELECT raise(ABORT, 'Schema should belong to class') from [.schemas] s
-    where s.SchemaID = new.BaseSchemaID and s.NameID <> new.NameID;
+--SELECT raise(ABORT, 'Schema should belong to class') from [.schemas] s
+--    where s.SchemaID = new.BaseSchemaID and s.NameID <> new.NameID;
 
   INSERT INTO [.change_log] ([KEY], [Value]) VALUES (
     printf('@%s', new.ClassID),
