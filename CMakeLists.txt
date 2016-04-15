@@ -34,7 +34,7 @@ add_executable(sqlite_shell ${SHELL_FILES})
 
 project(sqlite_extensions)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c89")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 
 set(EXT_FILES
@@ -59,7 +59,12 @@ set(EXT_FILES
 
         src/misc/memstat.c
         src/flexilite/flexi_json_value.c
-        src/flexi_eav/flexieav_vtable.c src/flexi_eav/flexi_eav.h src/misc/regexp.h)
+        src/flexi_eav/flexieav_vtable.c src/flexi_eav/flexi_eav.h src/misc/regexp.h
+        lmdb/libraries/liblmdb/midl.h
+        lmdb/libraries/liblmdb/mdb.c
+        lmdb/libraries/liblmdb/midl.c
+        lmdb/libraries/liblmdb/lmdb.h
+        )
 
 add_library(sqlite_extensions SHARED ${EXT_FILES})
 

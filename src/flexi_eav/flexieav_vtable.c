@@ -53,16 +53,20 @@ struct flexi_prop_metadata
 #define STMT_UPD_PROP           2
 #define STMT_INS_OBJ            3
 #define STMT_INS_PROP           4
-#define STMT_INS_FTS            5
-#define STMT_UPD_FTS            6
-#define STMT_DEL_PROP           7
-#define STMT_UPD_OBJ_ID         8
-#define STMT_INS_NAME            9
-#define STMT_SEL_CLS_BY_NAME            10
-#define STMT_SEL_NAME_ID            11
-#define STMT_SEL_PROP_ID            12
+#define STMT_DEL_PROP           5
+#define STMT_UPD_OBJ_ID         6
+#define STMT_INS_NAME           7
+#define STMT_SEL_CLS_BY_NAME    8
+#define STMT_SEL_NAME_ID        9
+#define STMT_SEL_PROP_ID        10
+#define STMT_INS_RTREE          11
+#define STMT_UPD_RTREE          12
+#define STMT_DEL_RTREE          13
+#define STMT_LOAD_CLS           14
+#define STMT_LOAD_CLS_PROP      15
+
 // Should be last one in the list
-#define STMT_DEL_FTS            13
+#define STMT_DEL_FTS            20
 
 struct flexi_vtab
 {
@@ -226,6 +230,33 @@ static void flexi_vtab_free(struct flexi_vtab *vtab)
 }
 
 /*
+ * TODO Complete this func
+ */
+static int prepare_predefined_sql_stmt(struct flexi_db_env *pDBEnv, int idx)
+{
+    if (pDBEnv->pStmts[idx] == NULL)
+    {
+        char *zSQL;
+        switch (idx)
+        {
+            case STMT_INS_NAME:
+                break;
+            case STMT_SEL_CLS_BY_NAME:
+                break;
+            case STMT_DEL_PROP:
+                break;
+            case STMT_INS_OBJ:
+                break;
+            default:
+                break;
+
+        }
+    }
+
+    return SQLITE_OK;
+}
+
+/*
  * Gets name ID by value. Name is expected to exist
  */
 static int db_get_name_id(struct flexi_db_env *pDBEnv,
@@ -325,15 +356,15 @@ static int flexi_load_class_def(
     const char *zGetClsPropSQL = "select "
             "cp.NameID, " // 0
             "cp.PropertyID, " // 1
-            "json_extract(c.Data, printf('$.properties.%d.indexed', cp.PropertyID)) as indexed," // 2
-            "json_extract(c.Data, printf('$.properties.%d.unique', cp.PropertyID)) as [unique]," // 3
-            "json_extract(c.Data, printf('$.properties.%d.fastTextSearch', cp.PropertyID)) as fastTextSearch," // 4
-            "json_extract(c.Data, printf('$.properties.%d.role', cp.PropertyID)) as role," // 5
-            "json_extract(c.Data, printf('$.properties.%d.rules.type', cp.PropertyID)) as [type]," // 6
+            "coalesce(json_extract(c.Data, printf('$.properties.%d.indexed', cp.PropertyID)), 0) as indexed," // 2
+            "coalesce(json_extract(c.Data, printf('$.properties.%d.unique', cp.PropertyID)), 0) as [unique]," // 3
+            "coalesce(json_extract(c.Data, printf('$.properties.%d.fastTextSearch', cp.PropertyID)), 0) as fastTextSearch," // 4
+            "coalesce(json_extract(c.Data, printf('$.properties.%d.role', cp.PropertyID)), 0) as role," // 5
+            "coalesce(json_extract(c.Data, printf('$.properties.%d.rules.type', cp.PropertyID)), 0) as [type]," // 6
             "json_extract(c.Data, printf('$.properties.%d.rules.regex', cp.PropertyID)) as regex," // 7
-            "json_extract(c.Data, printf('$.properties.%d.rules.minOccurences', cp.PropertyID)) as minOccurences," // 8
-            "json_extract(c.Data, printf('$.properties.%d.rules.maxOccurences', cp.PropertyID)) as maxOccurences," // 9
-            "json_extract(c.Data, printf('$.properties.%d.rules.maxLength', cp.PropertyID)) as maxLength," // 10
+            "coalesce(json_extract(c.Data, printf('$.properties.%d.rules.minOccurences', cp.PropertyID)), 0) as minOccurences," // 8
+            "coalesce(json_extract(c.Data, printf('$.properties.%d.rules.maxOccurences', cp.PropertyID)), 1) as maxOccurences," // 9
+            "coalesce(json_extract(c.Data, printf('$.properties.%d.rules.maxLength', cp.PropertyID)), 0) as maxLength," // 10
             "json_extract(c.Data, printf('$.properties.%d.rules.minValue', cp.PropertyID)) as minValue, " // 11
             "json_extract(c.Data, printf('$.properties.%d.rules.maxValue', cp.PropertyID)) as maxValue, " // 12
             "json_extract(c.Data, printf('$.properties.%d.defaultValue', cp.PropertyID)) as defaultValue, " // 13
@@ -1123,6 +1154,29 @@ static int flexi_validate_prop_data(struct flexi_vtab *pVTab, int iCol, sqlite3_
 }
 
 /*
+ * Validates property values for the row to be inserted/updated
+ * Returns SQLITE_OK if validation passed, or error code otherwise.
+ * In case of error pVTab->base.zErrMsg will be set to the exact error message
+ */
+static int flexi_validate(struct flexi_vtab *pVTab, int argc, sqlite3_value **argv)
+{
+    int result = SQLITE_OK;
+
+    for (int ii = 2; ii < argc; ii++)
+    {
+        CHECK_CALL(flexi_validate_prop_data(pVTab, ii - 2, argv[ii]));
+    }
+
+    goto FINALLY;
+    CATCH:
+    //
+    FINALLY:
+    //
+    return result;
+
+}
+
+/*
  *
  */
 static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
@@ -1130,12 +1184,12 @@ static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
 {
     int result = SQLITE_OK;
 
+    CHECK_CALL(flexi_validate(pVTab, argc, argv));
+
     for (int ii = 2; ii < argc; ii++)
     {
         if (argv[ii] != NULL && sqlite3_value_type(argv[ii]) != SQLITE_NULL)
         {
-            CHECK_CALL(flexi_validate_prop_data(pVTab, ii - 2, argv[ii]));
-
             CHECK_CALL(sqlite3_reset(pStmt));
             sqlite3_bind_int64(pStmt, 1, lObjectID);
             sqlite3_bind_int64(pStmt, 2, pVTab->pProps[ii - 2].iPropID);
@@ -1159,7 +1213,13 @@ static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
     }
 
     goto FINALLY;
+
     CATCH:
+
+    if (pVTab->base.zErrMsg == NULL)
+    {
+
+    }
 
     FINALLY:
     return result;
@@ -1222,6 +1282,7 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
             sqlite3_bind_int(pInsObj, 3, vtab->xCtloMask);
 
             CHECK_CALL(sqlite3_step(pInsObj));
+
             if (argv[1] == NULL)
                 *pRowid = sqlite3_column_int64(pInsObj, 1);
             else *pRowid = sqlite3_value_int64(argv[1]);
@@ -1345,13 +1406,6 @@ int sqlite3_flexieav_vtable_init(
 
     const char *zDelObjSQL = "delete from [.objects] where ObjectID = :1;";
     CHECK_CALL(sqlite3_prepare_v2(db, zDelObjSQL, -1, &data->pStmts[STMT_DEL_OBJ], NULL));
-
-//    const char *zDelFtsSQL = "delete from [.full_text_data] where id = :1;";
-//    CHECK_CALL(sqlite3_prepare_v2(db, zDelFtsSQL, -1, &data->pStmts[STMT_DEL_FTS], NULL));
-
-//    const char *zInsFtsSQL = "insert into [.full_text_data] (id, ObjectID, PropertyID, PropIndex, [Value]) "
-//            "values (:1, :2, :3, :4, :5);";
-//    CHECK_CALL(sqlite3_prepare_v2(db, zInsFtsSQL, -1, &data->pStmts[STMT_INS_FTS], NULL));
 
     const char *zInsObjSQL = "insert into [.objects] (ObjectID, ClassID, ctlo) values (:1, :2, :3); "
             "select last_insert_rowid();";
