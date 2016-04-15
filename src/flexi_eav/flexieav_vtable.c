@@ -272,6 +272,7 @@ static int flexi_load_class_def(
     memset(vtab, 0, sizeof(*vtab));
 
     vtab->pDBEnv = pAux;
+    vtab->db = db;
 
     jsonInit(&sbClassDef, NULL);
 
@@ -864,7 +865,7 @@ static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
     cur->bEof = 0;
     cur->lObjectID = -1;
     struct flexi_vtab *vtab = (void *) pVTab;
-    const char *zObjSql = "select ObjectID, ClassID, ctlo from [.objects];";
+    const char *zObjSql = "select ObjectID, ClassID, ctlo from [.objects] where ClassID = :1;";
     CHECK_CALL(sqlite3_prepare_v2(vtab->db, zObjSql, -1, &cur->pObjectIterator, NULL));
 
     const char *zPropSql = "select * from [.ref-values] where ObjectID = :1;";
@@ -874,6 +875,8 @@ static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
     goto FINALLY;
 
     CATCH:
+    printf("%s", sqlite3_errmsg(vtab->db));
+
     FINALLY:
     return result;
 }
@@ -884,8 +887,11 @@ static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
 static int flexiEavClose(sqlite3_vtab_cursor *pCursor)
 {
     struct flexi_vtab_cursor *cur = (void *) pCursor;
-    sqlite3_finalize(cur->pObjectIterator);
-    sqlite3_finalize(cur->pPropertyIterator);
+    if (cur->pObjectIterator)
+        sqlite3_finalize(cur->pObjectIterator);
+
+    if (cur->pPropertyIterator)
+        sqlite3_finalize(cur->pPropertyIterator);
     sqlite3_free(pCursor);
     return SQLITE_OK;
 }
