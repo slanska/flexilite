@@ -200,10 +200,12 @@ struct flexi_vtab_cursor
 // Utility macros
 #define strAppend(SB, S)    jsonAppendRaw(SB, (const char *)S, strlen((const char *)S))
 #define strReset(SB)         jsonReset(SB)
-#define CHECK(result)       CHECK2(result, FAILURE)
 #define CHECK2(result, label)       if (result != SQLITE_OK) goto label;
 #define CHECK_CALL(call)       result = (call); \
         if (result != SQLITE_OK) goto CATCH;
+#define CHECK_STMT(call)       result = (call); \
+        if (result != SQLITE_DONE && result != SQLITE_ROW) goto CATCH;
+
 #define CHECK_MALLOC(v, s) v = sqlite3_malloc(s); \
         if (v == NULL) { result = SQLITE_NOMEM; goto CATCH;}
 
@@ -489,6 +491,8 @@ static int flexi_load_class_def(
 
     } while (1);
 
+    vtab->nCols = nPropIdx;
+
     strAppend(&sbClassDef, ");");
 
     // Fix strange issue with misplaced terminating zero
@@ -505,8 +509,6 @@ static int flexi_load_class_def(
 
     CATCH:
     flexi_vtab_free(vtab);
-//    if (*pzErr == NULL)
-//        *pzErr = (char *) sqlite3_errstr(result);
 
     FINALLY:
     strReset(&sbClassDef);
@@ -784,8 +786,16 @@ static int flexiEavConnect(
         char **pzErr
 )
 {
-    int result = flexi_load_class_def(db, pAux, argv[2], ppVtab, pzErr);
-    return result;
+    /*
+     *       char *zSql = sqlite3_mprintf("CREATE TABLE x(%s", argv[3]);
+      char *zTmp;
+      int ii;
+      for(ii=4; zSql && ii<argc; ii++){
+        zTmp = zSql;
+        zSql = sqlite3_mprintf("%s, %s", zTmp, argv[ii]);
+        sqlite3_free(zTmp);
+     */
+    return flexi_load_class_def(db, pAux, argv[2], ppVtab, pzErr);
 }
 
 /*
@@ -798,7 +808,16 @@ static int flexiEavDisconnect(sqlite3_vtab *pVTab)
 }
 
 /*
- * Finds best existing index for the given criteria, based on index definition for class' properties
+ * Finds best existing index for the given criteria, based on index definition for class' properties.
+ * Applies logic similar to what is implemented in rtree extension.
+ * There are few search cases (listed from most efficient to least efficient):
+ * - lookup by object ID
+ * - lookup by indexed unique column
+ * - lookup by indexed column
+ * - full text search by text column indexed for FTS
+ * - linear scan
+ *
+ *
  *   struct sqlite3_index_info {
  *   */
 // Inputs
@@ -1259,6 +1278,12 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
     if (argc == 1)
         // Delete
     {
+        if (sqlite3_value_type(argv[0]) == SQLITE_NULL)
+            // Nothing to delete. Exit
+        {
+            return SQLITE_OK;
+        }
+
         sqlite3_int64 lOldID = sqlite3_value_int64(argv[0]);
         sqlite3_stmt *pDel = vtab->pDBEnv->pStmts[STMT_DEL_OBJ];
         assert(pDel);
@@ -1266,11 +1291,11 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
 
         sqlite3_bind_int64(pDel, 1, lOldID);
 
-        CHECK_CALL(sqlite3_step(pDel));
+        CHECK_STMT(sqlite3_step(pDel));
     }
     else
     {
-        if (argv[0] == NULL)
+        if (sqlite3_value_type(argv[0]) == SQLITE_NULL)
             // Insert new row
         {
             sqlite3_stmt *pInsObj = vtab->pDBEnv->pStmts[STMT_INS_OBJ];
@@ -1281,10 +1306,10 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
             sqlite3_bind_int64(pInsObj, 2, vtab->iClassID);
             sqlite3_bind_int(pInsObj, 3, vtab->xCtloMask);
 
-            CHECK_CALL(sqlite3_step(pInsObj));
+            CHECK_STMT(sqlite3_step(pInsObj));
 
-            if (argv[1] == NULL)
-                *pRowid = sqlite3_column_int64(pInsObj, 1);
+            if (sqlite3_value_type(argv[1]) == SQLITE_NULL)
+                *pRowid = sqlite3_column_int64(pInsObj, 0);
             else *pRowid = sqlite3_value_int64(argv[1]);
 
             sqlite3_stmt *pInsProp = vtab->pDBEnv->pStmts[STMT_INS_PROP];
@@ -1304,7 +1329,7 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
                 sqlite3_bind_int64(pUpdObjID, 1, lNewID);
                 sqlite3_bind_int64(pUpdObjID, 2, vtab->iClassID);
                 sqlite3_bind_int64(pUpdObjID, 3, lOldID);
-                CHECK_CALL(sqlite3_step(pUpdObjID));
+                CHECK_STMT(sqlite3_step(pUpdObjID));
             }
 
             sqlite3_stmt *pUpdProp = vtab->pDBEnv->pStmts[STMT_UPD_PROP];
@@ -1316,6 +1341,7 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
     goto FINALLY;
 
     CATCH:
+    printf("%s", sqlite3_errmsg(vtab->db));
 
     FINALLY:
 
