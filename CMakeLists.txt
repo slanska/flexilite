@@ -64,6 +64,9 @@ set(EXT_FILES
         lmdb/libraries/liblmdb/mdb.c
         lmdb/libraries/liblmdb/midl.c
         lmdb/libraries/liblmdb/lmdb.h
+
+        duktape-1.4.0/src/duktape.c
+        duktape-1.4.0/src/duktape.h
         )
 
 add_library(sqlite_extensions SHARED ${EXT_FILES})
