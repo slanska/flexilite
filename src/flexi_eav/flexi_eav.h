@@ -51,19 +51,50 @@
 // ctlv flags
 
 //VALUE_CONTROL_FLAGS
-#define     CTLV_NONE                        0
-#define     CTLV_INDEX                       1
-#define     CTLV_REFERENCE                   2
-#define     CTLV_REFERENCE_OWN               4
-#define     CTLV_REFERENCE_OWN_REVERSE       6
-#define     CTLV_REFERENCE_OWN_MUTUAL        8
-#define     CTLV_REFERENCE_DEPENDENT_MASTER  10
-#define     CTLV_REFERENCE_DEPENDENT_LINK    12
-#define     CTLV_REFERENCE_DEPENDENT_BOTH    14
-#define     CTLV_FULL_TEXT_INDEX             16
-#define     CTLV_RANGE_INDEX                 32
-#define     CTLV_NO_TRACK_CHANGES            64
-#define     CTLV_UNIQUE_INDEX                128
+enum
+{
+    CTLV_NONE = 0,
+
+    /*
+     * Maximum four indexes (excluding unique indexes) are allowed per class
+     */
+            CTLV_INDEX = 1,
+    CTLV_REFERENCE = 2,
+    CTLV_REFERENCE_OWN = 4,
+    CTLV_REFERENCE_OWN_REVERSE = 6,
+    CTLV_REFERENCE_OWN_MUTUAL = 8,
+    CTLV_REFERENCE_DEPENDENT_MASTER = 10,
+    CTLV_REFERENCE_DEPENDENT_LINK = 12,
+    CTLV_REFERENCE_DEPENDENT_BOTH = 14,
+    CTLV_FULL_TEXT_INDEX = 16,
+    CTLV_RANGE_INDEX = 32,
+    CTLV_NO_TRACK_CHANGES = 64,
+
+    /*
+     * Though there is no limits on number of unique indexes, typically class will have 0 or 1 (rarely 2) unique index
+     * in addition to object ID
+     */
+            CTLV_UNIQUE_INDEX = 128,
+
+    /*
+     * If property is indexed in RTREE, one of those flags would be set
+     * X0 - means start value
+     * X1 - means end value
+     * X means both start and end values.
+     */
+            CTLV_RANGE_A0 = (1 << 8) + 0,
+    CTLV_RANGE_A1 = (1 << 8) + 1,
+    CTLV_RANGE_A = (1 << 8) + 2,
+    CTLV_RANGE_B0 = (1 << 8) + 3,
+    CTLV_RANGE_B1 = (1 << 8) + 4,
+    CTLV_RANGE_B = (1 << 8) + 5,
+    CTLV_RANGE_C0 = (1 << 8) + 6,
+    CTLV_RANGE_C1 = (1 << 8) + 7,
+    CTLV_RANGE_C = (1 << 8) + 8,
+    CTLV_RANGE_D0 = (1 << 8) + 9,
+    CTLV_RANGE_D1 = (1 << 8) + 10,
+    CTLV_RANGE_D = (1 << 8) + 11
+} Value_Control_Flags;
 
 // Property roles
 /*
@@ -102,24 +133,25 @@
 
 // Property types
 // PROPERTY_TYPE
-
-#define PROP_TYPE_TEXT  0
-#define        PROP_TYPE_INTEGER  1
+enum
+{
+    PROP_TYPE_TEXT = 0,
+    PROP_TYPE_INTEGER = 1,
 
 /*
  Stored as integer * 10000. Corresponds to Decimal(194). (The same format used by Visual Basic)
  */
-#define        PROP_TYPE_DECIMAL  2
+            PROP_TYPE_DECIMAL = 2,
 
 /*
  8 byte float value
  */
-#define        PROP_TYPE_NUMBER  3
+            PROP_TYPE_NUMBER = 3,
 
 /*
  True or False
  */
-#define        PROP_TYPE_BOOLEAN  4
+            PROP_TYPE_BOOLEAN = 4,
 
 /*
  Boxed object or collection of objects.
@@ -128,37 +160,37 @@
  only via master object. Such object can have other boxed objects or boxed references but not LINKED_OBJECT references
  (since it does not have its own ID)
  */
-#define        PROP_TYPE_OBJECT  5
+            PROP_TYPE_OBJECT = 5,
 
 /*
  Selectable from fixed list of items
  */
-#define        PROP_TYPE_ENUM  6
+            PROP_TYPE_ENUM = 6,
 
 /*
  Byte array (Buffer). Stored as byte 64 encoded value
  */
-#define        PROP_TYPE_BINARY  7
+            PROP_TYPE_BINARY = 7,
 
 /*
  16 byte buffer. Stored as byte 64 encoded value (takes 22 bytes)
  */
-#define        PROP_TYPE_UUID  8
+            PROP_TYPE_UUID = 8,
 
 /*
  8 byte double corresponds to Julian day in SQLite
  */
-#define        PROP_TYPE_DATETIME  9
+            PROP_TYPE_DATETIME = 9,
 
 /*
  Presented as text but internally stored as name ID. Provides localization
  */
-#define        PROP_TYPE_NAME  10
+            PROP_TYPE_NAME = 10,
 
 /*
  Arbitrary JSON object not processed by Flexi
  */
-#define        PROP_TYPE_JSON  11
+            PROP_TYPE_JSON = 11,
 
 /*
  'linked_object':
@@ -166,6 +198,21 @@
  and can be accessed independently from master object.
  This is most flexible option.
  */
-#define        PROP_TYPE_LINK  12
+            PROP_TYPE_LINK = 12,
+
+/*
+ * Range types are tuples which combine 2 values - Start and End.
+ * End value must be not less than Start.
+ * In virtual table range types are presented as 2 columns: Start is named the same as range property, End has '^' symbol appended.
+ * For example: Lifetime as date range property would be presented as [Lifetime] and [Lifetime_1] columns. If this
+ * property has 'indexed' attribute, values would be stored in rtree table for fast lookup by range.
+ * Unique indexes are not supported for range values
+ */
+            PROP_TYPE_NUMBER_RANGE = 13,
+    PROP_TYPE_INTEGER_RANGE = 14,
+    PROP_TYPE_DECIMAL_RANGE = 15,
+
+    PROP_TYPE_DATE_RANGE = 16
+} PropertyDataType;
 
 #endif //SQLITE_EXTENSIONS_FLEXI_EAV_H

@@ -172,7 +172,8 @@ struct flexi_column_data
 
 struct flexi_vtab_cursor
 {
-    unsigned char base[sizeof(struct sqlite3_vtab_cursor)];
+    struct sqlite3_vtab_cursor base;
+
     sqlite3_stmt *pObjectIterator;
     sqlite3_stmt *pPropertyIterator;
     sqlite3_int64 lObjectID;
@@ -434,42 +435,27 @@ static int flexi_load_class_def(
 
         // minOccurences
         {
-            sqlite3_value *v = sqlite3_column_value(pGetClsPropStmt, 8);
-            if (sqlite3_value_type(v) == SQLITE_NULL)
-                p->minOccurences = 0;
-            else
-                p->minOccurences = sqlite3_value_numeric_type(v);
+            p->minOccurences = sqlite3_column_int(pGetClsPropStmt, 8);
         }
 
         // maxOccurences
         {
-            sqlite3_value *v = sqlite3_column_value(pGetClsPropStmt, 9);
-            if (sqlite3_value_type(v) == SQLITE_NULL)
-                p->maxOccurences = 1;
-            else
-                p->maxOccurences = sqlite3_value_int(v);
+            p->maxOccurences = sqlite3_column_int(pGetClsPropStmt, 9);
         }
 
         // maxLength
         {
-            sqlite3_value *v = sqlite3_column_value(pGetClsPropStmt, 10);
-            p->maxLength = sqlite3_value_numeric_type(v);
+            p->maxLength = sqlite3_column_int(pGetClsPropStmt, 10);
         }
 
         // minValue
         {
-            sqlite3_value *v = sqlite3_column_value(pGetClsPropStmt, 11);
-            if (sqlite3_value_type(v) == SQLITE_NULL)
-                p->minValue = DBL_MIN;
-            p->minValue = sqlite3_value_numeric_type(v);
+            p->minValue = sqlite3_column_double(pGetClsPropStmt, 11);
         }
 
         //  maxValue
         {
-            sqlite3_value *v = sqlite3_column_value(pGetClsPropStmt, 12);
-            if (sqlite3_value_type(v) == SQLITE_NULL)
-                p->maxValue = DBL_MAX;
-            p->maxValue = sqlite3_value_numeric_type(v);
+            p->maxValue = sqlite3_column_double(pGetClsPropStmt, 12);
         }
 
         p->defaultValue = sqlite3_value_dup(sqlite3_column_value(pGetClsPropStmt, 13));
@@ -500,6 +486,12 @@ static int flexi_load_class_def(
     CHECK_CALL(sqlite3_declare_vtab(db, sbClassDef.zBuf));
 
     // Init property-column map (unsorted)
+    CHECK_MALLOC(vtab->pSortedProps, nPropIdx * sizeof(struct flexi_prop_col_map));
+    for (int ii = 0; ii < nPropIdx; ii++)
+    {
+        vtab->pSortedProps[ii].iCol = ii;
+        vtab->pSortedProps[ii].iPropID = vtab->pProps[ii].iPropID;
+    }
 
     // Sort prop-col map
     flexi_sort_cols_by_prop_id(vtab);
@@ -665,7 +657,9 @@ static int flexiEavCreate(
     CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, argv[3] + sizeof(char), iJSONLen - 2, NULL));
 
     int iPropCnt = 0;
+    int iRangeIdxCnt = 0;
 
+    // Load property definitions from JSON
     while (1)
     {
         int iStep = sqlite3_step(pExtractProps);
@@ -694,13 +688,36 @@ static int flexiEavCreate(
 
         int xCtlv = 0;
 
-        if (dProp.bUnique || (dProp.xRole & PROP_ROLE_ID) || (dProp.xRole & PROP_ROLE_NAME))
-            xCtlv |= CTLV_UNIQUE_INDEX;
-        else
-            if (dProp.bIndexed)
-                xCtlv |= CTLV_INDEX;
-        if (dProp.bFullTextIndex)
-            xCtlv |= CTLV_FULL_TEXT_INDEX;
+        switch (dProp.type)
+        {
+            // These property types can be searched by range
+            case PROP_TYPE_DECIMAL:
+            case PROP_TYPE_NUMBER:
+            case PROP_TYPE_DATETIME:
+            case PROP_TYPE_INTEGER:
+
+                // These property types can be indexed
+            case PROP_TYPE_TEXT:
+            case PROP_TYPE_BINARY:
+            case PROP_TYPE_NAME:
+            case PROP_TYPE_ENUM:
+            case PROP_TYPE_UUID:
+                if (dProp.bUnique || (dProp.xRole & PROP_ROLE_ID) || (dProp.xRole & PROP_ROLE_NAME))
+                    xCtlv |= CTLV_UNIQUE_INDEX;
+                // Note: no break here;
+                if (dProp.bIndexed)
+                    xCtlv |= CTLV_INDEX;
+                else
+                    if (dProp.bFullTextIndex)
+                        xCtlv |= CTLV_FULL_TEXT_INDEX;
+
+            case PROP_TYPE_DATE_RANGE:
+            case PROP_TYPE_DECIMAL_RANGE:
+            case PROP_TYPE_NUMBER_RANGE:
+            case PROP_TYPE_INTEGER_RANGE:
+                iRangeIdxCnt++;
+                break;
+        }
 
         sqlite3_int64 lPropNameID;
         CHECK_CALL(db_insert_name(pDBEnv, zPropName, &lPropNameID));
@@ -953,6 +970,7 @@ static int flexiEavClose(sqlite3_vtab_cursor *pCursor)
 static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
                           int argc, sqlite3_value **argv)
 {
+    struct flexi_vtab_cursor *cur = (void *) pCursor;
     if (argc > 0)
     {
         const unsigned char *v = sqlite3_value_text(argv[0]);
@@ -1192,7 +1210,6 @@ static int flexi_validate(struct flexi_vtab *pVTab, int argc, sqlite3_value **ar
     FINALLY:
     //
     return result;
-
 }
 
 /*
@@ -1215,7 +1232,7 @@ static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
             sqlite3_bind_int(pStmt, 3, 0);
             sqlite3_bind_int(pStmt, 4, pVTab->pProps[ii - 2].xCtlv);
             sqlite3_bind_value(pStmt, 5, argv[ii]);
-            CHECK_CALL(sqlite3_step(pStmt));
+            CHECK_STMT(sqlite3_step(pStmt));
         }
         else
         {
@@ -1226,11 +1243,12 @@ static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
                 sqlite3_bind_int64(pDelProp, 1, lObjectID);
                 sqlite3_bind_int64(pDelProp, 2, pVTab->pProps[ii - 2].iPropID);
                 sqlite3_bind_int(pDelProp, 3, 0);
-                CHECK_CALL(sqlite3_step(pDelProp));
+                CHECK_STMT(sqlite3_step(pDelProp));
             }
         }
     }
 
+    result = SQLITE_OK;
     goto FINALLY;
 
     CATCH:
@@ -1288,10 +1306,14 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
         sqlite3_stmt *pDel = vtab->pDBEnv->pStmts[STMT_DEL_OBJ];
         assert(pDel);
         CHECK_CALL(sqlite3_reset(pDel));
-
         sqlite3_bind_int64(pDel, 1, lOldID);
-
         CHECK_STMT(sqlite3_step(pDel));
+
+        sqlite3_stmt *pDelRtree = vtab->pDBEnv->pStmts[STMT_DEL_RTREE];
+        assert(pDelRtree);
+        CHECK_CALL(sqlite3_reset(pDelRtree));
+        sqlite3_bind_int64(pDelRtree, 1, lOldID);
+        CHECK_STMT(sqlite3_step(pDelRtree));
     }
     else
     {
@@ -1309,7 +1331,9 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
             CHECK_STMT(sqlite3_step(pInsObj));
 
             if (sqlite3_value_type(argv[1]) == SQLITE_NULL)
-                *pRowid = sqlite3_column_int64(pInsObj, 0);
+            {
+                *pRowid = sqlite3_last_insert_rowid(vtab->db);
+            }
             else *pRowid = sqlite3_value_int64(argv[1]);
 
             sqlite3_stmt *pInsProp = vtab->pDBEnv->pStmts[STMT_INS_PROP];
@@ -1466,6 +1490,21 @@ int sqlite3_flexieav_vtable_init(
             db,
             "select PropertyID from [.class_properties] where ClassID = :1 and NameID = :2;",
             -1, &data->pStmts[STMT_SEL_PROP_ID], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "insert into [.range_data] ([ObjectID], [ClassID], [ClassID^], [A], [A^], [B], [B^], [C], [C^], [D], [D^]) values "
+                    "(:1, :2, :2, :3, :4, :5, :6, :7, :8, :9, :10);",
+            -1, &data->pStmts[STMT_INS_RTREE], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db, "update [.range_data] set ([ClassID] = :2, [ClassID^] = :2, [A] = :3, [A^] = :4, [B] = :5, [B^] = :6, "
+                    "[C] = :7, [C^] = :8, [D] = :9, [D^] = :10) where ObjectID = :1;",
+            -1, &data->pStmts[STMT_UPD_RTREE], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db, "delete from [.range_data] where ObjectID = :1;",
+            -1, &data->pStmts[STMT_DEL_RTREE], NULL));
 
 //    const char *zUpdObjIdSQL = "update [.objects] set ObjectID = :1, ClassID = :2 where ObjectID = :3;";
 //    CHECK_CALL(sqlite3_prepare_v2(db, zUpdObjIdSQL, -1, &data->pStmts[STMT_UPD_OBJ_ID], NULL));
