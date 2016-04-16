@@ -899,7 +899,7 @@ END;
 ------------------------------------------------------------------------------------------
 
 CREATE VIRTUAL TABLE IF NOT EXISTS [.range_data] USING rtree (
-  [id],
+  [ObjectID],
   [ClassID], [ClassID^],
   [A], [A^],
   [B], [B^],
