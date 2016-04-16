@@ -33,6 +33,24 @@ describe('SQLite extensions: Flexilite EAV', ()=>
         }
     } as IClassDefinition;
 
+    function randomPersonArguments():any
+    {
+        let gender = faker.random.number(1);
+        let result = {
+            $FirstName: faker.name.firstName(gender),
+            $LastName: faker.name.lastName(gender),
+            $Gender: gender,
+            $AddressLine1: faker.address.streetAddress(),
+            $City: faker.address.city(),
+            $StateOrProvince: faker.address.stateAbbr(),
+            $Country: faker.address.country(),
+            $ZipOrPostalCode: faker.address.zipCode(),
+            $Email: faker.internet.email(),
+            $Phone: faker.phone.phoneNumber()
+        };
+        return result;
+    }
+
     before((done)=>
     {
         Sync(()=>
@@ -57,6 +75,28 @@ describe('SQLite extensions: Flexilite EAV', ()=>
         {
             let def = JSON.stringify(personMeta);
             db.exec.sync(db, `create virtual table Person using 'flexi_eav' ('${def}');`);
+
+            let person = randomPersonArguments();
+            db.run.sync(db, `insert into Person (FirstName,
+                LastName,
+                Gender,
+                AddressLine1,
+                City,
+                StateOrProvince,
+                Country,
+                ZipOrPostalCode,
+                Email,
+                Phone) values (
+                $FirstName,
+                $LastName,
+                $Gender,
+                $AddressLine1,
+                $City,
+                $StateOrProvince,
+                $Country,
+                $ZipOrPostalCode,
+                $Email,
+                $Phone);`, person);
 
             var rows = db.all.sync(db, `select * from Person where LastName = 'Doe';`);
         });
