@@ -4,8 +4,8 @@
 
 #include <string.h>
 #include <printf.h>
-#include <float.h>
 #include <assert.h>
+#include <stdarg.h>
 #include "../../lib/sqlite/sqlite3ext.h"
 #include "../../src/misc/json1.h"
 #include "./flexi_eav.h"
@@ -174,14 +174,17 @@ struct flexi_vtab_cursor
 {
     struct sqlite3_vtab_cursor base;
 
+    /*
+     * This statement will be used for navigating through object list.
+     * Depending on filter, query may vary
+     */
     sqlite3_stmt *pObjectIterator;
-    sqlite3_stmt *pPropertyIterator;
-    sqlite3_int64 lObjectID;
 
     /*
-     * Number of columns/properties
+     * This statement will be used to iterating through properties of object (by its ID)
      */
-    int iCol;
+    sqlite3_stmt *pPropertyIterator;
+    sqlite3_int64 lObjectID;
 
     /*
      * Actually fetched number of column values.
@@ -190,11 +193,13 @@ struct flexi_vtab_cursor
     int iReadCol;
 
     /*
-     * Array of column data, by their index
+     * Array of retrieved column data, by column index as it is defined in pVTab->pProps
      */
     struct flexi_column_data *pCols;
 
-
+    /*
+     * Indicator of end of file
+     */
     int bEof;
 };
 
@@ -471,7 +476,43 @@ static int flexi_load_class_def(
         }
         strAppend(&sbClassDef, "[");
         strAppend(&sbClassDef, vtab->pProps[nPropIdx].zName);
-        strAppend(&sbClassDef, "]");
+        const char *zType;
+        switch (vtab->pProps[nPropIdx].type)
+        {
+            case PROP_TYPE_UUID:
+            case PROP_TYPE_BINARY:
+                zType = "] BLOB";
+                break;
+
+            case PROP_TYPE_NAME:
+            case PROP_TYPE_TEXT:
+                zType = "] TEXT";
+                break;
+
+            case PROP_TYPE_DECIMAL:
+            case PROP_TYPE_NUMBER:
+                zType = "] FLOAT";
+                break;
+
+            case PROP_TYPE_ENUM:
+            case PROP_TYPE_INTEGER:
+            case PROP_TYPE_BOOLEAN:
+                zType = "] INTEGER";
+                break;
+
+            case PROP_TYPE_JSON:
+                zType = "] JSON1";
+                break;
+
+            case PROP_TYPE_DATETIME:
+                zType = "] FLOAT";
+                break;
+
+            default:
+                zType = "]";
+                break;
+        }
+        strAppend(&sbClassDef, zType);
 
         nPropIdx++;
 
@@ -586,7 +627,6 @@ static int flexiEavCreate(
     sqlite3_stmt *pInsClsStmt = NULL;
     sqlite3_stmt *pInsPropStmt = NULL;
     sqlite3_stmt *pUpdClsStmt = NULL;
-    char *zPropName = NULL;
     unsigned char *zPropDefJSON = NULL;
     StringBuilder sbClassDefJSON;
 
@@ -599,6 +639,7 @@ static int flexiEavCreate(
     const char *zClassName = argv[2];
 
     struct flexi_prop_metadata dProp;
+    memset(&dProp, 0, sizeof(dProp));
 
     sqlite3_int64 lClassNameID;
     CHECK_CALL(db_insert_name(pDBEnv, zClassName, &lClassNameID));
@@ -635,7 +676,8 @@ static int flexiEavCreate(
 
     int xCtloMask = 0;
 
-    const char *zInsPropSQL = "insert into [.class_properties] (NameID, ClassID, ctlv) values (:1, :2, :3);";
+    const char *zInsPropSQL = "insert into [.class_properties] (NameID, ClassID, ctlv, ctlvPlan)"
+            " values (:1, :2, :3, :4);";
     CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, -1, &pInsPropStmt, NULL));
 
     // We expect 1st argument passed (at argv[3]) to be valid JSON which describes class
@@ -657,7 +699,6 @@ static int flexiEavCreate(
     CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, argv[3] + sizeof(char), iJSONLen - 2, NULL));
 
     int iPropCnt = 0;
-    int iRangeIdxCnt = 0;
 
     // Load property definitions from JSON
     while (1)
@@ -679,54 +720,73 @@ static int flexiEavCreate(
         dProp.xRole = (short int) sqlite3_column_int(pExtractProps, 3);
         dProp.type = sqlite3_column_int(pExtractProps, 4);
 
-        sqlite3_free((void *) zPropName);
         sqlite3_free((void *) zPropDefJSON);
-        zPropName = sqlite3_malloc(sqlite3_column_bytes(pExtractProps, 5) + 1);
+        sqlite3_free(dProp.zName);
+        dProp.zName = sqlite3_malloc(sqlite3_column_bytes(pExtractProps, 5) + 1);
         zPropDefJSON = sqlite3_malloc(sqlite3_column_bytes(pExtractProps, 6) + 1);
-        strcpy(zPropName, (const char *) sqlite3_column_text(pExtractProps, 5));
+        strcpy(dProp.zName, (const char *) sqlite3_column_text(pExtractProps, 5));
         strcpy((char *) zPropDefJSON, (const char *) sqlite3_column_text(pExtractProps, 6));
 
+        // Property control flags which regulate actual indexing and other settings
         int xCtlv = 0;
+
+        // Planned (postponed for future) property control flags which will be applied later
+        // when enough statisticts accumulated about best index strategy.
+        // Typically, this will happen when database size reaches few megabytes and 1K-5K records
+        // On smaller databases there is no real point to apply indexing to the full extent
+        // Plus, in the database schema lifetime initial period is usually associated with heavy refactoring
+        // and data restructuring.
+        // Taking into account these 2 considerations, we will remember user settings for desired indexing
+        // (in ctlvPlan) but currently apply only settings for unique values (as it is mostly constraint, rather
+        // than indexing)
+        int xCtlvPlan = 0;
 
         switch (dProp.type)
         {
-            // These property types can be searched by range
+            // These property types can be searched by range, can be indexed and can be unique
             case PROP_TYPE_DECIMAL:
             case PROP_TYPE_NUMBER:
             case PROP_TYPE_DATETIME:
             case PROP_TYPE_INTEGER:
 
                 // These property types can be indexed
-            case PROP_TYPE_TEXT:
             case PROP_TYPE_BINARY:
             case PROP_TYPE_NAME:
             case PROP_TYPE_ENUM:
             case PROP_TYPE_UUID:
                 if (dProp.bUnique || (dProp.xRole & PROP_ROLE_ID) || (dProp.xRole & PROP_ROLE_NAME))
+                {
                     xCtlv |= CTLV_UNIQUE_INDEX;
+                    xCtlvPlan |= CTLV_UNIQUE_INDEX;
+                }
                 // Note: no break here;
-                if (dProp.bIndexed)
-                    xCtlv |= CTLV_INDEX;
-                else
-                    if (dProp.bFullTextIndex)
-                        xCtlv |= CTLV_FULL_TEXT_INDEX;
 
             case PROP_TYPE_DATE_RANGE:
             case PROP_TYPE_DECIMAL_RANGE:
             case PROP_TYPE_NUMBER_RANGE:
             case PROP_TYPE_INTEGER_RANGE:
-                iRangeIdxCnt++;
+                if (dProp.bIndexed)
+                    xCtlvPlan |= CTLV_INDEX;
+                // Note: no break here;
+
+            case PROP_TYPE_TEXT:
+                if (dProp.bIndexed && dProp.maxLength <= 30)
+                    xCtlvPlan |= CTLV_INDEX;
+                if (dProp.bFullTextIndex)
+                    xCtlvPlan |= CTLV_FULL_TEXT_INDEX;
+
                 break;
         }
 
         sqlite3_int64 lPropNameID;
-        CHECK_CALL(db_insert_name(pDBEnv, zPropName, &lPropNameID));
+        CHECK_CALL(db_insert_name(pDBEnv, dProp.zName, &lPropNameID));
 
         {
             sqlite3_reset(pInsPropStmt);
             sqlite3_bind_int64(pInsPropStmt, 1, lPropNameID);
             sqlite3_bind_int64(pInsPropStmt, 2, iClassID);
             sqlite3_bind_int(pInsPropStmt, 3, xCtlv);
+            sqlite3_bind_int(pInsPropStmt, 4, xCtlvPlan);
             int stepResult = sqlite3_step(pInsPropStmt);
             if (stepResult != SQLITE_DONE)
             {
@@ -775,9 +835,10 @@ static int flexiEavCreate(
     printf("%s", sqlite3_errmsg(db));
 
     FINALLY:
-    // Release all temporary resources
-    sqlite3_free((void *) zPropName);
+
     sqlite3_free((void *) zPropDefJSON);
+    sqlite3_free(dProp.zName);
+
     if (pExtractProps)
         sqlite3_finalize(pExtractProps);
     if (pInsClsStmt)
@@ -824,19 +885,19 @@ static int flexiEavDisconnect(sqlite3_vtab *pVTab)
     return SQLITE_OK;
 }
 
-/*
- * Finds best existing index for the given criteria, based on index definition for class' properties.
- * Applies logic similar to what is implemented in rtree extension.
- * There are few search cases (listed from most efficient to least efficient):
- * - lookup by object ID
- * - lookup by indexed unique column
- * - lookup by indexed column
- * - full text search by text column indexed for FTS
- * - linear scan
- *
- *
- *   struct sqlite3_index_info {
- *   */
+//#define
+//    SQLITE_INDEX_CONSTRAINT_EQ      = 2,
+//    SQLITE_INDEX_CONSTRAINT_GT      = 4,
+//    SQLITE_INDEX_CONSTRAINT_LE      = 8,
+//    SQLITE_INDEX_CONSTRAINT_LT     = 16,
+//    SQLITE_INDEX_CONSTRAINT_GE     = 32,
+//    SQLITE_INDEX_CONSTRAINT_MATCH  = 64,
+//    SQLITE_INDEX_CONSTRAINT_LIKE   = 65,    /* 3.10.0 and later only */
+//    SQLITE_INDEX_CONSTRAINT_GLOB   = 66,   /* 3.10.0 and later only */
+//    SQLITE_INDEX_CONSTRAINT_REGEXP = 67,  /* 3.10.0 and later only */
+//    SQLITE_INDEX_SCAN_UNIQUE        = 1     /* Scan visits at most 1 row */
+
+
 // Inputs
 //const int nConstraint;     /* Number of entries in aConstraint */
 //const struct sqlite3_index_constraint {
@@ -869,44 +930,86 @@ static int flexiEavDisconnect(sqlite3_vtab *pVTab)
 //sqlite3_uint64 colUsed;    /* Input: Mask of columns used by statement */
 //};
 
+
+/*
+** Set the pIdxInfo->estimatedRows variable to nRow. Unless this
+** extension is currently being used by a version of SQLite too old to
+** support estimatedRows. In that case this function is a no-op.
+*/
+static void setEstimatedRows(sqlite3_index_info *pIdxInfo, sqlite3_int64 nRow)
+{
+#if SQLITE_VERSION_NUMBER >= 3008002
+    if (sqlite3_libversion_number() >= 3008002)
+    {
+        pIdxInfo->estimatedRows = nRow;
+    }
+#endif
+}
+
+/*
+ * Finds best existing index for the given criteria, based on index definition for class' properties.
+ * There are few search strategies. They fall into one of following groups:
+ * I) search by rowid (ObjectID)
+ * II) search by indexed properties
+ * III) search by rtree ranges
+ * IV) full text search (via match function)
+ * Due to specifics of internal storage of flexilite data (EAV store), these strategies are estimated differently
+ * For strategy II every additional search constraint increases estimated cost (since query in this case would be compound from multiple
+ * joins)
+ * For strategies III and IV it is opposite, every additional constraint reduces estimated cost, since lookup will need
+ * to be performed on more restrictive criterias
+ * Inside of each strategies there is also rank depending on op code (exact comparison gives less estimated cost, range comparison gives
+ * more estimated cost)
+ * Here is list of sorted from most efficient to least efficient strategies:
+ * 1) lookup by object ID.
+ * 2) exact value by indexed or unique column (=)
+ * 3) lookup in rtree (by set of fields)
+ * 4) range search on indexed or unique column (>, <, >=, <=, <>)
+ * 5) full text search by text column indexed for FTS
+ * 6) linear scan for exact value
+ * 7) linear scan for range
+ * 8) linear search for MATCH/REGEX/prefixed LIKE
+ *
+ *  # of scenario corresponds to idxNum value in output
+ *  idxNum will have best found determines format of idxStr.
+ *  1) idxStr is not used (null)
+ *  2) and 3) idxStr has op & column (5 characters) # in string format (e.g. "A00003")
+ *  4) string with
+ *   */
 static int flexiEavBestIndex(
         sqlite3_vtab *tab,
         sqlite3_index_info *pIdxInfo
 )
 {
-#define SQLITE_INDEX_CONSTRAINT_EQ      2
-#define SQLITE_INDEX_CONSTRAINT_GT      4
-#define SQLITE_INDEX_CONSTRAINT_LE      8
-#define SQLITE_INDEX_CONSTRAINT_LT     16
-#define SQLITE_INDEX_CONSTRAINT_GE     32
-#define SQLITE_INDEX_CONSTRAINT_MATCH  64
-#define SQLITE_INDEX_CONSTRAINT_LIKE   65     /* 3.10.0 and later only */
-#define SQLITE_INDEX_CONSTRAINT_GLOB   66     /* 3.10.0 and later only */
-#define SQLITE_INDEX_CONSTRAINT_REGEXP 67     /* 3.10.0 and later only */
-#define SQLITE_INDEX_SCAN_UNIQUE        1     /* Scan visits at most 1 row */
+    int ii;
+    int result = SQLITE_OK;
 
-    // Get class info
-    // Find property by column index
-    // Check if property is indexed or not
-    // Check if property is nullable or not
+    int argCount = 0;
 
-    // For simple ops (==, <= etc.) try to apply index
+    pIdxInfo->idxStr = NULL;
+    for (int jj = 0; jj < pIdxInfo->nConstraint; jj++)
+    {
+        if (pIdxInfo->aConstraint[jj].usable)
+        {
+            pIdxInfo->aConstraintUsage[jj].argvIndex = ++argCount;
+            void *pTmp = pIdxInfo->idxStr;
+            pIdxInfo->idxStr = sqlite3_mprintf("%s.%d.%d", pTmp, pIdxInfo->aConstraint[jj].op,
+                                               pIdxInfo->aConstraint[jj].iColumn);
+            pIdxInfo->needToFreeIdxStr = 1;
+            pIdxInfo->idxNum = 1; // TODO
+            sqlite3_free(pTmp);
+            pIdxInfo->estimatedCost = 0; // TODO
 
-    // For match, like and glob - try to apply full text index, if applicable
+            int col;
+            int x = sscanf(pIdxInfo->idxStr, "%x", &col);
+        }
+    }
 
-    // For regexp - will do scan
-
-    pIdxInfo->idxNum = 1;
-    pIdxInfo->estimatedCost = 40;
-    pIdxInfo->idxStr = "1";
-    pIdxInfo->aConstraintUsage[0].argvIndex = 1;
-
-    return SQLITE_OK;
-
+    return result;
 }
 
 /*
- * Delete class
+ * Delete class and all its object data
  */
 static int flexiEavDestroy(sqlite3_vtab *pVTab)
 {
@@ -922,6 +1025,8 @@ static int flexiEavDestroy(sqlite3_vtab *pVTab)
 static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
 {
     int result = SQLITE_OK;
+
+    struct flexi_vtab *vtab = (struct flexi_vtab *) pVTab;
     // Cursor will have 2 prepared sqlite statements: 1) find object IDs by property values (either with index or not), 2) to iterate through found objects' properties
     struct flexi_vtab_cursor *cur = NULL;
     CHECK_MALLOC(cur, sizeof(struct flexi_vtab_cursor));
@@ -931,9 +1036,6 @@ static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
 
     cur->bEof = 0;
     cur->lObjectID = -1;
-    struct flexi_vtab *vtab = (void *) pVTab;
-    const char *zObjSql = "select ObjectID, ClassID, ctlo from [.objects] where ClassID = :1;";
-    CHECK_CALL(sqlite3_prepare_v2(vtab->db, zObjSql, -1, &cur->pObjectIterator, NULL));
 
     const char *zPropSql = "select * from [.ref-values] where ObjectID = :1;";
     CHECK_CALL(sqlite3_prepare_v2(vtab->db, zPropSql, -1, &cur->pPropertyIterator, NULL));
@@ -970,13 +1072,130 @@ static int flexiEavClose(sqlite3_vtab_cursor *pCursor)
 static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
                           int argc, sqlite3_value **argv)
 {
+    int result;
     struct flexi_vtab_cursor *cur = (void *) pCursor;
-    if (argc > 0)
+    struct flexi_vtab *vtab = (struct flexi_vtab *) cur->base.pVtab;
+    char *zSQL = NULL;
+
+    if (idxNum == 0 || argc == 0)
+        // No special index used. Apply linear scan
     {
+        const char *zObjSql = "select ObjectID, ClassID, ctlo from [.objects] where ClassID = :1;";
+        CHECK_CALL(sqlite3_prepare_v2(vtab->db, zObjSql, -1, &cur->pObjectIterator, NULL));
+    }
+    else
+    {
+        // Build SQL dynamically, based on where constraints
+        zSQL = sqlite3_mprintf("select ObjectID, ClassID, ctlo from [.objects] ");
+
+        for (int i = 0; i < argc; i++)
+        {
+            if (i == 0)
+            {
+                void *pTmp = zSQL;
+                zSQL = sqlite3_mprintf("%s where ", pTmp);
+                sqlite3_free(pTmp);
+            }
+
+            // Get where constraint
+
+        }
+
+//            switch (p->op)
+//            {
+//                case SQLITE_INDEX_CONSTRAINT_EQ:
+//                    op = RTREE_EQ;
+//                    break;
+//                case SQLITE_INDEX_CONSTRAINT_GT:
+//                    op = RTREE_GT;
+//                    break;
+//                case SQLITE_INDEX_CONSTRAINT_LE:
+//                    op = RTREE_LE;
+//                    break;
+//                case SQLITE_INDEX_CONSTRAINT_LT:
+//                    op = RTREE_LT;
+//                    break;
+//                case SQLITE_INDEX_CONSTRAINT_GE:
+//                    op = RTREE_GE;
+//                    break;
+//                default:
+//                    assert(p->op == SQLITE_INDEX_CONSTRAINT_MATCH);
+//                    op = RTREE_MATCH;
+//                    break;
+//            }
+
         const unsigned char *v = sqlite3_value_text(argv[0]);
         // Apply passed parameters to index
     }
-    return SQLITE_OK;
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    sqlite3_free(zSQL);
+
+    return result;
+}
+
+
+/*
+ *
+ */
+static void matchFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
+{
+    printf("match: %d", argc);
+    sqlite3_result_int(context, 1);
+}
+
+static void likeFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
+{
+    printf("like: %d", argc);
+    sqlite3_result_int(context, 1);
+}
+
+static void regexpFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
+{
+    printf("regexp: %d", argc);
+    sqlite3_result_int(context, 1);
+}
+
+/*
+ *
+ */
+static int flexiFindMethod(
+        sqlite3_vtab *pVtab,
+        int nArg,
+        const char *zName,
+        void (**pxFunc)(sqlite3_context *, int, sqlite3_value **),
+        void **ppArg
+)
+{
+    // match
+    if (strcmp("match", zName) == 0)
+    {
+        *pxFunc = matchFunction;
+        return 1;
+    }
+
+    // like
+    if (strcmp("like", zName) == 0)
+    {
+        *pxFunc = likeFunction;
+        return 1;
+    }
+
+    // glob
+
+    // regexp
+    if (strcmp("regexp", zName) == 0)
+    {
+        *pxFunc = regexpFunction;
+        return 1;
+    }
+
+    return 0;
 }
 
 /*
@@ -1422,7 +1641,7 @@ static sqlite3_module flexiEavModule = {
         0,                         /* xSync */
         0,                         /* xCommit */
         0,                         /* xRollback */
-        0,                         /* xFindMethod */
+        flexiFindMethod,         /* xFindMethod */
         flexiEavRename,            /* xRename */
         0,                         /* xSavepoint */
         0,                         /* xRelease */
@@ -1493,13 +1712,14 @@ int sqlite3_flexieav_vtable_init(
 
     CHECK_CALL(sqlite3_prepare_v2(
             db,
-            "insert into [.range_data] ([ObjectID], [ClassID], [ClassID^], [A], [A^], [B], [B^], [C], [C^], [D], [D^]) values "
+            "insert into [.range_data] ([ObjectID], [ClassID], [ClassID_1], [A], [A_1], [B], [B_1], [C], [C_1], [D], [D_1]) values "
                     "(:1, :2, :2, :3, :4, :5, :6, :7, :8, :9, :10);",
             -1, &data->pStmts[STMT_INS_RTREE], NULL));
 
     CHECK_CALL(sqlite3_prepare_v2(
-            db, "update [.range_data] set ([ClassID] = :2, [ClassID^] = :2, [A] = :3, [A^] = :4, [B] = :5, [B^] = :6, "
-                    "[C] = :7, [C^] = :8, [D] = :9, [D^] = :10) where ObjectID = :1;",
+            db,
+            "update [.range_data] set [ClassID] = :2, [ClassID_1] = :2, [A] = :3, [A_1] = :4, [B] = :5, [B_1] = :6, "
+                    "[C] = :7, [C_1] = :8, [D] = :9, [D_1] = :10 where ObjectID = :1;",
             -1, &data->pStmts[STMT_UPD_RTREE], NULL));
 
     CHECK_CALL(sqlite3_prepare_v2(
