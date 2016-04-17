@@ -63,6 +63,7 @@ CREATE INDEX IF NOT EXISTS [idxAccessRulesByItemID] ON [.access_rules] ([ItemID]
 ------------------------------------------------------------------------------------------
 -- .change_log
 ------------------------------------------------------------------------------------------
+-- TODO will be implemented as LMDB database
 CREATE TABLE IF NOT EXISTS [.change_log] (
   [ID]        INTEGER  NOT NULL PRIMARY KEY AUTOINCREMENT,
   [TimeStamp] DATETIME NOT NULL             DEFAULT (julianday('now')),
@@ -417,7 +418,16 @@ create table if not exists [.class_properties]
         */
     [NameID] INTEGER NOT NULL constraint [fkClassPropertiesToNames] references [.names] ([NameID])
         on delete restrict on update restrict,
-    [ctlv] INTEGER NOT NULL DEFAULT 0
+
+        /*
+        Actual control flags
+        */
+    [ctlv] INTEGER NOT NULL DEFAULT 0,
+
+    /*
+    Planned/desired control flags
+    */
+    [ctlvPlan] INTEGER NOT NULL DEFAULT 0
  );
 
  create unique index if not exists [idxClassPropertiesByClassAndName] on [.class_properties]
@@ -900,11 +910,11 @@ END;
 
 CREATE VIRTUAL TABLE IF NOT EXISTS [.range_data] USING rtree (
   [ObjectID],
-  [ClassID], [ClassID^],
-  [A], [A^],
-  [B], [B^],
-  [C], [C^],
-  [D], [D^]
+  [ClassID], [ClassID_1],
+  [A], [A_1],
+  [B], [B_1],
+  [C], [C_1],
+  [D], [D_1]
 );
 
 ------------------------------------------------------------------------------------------

@@ -59,7 +59,12 @@ describe('SQLite extensions: Flexilite EAV', function () {
             db.exec.sync(db, "create virtual table Person using 'flexi_eav' ('" + def + "');");
             var person = randomPersonArguments();
             db.run.sync(db, "insert into Person (FirstName,\n                LastName,\n                Gender,\n                AddressLine1,\n                City,\n                StateOrProvince,\n                Country,\n                ZipOrPostalCode,\n                Email,\n                Phone) values (\n                $FirstName,\n                $LastName,\n                $Gender,\n                $AddressLine1,\n                $City,\n                $StateOrProvince,\n                $Country,\n                $ZipOrPostalCode,\n                $Email,\n                $Phone);", person);
-            var rows = db.all.sync(db, "select * from Person where LastName = 'Doe';");
+            var rows = db.all.sync(db, "select * from Person where  rowid = 1\n            union select * from Person where  rowid = 3;");
+            // var rows = db.all.sync(db, `select * from Person where (LastName = 'Doe' and FirstName in ('John', 'Mary',
+            //  'Peter')) or Phone like '%555%';`);
+            // var rows = db.all.sync(db, `select * from Person where  FirstName >= 'John' and LastName = 'Smi';`);
+            // var rows = db.all.sync(db, `select * from Person where (LastName = 'Doe' and FirstName in ('John', 'Mary',
+            //  'Peter')) ;`);
         });
     });
 });
