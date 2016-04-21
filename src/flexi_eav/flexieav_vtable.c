@@ -42,6 +42,12 @@ struct flexi_prop_metadata
     char bUnique;
     char bFullTextIndex;
     int xCtlv;
+
+    /*
+     * 1-8 when column is mapped to .range_data columns (1 = A0, 2 = A1 and so on)
+     * 0 - if not mapped
+     */
+    int iRangeColumn;
 };
 
 /*
@@ -973,8 +979,10 @@ static void setEstimatedRows(sqlite3_index_info *pIdxInfo, sqlite3_int64 nRow)
  *  # of scenario corresponds to idxNum value in output
  *  idxNum will have best found determines format of idxStr.
  *  1) idxStr is not used (null)
- *  2) and 3) idxStr has op & column (5 characters) # in string format (e.g. "A00003")
- *  4) string with
+ *  2-8) idxStr consists of 6 char tuples with op & column index (+1) encoded
+ *  into 2 and 4 hex characters respectively
+ *  (e.g. "020003" means EQ operator for column #3). Position of every tuple
+ *  corresponds to argvIndex, so that tupleIndex = (argvIndex - 1) * 6
  *   */
 static int flexiEavBestIndex(
         sqlite3_vtab *tab,
@@ -993,15 +1001,13 @@ static int flexiEavBestIndex(
         {
             pIdxInfo->aConstraintUsage[jj].argvIndex = ++argCount;
             void *pTmp = pIdxInfo->idxStr;
-            pIdxInfo->idxStr = sqlite3_mprintf("%s.%d.%d", pTmp, pIdxInfo->aConstraint[jj].op,
-                                               pIdxInfo->aConstraint[jj].iColumn);
+            pIdxInfo->idxStr = sqlite3_mprintf("%s%2X%4X", pTmp, pIdxInfo->aConstraint[jj].op,
+                                               pIdxInfo->aConstraint[jj].iColumn + 1);
             pIdxInfo->needToFreeIdxStr = 1;
             pIdxInfo->idxNum = 1; // TODO
             sqlite3_free(pTmp);
             pIdxInfo->estimatedCost = 0; // TODO
 
-            int col;
-            int x = sscanf(pIdxInfo->idxStr, "%x", &col);
         }
     }
 
@@ -1066,66 +1072,175 @@ static int flexiEavClose(sqlite3_vtab_cursor *pCursor)
 }
 
 /*
- * Begins search
- * idxNum will have indexed property ID
+ * Generates dynamic SQL to find list of object IDs.
+ * idxNum may be 0 or 1. When 1, idxStr will have all constraints appended by FindBestIndex.
+ * Depending on number of constraint arguments in idxStr generated SQL will have of the following constructs:
+ * 1. argc == 1 or all argv are for rtree search
+ * 1.1. Unique index: select ObjectID from [.ref-values] where PropertyID = :1 and Value OP :2 and ctlv =
+ * 1.2. Index: select ObjectID from [.ref-values] where PropertyID = :1 and Value OP :2 and ctlv =
+ * 1.3. Match for full text search with index:
+ * select id from [.full_text_data] where PropertyID = :1 and Value match :2
+ * 1.4. Linear scan without index:
+ * select ObjectID from [.ref-values] where PropertyID = :1 and Value OP :2
+ * 1.5. Search by rtree:
+ * select id from [.range_data] where ClassID = :1 and A0 OP :2 and A1 OP :3 and...
+ *
+ * 2.argc > 1
+ * General pattern would be:
+ * <SQL for argv == 0> intersect <SQL for argv == 1>...
  */
 static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
                           int argc, sqlite3_value **argv)
 {
+    static char *range_columns[] = {"A0", "A1", "B0", "B1", "C0", "C1", "D0", "D1"};
+
     int result;
     struct flexi_vtab_cursor *cur = (void *) pCursor;
     struct flexi_vtab *vtab = (struct flexi_vtab *) cur->base.pVtab;
     char *zSQL = NULL;
 
+    // Subquery for [.range_data]
+    char *zRangeSQL = NULL;
+
     if (idxNum == 0 || argc == 0)
         // No special index used. Apply linear scan
     {
-        const char *zObjSql = "select ObjectID, ClassID, ctlo from [.objects] where ClassID = :1;";
-        CHECK_CALL(sqlite3_prepare_v2(vtab->db, zObjSql, -1, &cur->pObjectIterator, NULL));
+        CHECK_CALL(sqlite3_prepare_v2(
+                vtab->db, "select ObjectID from [.objects] where ClassID = :1;",
+                -1, &cur->pObjectIterator, NULL));
+        sqlite3_bind_int64(cur->pObjectIterator, 1, vtab->iClassID);
     }
     else
     {
-        // Build SQL dynamically, based on where constraints
-        zSQL = sqlite3_mprintf("select ObjectID, ClassID, ctlo from [.objects] ");
+        assert(argc * 6 == strlen(idxStr));
 
+        const char *zIdxTuple = idxStr;
         for (int i = 0; i < argc; i++)
         {
-            if (i == 0)
+            int op;
+            int colIdx;
+            sscanf(zIdxTuple, "%2X%4X", &op, &colIdx);
+            colIdx--;
+            zIdxTuple += 6;
+
+            assert(colIdx >= -1 && colIdx < vtab->nCols);
+
+            if (zSQL != NULL)
             {
                 void *pTmp = zSQL;
-                zSQL = sqlite3_mprintf("%s where ", pTmp);
+                zSQL = sqlite3_mprintf("%s intersect ", pTmp);
                 sqlite3_free(pTmp);
             }
 
-            // Get where constraint
+            char *zOp;
+            switch (op)
+            {
+                case SQLITE_INDEX_CONSTRAINT_EQ:
+                    zOp = "=";
+                    break;
+                case SQLITE_INDEX_CONSTRAINT_GT:
+                    zOp = ">";
+                    break;
+                case SQLITE_INDEX_CONSTRAINT_LE:
+                    zOp = "<=";
+                    break;
+                case SQLITE_INDEX_CONSTRAINT_LT:
+                    zOp = "<";
+                    break;
+                case SQLITE_INDEX_CONSTRAINT_GE:
+                    zOp = ">=";
+                    break;
+                default:
+                    assert(op == SQLITE_INDEX_CONSTRAINT_MATCH);
+                    zOp = "match";
+                    break;
+            }
 
+            if (colIdx == -1)
+                // Search by rowid / ObjectID
+            {
+                void *pTmp = zSQL;
+                zSQL = sqlite3_mprintf(
+                        "%sselect ObjectID from [.objects] where ObjectID %s :%d",
+                        pTmp, zOp, i + 1);
+                sqlite3_free(pTmp);
+            }
+            else
+            {
+                struct flexi_prop_metadata *prop = &vtab->pProps[colIdx];
+                if (prop->type == PROP_TYPE_DATE_RANGE || prop->type == PROP_TYPE_DECIMAL_RANGE
+                    || prop->type == PROP_TYPE_INTEGER_RANGE || prop->type == PROP_TYPE_NUMBER_RANGE)
+                    // Special case: range data request
+                {
+                    assert(prop->iRangeColumn > 0);
+
+                    if (zRangeSQL == NULL)
+                    {
+                        zRangeSQL = sqlite3_mprintf(
+                                "select id from [.range_data] where ClassID0 = %d and ClassID1 = %d ",
+                                vtab->iClassID, vtab->iClassID);
+                    }
+                    void *pTmp = zRangeSQL;
+                    zRangeSQL = sqlite3_mprintf("%s and %s %s :%d", pTmp, range_columns[prop->iRangeColumn - 1],
+                                                zOp, i + 1);
+                    sqlite3_free(pTmp);
+                }
+                else
+                    // Normal column
+                {
+                    void *zTmp = zSQL;
+
+                    if (op == SQLITE_INDEX_CONSTRAINT_MATCH)
+                        // full text search
+                    {
+                        if (prop->bFullTextIndex)
+                        {
+
+                        }
+                        else
+                        {
+                            // Just apply MATCH function
+                        }
+                    }
+                    else
+                    {
+                        zSQL = sqlite3_mprintf
+                                ("%sselect ObjectID from [.ref-values] where "
+                                         "[PropertyID] = :%d and [PropIndex] = 0 and Value %s :%d", zTmp,
+                                 prop->iPropID, zOp, i + 1);
+                        sqlite3_free(zTmp);
+                        if (prop->bIndexed)
+                        {
+                            void *pTmp = zSQL;
+                            zSQL = sqlite3_mprintf("%s and (ctlv & %d) = %d", pTmp, CTLV_INDEX, CTLV_INDEX);
+                            sqlite3_free(pTmp);
+                        }
+                        else
+                            if (prop->bUnique)
+                            {
+                                void *pTmp = zSQL;
+                                zSQL = sqlite3_mprintf("%s and (ctlv & %d) = %d", pTmp, CTLV_UNIQUE_INDEX,
+                                                       CTLV_UNIQUE_INDEX);
+                                sqlite3_free(pTmp);
+                            }
+                    }
+                }
+            }
         }
 
-//            switch (p->op)
-//            {
-//                case SQLITE_INDEX_CONSTRAINT_EQ:
-//                    op = RTREE_EQ;
-//                    break;
-//                case SQLITE_INDEX_CONSTRAINT_GT:
-//                    op = RTREE_GT;
-//                    break;
-//                case SQLITE_INDEX_CONSTRAINT_LE:
-//                    op = RTREE_LE;
-//                    break;
-//                case SQLITE_INDEX_CONSTRAINT_LT:
-//                    op = RTREE_LT;
-//                    break;
-//                case SQLITE_INDEX_CONSTRAINT_GE:
-//                    op = RTREE_GE;
-//                    break;
-//                default:
-//                    assert(p->op == SQLITE_INDEX_CONSTRAINT_MATCH);
-//                    op = RTREE_MATCH;
-//                    break;
-//            }
+        if (zRangeSQL != NULL)
+        {
+            void *pTmp = zSQL;
+            zSQL = sqlite3_mprintf("%s intersect %s", pTmp, zRangeSQL);
+            sqlite3_free(pTmp);
+        }
 
-        const unsigned char *v = sqlite3_value_text(argv[0]);
-        // Apply passed parameters to index
+        CHECK_CALL(sqlite3_prepare_v2(vtab->db, zSQL, -1, &cur->pObjectIterator, NULL));
+        // Bind arguments
+        for (int ii = 0; ii < argc; ii++)
+        {
+            sqlite3_bind_value(cur->pObjectIterator, ii + 1, argv[ii]);
+        }
     }
 
     result = SQLITE_OK;
@@ -1135,6 +1250,7 @@ static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *
 
     FINALLY:
     sqlite3_free(zSQL);
+    sqlite3_free(zRangeSQL);
 
     return result;
 }
