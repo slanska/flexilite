@@ -144,7 +144,8 @@ static void flexi_sort_cols_by_prop_id(struct flexi_vtab *vtab)
 }
 
 /*
- * Performs binary search on sorted array of propertyID-column index map
+ * Performs binary search on sorted array of propertyID-column index map.
+ * Returns index in vtab->pCols array or -1 if not found
  */
 static int flex_get_col_idx_by_prop_id(struct flexi_vtab *vtab, sqlite3_int64 iPropID)
 {
@@ -1043,7 +1044,7 @@ static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
     cur->bEof = 0;
     cur->lObjectID = -1;
 
-    const char *zPropSql = "select * from [.ref-values] where ObjectID = :1;";
+    const char *zPropSql = "select ObjectID, PropertyID, PropIndex, ctlv, [Value] from [.ref-values] where ObjectID = :1;";
     CHECK_CALL(sqlite3_prepare_v2(vtab->db, zPropSql, -1, &cur->pPropertyIterator, NULL));
 
     result = SQLITE_OK;
@@ -1320,20 +1321,27 @@ static int flexiFindMethod(
 static int flexiEavNext(sqlite3_vtab_cursor *pCursor)
 {
     struct flexi_vtab_cursor *cur = (void *) pCursor;
+    cur->iReadCol = -1;
     int result = sqlite3_step(cur->pObjectIterator);
     if (result == SQLITE_DONE)
     {
         cur->bEof = 1;
-        return SQLITE_OK;
     }
+    else
+        if (result == SQLITE_ROW)
+        {
+            cur->lObjectID = sqlite3_column_int64(cur->pObjectIterator, 0);
+            cur->bEof = 0;
+            CHECK_CALL(sqlite3_reset(cur->pPropertyIterator));
+            sqlite3_bind_int64(cur->pPropertyIterator, 1, cur->lObjectID);
+            CHECK_CALL(sqlite3_step(cur->pPropertyIterator));
+        }
 
-    if (result == SQLITE_ROW)
-    {
-        cur->lObjectID = sqlite3_column_int64(cur->pObjectIterator, 0);
-        cur->iReadCol = 0;
-        return SQLITE_OK;
-    }
+    result = SQLITE_OK;
+    goto FINALLY;
+    CATCH:
 
+    FINALLY:
     return result;
 }
 
@@ -1348,34 +1356,64 @@ static int flexiEavEof(sqlite3_vtab_cursor *pCursor)
 
 /*
  * Returns value for the column at position iCol (starting from 0).
- * Can use the following APIs:
-sqlite3_result_blob()
-sqlite3_result_double()
-sqlite3_result_int()
-sqlite3_result_int64()
-sqlite3_result_null()
-sqlite3_result_text()
-sqlite3_result_text16()
-sqlite3_result_text16le()
-sqlite3_result_text16be()
-sqlite3_result_zeroblob()
- *
  */
 static int flexiEavColumn(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int iCol)
 {
+    int result = SQLITE_OK;
     struct flexi_vtab_cursor *cur = (void *) pCursor;
 
-    // First, check if column has been already loaded
-    if (cur->iReadCol >= iCol + 1)
+    if (iCol == -1)
     {
-        sqlite3_result_value(pContext, cur->pCols[iCol].pVal);
-        return SQLITE_OK;
+        sqlite3_result_int64(pContext, cur->lObjectID);
+        goto FINALLY;
     }
 
-    sqlite3_step(cur->pPropertyIterator);
+    struct flexi_vtab *vtab = (void *) cur->base.pVtab;
+    sqlite3_int64 lExpectedPropID = vtab->pProps[iCol].iPropID;
 
+    // First, check if column has been already loaded
+    while (cur->iReadCol < iCol)
+    {
+        CHECK_CALL(sqlite3_step(cur->pPropertyIterator));
+        sqlite3_int64 lPropID = sqlite3_column_int64(cur->pPropertyIterator, 1);
+        if (lPropID < lExpectedPropID)
+            continue;
+
+        sqlite3_int64 lPropIdx = sqlite3_column_int64(cur->pPropertyIterator, 2);
+
+        // Check if property ID matches our column list
+        int colIdx = flex_get_col_idx_by_prop_id(vtab, lPropID);
+        if (colIdx >= 0)
+        {
+            /*
+             * No need in any special verification as we expect columns are storted by property IDs, so
+             * we just assume that once column index is OK, we can process this property data
+             */
+            cur->iReadCol++;
+            struct flexi_column_data *pCol = &cur->pCols[cur->iReadCol];
+            pCol->pVal = sqlite3_value_dup(sqlite3_column_value(cur->pPropertyIterator, 4));
+            pCol->ctlv = sqlite3_column_int(cur->pPropertyIterator, 3);
+            pCol->lPropID = lPropID;
+            pCol->lPropIdx = lPropIdx;
+        }
+    }
+
+    if (sqlite3_value_type(cur->pCols[iCol].pVal) == SQLITE_NULL)
+    {
+        sqlite3_result_value(pContext, vtab->pProps[iCol].defaultValue);
+    }
+    else
+    {
+        sqlite3_result_value(pContext, cur->pCols[iCol].pVal);
+    }
+
+    result = SQLITE_OK;
+    goto FINALLY;
+    CATCH:
+
+    FINALLY:
     // Map column number to property ID
-    return SQLITE_OK;
+    return result;
 }
 
 /*
