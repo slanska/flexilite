@@ -111,6 +111,7 @@ struct flexi_vtab
  */
 struct flexi_db_env
 {
+    int nRefCount;
     sqlite3_stmt *pStmts[STMT_DEL_FTS + 1];
 
 };
@@ -312,6 +313,7 @@ static int flexi_load_class_def(
     memset(vtab, 0, sizeof(*vtab));
 
     vtab->pDBEnv = pAux;
+    vtab->pDBEnv->nRefCount++;
     vtab->db = db;
 
     *ppVTab = (void *) vtab;
@@ -885,59 +887,41 @@ static int flexiEavConnect(
 }
 
 /*
+ * Cleans up Flexilite module environment (prepared SQL statements etc.)
+ */
+static void flexiCleanUpModuleEnv(struct flexi_db_env *pDBEnv)
+{
+    // Release prepared SQL statements
+    for (int ii = 0; ii <= STMT_DEL_FTS; ii++)
+    {
+        if (pDBEnv->pStmts[ii])
+            sqlite3_finalize(pDBEnv->pStmts[ii]);
+    }
+
+    memset(pDBEnv, 0, sizeof(*pDBEnv));
+}
+
+/*
  *
  */
 static int flexiEavDisconnect(sqlite3_vtab *pVTab)
 {
-    flexi_vtab_free((void *) pVTab);
+    struct flexi_vtab* vtab = (void*)pVTab;
+
+    /*
+     * Fix for possible SQLite bug when disposing modules for virtual tables
+     * We keep our own counter for number of connected virtual tables, and once
+     * this counters gets to 0, we will close all prepared commonly used SQL statements
+     */
+    vtab->pDBEnv->nRefCount--;
+    if (vtab->pDBEnv->nRefCount == 0)
+    {
+        flexiCleanUpModuleEnv(vtab->pDBEnv);
+    }
+
+    flexi_vtab_free(vtab);
     return SQLITE_OK;
 }
-
-//#define
-//    SQLITE_INDEX_CONSTRAINT_EQ      = 2,
-//    SQLITE_INDEX_CONSTRAINT_GT      = 4,
-//    SQLITE_INDEX_CONSTRAINT_LE      = 8,
-//    SQLITE_INDEX_CONSTRAINT_LT     = 16,
-//    SQLITE_INDEX_CONSTRAINT_GE     = 32,
-//    SQLITE_INDEX_CONSTRAINT_MATCH  = 64,
-//    SQLITE_INDEX_CONSTRAINT_LIKE   = 65,    /* 3.10.0 and later only */
-//    SQLITE_INDEX_CONSTRAINT_GLOB   = 66,   /* 3.10.0 and later only */
-//    SQLITE_INDEX_CONSTRAINT_REGEXP = 67,  /* 3.10.0 and later only */
-//    SQLITE_INDEX_SCAN_UNIQUE        = 1     /* Scan visits at most 1 row */
-
-
-// Inputs
-//const int nConstraint;     /* Number of entries in aConstraint */
-//const struct sqlite3_index_constraint {
-//    int iColumn;              /* Column constrained.  -1 for ROWID */
-//    unsigned char op;         /* Constraint operator */
-//    unsigned char usable;     /* True if this constraint is usable */
-//    int iTermOffset;          /* Used internally - xBestIndex should ignore */
-//} *const aConstraint;      /* Table of WHERE clause constraints */
-//const int nOrderBy;        /* Number of terms in the ORDER BY clause */
-//const struct sqlite3_index_orderby {
-//    int iColumn;              /* Column number */
-//    unsigned char desc;       /* True for DESC.  False for ASC. */
-//} *const aOrderBy;         /* The ORDER BY clause */
-//
-///* Outputs */
-//struct sqlite3_index_constraint_usage {
-//    int argvIndex;           /* if >0, constraint is part of argv to xFilter */
-//    unsigned char omit;      /* Do not code a test for this constraint */
-//} *const aConstraintUsage;
-//int idxNum;                /* Number used to identify the index */
-//char *idxStr;              /* String, possibly obtained from sqlite3_malloc */
-//int needToFreeIdxStr;      /* Free idxStr using sqlite3_free() if true */
-//int orderByConsumed;       /* True if output is already ordered */
-//double estimatedCost;      /* Estimated cost of using this index */
-///* Fields below are only available in SQLite 3.8.2 and later */
-//sqlite3_int64 estimatedRows;    /* Estimated number of rows returned */
-///* Fields below are only available in SQLite 3.9.0 and later */
-//int idxFlags;              /* Mask of SQLITE_INDEX_SCAN_* flags */
-///* Fields below are only available in SQLite 3.10.0 and later */
-//sqlite3_uint64 colUsed;    /* Input: Mask of columns used by statement */
-//};
-
 
 /*
 ** Set the pIdxInfo->estimatedRows variable to nRow. Unless this
@@ -1858,14 +1842,7 @@ static sqlite3_module flexiEavModule = {
 
 static void flexiEavModuleDestroy(void *data)
 {
-    struct flexi_db_env *pDBEnv = data;
-
-    // Release prepared SQL statements
-    for (int ii = 0; ii <= STMT_DEL_FTS; ii++)
-    {
-        if (pDBEnv->pStmts[ii])
-            sqlite3_finalize(pDBEnv->pStmts[ii]);
-    }
+    flexiCleanUpModuleEnv(data);
     sqlite3_free(data);
 }
 

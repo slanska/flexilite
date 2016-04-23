@@ -59,7 +59,10 @@ set(EXT_FILES
 
         src/misc/memstat.c
         src/flexilite/flexi_json_value.c
-        src/flexi_eav/flexieav_vtable.c src/flexi_eav/flexi_eav.h src/misc/regexp.h
+        src/flexi_eav/flexieav_vtable.c
+        src/flexi_eav/flexi_eav.h
+
+        src/misc/regexp.h
 #        lmdb/libraries/liblmdb/midl.h
 #        lmdb/libraries/liblmdb/mdb.c
 #        lmdb/libraries/liblmdb/midl.c
@@ -67,6 +70,8 @@ set(EXT_FILES
 
         duktape-1.4.0/src/duktape.c
         duktape-1.4.0/src/duktape.h
+        src/flexi_eav/flexi_class_alter.c
+        src/flexi_eav/flexi_props_to_object.c
         )
 
 add_library(sqlite_extensions SHARED ${EXT_FILES})

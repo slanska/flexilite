@@ -1,28 +1,40 @@
-## To-Do list
+# To-Do list
 
-####Mem leaks
+###Mem leaks
 Close statements, free allocated memory
+*Done*
 
-####MATCH function 
+###MATCH function 
 MATCH for plain unindexed text. Borrow from SQLite sources (FTS3 or FTS5)
 
-####Range properties
+###Range properties
 Generate 2 scalar properties with link to each other
 
-####Index support
+###Index support
 Set ctlo and ctlv flags, tests
 
-####Use full text index
+###Use full text index
 
-####Use rtree for range search
+###Use rtree for range search
 
-####Test SQL 
+###Test SQL 
 Use existing SQLite tests (Sqllogictest) [[http://www.sqlite.org/sqllogictest/doc/trunk/about.wiki]]
  
-####Search statistics
+###Search statistics
+
 
 ####flexi_class_alter
 Function to create new or modify existing class with basic refactoring support
+
+```
+flexi_class_alter(className:text, newClassDefinition:JSON1 [, newClassName:text])
+```
+Properties are identified by names. Property renaming is not supported in this API.
+For property renaming use flexi_prop_alter.
+Transformations supported by this function:
+- add new property(ies)
+- drop property(ies)
+- change property attributes (type, validation, UI)
 
 ####flexi_class_drop
 
@@ -50,6 +62,10 @@ Removes duplicated objects with auto correction of links
 
 ####flexi_prop_alter
 
+```
+flexi_prop_alter(className:text, propName:text, propDef:JSON1[,newPropName:string])
+```
+
 ####flexi_prop_drop
 
 ####flexi_ref_create
@@ -64,3 +80,11 @@ Returns given object will all linked and nested objects, in JSON format
 Based on search stats, determines optimal storage and indexing for the given class.
 
 ####flexi_object_save
+
+###Duktape
+
+Integrate Duktape JavaScript engine into library.
+Support for custom functions with interface compatible with sqlite3 node.js
+Support for triggers and validation rules in JavaScript
+Custom converters/formatter in JS
+
