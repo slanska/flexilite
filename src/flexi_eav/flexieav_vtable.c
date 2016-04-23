@@ -6,7 +6,6 @@
 #include <printf.h>
 #include <assert.h>
 #include "../../lib/sqlite/sqlite3ext.h"
-#include "../../src/misc/json1.h"
 #include "./flexi_eav.h"
 #include "../misc/regexp.h"
 
@@ -202,8 +201,12 @@ struct flexi_vtab_cursor
 
     /*
      * Indicator of end of file
+     * May have 3 values:
+     * -1: Next was never called. Assume Eof not reached
+     * 0: Next was called, not Eof reached
+     * 1: Next was called and Eof was reached
      */
-    int bEof;
+    int iEof;
 };
 
 // Utility macros
@@ -1039,7 +1042,7 @@ static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
     *ppCursor = (void *) cur;
     memset(cur, 0, sizeof(*cur));
 
-    cur->bEof = 0;
+    cur->iEof = -1;
     cur->lObjectID = -1;
 
     const char *zPropSql = "select ObjectID, PropertyID, PropIndex, ctlv, [Value] from [.ref-values] "
@@ -1235,7 +1238,7 @@ static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *
                     {
                         zSQL = sqlite3_mprintf
                                 ("%sselect ObjectID from [.ref-values] where "
-                                         "[PropertyID] = :%d and [PropIndex] = 0 and Value %s :%d", zTmp,
+                                         "[PropertyID] = %d and [PropIndex] = 0 and Value %s :%d", zTmp,
                                  prop->iPropID, zOp, i + 1);
                         sqlite3_free(zTmp);
                         if (prop->bIndexed)
@@ -1358,7 +1361,7 @@ static int flexiEavNext(sqlite3_vtab_cursor *pCursor)
     result = sqlite3_step(cur->pObjectIterator);
     if (result == SQLITE_DONE)
     {
-        cur->bEof = 1;
+        cur->iEof = 1;
     }
     else
         if (result == SQLITE_ROW)
@@ -1372,7 +1375,7 @@ static int flexiEavNext(sqlite3_vtab_cursor *pCursor)
             memset(cur->pCols, 0, vtab->nCols * sizeof(sqlite3_value *));
 
             cur->lObjectID = sqlite3_column_int64(cur->pObjectIterator, 0);
-            cur->bEof = 0;
+            cur->iEof = 0;
             CHECK_CALL(sqlite3_reset(cur->pPropertyIterator));
             sqlite3_bind_int64(cur->pPropertyIterator, 1, cur->lObjectID);
         }
@@ -1391,7 +1394,7 @@ static int flexiEavNext(sqlite3_vtab_cursor *pCursor)
 static int flexiEavEof(sqlite3_vtab_cursor *pCursor)
 {
     struct flexi_vtab_cursor *cur = (void *) pCursor;
-    return cur->bEof;
+    return cur->iEof > 0;
 }
 
 /*
@@ -1404,6 +1407,13 @@ static int flexiEavColumn(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContex
 {
     int result = SQLITE_OK;
     struct flexi_vtab_cursor *cur = (void *) pCursor;
+
+    // Handle weird behavior of SQLite: sometimes Next may be not called and flow goes directly to Column method.
+    // In this case, force fetching Next row
+    if (cur->iEof == -1)
+    {
+        CHECK_CALL(flexiEavNext(pCursor));
+    }
 
     if (iCol == -1)
     {
