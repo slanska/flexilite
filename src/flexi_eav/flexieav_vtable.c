@@ -44,8 +44,8 @@ struct flexi_prop_metadata
     int xCtlv;
 
     /*
-     * 1-8 when column is mapped to .range_data columns (1 = A0, 2 = A1 and so on)
-     * 0 - if not mapped
+     * 1-8: column is mapped to .range_data columns (1 = A0, 2 = A1, 3 = B0 and so on)
+     * 0: not mapped
      */
     int iRangeColumn;
 };
@@ -91,7 +91,7 @@ struct flexi_vtab
     int nPropColsAllocated;
 
     // Sorted array of mapping between property ID and column index
-    struct flexi_prop_col_map *pSortedProps;
+    //struct flexi_prop_col_map *pSortedProps;
 
     // Array of property metadata, by column index
     struct flexi_prop_metadata *pProps;
@@ -127,47 +127,47 @@ static void flexi_vtab_prop_free(struct flexi_prop_metadata const *prop)
 /*
  * Sorts flexi_vtab->pSortedProps, using bubble sort (should be good enough for this case as we expect only 2-3 dozens of items, at most).
  */
-static void flexi_sort_cols_by_prop_id(struct flexi_vtab *vtab)
-{
-    for (int i = 0; i < vtab->nCols; i++)
-    {
-        for (int j = 0; j < (vtab->nCols - i - 1); j++)
-        {
-            if (vtab->pSortedProps[j].iPropID > vtab->pSortedProps[j + 1].iPropID)
-            {
-                struct flexi_prop_col_map temp = vtab->pSortedProps[j];
-                vtab->pSortedProps[j] = vtab->pSortedProps[j + 1];
-                vtab->pSortedProps[j + 1] = temp;
-            }
-        }
-    }
-}
+//static void flexi_sort_cols_by_prop_id(struct flexi_vtab *vtab)
+//{
+//    for (int i = 0; i < vtab->nCols; i++)
+//    {
+//        for (int j = 0; j < (vtab->nCols - i - 1); j++)
+//        {
+//            if (vtab->pSortedProps[j].iPropID > vtab->pSortedProps[j + 1].iPropID)
+//            {
+//                struct flexi_prop_col_map temp = vtab->pSortedProps[j];
+//                vtab->pSortedProps[j] = vtab->pSortedProps[j + 1];
+//                vtab->pSortedProps[j + 1] = temp;
+//            }
+//        }
+//    }
+//}
 
 /*
  * Performs binary search on sorted array of propertyID-column index map.
  * Returns index in vtab->pCols array or -1 if not found
  */
-static int flex_get_col_idx_by_prop_id(struct flexi_vtab *vtab, sqlite3_int64 iPropID)
-{
-    int low = 1;
-    int mid;
-    int high = vtab->nCols;
-    do
-    {
-        mid = (low + high) / 2;
-        if (iPropID < vtab->pSortedProps[mid].iPropID)
-            high = mid - 1;
-        else
-            if (iPropID > vtab->pSortedProps[mid].iPropID)
-                low = mid + 1;
-    } while (iPropID != vtab->pSortedProps[mid].iPropID && low <= high);
-    if (iPropID == vtab->pSortedProps[mid].iPropID)
-    {
-        return mid;
-    }
-
-    return -1;
-}
+//static int flex_get_col_idx_by_prop_id(struct flexi_vtab *vtab, sqlite3_int64 iPropID)
+//{
+//    int low = 1;
+//    int mid;
+//    int high = vtab->nCols;
+//    do
+//    {
+//        mid = (low + high) / 2;
+//        if (iPropID < vtab->pSortedProps[mid].iPropID)
+//            high = mid - 1;
+//        else
+//            if (iPropID > vtab->pSortedProps[mid].iPropID)
+//                low = mid + 1;
+//    } while (iPropID != vtab->pSortedProps[mid].iPropID && low <= high);
+//    if (iPropID == vtab->pSortedProps[mid].iPropID)
+//    {
+//        return mid;
+//    }
+//
+//    return -1;
+//}
 
 struct flexi_column_data
 {
@@ -236,7 +236,7 @@ static void flexi_vtab_free(struct flexi_vtab *vtab)
             }
         }
 
-        sqlite3_free(vtab->pSortedProps);
+//        sqlite3_free(vtab->pSortedProps);
         sqlite3_free(vtab->pProps);
         sqlite3_free((void *) vtab->zHash);
 
@@ -534,15 +534,15 @@ static int flexi_load_class_def(
     CHECK_CALL(sqlite3_declare_vtab(db, sbClassDef.zBuf));
 
     // Init property-column map (unsorted)
-    CHECK_MALLOC(vtab->pSortedProps, nPropIdx * sizeof(struct flexi_prop_col_map));
-    for (int ii = 0; ii < nPropIdx; ii++)
-    {
-        vtab->pSortedProps[ii].iCol = ii;
-        vtab->pSortedProps[ii].iPropID = vtab->pProps[ii].iPropID;
-    }
-
-    // Sort prop-col map
-    flexi_sort_cols_by_prop_id(vtab);
+//    CHECK_MALLOC(vtab->pSortedProps, nPropIdx * sizeof(struct flexi_prop_col_map));
+//    for (int ii = 0; ii < nPropIdx; ii++)
+//    {
+//        vtab->pSortedProps[ii].iCol = ii;
+//        vtab->pSortedProps[ii].iPropID = vtab->pProps[ii].iPropID;
+//    }
+//
+//    // Sort prop-col map
+//    flexi_sort_cols_by_prop_id(vtab);
 
     result = SQLITE_OK;
     goto FINALLY;
@@ -1044,7 +1044,8 @@ static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
     cur->bEof = 0;
     cur->lObjectID = -1;
 
-    const char *zPropSql = "select ObjectID, PropertyID, PropIndex, ctlv, [Value] from [.ref-values] where ObjectID = :1;";
+    const char *zPropSql = "select ObjectID, PropertyID, PropIndex, ctlv, [Value] from [.ref-values] "
+            "where ObjectID = :1 order by ObjectID, PropertyID, PropIndex;";
     CHECK_CALL(sqlite3_prepare_v2(vtab->db, zPropSql, -1, &cur->pPropertyIterator, NULL));
 
     result = SQLITE_OK;
@@ -1262,18 +1263,21 @@ static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *
  */
 static void matchFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
 {
+    // TODO Update lookup statistics
     printf("match: %d", argc);
     sqlite3_result_int(context, 1);
 }
 
 static void likeFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
 {
+    // TODO Update lookup statistics
     printf("like: %d", argc);
     sqlite3_result_int(context, 1);
 }
 
 static void regexpFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
 {
+    // TODO Update lookup statistics
     printf("regexp: %d", argc);
     sqlite3_result_int(context, 1);
 }
@@ -1320,9 +1324,27 @@ static int flexiFindMethod(
  */
 static int flexiEavNext(sqlite3_vtab_cursor *pCursor)
 {
+    int result = SQLITE_OK;
     struct flexi_vtab_cursor *cur = (void *) pCursor;
+    struct flexi_vtab *vtab = (void *) cur->base.pVtab;
+    // Cleanup after last record
+    if (cur->pCols != NULL)
+    {
+        for (int ii = 0; ii < vtab->nCols; ii++)
+        {
+            if (cur->pCols[ii].pVal != NULL)
+                sqlite3_value_free(cur->pCols[ii].pVal);
+        }
+    }
+    else
+    {
+        CHECK_MALLOC(cur->pCols, vtab->nCols * sizeof(sqlite3_value *));
+    }
+
+    memset(cur->pCols, 0, vtab->nCols * sizeof(sqlite3_value *));
+
     cur->iReadCol = -1;
-    int result = sqlite3_step(cur->pObjectIterator);
+    result = sqlite3_step(cur->pObjectIterator);
     if (result == SQLITE_DONE)
     {
         cur->bEof = 1;
@@ -1334,7 +1356,6 @@ static int flexiEavNext(sqlite3_vtab_cursor *pCursor)
             cur->bEof = 0;
             CHECK_CALL(sqlite3_reset(cur->pPropertyIterator));
             sqlite3_bind_int64(cur->pPropertyIterator, 1, cur->lObjectID);
-            CHECK_CALL(sqlite3_step(cur->pPropertyIterator));
         }
 
     result = SQLITE_OK;
@@ -1356,6 +1377,9 @@ static int flexiEavEof(sqlite3_vtab_cursor *pCursor)
 
 /*
  * Returns value for the column at position iCol (starting from 0).
+ * Reads column data from ref-values table, filtered by ObjectID and sorted by PropertyID
+ * For the sake of better performance, fetches required columns on demand, sequentially.
+ *
  */
 static int flexiEavColumn(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int iCol)
 {
@@ -1369,36 +1393,44 @@ static int flexiEavColumn(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContex
     }
 
     struct flexi_vtab *vtab = (void *) cur->base.pVtab;
-    sqlite3_int64 lExpectedPropID = vtab->pProps[iCol].iPropID;
 
     // First, check if column has been already loaded
     while (cur->iReadCol < iCol)
     {
-        CHECK_CALL(sqlite3_step(cur->pPropertyIterator));
+        int colResult = sqlite3_step(cur->pPropertyIterator);
+        if (colResult == SQLITE_DONE)
+            break;
+        if (colResult != SQLITE_ROW)
+        {
+            result = colResult;
+            goto CATCH;
+        }
         sqlite3_int64 lPropID = sqlite3_column_int64(cur->pPropertyIterator, 1);
-        if (lPropID < lExpectedPropID)
+        if (lPropID < vtab->pProps[cur->iReadCol + 1].iPropID)
             continue;
 
-        sqlite3_int64 lPropIdx = sqlite3_column_int64(cur->pPropertyIterator, 2);
-
-        // Check if property ID matches our column list
-        int colIdx = flex_get_col_idx_by_prop_id(vtab, lPropID);
-        if (colIdx >= 0)
+        cur->iReadCol++;
+        if (lPropID == vtab->pProps[cur->iReadCol].iPropID)
         {
+            sqlite3_int64 lPropIdx = sqlite3_column_int64(cur->pPropertyIterator, 2);
+
             /*
              * No need in any special verification as we expect columns are storted by property IDs, so
              * we just assume that once column index is OK, we can process this property data
              */
-            cur->iReadCol++;
+
             struct flexi_column_data *pCol = &cur->pCols[cur->iReadCol];
             pCol->pVal = sqlite3_value_dup(sqlite3_column_value(cur->pPropertyIterator, 4));
-            pCol->ctlv = sqlite3_column_int(cur->pPropertyIterator, 3);
-            pCol->lPropID = lPropID;
-            pCol->lPropIdx = lPropIdx;
+
+            // TODO Needed?
+//        pCol->ctlv = sqlite3_column_int(cur->pPropertyIterator, 3);
+//        pCol->lPropID = lPropID;
+//        pCol->lPropIdx = lPropIdx;
         }
+
     }
 
-    if (sqlite3_value_type(cur->pCols[iCol].pVal) == SQLITE_NULL)
+    if (cur->pCols[iCol].pVal == NULL || sqlite3_value_type(cur->pCols[iCol].pVal) == SQLITE_NULL)
     {
         sqlite3_result_value(pContext, vtab->pProps[iCol].defaultValue);
     }
