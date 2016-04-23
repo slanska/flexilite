@@ -17,11 +17,11 @@ SQLITE_EXTENSION_INIT3
  * Internally used structures, subclassed from SQLite structs
  */
 
-struct flexi_prop_col_map
-{
-    sqlite3_int64 iPropID;
-    int iCol;
-};
+//struct flexi_prop_col_map
+//{
+//    sqlite3_int64 iPropID;
+//    int iCol;
+//};
 
 struct flexi_prop_metadata
 {
@@ -169,14 +169,6 @@ static void flexi_vtab_prop_free(struct flexi_prop_metadata const *prop)
 //    return -1;
 //}
 
-struct flexi_column_data
-{
-    sqlite3_int64 lPropID;
-    sqlite3_int64 lPropIdx;
-    int ctlv;
-    sqlite3_value *pVal;
-};
-
 struct flexi_vtab_cursor
 {
     struct sqlite3_vtab_cursor base;
@@ -202,7 +194,7 @@ struct flexi_vtab_cursor
     /*
      * Array of retrieved column data, by column index as it is defined in pVTab->pProps
      */
-    struct flexi_column_data *pCols;
+    sqlite3_value **pCols;
 
     /*
      * Indicator of end of file
@@ -1059,11 +1051,40 @@ static int flexiEavOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
 }
 
 /*
+ * Cleans up column values left after last Next/Column calls.
+ * Return 1 if cur->pCols is not null.
+ * Otherwise, 0
+ */
+static int flexi_free_cursor_values(struct flexi_vtab_cursor *cur)
+{
+    if (cur->pCols != NULL)
+    {
+        struct flexi_vtab *vtab = (void *) cur->base.pVtab;
+        for (int ii = 0; ii < vtab->nCols; ii++)
+        {
+            if (cur->pCols[ii] != NULL)
+            {
+                sqlite3_value_free(cur->pCols[ii]);
+                cur->pCols[ii] = NULL;
+            }
+        }
+
+        return 1;
+    }
+
+    return 0;
+}
+
+/*
  * Finishes SELECT
  */
 static int flexiEavClose(sqlite3_vtab_cursor *pCursor)
 {
     struct flexi_vtab_cursor *cur = (void *) pCursor;
+
+    flexi_free_cursor_values(cur);
+    sqlite3_free(cur->pCols);
+
     if (cur->pObjectIterator)
         sqlite3_finalize(cur->pObjectIterator);
 
@@ -1326,22 +1347,6 @@ static int flexiEavNext(sqlite3_vtab_cursor *pCursor)
 {
     int result = SQLITE_OK;
     struct flexi_vtab_cursor *cur = (void *) pCursor;
-    struct flexi_vtab *vtab = (void *) cur->base.pVtab;
-    // Cleanup after last record
-    if (cur->pCols != NULL)
-    {
-        for (int ii = 0; ii < vtab->nCols; ii++)
-        {
-            if (cur->pCols[ii].pVal != NULL)
-                sqlite3_value_free(cur->pCols[ii].pVal);
-        }
-    }
-    else
-    {
-        CHECK_MALLOC(cur->pCols, vtab->nCols * sizeof(sqlite3_value *));
-    }
-
-    memset(cur->pCols, 0, vtab->nCols * sizeof(sqlite3_value *));
 
     cur->iReadCol = -1;
     result = sqlite3_step(cur->pObjectIterator);
@@ -1352,6 +1357,14 @@ static int flexiEavNext(sqlite3_vtab_cursor *pCursor)
     else
         if (result == SQLITE_ROW)
         {
+            // Cleanup after last record
+            struct flexi_vtab *vtab = (void *) cur->base.pVtab;
+            if (flexi_free_cursor_values(cur) == 0)
+            {
+                CHECK_MALLOC(cur->pCols, vtab->nCols * sizeof(sqlite3_value *));
+            }
+            memset(cur->pCols, 0, vtab->nCols * sizeof(sqlite3_value *));
+
             cur->lObjectID = sqlite3_column_int64(cur->pObjectIterator, 0);
             cur->bEof = 0;
             CHECK_CALL(sqlite3_reset(cur->pPropertyIterator));
@@ -1419,24 +1432,17 @@ static int flexiEavColumn(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContex
              * we just assume that once column index is OK, we can process this property data
              */
 
-            struct flexi_column_data *pCol = &cur->pCols[cur->iReadCol];
-            pCol->pVal = sqlite3_value_dup(sqlite3_column_value(cur->pPropertyIterator, 4));
-
-            // TODO Needed?
-//        pCol->ctlv = sqlite3_column_int(cur->pPropertyIterator, 3);
-//        pCol->lPropID = lPropID;
-//        pCol->lPropIdx = lPropIdx;
+            cur->pCols[cur->iReadCol] = sqlite3_value_dup(sqlite3_column_value(cur->pPropertyIterator, 4));
         }
-
     }
 
-    if (cur->pCols[iCol].pVal == NULL || sqlite3_value_type(cur->pCols[iCol].pVal) == SQLITE_NULL)
+    if (cur->pCols[iCol] == NULL || sqlite3_value_type(cur->pCols[iCol]) == SQLITE_NULL)
     {
         sqlite3_result_value(pContext, vtab->pProps[iCol].defaultValue);
     }
     else
     {
-        sqlite3_result_value(pContext, cur->pCols[iCol].pVal);
+        sqlite3_result_value(pContext, cur->pCols[iCol]);
     }
 
     result = SQLITE_OK;
