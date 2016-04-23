@@ -5,7 +5,6 @@
 #include <string.h>
 #include <printf.h>
 #include <assert.h>
-#include <stdarg.h>
 #include "../../lib/sqlite/sqlite3ext.h"
 #include "../../src/misc/json1.h"
 #include "./flexi_eav.h"
@@ -48,6 +47,11 @@ struct flexi_prop_metadata
      * 0: not mapped
      */
     int iRangeColumn;
+
+    /*
+     * if not 0x00, mapped to a fixed column in [.objects] table (A-P)
+     */
+    char iColMapped;
 };
 
 /*
@@ -203,9 +207,6 @@ struct flexi_vtab_cursor
 };
 
 // Utility macros
-#define strAppend(SB, S)    jsonAppendRaw(SB, (const char *)S, strlen((const char *)S))
-#define strReset(SB)         jsonReset(SB)
-#define CHECK2(result, label)       if (result != SQLITE_OK) goto label;
 #define CHECK_CALL(call)       result = (call); \
         if (result != SQLITE_OK) goto CATCH;
 #define CHECK_STMT(call)       result = (call); \
@@ -220,11 +221,9 @@ static void flexi_vtab_free(struct flexi_vtab *vtab)
     {
         if (vtab->pProps != NULL)
         {
-            struct flexi_prop_metadata *prop = vtab->pProps;
             for (int idx = 0; idx < vtab->nCols; idx++)
             {
-                flexi_vtab_prop_free(prop);
-                prop++;
+                flexi_vtab_prop_free(&vtab->pProps[idx]);
             }
         }
 
@@ -304,19 +303,13 @@ static int flexi_load_class_def(
     struct flexi_vtab *vtab = NULL;
     sqlite3_stmt *pGetClsPropStmt = NULL;
     sqlite3_stmt *pGetClassStmt = NULL;
-    StringBuilder sbClassDef;
+    char *sbClassDef = sqlite3_mprintf("create table [%s] (", zClassName);
 
     CHECK_MALLOC(vtab, sizeof(struct flexi_vtab));
     memset(vtab, 0, sizeof(*vtab));
 
     vtab->pDBEnv = pAux;
     vtab->db = db;
-
-    jsonInit(&sbClassDef, NULL);
-
-    strAppend(&sbClassDef, "create table [");
-    strAppend(&sbClassDef, zClassName);
-    strAppend(&sbClassDef, "] (");
 
     *ppVTab = (void *) vtab;
 
@@ -471,47 +464,61 @@ static int flexi_load_class_def(
 
         if (nPropIdx != 0)
         {
-            strAppend(&sbClassDef, ",");
+            void *pTmp = sbClassDef;
+            sbClassDef = sqlite3_mprintf("%s,", pTmp);
+            sqlite3_free(pTmp);
         }
-        strAppend(&sbClassDef, "[");
-        strAppend(&sbClassDef, vtab->pProps[nPropIdx].zName);
-        const char *zType;
+
+        const char *zType = NULL;
         switch (vtab->pProps[nPropIdx].type)
         {
             case PROP_TYPE_UUID:
             case PROP_TYPE_BINARY:
-                zType = "] BLOB";
+                zType = "BLOB";
                 break;
 
             case PROP_TYPE_NAME:
             case PROP_TYPE_TEXT:
-                zType = "] TEXT";
+                zType = "TEXT";
                 break;
 
             case PROP_TYPE_DECIMAL:
             case PROP_TYPE_NUMBER:
-                zType = "] FLOAT";
+                zType = "FLOAT";
                 break;
 
             case PROP_TYPE_ENUM:
             case PROP_TYPE_INTEGER:
             case PROP_TYPE_BOOLEAN:
-                zType = "] INTEGER";
+                zType = "INTEGER";
                 break;
 
             case PROP_TYPE_JSON:
-                zType = "] JSON1";
+                zType = "JSON1";
                 break;
 
             case PROP_TYPE_DATETIME:
-                zType = "] FLOAT";
+                zType = "FLOAT";
+                break;
+
+            case PROP_TYPE_NUMBER_RANGE:
+                break;
+            case PROP_TYPE_INTEGER_RANGE:
+                break;
+            case PROP_TYPE_DECIMAL_RANGE:
+                break;
+            case PROP_TYPE_DATE_RANGE:
                 break;
 
             default:
-                zType = "]";
+                zType = "";
                 break;
         }
-        strAppend(&sbClassDef, zType);
+        {
+            void *pTmp = sbClassDef;
+            sbClassDef = sqlite3_mprintf("%s[%s] %s", pTmp, vtab->pProps[nPropIdx].zName, zType);
+            sqlite3_free(pTmp);
+        }
 
         nPropIdx++;
 
@@ -519,11 +526,14 @@ static int flexi_load_class_def(
 
     vtab->nCols = nPropIdx;
 
-    strAppend(&sbClassDef, ");");
+    {
+        void *pTmp = sbClassDef;
+        sbClassDef = sqlite3_mprintf("%s);", pTmp);
+        sqlite3_free(pTmp);
+    }
 
     // Fix strange issue with misplaced terminating zero
-    sbClassDef.zBuf[sbClassDef.nUsed] = 0;
-    CHECK_CALL(sqlite3_declare_vtab(db, sbClassDef.zBuf));
+    CHECK_CALL(sqlite3_declare_vtab(db, sbClassDef));
 
     // Init property-column map (unsorted)
 //    CHECK_MALLOC(vtab->pSortedProps, nPropIdx * sizeof(struct flexi_prop_col_map));
@@ -543,7 +553,7 @@ static int flexi_load_class_def(
     flexi_vtab_free(vtab);
 
     FINALLY:
-    strReset(&sbClassDef);
+    sqlite3_free(sbClassDef);
     if (pGetClassStmt)
         sqlite3_finalize(pGetClassStmt);
     if (pGetClsPropStmt)
@@ -627,13 +637,9 @@ static int flexiEavCreate(
     sqlite3_stmt *pInsPropStmt = NULL;
     sqlite3_stmt *pUpdClsStmt = NULL;
     unsigned char *zPropDefJSON = NULL;
-    StringBuilder sbClassDefJSON;
+    char *sbClassDefJSON = sqlite3_mprintf("{\"properties\":{");
 
     struct flexi_db_env *pDBEnv = pAux;
-
-    jsonInit(&sbClassDefJSON, NULL);
-
-    strAppend(&sbClassDefJSON, "{\"properties\":{");
 
     const char *zClassName = argv[2];
 
@@ -798,22 +804,31 @@ static int flexiEavCreate(
         sqlite3_int64 iPropID;
         CHECK_CALL(db_get_prop_id_by_class_and_name(pDBEnv, iClassID, lPropNameID, &iPropID));
         if (iPropCnt != 0)
-            strAppend(&sbClassDefJSON, ",");
-        char sPropID[15];
-        sprintf(sPropID, "\"%lld\":", iPropID);
-        strAppend(&sbClassDefJSON, sPropID);
-        strAppend(&sbClassDefJSON, zPropDefJSON);
+        {
+            void *pTmp = sbClassDefJSON;
+            sbClassDefJSON = sqlite3_mprintf("%s,", pTmp);
+            sqlite3_free(pTmp);
+        }
+
+        {
+            void *pTmp = sbClassDefJSON;
+            sbClassDefJSON = sqlite3_mprintf("%s\"%lld\":%s", pTmp, iPropID, zPropDefJSON);
+            sqlite3_free(pTmp);
+        }
 
         iPropCnt++;
     }
 
-    strAppend(&sbClassDefJSON, "}}");
-    sbClassDefJSON.zBuf[sbClassDefJSON.nUsed] = 0;
+    {
+        void *pTmp = sbClassDefJSON;
+        sbClassDefJSON = sqlite3_mprintf("%s}}", pTmp);
+        sqlite3_free(pTmp);
+    }
 
     // Update class with new JSON data
     const char *zUpdClsSQL = "update [.classes] set Data = :1, ctloMask= :2 where ClassID = :3";
     CHECK_CALL(sqlite3_prepare_v2(db, zUpdClsSQL, -1, &pUpdClsStmt, NULL));
-    sqlite3_bind_text(pUpdClsStmt, 1, sbClassDefJSON.zBuf, (int) strlen(sbClassDefJSON.zBuf), NULL);
+    sqlite3_bind_text(pUpdClsStmt, 1, sbClassDefJSON, (int) strlen(sbClassDefJSON), NULL);
     sqlite3_bind_int(pUpdClsStmt, 2, xCtloMask);
     sqlite3_bind_int64(pUpdClsStmt, 3, iClassID);
     int updResult = sqlite3_step(pUpdClsStmt);
@@ -847,7 +862,7 @@ static int flexiEavCreate(
     if (pInsPropStmt)
         sqlite3_finalize(pInsPropStmt);
 
-    strReset(&sbClassDefJSON);
+    sqlite3_free(sbClassDefJSON);
 
     return result;
 }
@@ -863,15 +878,6 @@ static int flexiEavConnect(
         char **pzErr
 )
 {
-    /*
-     *       char *zSql = sqlite3_mprintf("CREATE TABLE x(%s", argv[3]);
-      char *zTmp;
-      int ii;
-      for(ii=4; zSql && ii<argc; ii++){
-        zTmp = zSql;
-        zSql = sqlite3_mprintf("%s, %s", zTmp, argv[ii]);
-        sqlite3_free(zTmp);
-     */
     return flexi_load_class_def(db, pAux, argv[2], ppVtab, pzErr);
 }
 
@@ -1917,9 +1923,6 @@ int sqlite3_flexieav_vtable_init(
     CHECK_CALL(sqlite3_prepare_v2(
             db, "delete from [.range_data] where ObjectID = :1;",
             -1, &data->pStmts[STMT_DEL_RTREE], NULL));
-
-//    const char *zUpdObjIdSQL = "update [.objects] set ObjectID = :1, ClassID = :2 where ObjectID = :3;";
-//    CHECK_CALL(sqlite3_prepare_v2(db, zUpdObjIdSQL, -1, &data->pStmts[STMT_UPD_OBJ_ID], NULL));
 
     // Init module
     CHECK_CALL(sqlite3_create_module_v2(db, "flexi_eav", &flexiEavModule, data, flexiEavModuleDestroy));

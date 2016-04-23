@@ -60,10 +60,10 @@ set(EXT_FILES
         src/misc/memstat.c
         src/flexilite/flexi_json_value.c
         src/flexi_eav/flexieav_vtable.c src/flexi_eav/flexi_eav.h src/misc/regexp.h
-        lmdb/libraries/liblmdb/midl.h
-        lmdb/libraries/liblmdb/mdb.c
-        lmdb/libraries/liblmdb/midl.c
-        lmdb/libraries/liblmdb/lmdb.h
+#        lmdb/libraries/liblmdb/midl.h
+#        lmdb/libraries/liblmdb/mdb.c
+#        lmdb/libraries/liblmdb/midl.c
+#        lmdb/libraries/liblmdb/lmdb.h
 
         duktape-1.4.0/src/duktape.c
         duktape-1.4.0/src/duktape.h
