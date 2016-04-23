@@ -28,17 +28,31 @@
      */
     function openMemoryDB() {
         var result = new sqlite3.Database(':memory:');
-        var currentUserID = result.all.sync(result, "select randomblob(16) as uuid;")[0]['uuid'];
-        var sqlScript = fs.readFileSync(path.join(__dirname, '../lib/drivers/SQLite/dbschema.sql'), 'UTF-8');
-        result.exec.sync(result, sqlScript);
-        // var libPath = path.join(__dirname, '../deps/sqlite_extensions/darwin-x64/libsqlite_extensions');
-        var libPath = '/Users/ruslanskorynin/sqlite-extensions/bin/libsqlite_extensions';
-        result.loadExtension.sync(result, libPath);
-        result["CurrentUserID"] = currentUserID;
-        result.run.sync(result, "select var('CurrentUserID', ?);", currentUserID);
-        return result;
+        return initOpenedDB(result);
     }
     exports.openMemoryDB = openMemoryDB;
+    function initOpenedDB(db) {
+        var currentUserID = db.all.sync(db, "select randomblob(16) as uuid;")[0]['uuid'];
+        var sqlScript = fs.readFileSync(path.join(__dirname, '../lib/drivers/SQLite/dbschema.sql'), 'UTF-8');
+        db.exec.sync(db, sqlScript);
+        // var libPath = path.join(__dirname, '../deps/sqlite_extensions/darwin-x64/libsqlite_extensions');
+        var libPath = '/Users/ruslanskorynin/sqlite-extensions/bin/libsqlite_extensions';
+        db.loadExtension.sync(db, libPath);
+        db["CurrentUserID"] = currentUserID;
+        db.run.sync(db, "select var('CurrentUserID', ?);", currentUserID);
+        return db;
+    }
+    /*
+     Opens and initializes SQLite :memory: database.
+     Expected to be run in the context of syncho
+     Returns instance of database object
+     */
+    function openDB(dbFileName) {
+        var fname = path.join(__dirname, "data", dbFileName);
+        var result = new sqlite3.Database(fname);
+        return initOpenedDB(result);
+    }
+    exports.openDB = openDB;
     function ConnectAndSave(done) {
         Sync(function () {
             try {

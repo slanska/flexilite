@@ -28,18 +28,35 @@ import fs = require('fs');
 export function openMemoryDB():sqlite3.Database
 {
     var result = new sqlite3.Database(':memory:');
+    return initOpenedDB(result);
+}
 
-    var currentUserID = result.all.sync(result, `select randomblob(16) as uuid;`)[0]['uuid'];
+function initOpenedDB(db:sqlite3.Database)
+{
+    var currentUserID = db.all.sync(db, `select randomblob(16) as uuid;`)[0]['uuid'];
     var sqlScript = fs.readFileSync(path.join(__dirname, '../lib/drivers/SQLite/dbschema.sql'), 'UTF-8');
-    result.exec.sync(result, sqlScript);
+    db.exec.sync(db, sqlScript);
 
     // var libPath = path.join(__dirname, '../deps/sqlite_extensions/darwin-x64/libsqlite_extensions');
     var libPath = '/Users/ruslanskorynin/sqlite-extensions/bin/libsqlite_extensions';
-    (result as any).loadExtension.sync(result, libPath);
-    
-    result["CurrentUserID"] = currentUserID;
-    result.run.sync(result, `select var('CurrentUserID', ?);`, currentUserID);
-    return result;
+    (db as any).loadExtension.sync(db, libPath);
+
+    db["CurrentUserID"] = currentUserID;
+    db.run.sync(db, `select var('CurrentUserID', ?);`, currentUserID);
+    return db;
+
+}
+
+/*
+ Opens and initializes SQLite :memory: database.
+ Expected to be run in the context of syncho
+ Returns instance of database object
+ */
+export function openDB(dbFileName:string):sqlite3.Database
+{
+    var fname = path.join(__dirname, "data", dbFileName);
+    var result = new sqlite3.Database(fname);
+    return initOpenedDB(result);
 }
 
 export function ConnectAndSave(done:Function)

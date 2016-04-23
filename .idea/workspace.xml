@@ -21,6 +21,9 @@
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/flexi_eav.js" afterPath="$PROJECT_DIR$/tests/flexi_eav.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/flexi_eav.js.map" afterPath="$PROJECT_DIR$/tests/flexi_eav.js.map" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/flexi_eav.ts" afterPath="$PROJECT_DIR$/tests/flexi_eav.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js" afterPath="$PROJECT_DIR$/tests/helper.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js.map" afterPath="$PROJECT_DIR$/tests/helper.js.map" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.ts" afterPath="$PROJECT_DIR$/tests/helper.ts" />
     </list>
     <ignored path="flexilite.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -44,7 +47,7 @@
       <file leaf-file-name="SchemaHelper.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/misc/SchemaHelper.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="576">
+            <state relative-caret-position="0">
               <caret line="26" column="0" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
               <folding>
                 <element signature="e#0#44#0" expanded="false" />
@@ -86,25 +89,10 @@
       <file leaf-file-name="flexi_eav.ts" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/tests/flexi_eav.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="133">
-              <caret line="100" column="12" selection-start-line="100" selection-start-column="12" selection-end-line="100" selection-end-column="12" />
+            <state relative-caret-position="404">
+              <caret line="119" column="56" selection-start-line="119" selection-start-column="56" selection-end-line="119" selection-end-column="56" />
               <folding>
                 <element signature="e#0#44#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="flexi_eav.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/tests/flexi_eav.js">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1632">
-              <caret line="78" column="7" selection-start-line="78" selection-start-column="7" selection-end-line="78" selection-end-column="7" />
-              <folding>
-                <marker date="1461381948000" expanded="true" signature="0:44" placeholder="/** Created by slanska on 2016-04-08. ...*/" />
-                <marker date="1461381948000" expanded="true" signature="4082:4094" placeholder="{...}" />
-                <marker date="1461381948000" expanded="true" signature="4082:4102" placeholder="{...}" />
-                <marker date="1461381948000" expanded="true" signature="4082:4106" placeholder="{...}" />
               </folding>
             </state>
           </provider>
@@ -123,9 +111,11 @@
       <file leaf-file-name="helper.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tests/helper.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="672">
-              <caret line="28" column="1" selection-start-line="28" selection-start-column="1" selection-end-line="28" selection-end-column="1" />
-              <folding />
+            <state relative-caret-position="134">
+              <caret line="36" column="48" selection-start-line="36" selection-start-column="48" selection-end-line="36" selection-end-column="48" />
+              <folding>
+                <marker date="1461425392000" expanded="true" signature="2067:4498" placeholder="..." />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -143,8 +133,8 @@
       <file leaf-file-name="IDBRefactory.d.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/def/IDBRefactory.d.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2808">
-              <caret line="119" column="6" selection-start-line="119" selection-start-column="6" selection-end-line="119" selection-end-column="6" />
+            <state relative-caret-position="-72">
+              <caret line="91" column="54" selection-start-line="91" selection-start-column="54" selection-end-line="91" selection-end-column="54" />
               <folding>
                 <element signature="n#!!doc;n#IDBRefactory#0" expanded="false" />
               </folding>
@@ -214,9 +204,9 @@
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts" />
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts" />
         <option value="$PROJECT_DIR$/lib/def/IDBRefactory.d.ts" />
-        <option value="$PROJECT_DIR$/tests/helper.ts" />
         <option value="$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql" />
         <option value="$PROJECT_DIR$/tests/flexi_eav.js" />
+        <option value="$PROJECT_DIR$/tests/helper.ts" />
         <option value="$PROJECT_DIR$/tests/flexi_eav.ts" />
       </list>
     </option>
@@ -236,9 +226,10 @@
     <data>$PROJECT_DIR$/node_modules/mocha</data>
   </component>
   <component name="ProjectFrameBounds">
+    <option name="x" value="1280" />
     <option name="y" value="23" />
-    <option name="width" value="1280" />
-    <option name="height" value="752" />
+    <option name="width" value="1920" />
+    <option name="height" value="1032" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <OptionsSetting value="true" id="Add" />
@@ -625,14 +616,7 @@
       <workItem from="1460315009131" duration="24173000" />
       <workItem from="1460810835567" duration="14916000" />
       <workItem from="1460912492675" duration="1655000" />
-      <workItem from="1461185128890" duration="4652000" />
-    </task>
-    <task id="LOCAL-00001" summary="documentation, formatting etc.">
-      <created>1445225214061</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1445225214061</updated>
+      <workItem from="1461185128890" duration="11661000" />
     </task>
     <task id="LOCAL-00002" summary="documentation, formatting etc.">
       <created>1446507534220</created>
@@ -970,46 +954,53 @@
       <option name="project" value="LOCAL" />
       <updated>1460869215513</updated>
     </task>
-    <option name="localTasksCounter" value="50" />
+    <task id="LOCAL-00050" summary="schema change">
+      <created>1461382050922</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1461382050923</updated>
+    </task>
+    <option name="localTasksCounter" value="51" />
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="tests_flexi_eav_js - 2016.04.21 at 06h 33m 21s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 10h 33m 08s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.21 at 20h 04m 19s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 10h 35m 05s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.22 at 23h 06m 16s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 10h 37m 58s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.22 at 23h 13m 29s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 10h 52m 23s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.22 at 23h 16m 10s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 10h 57m 02s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.22 at 23h 20m 50s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 11h 24m 54s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.22 at 23h 21m 16s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 11h 30m 32s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.22 at 23h 25m 17s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 11h 31m 49s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.22 at 23h 26m 00s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 11h 44m 35s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.22 at 23h 26m 31s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 11h 48m 12s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="195264000" />
+    <option name="totallyTimeSpent" value="202273000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="1280" height="752" extended-state="6" />
+    <frame x="1280" y="23" width="1920" height="1032" extended-state="6" />
     <editor active="false" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -1018,13 +1009,13 @@
       <window_info id="DB Execution Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32724506" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24505328" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24439701" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.29775882" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23359375" sideWeight="0.4909091" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.15572916" sideWeight="0.4909091" order="0" side_tool="false" content_ui="combo" />
       <window_info id="LuaJ" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23359375" sideWeight="0.5090909" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33028919" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23159018" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -1137,14 +1128,27 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/tests/flexi_eav.ts</url>
-          <line>78</line>
-          <option name="timeStamp" value="263" />
+          <line>67</line>
+          <properties />
+          <option name="timeStamp" value="265" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/tests/flexi_eav.ts</url>
+          <line>77</line>
+          <properties />
+          <option name="timeStamp" value="266" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/tests/flexi_eav.ts</url>
+          <line>115</line>
+          <properties />
+          <option name="timeStamp" value="267" />
         </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
-      <option name="time" value="265" />
+      <option name="time" value="272" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="NodeJSConfigurationType">
@@ -1378,7 +1382,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/misc/SchemaHelper.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="576">
+        <state relative-caret-position="0">
           <caret line="26" column="0" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
           <folding>
             <element signature="e#0#44#0" expanded="false" />
@@ -1410,41 +1414,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/flexi_eav.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="133">
-          <caret line="100" column="12" selection-start-line="100" selection-start-column="12" selection-end-line="100" selection-end-column="12" />
-          <folding>
-            <element signature="e#0#44#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/flexi_eav.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1632">
-          <caret line="78" column="7" selection-start-line="78" selection-start-column="7" selection-end-line="78" selection-end-column="7" />
-          <folding>
-            <marker date="1461381948000" expanded="true" signature="0:44" placeholder="/** Created by slanska on 2016-04-08. ...*/" />
-            <marker date="1461381948000" expanded="true" signature="4082:4094" placeholder="{...}" />
-            <marker date="1461381948000" expanded="true" signature="4082:4102" placeholder="{...}" />
-            <marker date="1461381948000" expanded="true" signature="4082:4106" placeholder="{...}" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="10272">
           <caret line="428" column="6" selection-start-line="428" selection-start-column="6" selection-end-line="428" selection-end-column="6" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/helper.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="672">
-          <caret line="28" column="1" selection-start-line="28" selection-start-column="1" selection-end-line="28" selection-end-column="1" />
           <folding />
         </state>
       </provider>
@@ -1459,10 +1432,38 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/def/IDBRefactory.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2808">
-          <caret line="119" column="6" selection-start-line="119" selection-start-column="6" selection-end-line="119" selection-end-column="6" />
+        <state relative-caret-position="-72">
+          <caret line="91" column="54" selection-start-line="91" selection-start-column="54" selection-end-line="91" selection-end-column="54" />
           <folding>
             <element signature="n#!!doc;n#IDBRefactory#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/flexi_eav.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="631">
+          <caret line="82" column="3" selection-start-line="82" selection-start-column="3" selection-end-line="82" selection-end-column="3" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/helper.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="134">
+          <caret line="36" column="48" selection-start-line="36" selection-start-column="48" selection-end-line="36" selection-end-column="48" />
+          <folding>
+            <marker date="1461425392000" expanded="true" signature="2067:4498" placeholder="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/flexi_eav.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="404">
+          <caret line="119" column="56" selection-start-line="119" selection-start-column="56" selection-end-line="119" selection-end-column="56" />
+          <folding>
+            <element signature="e#0#44#0" expanded="false" />
           </folding>
         </state>
       </provider>

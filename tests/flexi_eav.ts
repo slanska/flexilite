@@ -55,7 +55,8 @@ describe('SQLite extensions: Flexilite EAV', ()=>
     {
         Sync(()=>
         {
-            db = helper.openMemoryDB();
+            // db = helper.openMemoryDB();
+            db = helper.openDB("testA.db");
             done();
         });
     });
@@ -74,10 +75,15 @@ describe('SQLite extensions: Flexilite EAV', ()=>
         Sync(()=>
         {
             let def = JSON.stringify(personMeta);
-            db.exec.sync(db, `create virtual table Person using 'flexi_eav' ('${def}');`);
+            db.exec.sync(db, `create virtual table if not exists Person using 'flexi_eav' ('${def}');`);
 
-            let person = randomPersonArguments();
-            db.run.sync(db, `insert into Person (FirstName,
+            db.exec.sync(db, `begin transaction`);
+            try
+            {
+                for (var ii = 0; ii < 1000; ii++)
+                {
+                    let person = randomPersonArguments();
+                    db.run.sync(db, `insert into Person (FirstName,
                 LastName,
                 Gender,
                 AddressLine1,
@@ -97,15 +103,24 @@ describe('SQLite extensions: Flexilite EAV', ()=>
                 $ZipOrPostalCode,
                 $Email,
                 $Phone);`, person);
+                }
 
-            var rows = db.all.sync(db, `select Country, LastName from Person where  rowid = 1
-            union select Country, LastName from Person where  rowid = 3;`);
+                db.exec.sync(db, `commit`);
+            }
+            catch(err)
+            {
+                db.exec.sync(db, `rollback`);
+                throw err;
+            }
+
+            var rows = db.all.sync(db, `select Country, rowid, LastName from Person where Country = 'Nepal';`);
             // var rows = db.all.sync(db, `select * from Person where (LastName = 'Doe' and FirstName in ('John', 'Mary',
             //  'Peter')) or Phone like '%555%';`);
             // var rows = db.all.sync(db, `select * from Person where  FirstName >= 'John' and LastName = 'Smi';`);
             // var rows = db.all.sync(db, `select * from Person where (LastName = 'Doe' and FirstName in ('John', 'Mary',
             //  'Peter')) ;`);
             console.log(rows);
+            done();
         });
     });
 });
