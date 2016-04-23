@@ -98,13 +98,14 @@ describe('SQLite extensions: Flexilite EAV', ()=>
                 $Email,
                 $Phone);`, person);
 
-            var rows = db.all.sync(db, `select * from Person where  rowid = 1
-            union select * from Person where  rowid = 3;`);
+            var rows = db.all.sync(db, `select Country, LastName from Person where  rowid = 1
+            union select Country, LastName from Person where  rowid = 3;`);
             // var rows = db.all.sync(db, `select * from Person where (LastName = 'Doe' and FirstName in ('John', 'Mary',
             //  'Peter')) or Phone like '%555%';`);
             // var rows = db.all.sync(db, `select * from Person where  FirstName >= 'John' and LastName = 'Smi';`);
             // var rows = db.all.sync(db, `select * from Person where (LastName = 'Doe' and FirstName in ('John', 'Mary',
             //  'Peter')) ;`);
+            console.log(rows);
         });
     });
 });
