@@ -114,6 +114,23 @@ struct flexi_db_env
     int nRefCount;
     sqlite3_stmt *pStmts[STMT_DEL_FTS + 1];
 
+    /*
+     * In-memory database used for certain operations, e.g. MATCH function on non-FTS indexed columns.
+     * Lazy-opened and initialized on demand, on first attempt to use it.
+     */
+    sqlite3 *pMemDB;
+
+    /*
+     * Prepared SQL statement used by MATCH function on non-FTS indexed columns to insert temporary rows
+     * into full text index table
+     */
+    sqlite3_stmt *pMatchFuncInsStmt;
+
+    /*
+     * Prepared SQL statement used by MATCH function on non-FTS indexed columns to select temporary rows
+     * from full text index table
+     */
+    sqlite3_stmt *pMatchFuncSelStmt;
 };
 
 /*
@@ -898,6 +915,24 @@ static void flexiCleanUpModuleEnv(struct flexi_db_env *pDBEnv)
             sqlite3_finalize(pDBEnv->pStmts[ii]);
     }
 
+    if (pDBEnv->pMatchFuncSelStmt != NULL)
+    {
+        sqlite3_finalize(pDBEnv->pMatchFuncSelStmt);
+        pDBEnv->pMatchFuncSelStmt = NULL;
+    }
+
+    if (pDBEnv->pMatchFuncInsStmt != NULL)
+    {
+        sqlite3_finalize(pDBEnv->pMatchFuncInsStmt);
+        pDBEnv->pMatchFuncInsStmt = NULL;
+    }
+
+    if (pDBEnv->pMemDB != NULL)
+    {
+        sqlite3_close(pDBEnv->pMemDB);
+        pDBEnv->pMemDB = NULL;
+    }
+
     memset(pDBEnv, 0, sizeof(*pDBEnv));
 }
 
@@ -906,7 +941,7 @@ static void flexiCleanUpModuleEnv(struct flexi_db_env *pDBEnv)
  */
 static int flexiEavDisconnect(sqlite3_vtab *pVTab)
 {
-    struct flexi_vtab* vtab = (void*)pVTab;
+    struct flexi_vtab *vtab = (void *) pVTab;
 
     /*
      * Fix for possible SQLite bug when disposing modules for virtual tables
@@ -1088,6 +1123,49 @@ static int flexiEavClose(sqlite3_vtab_cursor *pCursor)
 }
 
 /*
+ * Advances to the next found object
+ */
+static int flexiEavNext(sqlite3_vtab_cursor *pCursor)
+{
+    int result = SQLITE_OK;
+    struct flexi_vtab_cursor *cur = (void *) pCursor;
+    struct flexi_vtab *vtab = (struct flexi_vtab *) cur->base.pVtab;
+
+    cur->iReadCol = -1;
+    result = sqlite3_step(cur->pObjectIterator);
+    if (result == SQLITE_DONE)
+    {
+        cur->iEof = 1;
+    }
+    else
+        if (result == SQLITE_ROW)
+        {
+            // Cleanup after last record
+            if (flexi_free_cursor_values(cur) == 0)
+            {
+                CHECK_MALLOC(cur->pCols, vtab->nCols * sizeof(sqlite3_value *));
+            }
+            memset(cur->pCols, 0, vtab->nCols * sizeof(sqlite3_value *));
+
+            cur->lObjectID = sqlite3_column_int64(cur->pObjectIterator, 0);
+            cur->iEof = 0;
+            CHECK_CALL(sqlite3_reset(cur->pPropertyIterator));
+            sqlite3_bind_int64(cur->pPropertyIterator, 1, cur->lObjectID);
+        }
+        else goto CATCH;
+
+    result = SQLITE_OK;
+    goto FINALLY;
+    CATCH:
+    {
+        // Release resources because of errors (catch)
+        printf("%s", sqlite3_errmsg(vtab->db));
+    }
+    FINALLY:
+    return result;
+}
+
+/*
  * Generates dynamic SQL to find list of object IDs.
  * idxNum may be 0 or 1. When 1, idxStr will have all constraints appended by FindBestIndex.
  * Depending on number of constraint arguments in idxStr generated SQL will have of the following constructs:
@@ -1206,39 +1284,45 @@ static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *
                 {
                     void *zTmp = zSQL;
 
-                    if (op == SQLITE_INDEX_CONSTRAINT_MATCH)
+                    if (op == SQLITE_INDEX_CONSTRAINT_MATCH && prop->bFullTextIndex)
                         // full text search
                     {
-                        if (prop->bFullTextIndex)
-                        {
-
-                        }
-                        else
-                        {
-                            // Just apply MATCH function
-                        }
+                        // TODO Generate lookup on [.full_text_data]
                     }
                     else
                     {
                         zSQL = sqlite3_mprintf
                                 ("%sselect ObjectID from [.ref-values] where "
-                                         "[PropertyID] = %d and [PropIndex] = 0 and Value %s :%d", zTmp,
-                                 prop->iPropID, zOp, i + 1);
+                                         "[PropertyID] = %d and [PropIndex] = 0 and ", zTmp,
+                                 prop->iPropID);
                         sqlite3_free(zTmp);
-                        if (prop->bIndexed)
+                        if (op != SQLITE_INDEX_CONSTRAINT_MATCH)
                         {
-                            void *pTmp = zSQL;
-                            zSQL = sqlite3_mprintf("%s and (ctlv & %d) = %d", pTmp, CTLV_INDEX, CTLV_INDEX);
-                            sqlite3_free(pTmp);
-                        }
-                        else
-                            if (prop->bUnique)
+                            zTmp = zSQL;
+                            zSQL = sqlite3_mprintf("%s[Value] %s :%d", zTmp, zOp, i + 1);
+                            sqlite3_free(zTmp);
+
+                            if (prop->bIndexed)
                             {
                                 void *pTmp = zSQL;
-                                zSQL = sqlite3_mprintf("%s and (ctlv & %d) = %d", pTmp, CTLV_UNIQUE_INDEX,
-                                                       CTLV_UNIQUE_INDEX);
+                                zSQL = sqlite3_mprintf("%s and (ctlv & %d) = %d", pTmp, CTLV_INDEX, CTLV_INDEX);
                                 sqlite3_free(pTmp);
                             }
+                            else
+                                if (prop->bUnique)
+                                {
+                                    void *pTmp = zSQL;
+                                    zSQL = sqlite3_mprintf("%s and (ctlv & %d) = %d", pTmp, CTLV_UNIQUE_INDEX,
+                                                           CTLV_UNIQUE_INDEX);
+                                    sqlite3_free(pTmp);
+                                }
+                        }
+                        else
+                        {
+                            zTmp = zSQL;
+                            zSQL = sqlite3_mprintf("%smatch_text(:%d, [Value])", zTmp, i + 1);
+                            sqlite3_free(zTmp);
+                        }
                     }
                 }
             }
@@ -1259,6 +1343,8 @@ static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *
         }
     }
 
+    CHECK_CALL(flexiEavNext(pCursor));
+
     result = SQLITE_OK;
     goto FINALLY;
 
@@ -1271,30 +1357,74 @@ static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *
     return result;
 }
 
-
 /*
- *
+ * Implementation of MATCH function for non-FTS-indexed columns.
+ * For the sake of simplicity function uses in-memory FTS4 table with 1 row, which
+ * gets replaced for every call. In future this method should be re-implemented
+ * and use more efficient direct calls to Sqlite FTS3/4 API. For now,
+ * this looks like a reasonable compromize which should work OK for smaller sets
+ * of data.
  */
-static void matchFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
+static void matchTextFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
 {
     // TODO Update lookup statistics
-    printf("match: %d", argc);
-    sqlite3_result_int(context, 1);
+    int result = SQLITE_OK;
+    struct flexi_db_env *pDBEnv = sqlite3_user_data(context);
+    assert(pDBEnv != NULL);
+    if (pDBEnv->pMemDB == NULL)
+    {
+        CHECK_CALL(sqlite3_open_v2(":memory:", &pDBEnv->pMemDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL));
+        CHECK_CALL(sqlite3_exec(pDBEnv->pMemDB, "PRAGMA journal_mode = OFF;"
+                                        "create virtual table if not exists [.match_func] using 'fts4' (txt, tokenize=unicode61);", NULL, NULL,
+                                NULL));
+
+        CHECK_CALL(
+                sqlite3_prepare_v2(pDBEnv->pMemDB, "insert or replace into [.match_func] (docid, txt) values (1, :1);",
+                                   -1, &pDBEnv->pMatchFuncInsStmt, NULL));
+
+        CHECK_CALL(
+                sqlite3_prepare_v2(pDBEnv->pMemDB, "select docid from [.match_func] where txt match :1;",
+                                   -1, &pDBEnv->pMatchFuncSelStmt, NULL));
+
+    }
+
+    sqlite3_reset(pDBEnv->pMatchFuncInsStmt);
+
+//    printf("match_info(%s, %s)", sqlite3_value_text(argv[0]), sqlite3_value_text(argv[1]));
+
+    sqlite3_bind_value(pDBEnv->pMatchFuncInsStmt, 1, argv[1]);
+    result = sqlite3_step(pDBEnv->pMatchFuncInsStmt);
+
+    sqlite3_reset(pDBEnv->pMatchFuncSelStmt);
+    sqlite3_bind_value(pDBEnv->pMatchFuncSelStmt, 1, argv[0]);
+    result = sqlite3_step(pDBEnv->pMatchFuncSelStmt);
+    sqlite3_int64 lDocID = sqlite3_column_int64(pDBEnv->pMatchFuncSelStmt, 0);
+    if (lDocID == 1)
+        sqlite3_result_int(context, 1);
+    else
+        sqlite3_result_int(context, 0);
+
+    result = SQLITE_OK;
+    goto FINALLY;
+    CATCH:
+    sqlite3_result_error(context, NULL, result);
+    FINALLY:
+    { };
 }
 
-static void likeFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
-{
-    // TODO Update lookup statistics
-    printf("like: %d", argc);
-    sqlite3_result_int(context, 1);
-}
-
-static void regexpFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
-{
-    // TODO Update lookup statistics
-    printf("regexp: %d", argc);
-    sqlite3_result_int(context, 1);
-}
+//static void likeFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
+//{
+//    // TODO Update lookup statistics
+//    printf("like: %d", argc);
+//    sqlite3_result_int(context, 1);
+//}
+//
+//static void regexpFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
+//{
+//    // TODO Update lookup statistics
+//    printf("regexp: %d", argc);
+//    sqlite3_result_int(context, 1);
+//}
 
 /*
  *
@@ -1310,66 +1440,27 @@ static int flexiFindMethod(
     // match
     if (strcmp("match", zName) == 0)
     {
-        *pxFunc = matchFunction;
+        *pxFunc = matchTextFunction;
         return 1;
     }
 
-    // like
-    if (strcmp("like", zName) == 0)
-    {
-        *pxFunc = likeFunction;
-        return 1;
-    }
-
-    // glob
-
-    // regexp
-    if (strcmp("regexp", zName) == 0)
-    {
-        *pxFunc = regexpFunction;
-        return 1;
-    }
+//    // like
+//    if (strcmp("like", zName) == 0)
+//    {
+//        *pxFunc = likeFunction;
+//        return 1;
+//    }
+//
+//    // glob
+//
+//    // regexp
+//    if (strcmp("regexp", zName) == 0)
+//    {
+//        *pxFunc = regexpFunction;
+//        return 1;
+//    }
 
     return 0;
-}
-
-/*
- * Advances to the next found object
- */
-static int flexiEavNext(sqlite3_vtab_cursor *pCursor)
-{
-    int result = SQLITE_OK;
-    struct flexi_vtab_cursor *cur = (void *) pCursor;
-
-    cur->iReadCol = -1;
-    result = sqlite3_step(cur->pObjectIterator);
-    if (result == SQLITE_DONE)
-    {
-        cur->iEof = 1;
-    }
-    else
-        if (result == SQLITE_ROW)
-        {
-            // Cleanup after last record
-            struct flexi_vtab *vtab = (void *) cur->base.pVtab;
-            if (flexi_free_cursor_values(cur) == 0)
-            {
-                CHECK_MALLOC(cur->pCols, vtab->nCols * sizeof(sqlite3_value *));
-            }
-            memset(cur->pCols, 0, vtab->nCols * sizeof(sqlite3_value *));
-
-            cur->lObjectID = sqlite3_column_int64(cur->pObjectIterator, 0);
-            cur->iEof = 0;
-            CHECK_CALL(sqlite3_reset(cur->pPropertyIterator));
-            sqlite3_bind_int64(cur->pPropertyIterator, 1, cur->lObjectID);
-        }
-
-    result = SQLITE_OK;
-    goto FINALLY;
-    CATCH:
-
-    FINALLY:
-    return result;
 }
 
 /*
@@ -1392,12 +1483,12 @@ static int flexiEavColumn(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContex
     int result = SQLITE_OK;
     struct flexi_vtab_cursor *cur = (void *) pCursor;
 
-    // Handle weird behavior of SQLite: sometimes Next may be not called and flow goes directly to Column method.
-    // In this case, force fetching Next row
-    if (cur->iEof == -1)
-    {
-        CHECK_CALL(flexiEavNext(pCursor));
-    }
+//    // Handle weird behavior of SQLite: sometimes Next may be not called and flow goes directly to Column method.
+//    // In this case, force fetching Next row
+//    if (cur->iEof == -1)
+//    {
+//        CHECK_CALL(flexiEavNext(pCursor));
+//    }
 
     if (iCol == -1)
     {
@@ -1584,8 +1675,6 @@ static int flexi_validate_prop_data(struct flexi_vtab *pVTab, int iCol, sqlite3_
                 CHECK_CALL(re_match(pProp->pRegexCompiled, str, -1));
             }
         }
-
-            //
 
             break;
 
@@ -1913,6 +2002,12 @@ int sqlite3_flexieav_vtable_init(
 
     // Init module
     CHECK_CALL(sqlite3_create_module_v2(db, "flexi_eav", &flexiEavModule, data, flexiEavModuleDestroy));
+
+    /*
+     * Register match_text function, used for searhing on non-FTS indexed columns
+     */
+    CHECK_CALL(sqlite3_create_function(db, "match_text", 2, SQLITE_UTF8, data,
+                                       matchTextFunction, 0, 0));
 
     result = SQLITE_OK;
     goto FINALLY;

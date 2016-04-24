@@ -8,6 +8,9 @@ Most of them are taken from
 ##totype
 ##var
 ##hash
-##match
+##match_text
+```
+match_text(criteria, value)
+```
 
 ##flexi_get
