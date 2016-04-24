@@ -70,6 +70,65 @@ describe('SQLite extensions: Flexilite EAV', ()=>
         });
     });
 
+    it('MATCH 2 on non-FTS-indexed columns', (done)=>
+    {
+        Sync(()=>
+        {
+            // let rows = db.all.sync(db, `select * from Person where AddressLine1 like '%camp%'`);
+            let rows = db.all.sync(db, `select * from Person where city match 'south*' and email match 'kristi*'`);
+            console.log(rows.length);
+            done();
+        });
+    });
+
+    it('REGEXP 2', (done)=>
+    {
+        Sync(()=>
+        {
+            // let rows = db.all.sync(db, `select * from Person where lower(city) regexp '.*south\\S*.*' and
+            // lower(email) regexp '.*\\S*hotmail\\S*.*'`);
+            let rows = db.all.sync(db, `select * from Person where lower(city) regexp '.*south\\S*.*' and lower(email) regexp '.*kristi\\S*.*'`);
+            // let rows = db.all.sync(db, `select * from Person where city regexp '.*south\\S*.*' and email regexp '.*\\S*hotmail\\S*.*'`);
+            console.log(rows.length);
+            done();
+        });
+    });
+
+    it('MATCH 1 on non-FTS-indexed columns', (done)=>
+    {
+        Sync(()=>
+        {
+            // let rows = db.all.sync(db, `select * from Person where AddressLine1 like '%camp%'`);
+            let rows = db.all.sync(db, `select * from Person where email match 'kristi*'`);
+            console.log(rows.length);
+            done();
+        });
+    });
+
+    it('REGEXP 1', (done)=>
+    {
+        Sync(()=>
+        {
+            // let rows = db.all.sync(db, `select * from Person where lower(city) regexp '.*south\\S*.*' and
+            // lower(email) regexp '.*\\S*hotmail\\S*.*'`);
+            let rows = db.all.sync(db, `select * from Person where lower(email) regexp '.*kristi\\S*.*'`);
+            // let rows = db.all.sync(db, `select * from Person where city regexp '.*south\\S*.*' and email regexp '.*\\S*hotmail\\S*.*'`);
+            console.log(rows.length);
+            done();
+        });
+    });
+
+    it('linear scan', (done)=>
+    {
+        Sync(()=>
+        {
+            // let rows = db.all.sync(db, `select * from Person where AddressLine1 like '%camp%'`);
+            let rows = db.all.sync(db, `select * from Person where city = 'South Kayden' `);
+            console.log('linear scan', rows.length);
+            done();
+        });
+    });
+
     it('basic flow', (done)=>
     {
         Sync(()=>
@@ -107,19 +166,12 @@ describe('SQLite extensions: Flexilite EAV', ()=>
 
                 db.exec.sync(db, `commit`);
             }
-            catch(err)
+            catch (err)
             {
                 db.exec.sync(db, `rollback`);
                 throw err;
             }
 
-            var rows = db.all.sync(db, `select Country, rowid, LastName from Person where Country = 'Nepal';`);
-            // var rows = db.all.sync(db, `select * from Person where (LastName = 'Doe' and FirstName in ('John', 'Mary',
-            //  'Peter')) or Phone like '%555%';`);
-            // var rows = db.all.sync(db, `select * from Person where  FirstName >= 'John' and LastName = 'Smi';`);
-            // var rows = db.all.sync(db, `select * from Person where (LastName = 'Doe' and FirstName in ('John', 'Mary',
-            //  'Peter')) ;`);
-            console.log(rows);
             done();
         });
     });

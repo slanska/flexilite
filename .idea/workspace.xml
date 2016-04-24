@@ -16,14 +16,11 @@
     </ADDITIONAL_GENERATION_ENVIRONMENT>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="">
+    <list default="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="M">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/flexi_eav.js" afterPath="$PROJECT_DIR$/tests/flexi_eav.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/flexi_eav.js.map" afterPath="$PROJECT_DIR$/tests/flexi_eav.js.map" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/flexi_eav.ts" afterPath="$PROJECT_DIR$/tests/flexi_eav.ts" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js" afterPath="$PROJECT_DIR$/tests/helper.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.js.map" afterPath="$PROJECT_DIR$/tests/helper.js.map" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tests/helper.ts" afterPath="$PROJECT_DIR$/tests/helper.ts" />
     </list>
     <ignored path="flexilite.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -47,7 +44,7 @@
       <file leaf-file-name="SchemaHelper.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/misc/SchemaHelper.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
+            <state relative-caret-position="576">
               <caret line="26" column="0" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
               <folding>
                 <element signature="e#0#44#0" expanded="false" />
@@ -89,8 +86,8 @@
       <file leaf-file-name="flexi_eav.ts" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/tests/flexi_eav.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="404">
-              <caret line="119" column="56" selection-start-line="119" selection-start-column="56" selection-end-line="119" selection-end-column="56" />
+            <state relative-caret-position="408">
+              <caret line="92" column="19" selection-start-line="92" selection-start-column="19" selection-end-line="92" selection-end-column="19" />
               <folding>
                 <element signature="e#0#44#0" expanded="false" />
               </folding>
@@ -101,8 +98,8 @@
       <file leaf-file-name="dbschema.sql" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="10272">
-              <caret line="428" column="6" selection-start-line="428" selection-start-column="6" selection-end-line="428" selection-end-column="6" />
+            <state relative-caret-position="372">
+              <caret line="475" column="20" selection-start-line="475" selection-start-column="2" selection-end-line="475" selection-end-column="20" />
               <folding />
             </state>
           </provider>
@@ -111,11 +108,9 @@
       <file leaf-file-name="helper.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tests/helper.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="134">
-              <caret line="36" column="48" selection-start-line="36" selection-start-column="48" selection-end-line="36" selection-end-column="48" />
-              <folding>
-                <marker date="1461425392000" expanded="true" signature="2067:4498" placeholder="..." />
-              </folding>
+            <state relative-caret-position="356">
+              <caret line="40" column="83" selection-start-line="40" selection-start-column="19" selection-end-line="40" selection-end-column="83" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -133,8 +128,8 @@
       <file leaf-file-name="IDBRefactory.d.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/def/IDBRefactory.d.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-72">
-              <caret line="91" column="54" selection-start-line="91" selection-start-column="54" selection-end-line="91" selection-end-column="54" />
+            <state relative-caret-position="2304">
+              <caret line="98" column="27" selection-start-line="98" selection-start-column="27" selection-end-line="98" selection-end-column="27" />
               <folding>
                 <element signature="n#!!doc;n#IDBRefactory#0" expanded="false" />
               </folding>
@@ -256,6 +251,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
@@ -286,6 +282,24 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="tests" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="flexilite" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="tests" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="data" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -363,7 +377,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -616,14 +629,9 @@
       <workItem from="1460315009131" duration="24173000" />
       <workItem from="1460810835567" duration="14916000" />
       <workItem from="1460912492675" duration="1655000" />
-      <workItem from="1461185128890" duration="11661000" />
-    </task>
-    <task id="LOCAL-00002" summary="documentation, formatting etc.">
-      <created>1446507534220</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1446507534220</updated>
+      <workItem from="1461185128890" duration="15086000" />
+      <workItem from="1461443386406" duration="2699000" />
+      <workItem from="1461450864125" duration="15966000" />
     </task>
     <task id="LOCAL-00003" summary="started implementing sync. Using wait.for">
       <created>1447301746610</created>
@@ -961,61 +969,68 @@
       <option name="project" value="LOCAL" />
       <updated>1461382050923</updated>
     </task>
-    <option name="localTasksCounter" value="51" />
+    <task id="LOCAL-00051" summary="schema change">
+      <created>1461426518648</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1461426518648</updated>
+    </task>
+    <option name="localTasksCounter" value="52" />
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 10h 33m 08s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 29m 43s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 10h 35m 05s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 31m 01s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 10h 37m 58s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 31m 25s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 10h 52m 23s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 32m 16s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 10h 57m 02s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 33m 03s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 11h 24m 54s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 34m 21s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 11h 30m 32s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 36m 35s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 11h 31m 49s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 37m 48s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 11h 44m 35s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 38m 40s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.23 at 11h 48m 12s.xml">
+    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 39m 23s.xml">
       <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="202273000" />
+    <option name="totallyTimeSpent" value="224363000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1280" y="23" width="1920" height="1032" extended-state="6" />
+    <frame x="1280" y="23" width="1920" height="1032" extended-state="0" />
     <editor active="false" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="DB Browser" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.17199391" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.1248666" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="DB Execution Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32724506" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24439701" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24012807" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.29775882" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.15572916" sideWeight="0.4909091" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23333333" sideWeight="0.4909091" order="0" side_tool="false" content_ui="combo" />
       <window_info id="LuaJ" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23359375" sideWeight="0.5090909" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23159018" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.34151548" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -1031,7 +1046,7 @@
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="DB Browser" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.17199391" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.1248666" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="DB Execution Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
@@ -1041,16 +1056,16 @@
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="REST Client" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.40065145" sideWeight="0.5" order="14" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32724506" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24633431" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24332978" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.29775882" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23359375" sideWeight="0.4909091" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23359375" sideWeight="0.4909091" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="LuaJ" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.22411953" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23359375" sideWeight="0.5090909" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33028919" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23359375" sideWeight="0.5090909" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.4633431" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
     </layout-to-restore>
   </component>
   <component name="Vcs.Log.UiProperties">
@@ -1121,34 +1136,11 @@
           <line>51</line>
           <option name="timeStamp" value="253" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/tests/flexi_eav.ts</url>
-          <line>57</line>
-          <option name="timeStamp" value="261" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/tests/flexi_eav.ts</url>
-          <line>67</line>
-          <properties />
-          <option name="timeStamp" value="265" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/tests/flexi_eav.ts</url>
-          <line>77</line>
-          <properties />
-          <option name="timeStamp" value="266" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/tests/flexi_eav.ts</url>
-          <line>115</line>
-          <properties />
-          <option name="timeStamp" value="267" />
-        </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
-      <option name="time" value="272" />
+      <option name="time" value="276" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="NodeJSConfigurationType">
@@ -1380,9 +1372,16 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/tests/flexi_eav.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="631">
+          <caret line="82" column="3" selection-start-line="82" selection-start-column="3" selection-end-line="82" selection-end-column="3" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/lib/misc/SchemaHelper.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
+        <state relative-caret-position="576">
           <caret line="26" column="0" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
           <folding>
             <element signature="e#0#44#0" expanded="false" />
@@ -1414,14 +1413,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="10272">
-          <caret line="428" column="6" selection-start-line="428" selection-start-column="6" selection-end-line="428" selection-end-column="6" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tests/flexi_get.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="5760">
@@ -1432,36 +1423,34 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/def/IDBRefactory.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-72">
-          <caret line="91" column="54" selection-start-line="91" selection-start-column="54" selection-end-line="91" selection-end-column="54" />
+        <state relative-caret-position="2304">
+          <caret line="98" column="27" selection-start-line="98" selection-start-column="27" selection-end-line="98" selection-end-column="27" />
           <folding>
             <element signature="n#!!doc;n#IDBRefactory#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/flexi_eav.js">
+    <entry file="file://$PROJECT_DIR$/tests/helper.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="631">
-          <caret line="82" column="3" selection-start-line="82" selection-start-column="3" selection-end-line="82" selection-end-column="3" />
+        <state relative-caret-position="356">
+          <caret line="40" column="83" selection-start-line="40" selection-start-column="19" selection-end-line="40" selection-end-column="83" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/helper.ts">
+    <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="134">
-          <caret line="36" column="48" selection-start-line="36" selection-start-column="48" selection-end-line="36" selection-end-column="48" />
-          <folding>
-            <marker date="1461425392000" expanded="true" signature="2067:4498" placeholder="..." />
-          </folding>
+        <state relative-caret-position="372">
+          <caret line="475" column="20" selection-start-line="475" selection-start-column="2" selection-end-line="475" selection-end-column="20" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/tests/flexi_eav.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="404">
-          <caret line="119" column="56" selection-start-line="119" selection-start-column="56" selection-end-line="119" selection-end-column="56" />
+        <state relative-caret-position="408">
+          <caret line="92" column="19" selection-start-line="92" selection-start-column="19" selection-end-line="92" selection-end-column="19" />
           <folding>
             <element signature="e#0#44#0" expanded="false" />
           </folding>
