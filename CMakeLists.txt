@@ -68,11 +68,19 @@ set(EXT_FILES
 #        lmdb/libraries/liblmdb/midl.c
 #        lmdb/libraries/liblmdb/lmdb.h
 
-        duktape-1.4.0/src/duktape.c
-        duktape-1.4.0/src/duktape.h
+#        duktape-1.4.0/src/duktape.c
+#        duktape-1.4.0/src/duktape.h
+
         src/flexi_eav/flexi_class_alter.c
         src/flexi_eav/flexi_props_to_object.c
-        )
+
+        src/fts/fts3_expr.c
+        src/fts/fts3Int.h
+        src/fts/fts3_tokenizer.c
+        src/fts/fts3_tokenizer.h
+        src/fts/fts3_hash.c
+        src/fts/fts3_hash.h
+       )
 
 add_library(sqlite_extensions SHARED ${EXT_FILES})
 

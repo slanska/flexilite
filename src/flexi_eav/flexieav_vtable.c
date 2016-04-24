@@ -8,6 +8,7 @@
 #include "../../lib/sqlite/sqlite3ext.h"
 #include "./flexi_eav.h"
 #include "../misc/regexp.h"
+#include "../fts/fts3Int.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -1319,6 +1320,11 @@ static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *
                         }
                         else
                         {
+                            /*
+                             * TODO
+                             * mem database
+                             *
+                             */
                             zTmp = zSQL;
                             zSQL = sqlite3_mprintf("%smatch_text(:%d, [Value])", zTmp, i + 1);
                             sqlite3_free(zTmp);

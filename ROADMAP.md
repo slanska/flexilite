@@ -6,17 +6,20 @@ Close statements, free allocated memory
 
 ###MATCH function 
 MATCH for plain unindexed text. Borrow from SQLite sources (FTS3 or FTS5)
-*Done (more optimization required)*
+*Done (more optimization required - using SQLite FTS3 parser and regex)*
 
 ###Range properties
 Generate 2 scalar properties (with link from high bound prop to low bound prop)
 
 ###Index support
 Set ctlo and ctlv flags, tests
+Ensure that indexes are used (via EXPLAIN)
 
 ###Use full text index
+insert/update/delete into [.full_text_data]
 
 ###Use rtree for range search
+insert/update/delete into [.range_data]
 
 ###Test SQL 
 Use existing SQLite tests (Sqllogictest) [[http://www.sqlite.org/sqllogictest/doc/trunk/about.wiki]]
