@@ -6,9 +6,10 @@ Close statements, free allocated memory
 
 ###MATCH function 
 MATCH for plain unindexed text. Borrow from SQLite sources (FTS3 or FTS5)
+*Done (more optimization required)*
 
 ###Range properties
-Generate 2 scalar properties with link to each other
+Generate 2 scalar properties (with link from high bound prop to low bound prop)
 
 ###Index support
 Set ctlo and ctlv flags, tests

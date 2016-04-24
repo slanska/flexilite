@@ -1022,7 +1022,7 @@ static int flexiEavBestIndex(
         {
             pIdxInfo->aConstraintUsage[jj].argvIndex = ++argCount;
             void *pTmp = pIdxInfo->idxStr;
-            pIdxInfo->idxStr = sqlite3_mprintf("%s%2X%4X", pTmp, pIdxInfo->aConstraint[jj].op,
+            pIdxInfo->idxStr = sqlite3_mprintf("%s%2X|%4X|", pTmp, pIdxInfo->aConstraint[jj].op,
                                                pIdxInfo->aConstraint[jj].iColumn + 1);
             pIdxInfo->needToFreeIdxStr = 1;
             pIdxInfo->idxNum = 1; // TODO
@@ -1206,16 +1206,16 @@ static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *
     }
     else
     {
-        assert(argc * 6 == strlen(idxStr));
+        assert(argc * 8 == strlen(idxStr));
 
         const char *zIdxTuple = idxStr;
         for (int i = 0; i < argc; i++)
         {
             int op;
             int colIdx;
-            sscanf(zIdxTuple, "%2X%4X", &op, &colIdx);
+            sscanf(zIdxTuple, "%2X|%4X|", &op, &colIdx);
             colIdx--;
-            zIdxTuple += 6;
+            zIdxTuple += 8;
 
             assert(colIdx >= -1 && colIdx < vtab->nCols);
 
@@ -1370,10 +1370,15 @@ static void matchTextFunction(sqlite3_context *context, int argc, sqlite3_value 
     // TODO Update lookup statistics
     int result = SQLITE_OK;
     struct flexi_db_env *pDBEnv = sqlite3_user_data(context);
+
+//    if (pDBEnv == NULL)
+//        return;
+
     assert(pDBEnv != NULL);
     if (pDBEnv->pMemDB == NULL)
     {
         CHECK_CALL(sqlite3_open_v2(":memory:", &pDBEnv->pMemDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL));
+
         CHECK_CALL(sqlite3_exec(pDBEnv->pMemDB, "PRAGMA journal_mode = OFF;"
                                         "create virtual table if not exists [.match_func] using 'fts4' (txt, tokenize=unicode61);", NULL, NULL,
                                 NULL));
@@ -1389,8 +1394,6 @@ static void matchTextFunction(sqlite3_context *context, int argc, sqlite3_value 
     }
 
     sqlite3_reset(pDBEnv->pMatchFuncInsStmt);
-
-//    printf("match_info(%s, %s)", sqlite3_value_text(argv[0]), sqlite3_value_text(argv[1]));
 
     sqlite3_bind_value(pDBEnv->pMatchFuncInsStmt, 1, argv[1]);
     result = sqlite3_step(pDBEnv->pMatchFuncInsStmt);
@@ -1412,7 +1415,18 @@ static void matchTextFunction(sqlite3_context *context, int argc, sqlite3_value 
     { };
 }
 
-//static void likeFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
+/*
+ * This is dummy MATCH function which always return 1 (i.e. found).
+ * This function is needed as otherwise SQLite wouldn't allow to use MATCH call.
+ * Actual implementation is done be FTS4 table (.full_text_data) - for FTS-indexed columns
+ * or via linear FTS matching - for not-FTS-indexed columns
+ */
+static void matchDummyFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
+{
+    sqlite3_result_int(context, 1);
+}
+//
+// static void likeFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
 //{
 //    // TODO Update lookup statistics
 //    printf("like: %d", argc);
@@ -1440,7 +1454,7 @@ static int flexiFindMethod(
     // match
     if (strcmp("match", zName) == 0)
     {
-        *pxFunc = matchTextFunction;
+        *pxFunc = matchDummyFunction;
         return 1;
     }
 
