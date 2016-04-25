@@ -9,7 +9,8 @@ MATCH for plain unindexed text. Borrow from SQLite sources (FTS3 or FTS5)
 *Done (more optimization required - using SQLite FTS3 parser and regex)*
 
 ###Range properties
-Generate 2 scalar properties (with link from high bound prop to low bound prop)
+Generate 2 scalar columns (with link from high bound prop to low bound prop)
+*Done* TODO Test
 
 ###Index support
 Set ctlo and ctlv flags, tests
@@ -21,11 +22,27 @@ insert/update/delete into [.full_text_data]
 ###Use rtree for range search
 insert/update/delete into [.range_data]
 
+###Convert database
+northwind and chinook
+Try SQLs, compare size and speed
+
 ###Test SQL 
 Use existing SQLite tests (Sqllogictest) [[http://www.sqlite.org/sqllogictest/doc/trunk/about.wiki]]
+
+###Fixed columns
+Support for fixed columns (A-P) for scalar values. Includes unique and non-unique indexes,
+full text indexes, rtree indexes
  
 ###Search statistics
-
+Accumulate search statistics. Use external DB file with 1 table:
+```
+create table if not exists [.search_stat] (PropertyID integer,
+EqCount int default 0,
+CmpCount int default 0,
+MatchCount int default 0,
+LastUpdated datetime (julian)
+);
+```
 
 ####flexi_class_alter
 Function to create new or modify existing class with basic refactoring support
@@ -43,6 +60,7 @@ Transformations supported by this function:
 ####flexi_class_drop
 
 ####flexi_class_create
+*Done*
 
 ####flexi_props_to_object
 

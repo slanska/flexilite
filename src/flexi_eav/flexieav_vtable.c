@@ -46,12 +46,19 @@ struct flexi_prop_metadata
      * 1-8: column is mapped to .range_data columns (1 = A0, 2 = A1, 3 = B0 and so on)
      * 0: not mapped
      */
-    int iRangeColumn;
+    unsigned char cRangeColumn;
 
     /*
      * if not 0x00, mapped to a fixed column in [.objects] table (A-P)
      */
-    char iColMapped;
+    unsigned char cColMapped;
+
+    /*
+     * 0 - no range column
+     * 1 - low range bound
+     * 2 - high range bound
+     */
+    unsigned char cRngBound;
 };
 
 /*
@@ -237,6 +244,9 @@ struct flexi_vtab_cursor
 #define CHECK_MALLOC(v, s) v = sqlite3_malloc(s); \
         if (v == NULL) { result = SQLITE_NOMEM; goto CATCH;}
 
+#define IS_RANGE_PROPERTY(t) (t == PROP_TYPE_DATE_RANGE || t == PROP_TYPE_DECIMAL_RANGE \
+        || t == PROP_TYPE_INTEGER_RANGE || t == PROP_TYPE_NUMBER_RANGE)
+
 static void flexi_vtab_free(struct flexi_vtab *vtab)
 {
     if (vtab != NULL)
@@ -304,6 +314,25 @@ static int db_get_name_id(struct flexi_db_env *pDBEnv,
     }
 
     return SQLITE_OK;
+}
+
+/*
+ * Initialized range bound computed column based on base range property and bound
+ * @pRngProp - pointer to base range property
+ * @iBound - bound shift, 1 for low bound, 2 - for high bound
+ */
+static void init_range_column(struct flexi_prop_metadata *pRngProp, unsigned char cBound)
+{
+    assert(cBound == 1 || cBound == 2);
+    struct flexi_prop_metadata *pBound = pRngProp + cBound;
+
+    // We do not need all attributes from original property. Just key ones
+    pBound->cRngBound = cBound;
+    pBound->iPropID = pRngProp->iPropID;
+    pBound->type = pRngProp->type;
+    pBound->zName = sqlite3_mprintf("%s_%d", pRngProp->zName, cBound - 1);
+
+    // Rest of attributes can be retrieved from base range property by using cRngBound as shift
 }
 
 /*
@@ -411,9 +440,19 @@ static int flexi_load_class_def(
             goto CATCH;
         }
 
-        if (nPropIdx >= vtab->nPropColsAllocated)
+        int iType = sqlite3_column_int(pGetClsPropStmt, 6);
+
+        int iNewColCnt = nPropIdx;
+
+        // For range properties we need 2 extra computed columns - for low and high bounds
+        if (IS_RANGE_PROPERTY(iType))
         {
-            vtab->nPropColsAllocated += 4;
+            iNewColCnt += 2;
+        }
+
+        if (iNewColCnt >= vtab->nPropColsAllocated)
+        {
+            vtab->nPropColsAllocated = iNewColCnt + 4;
 
             int newLen = vtab->nPropColsAllocated * sizeof(*vtab->pProps);
             void *tmpProps = sqlite3_realloc(vtab->pProps, newLen);
@@ -435,7 +474,7 @@ static int flexi_load_class_def(
         p->bUnique = (char) sqlite3_column_int(pGetClsPropStmt, 3);
         p->bFullTextIndex = (char) sqlite3_column_int(pGetClsPropStmt, 4);
         p->xRole = (short int) sqlite3_column_int(pGetClsPropStmt, 5);
-        p->type = sqlite3_column_int(pGetClsPropStmt, 6);
+        p->type = iType;
 
         int iRxLen = sqlite3_column_bytes(pGetClsPropStmt, 7);
         if (iRxLen > 0)
@@ -493,7 +532,7 @@ static int flexi_load_class_def(
         }
 
         const char *zType = NULL;
-        switch (vtab->pProps[nPropIdx].type)
+        switch (iType)
         {
             case PROP_TYPE_UUID:
             case PROP_TYPE_BINARY:
@@ -524,23 +563,32 @@ static int flexi_load_class_def(
                 zType = "FLOAT";
                 break;
 
-            case PROP_TYPE_NUMBER_RANGE:
-                break;
-            case PROP_TYPE_INTEGER_RANGE:
-                break;
-            case PROP_TYPE_DECIMAL_RANGE:
-                break;
-            case PROP_TYPE_DATE_RANGE:
-                break;
-
             default:
                 zType = "";
                 break;
         }
+
         {
             void *pTmp = sbClassDef;
             sbClassDef = sqlite3_mprintf("%s[%s] %s", pTmp, vtab->pProps[nPropIdx].zName, zType);
             sqlite3_free(pTmp);
+        }
+
+        if (IS_RANGE_PROPERTY(iType))
+        {
+            init_range_column(&vtab->pProps[nPropIdx], 1);
+            init_range_column(&vtab->pProps[nPropIdx], 2);
+
+            if (iType == PROP_TYPE_INTEGER_RANGE)
+                zType = "INTEGER";
+            else zType = "FLOAT";
+
+            void *pTmp = sbClassDef;
+            sbClassDef = sqlite3_mprintf("%s, [%s] %s, [%s] %s", pTmp, vtab->pProps[nPropIdx + 1].zName, zType,
+                                         vtab->pProps[nPropIdx + 2].zName, zType);
+            sqlite3_free(pTmp);
+
+            nPropIdx += 2;
         }
 
         nPropIdx++;
@@ -557,17 +605,6 @@ static int flexi_load_class_def(
 
     // Fix strange issue with misplaced terminating zero
     CHECK_CALL(sqlite3_declare_vtab(db, sbClassDef));
-
-    // Init property-column map (unsorted)
-//    CHECK_MALLOC(vtab->pSortedProps, nPropIdx * sizeof(struct flexi_prop_col_map));
-//    for (int ii = 0; ii < nPropIdx; ii++)
-//    {
-//        vtab->pSortedProps[ii].iCol = ii;
-//        vtab->pSortedProps[ii].iPropID = vtab->pProps[ii].iPropID;
-//    }
-//
-//    // Sort prop-col map
-//    flexi_sort_cols_by_prop_id(vtab);
 
     result = SQLITE_OK;
     goto FINALLY;
@@ -1263,11 +1300,10 @@ static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *
             else
             {
                 struct flexi_prop_metadata *prop = &vtab->pProps[colIdx];
-                if (prop->type == PROP_TYPE_DATE_RANGE || prop->type == PROP_TYPE_DECIMAL_RANGE
-                    || prop->type == PROP_TYPE_INTEGER_RANGE || prop->type == PROP_TYPE_NUMBER_RANGE)
+                if (IS_RANGE_PROPERTY(prop->type))
                     // Special case: range data request
                 {
-                    assert(prop->iRangeColumn > 0);
+                    assert(prop->cRangeColumn > 0);
 
                     if (zRangeSQL == NULL)
                     {
@@ -1276,7 +1312,7 @@ static int flexiEavFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *
                                 vtab->iClassID, vtab->iClassID);
                     }
                     void *pTmp = zRangeSQL;
-                    zRangeSQL = sqlite3_mprintf("%s and %s %s :%d", pTmp, range_columns[prop->iRangeColumn - 1],
+                    zRangeSQL = sqlite3_mprintf("%s and %s %s :%d", pTmp, range_columns[prop->cRangeColumn - 1],
                                                 zOp, i + 1);
                     sqlite3_free(pTmp);
                 }
@@ -1503,13 +1539,6 @@ static int flexiEavColumn(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContex
     int result = SQLITE_OK;
     struct flexi_vtab_cursor *cur = (void *) pCursor;
 
-//    // Handle weird behavior of SQLite: sometimes Next may be not called and flow goes directly to Column method.
-//    // In this case, force fetching Next row
-//    if (cur->iEof == -1)
-//    {
-//        CHECK_CALL(flexiEavNext(pCursor));
-//    }
-
     if (iCol == -1)
     {
         sqlite3_result_int64(pContext, cur->lObjectID);
@@ -1553,7 +1582,29 @@ static int flexiEavColumn(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContex
     }
     else
     {
-        sqlite3_result_value(pContext, cur->pCols[iCol]);
+        if (vtab->pProps[cur->iReadCol].cRngBound > 0)
+            // Range bound column
+        {
+            int idx = vtab->pProps[cur->iReadCol].cRngBound - 1;
+            struct flexi_prop_metadata *pRngProp = &vtab->pProps[cur->iReadCol - idx + 1];
+            double d[2];
+            const unsigned char *zVal = sqlite3_value_text(cur->pCols[iCol]);
+            sscanf((const char *) zVal, "%lf|%lf", &d[0], &d[1]);
+            sqlite3_free((void *) zVal); // TODO Needed?
+
+            if (pRngProp->type == PROP_TYPE_INTEGER_RANGE)
+            {
+                sqlite3_result_int64(pContext, (long long) d[idx]);
+            }
+            else
+            {
+                sqlite3_result_double(pContext, d[idx]);
+            }
+        }
+        else
+        {
+            sqlite3_result_value(pContext, cur->pCols[iCol]);
+        }
     }
 
     result = SQLITE_OK;
@@ -1733,7 +1784,7 @@ static int flexi_validate(struct flexi_vtab *pVTab, int argc, sqlite3_value **ar
 }
 
 /*
- *
+ * Saves property values for the given object ID
  */
 static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
                               sqlite3_stmt *pStmt, int bDeleteNulls, int argc, sqlite3_value **argv)
@@ -1742,26 +1793,99 @@ static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
 
     CHECK_CALL(flexi_validate(pVTab, argc, argv));
 
+    // Values are coming from index 2 (0 and 1 used for object IDs)
     for (int ii = 2; ii < argc; ii++)
     {
-        if (argv[ii] != NULL && sqlite3_value_type(argv[ii]) != SQLITE_NULL)
+        struct flexi_prop_metadata *pProp = &pVTab->pProps[ii - 2];
+        sqlite3_value *pVal = argv[ii];
+
+        /*
+         * Check if this is range property. If so, actual value can be specified either directly
+         * in format 'LoValue|HiValue', or via following computed bound properties.
+         * Base range property has priority, so if it is not NULL, it will be used as property value
+        */
+        int bIsNull = !(argv[ii] != NULL && sqlite3_value_type(argv[ii]) != SQLITE_NULL);
+        if (IS_RANGE_PROPERTY(pProp->type))
         {
+            assert(ii + 2 < argc);
+            if (bIsNull)
+            {
+                if (argv[ii + 1] != NULL && sqlite3_value_type(argv[ii + 1]) != SQLITE_NULL
+                    && argv[ii + 2] != NULL && sqlite3_value_type(argv[ii + 2]) != SQLITE_NULL)
+                {
+                    bIsNull = 0;
+                }
+            }
+        }
+
+        // Check if value is not null
+        if (!bIsNull)
+        {
+            // TODO Check if this is a mapped column
             CHECK_CALL(sqlite3_reset(pStmt));
             sqlite3_bind_int64(pStmt, 1, lObjectID);
-            sqlite3_bind_int64(pStmt, 2, pVTab->pProps[ii - 2].iPropID);
+            sqlite3_bind_int64(pStmt, 2, pProp->iPropID);
             sqlite3_bind_int(pStmt, 3, 0);
-            sqlite3_bind_int(pStmt, 4, pVTab->pProps[ii - 2].xCtlv);
-            sqlite3_bind_value(pStmt, 5, argv[ii]);
+            sqlite3_bind_int(pStmt, 4, pProp->xCtlv);
+
+            if (!IS_RANGE_PROPERTY(pProp->type))
+            {
+                sqlite3_bind_value(pStmt, 5, pVal);
+            }
+            else
+            {
+                if (argv[ii] == NULL || sqlite3_value_type(argv[ii]) == SQLITE_NULL)
+                {
+                    char *zRange = NULL;
+                    switch (pProp->type)
+                    {
+                        case PROP_TYPE_INTEGER_RANGE:
+                            zRange = sqlite3_mprintf("%li|%li",
+                                                     sqlite3_value_int64(argv[ii + 1]),
+                                                     sqlite3_value_int64(argv[ii + 2]));
+                            break;
+
+                        case PROP_TYPE_DECIMAL_RANGE:
+                        {
+                            double d0 = sqlite3_value_double(argv[ii + 1]);
+                            double d1 = sqlite3_value_double(argv[ii + 2]);
+                            long long i0 = (long long) (d0 * 10000);
+                            long long i1 = (long long) (d1 * 10000);
+                            zRange = sqlite3_mprintf("%li|%li", i0, i1);
+                        }
+
+                            break;
+
+                        default:
+                            zRange = sqlite3_mprintf("%f|%f",
+                                                     sqlite3_value_double(argv[ii + 1]),
+                                                     sqlite3_value_double(argv[ii + 2]));
+                            break;
+                    }
+
+                    sqlite3_bind_text(pStmt, 5, zRange, -1, NULL);
+                    sqlite3_free(zRange);
+                }
+                else
+                {
+                    sqlite3_bind_value(pStmt, 5, pVal);
+                }
+                ii += 2;
+            }
+
             CHECK_STMT(sqlite3_step(pStmt));
         }
         else
         {
-            if (bDeleteNulls)
+            // Null value
+
+            // TODO Check if this is a mapped column
+            if (bDeleteNulls && pProp->cRngBound == 0)
             {
                 sqlite3_stmt *pDelProp = pVTab->pDBEnv->pStmts[STMT_DEL_PROP];
                 CHECK_CALL(sqlite3_reset(pDelProp));
                 sqlite3_bind_int64(pDelProp, 1, lObjectID);
-                sqlite3_bind_int64(pDelProp, 2, pVTab->pProps[ii - 2].iPropID);
+                sqlite3_bind_int64(pDelProp, 2, pProp->iPropID);
                 sqlite3_bind_int(pDelProp, 3, 0);
                 CHECK_STMT(sqlite3_step(pDelProp));
             }
@@ -1775,7 +1899,7 @@ static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
 
     if (pVTab->base.zErrMsg == NULL)
     {
-
+// TODO Set message?
     }
 
     FINALLY:
