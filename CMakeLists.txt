@@ -80,7 +80,7 @@ set(EXT_FILES
         src/fts/fts3_tokenizer.h
         src/fts/fts3_hash.c
         src/fts/fts3_hash.h
-       )
+        src/flexi_eav/flexi_import_data.c src/flexi_eav/flexi_prop_create.c src/flexi_eav/flexi_prop_merge.c)
 
 add_library(sqlite_extensions SHARED ${EXT_FILES})
 

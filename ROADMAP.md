@@ -12,6 +12,28 @@ MATCH for plain unindexed text. Borrow from SQLite sources (FTS3 or FTS5)
 Generate 2 scalar columns (with link from high bound prop to low bound prop)
 *Done* TODO Test
 
+###flexi_import_data
+
+```
+(
+    {
+        sourceDatabase?:string,
+        sourceTable:string,
+        targetClass?:string,
+        propertyDefs?: any,
+        propertyMap?: {[columnName:string]:string},
+        whereClause?:string
+        }
+)
+```
+
+
+###flexi_prop_create
+Scalar and reference/nested object
+
+###flexi_prop_merge
+Range props and text props
+
 ###Index support
 Set ctlo and ctlv flags, tests
 Ensure that indexes are used (via EXPLAIN)
@@ -23,8 +45,8 @@ insert/update/delete into [.full_text_data]
 insert/update/delete into [.range_data]
 
 ###Convert database
-northwind and chinook
-Try SQLs, compare size and speed
+northwind, chinook, ttc routes
+Try SQL queries, compare size and speed
 
 ###Test SQL 
 Use existing SQLite tests (Sqllogictest) [[http://www.sqlite.org/sqllogictest/doc/trunk/about.wiki]]
@@ -36,11 +58,13 @@ full text indexes, rtree indexes
 ###Search statistics
 Accumulate search statistics. Use external DB file with 1 table:
 ```
-create table if not exists [.search_stat] (PropertyID integer,
+create table if not exists [.search_stat] 
+(PropertyID integer,
 EqCount int default 0,
 CmpCount int default 0,
 MatchCount int default 0,
 LastUpdated datetime (julian)
+NotNullCount 
 );
 ```
 
@@ -78,9 +102,7 @@ Removes duplicated objects with auto correction of links
  
 ####flexi_prop_split
  
-####flexi_prop_merge
 
-####flexi_prop_create
 
 ####flexi_prop_alter
 
@@ -109,4 +131,6 @@ Integrate Duktape JavaScript engine into library.
 Support for custom functions with interface compatible with sqlite3 node.js
 Support for triggers and validation rules in JavaScript
 Custom converters/formatter in JS
+
+##Article(s) for CodeProject
 
