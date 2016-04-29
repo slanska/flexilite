@@ -81,6 +81,18 @@ describe('SQLite extensions: Flexilite EAV', ()=>
         });
     });
 
+    it('MATCH 2 intersect on non-FTS-indexed columns', (done)=>
+    {
+        Sync(()=>
+        {
+            // let rows = db.all.sync(db, `select * from Person where AddressLine1 like '%camp%'`);
+            let rows = db.all.sync(db, `select * from Person where city match 'south*' intersect 
+            select * from Person where email match 'kristi*'`);
+            console.log(rows.length);
+            done();
+        });
+    });
+
     it('REGEXP 2', (done)=>
     {
         Sync(()=>
@@ -89,7 +101,22 @@ describe('SQLite extensions: Flexilite EAV', ()=>
             // lower(email) regexp '.*\\S*hotmail\\S*.*'`);
             let rows = db.all.sync(db, `select * from Person where lower(city) regexp '.*south\\S*.*' and lower(email) regexp '.*kristi\\S*.*'`);
             // let rows = db.all.sync(db, `select * from Person where city regexp '.*south\\S*.*' and email regexp '.*\\S*hotmail\\S*.*'`);
-            console.log(rows.length);
+            console.log(rows.length, rows);
+            done();
+        });
+    });
+
+    it('REGEXP 3', (done)=>
+    {
+        Sync(()=>
+        {
+            // let rows = db.all.sync(db, `select * from Person where lower(city) regexp '.*south\\S*.*' and
+            // lower(email) regexp '.*\\S*hotmail\\S*.*'`);
+            let rows = db.all.sync(db, `select * from Person where lower(city) regexp '.*south\\S*.*' 
+            and lower(email) regexp '.*kristi\\S*.*'
+            and lower(country) regexp '.*ka\\S*.*'`);
+            // let rows = db.all.sync(db, `select * from Person where city regexp '.*south\\S*.*' and email regexp '.*\\S*hotmail\\S*.*'`);
+            console.log(rows.length, rows);
             done();
         });
     });
@@ -113,7 +140,7 @@ describe('SQLite extensions: Flexilite EAV', ()=>
             // lower(email) regexp '.*\\S*hotmail\\S*.*'`);
             let rows = db.all.sync(db, `select * from Person where lower(email) regexp '.*kristi\\S*.*'`);
             // let rows = db.all.sync(db, `select * from Person where city regexp '.*south\\S*.*' and email regexp '.*\\S*hotmail\\S*.*'`);
-            console.log(rows.length);
+            console.log(rows.length, "\n");
             done();
         });
     });
@@ -124,7 +151,7 @@ describe('SQLite extensions: Flexilite EAV', ()=>
         {
             // let rows = db.all.sync(db, `select * from Person where AddressLine1 like '%camp%'`);
             let rows = db.all.sync(db, `select * from Person where city = 'South Kayden' `);
-            console.log('linear scan', rows.length);
+            console.log('linear scan: ', rows.length);
             done();
         });
     });
@@ -139,7 +166,7 @@ describe('SQLite extensions: Flexilite EAV', ()=>
             db.exec.sync(db, `begin transaction`);
             try
             {
-                for (var ii = 0; ii < 1000; ii++)
+                for (var ii = 0; ii < 10000; ii++)
                 {
                     let person = randomPersonArguments();
                     db.run.sync(db, `insert into Person (FirstName,

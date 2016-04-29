@@ -25,8 +25,9 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "faker": "^3.0.1",
     "chai": "^3.3.0",
+    "csv": "^0.4.6",
+    "faker": "^3.0.1",
     "mocha": "^2.3.3",
     "should": "^7.1.0",
     "supertest": "^1.1.0"

@@ -510,7 +510,12 @@ CREATE TABLE IF NOT EXISTS [.objects] (
   [H],
   [I],
   [J],
- [Data] JSON1 NULL
+ [Data] JSON1 NULL,
+
+ /*
+ Optional data for object/row (font/color etc. customization)
+ */
+ [ExtData] JSON1 NULL
 );
 
 CREATE INDEX IF NOT EXISTS [idxObjectsByClassSchema] ON [.objects] ([ClassID]);
@@ -948,7 +953,11 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
       bit 7 (128) - unique index
   */
   [ctlv]       INTEGER,
-  RefObjectID INTEGER NULL,
+   /*
+ Optional data for cell (font/color/format etc. customization)
+ */
+ [ExtData] JSON1 NULL,
+
   CONSTRAINT [] PRIMARY KEY ([ObjectID], [PropertyID], [PropIndex])
 ) WITHOUT ROWID;
 
