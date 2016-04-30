@@ -13,16 +13,16 @@ describe('SQLite extensions: Flexilite EAV', function () {
     var db;
     var personMeta = {
         properties: {
-            FirstName: { rules: { type: 0 /* TEXT */, minOccurences: 1, maxOccurences: 1 } },
-            LastName: { rules: { type: 0 /* TEXT */ } },
-            Gender: { rules: { type: 6 /* ENUM */ } },
-            AddressLine1: { rules: { type: 0 /* TEXT */ } },
-            City: { rules: { type: 0 /* TEXT */ } },
-            StateOrProvince: { rules: { type: 0 /* TEXT */ } },
-            Country: { rules: { type: 0 /* TEXT */ } },
-            ZipOrPostalCode: { rules: { type: 0 /* TEXT */ } },
-            Email: { rules: { type: 0 /* TEXT */ } },
-            Phone: { rules: { type: 0 /* TEXT */ } }
+            FirstName: { rules: { type: PROPERTY_TYPE.TEXT, minOccurences: 1, maxOccurences: 1 } },
+            LastName: { rules: { type: PROPERTY_TYPE.TEXT } },
+            Gender: { rules: { type: PROPERTY_TYPE.ENUM } },
+            AddressLine1: { rules: { type: PROPERTY_TYPE.TEXT } },
+            City: { rules: { type: PROPERTY_TYPE.TEXT } },
+            StateOrProvince: { rules: { type: PROPERTY_TYPE.TEXT } },
+            Country: { rules: { type: PROPERTY_TYPE.TEXT } },
+            ZipOrPostalCode: { rules: { type: PROPERTY_TYPE.TEXT } },
+            Email: { rules: { type: PROPERTY_TYPE.TEXT } },
+            Phone: { rules: { type: PROPERTY_TYPE.TEXT } }
         }
     };
     function randomPersonArguments() {

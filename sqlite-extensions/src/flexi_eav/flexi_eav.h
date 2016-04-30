@@ -134,88 +134,88 @@
 #define            PROP_ROLE_NAME  0x08
 
 
-// Property types
-// PROPERTY_TYPE
-enum
-{
-    PROP_TYPE_TEXT = 0,
-    PROP_TYPE_INTEGER = 1,
-
-/*
- Stored as integer * 10000. Corresponds to Decimal(194). (The same format used by Visual Basic)
- */
-            PROP_TYPE_DECIMAL = 2,
-
-/*
- 8 byte float value
- */
-            PROP_TYPE_NUMBER = 3,
-
-/*
- True or False
- */
-            PROP_TYPE_BOOLEAN = 4,
-
-/*
- Boxed object or collection of objects.
- 'boxed_object':
- referenced object stored as a part of master object. It does not have its own ID and can be accessed
- only via master object. Such object can have other boxed objects or boxed references but not LINKED_OBJECT references
- (since it does not have its own ID)
- */
-            PROP_TYPE_OBJECT = 5,
-
-/*
- Selectable from fixed list of items
- */
-            PROP_TYPE_ENUM = 6,
-
-/*
- Byte array (Buffer). Stored as byte 64 encoded value
- */
-            PROP_TYPE_BINARY = 7,
-
-/*
- 16 byte buffer. Stored as byte 64 encoded value (takes 22 bytes)
- */
-            PROP_TYPE_UUID = 8,
-
-/*
- 8 byte double corresponds to Julian day in SQLite
- */
-            PROP_TYPE_DATETIME = 9,
-
-/*
- Presented as text but internally stored as name ID. Provides localization
- */
-            PROP_TYPE_NAME = 10,
-
-/*
- Arbitrary JSON object not processed by Flexi
- */
-            PROP_TYPE_JSON = 11,
-
-/*
- 'linked_object':
- referenced object is stored in separate row has its own ID referenced via row in [.ref-values]
- and can be accessed independently from master object.
- This is most flexible option.
- */
-            PROP_TYPE_LINK = 12,
-
-/*
- * Range types are tuples which combine 2 values - Start and End.
- * End value must be not less than Start.
- * In virtual table range types are presented as 2 columns: Start is named the same as range property, End has '^' symbol appended.
- * For example: Lifetime as date range property would be presented as [Lifetime] and [Lifetime_1] columns. If this
- * property has 'indexed' attribute, values would be stored in rtree table for fast lookup by range.
- * Unique indexes are not supported for range values
- */
-            PROP_TYPE_NUMBER_RANGE = 13,
-    PROP_TYPE_INTEGER_RANGE = 14,
-    PROP_TYPE_DECIMAL_RANGE = 15,
-
-    PROP_TYPE_DATE_RANGE = 16
-} PropertyDataType;
+//// Property types
+//// PROPERTY_TYPE
+//enum
+//{
+//    PROP_TYPE_TEXT = 0,
+//    PROP_TYPE_INTEGER = 1,
+//
+///*
+// Stored as integer * 10000. Corresponds to Decimal(194). (The same format used by Visual Basic)
+// */
+//            PROP_TYPE_DECIMAL = 2,
+//
+///*
+// 8 byte float value
+// */
+//            PROP_TYPE_NUMBER = 3,
+//
+///*
+// True or False
+// */
+//            PROP_TYPE_BOOLEAN = 4,
+//
+///*
+// Boxed object or collection of objects.
+// 'boxed_object':
+// referenced object stored as a part of master object. It does not have its own ID and can be accessed
+// only via master object. Such object can have other boxed objects or boxed references but not LINKED_OBJECT references
+// (since it does not have its own ID)
+// */
+//            PROP_TYPE_OBJECT = 5,
+//
+///*
+// Selectable from fixed list of items
+// */
+//            PROP_TYPE_ENUM = 6,
+//
+///*
+// Byte array (Buffer). Stored as byte 64 encoded value
+// */
+//            PROP_TYPE_BINARY = 7,
+//
+///*
+// 16 byte buffer. Stored as byte 64 encoded value (takes 22 bytes)
+// */
+//            PROP_TYPE_UUID = 8,
+//
+///*
+// 8 byte double corresponds to Julian day in SQLite
+// */
+//            PROP_TYPE_DATETIME = 9,
+//
+///*
+// Presented as text but internally stored as name ID. Provides localization
+// */
+//            PROP_TYPE_NAME = 10,
+//
+///*
+// Arbitrary JSON object not processed by Flexi
+// */
+//            PROP_TYPE_JSON = 11,
+//
+///*
+// 'linked_object':
+// referenced object is stored in separate row has its own ID referenced via row in [.ref-values]
+// and can be accessed independently from master object.
+// This is most flexible option.
+// */
+//            PROP_TYPE_LINK = 12,
+//
+///*
+// * Range types are tuples which combine 2 values - Start and End.
+// * End value must be not less than Start.
+// * In virtual table range types are presented as 2 columns: Start is named the same as range property, End has '^' symbol appended.
+// * For example: Lifetime as date range property would be presented as [Lifetime] and [Lifetime_1] columns. If this
+// * property has 'indexed' attribute, values would be stored in rtree table for fast lookup by range.
+// * Unique indexes are not supported for range values
+// */
+//            PROP_TYPE_NUMBER_RANGE = 13,
+//    PROP_TYPE_INTEGER_RANGE = 14,
+//    PROP_TYPE_DECIMAL_RANGE = 15,
+//
+//    PROP_TYPE_DATE_RANGE = 16
+//} PropertyDataType;
 
 #endif //SQLITE_EXTENSIONS_FLEXI_EAV_H

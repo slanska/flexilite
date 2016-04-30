@@ -540,7 +540,7 @@ export class SQLiteDataRefactor implements IDBRefactory {
             if (propID) {
                 let ch_offset = ch.charCodeAt(0) - 'A'.charCodeAt(0);
                 let p:IFlexiClassProperty = vars.newProps[propID];
-                if (p.Data.unique || (p.Data.role & PROPERTY_ROLE.Code) || (p.Data.role & PROPERTY_ROLE.ID)) {
+                if (p.Data.unique || (p.Data.role & PROPERTY_ROLE.PROP_ROLE_CODE) || (p.Data.role & PROPERTY_ROLE.PROP_ROLE_ID)) {
                     vars.classDef.ctloMask |= 1 << (1 + ch_offset);
                 }
                 else if (p.Data.indexed) {
@@ -613,14 +613,14 @@ export class SQLiteDataRefactor implements IDBRefactory {
     private determineColAssignmentPriority(cp:IClassProperty) {
         let prior = COLUMN_ASSIGN_PRIORITY.NOT_SET;
 
-        if ((cp.role & PROPERTY_ROLE.ID) || (cp.role & PROPERTY_ROLE.Code) || cp.unique || cp.indexed)
+        if ((cp.role & PROPERTY_ROLE.PROP_ROLE_ID) || (cp.role & PROPERTY_ROLE. PROP_ROLE_CODE) || cp.unique || cp.indexed)
             prior = COLUMN_ASSIGN_PRIORITY.REQUIRED;
         else {
             switch (cp.rules.type) {
-                case PROPERTY_TYPE.BINARY:
-                case PROPERTY_TYPE.JSON:
-                case PROPERTY_TYPE.LINK:
-                case PROPERTY_TYPE.OBJECT:
+                case PROPERTY_TYPE.PROP_TYPE_BINARY:
+                case PROPERTY_TYPE.PROP_TYPE_JSON:
+                case PROPERTY_TYPE.PROP_TYPE_LINK:
+                case PROPERTY_TYPE.PROP_TYPE_OBJECT:
                     prior = COLUMN_ASSIGN_PRIORITY.NOT_SET;
                     break;
                 default:

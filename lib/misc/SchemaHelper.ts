@@ -62,28 +62,28 @@ export class SchemaHelper implements IShemaHelper
         {
             case 'serial':
             case 'integer':
-                return PROPERTY_TYPE.INTEGER;
+                return PROPERTY_TYPE.PROP_TYPE_INTEGER;
 
             case 'number':
-                return PROPERTY_TYPE.NUMBER;
+                return PROPERTY_TYPE.PROP_TYPE_NUMBER;
 
             case'binary':
-                return PROPERTY_TYPE.BINARY;
+                return PROPERTY_TYPE.PROP_TYPE_BINARY;
 
             case 'text':
-                return PROPERTY_TYPE.TEXT;
+                return PROPERTY_TYPE.PROP_TYPE_TEXT;
 
             case 'boolean':
-                return PROPERTY_TYPE.BOOLEAN;
+                return PROPERTY_TYPE.PROP_TYPE_BOOLEAN;
 
             case 'object':
-                return PROPERTY_TYPE.JSON;
+                return PROPERTY_TYPE.PROP_TYPE_JSON;
 
             case 'date':
-                return PROPERTY_TYPE.DATETIME;
+                return PROPERTY_TYPE.PROP_TYPE_DATETIME;
 
             case 'enum':
-                return PROPERTY_TYPE.ENUM;
+                return PROPERTY_TYPE.PROP_TYPE_ENUM;
 
             default:
                 throw new Error(`Not supported property type: ${ormType}`);
@@ -143,7 +143,7 @@ export class SchemaHelper implements IShemaHelper
 
                         switch (cProp.rules.type)
                         {
-                            case PROPERTY_TYPE.DATETIME:
+                            case PROPERTY_TYPE.PROP_TYPE_DATETIME:
 
                                 if (item.time === false)
                                 {
@@ -155,7 +155,7 @@ export class SchemaHelper implements IShemaHelper
                                 }
                                 break;
 
-                            case PROPERTY_TYPE.ENUM:
+                            case PROPERTY_TYPE.PROP_TYPE_ENUM:
                                 cProp.enumDef = {items: []} as IEnumPropertyDefinition;
                                 _.forEach(item.items, (enumItem)=>
                                 {
@@ -169,7 +169,7 @@ export class SchemaHelper implements IShemaHelper
 
                     case 'hasOne':
                         // Generate relation
-                        cProp.rules.type = PROPERTY_TYPE.OBJECT;
+                        cProp.rules.type = PROPERTY_TYPE.PROP_TYPE_OBJECT;
                         let oneRel = self.sourceSchema.one_associations[propName];
                         cProp.reference = {} as IObjectPropertyDefinition;
                         cProp.reference.autoFetch = oneRel.autoFetch;
@@ -181,7 +181,7 @@ export class SchemaHelper implements IShemaHelper
 
                     case 'hasMany':
                         // Generate relation
-                        cProp.rules.type = PROPERTY_TYPE.OBJECT;
+                        cProp.rules.type = PROPERTY_TYPE.PROP_TYPE_OBJECT;
                         let manyRel = self.sourceSchema.many_associations[propName];
                         cProp.reference = {} as IObjectPropertyDefinition;
                         cProp.reference.autoFetch = manyRel.autoFetch;

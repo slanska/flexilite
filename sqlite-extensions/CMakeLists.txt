@@ -39,7 +39,7 @@ project(sqlite_extensions)
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 set(EXT_FILES
-        typings/DBDefinitions.ts
+        typings/DBDefinitions.h
         src/main.c
 
         # compress.c is temporarily disabled because of the following error: Undefined symbols for architecture x86_64:
