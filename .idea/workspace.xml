@@ -1,23 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="BookmarkManager">
-    <bookmark url="file://$PROJECT_DIR$/lib/drivers/SQLite/Driver.ts" line="108" />
-    <bookmark url="file://$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts" line="199" />
-    <bookmark url="file://$PROJECT_DIR$/lib/drivers/SQLite/SQLiteDataRefactor.ts" line="224" />
-    <bookmark url="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql" line="442" />
-    <bookmark url="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql" />
-  </component>
-  <component name="CMakeRunConfigurationManager" shouldGenerate="true" assignedExecutableTargets="true" buildAllGenerated="false">
-    <generated />
-  </component>
-  <component name="CMakeSettings" AUTO_RELOAD="false" GENERATION_PASS_SYSTEM_ENVIRONMENT="true">
-    <ADDITIONAL_GENERATION_ENVIRONMENT>
-      <envs />
-    </ADDITIONAL_GENERATION_ENVIRONMENT>
-  </component>
   <component name="ChangeListManager">
     <list default="true" readonly="true" id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="MATCH support probe tests">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/.name" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/flexilite.iml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/modules.xml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/codeStyleSettings.xml" afterPath="$PROJECT_DIR$/.idea/codeStyleSettings.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
     </list>
     <ignored path="flexilite.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -91,8 +81,8 @@
       <file leaf-file-name="dbschema.sql" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="119">
-              <caret line="949" column="9" selection-start-line="949" selection-start-column="9" selection-end-line="949" selection-end-column="9" />
+            <state relative-caret-position="95">
+              <caret line="948" column="0" selection-start-line="948" selection-start-column="0" selection-end-line="948" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -131,16 +121,6 @@
         </entry>
       </file>
     </leaf>
-  </component>
-  <component name="FileTemplateManagerImpl">
-    <option name="RECENT_TEMPLATES">
-      <list>
-        <option value="TypeScript File" />
-      </list>
-    </option>
-  </component>
-  <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
@@ -205,14 +185,6 @@
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
   </component>
-  <component name="JsbtTreeLayoutManager">
-    <layout place="tools.popupGrunt">
-      <scroll-view-position x="0" y="0" />
-    </layout>
-  </component>
-  <component name="NodeJsMochaPackageDirSetting">
-    <data>$PROJECT_DIR$/node_modules/mocha</data>
-  </component>
   <component name="ProjectFrameBounds">
     <option name="y" value="23" />
     <option name="width" value="1280" />
@@ -229,7 +201,7 @@
     <ConfirmationsSetting value="0" id="Remove" />
   </component>
   <component name="ProjectView">
-    <navigator currentView="ProjectPane" proportions="" version="1">
+    <navigator currentView="Scope" currentSubView="Project Files" proportions="" version="1">
       <flattenPackages />
       <showMembers />
       <showModules />
@@ -243,73 +215,45 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
-      <pane id="Scratches" />
-      <pane id="ProjectPane">
-        <subPane>
+      <pane id="Scope">
+        <subPane subId="Project Files">
           <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
             </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            <PATH_ELEMENT USER_OBJECT="External Dependencies">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
             </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flexilite" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            <PATH_ELEMENT USER_OBJECT="/">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="Users">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="ruslanskorynin">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="flexilite">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
       </pane>
+      <pane id="Scratches" />
+      <pane id="ProjectPane">
+        <subPane />
+      </pane>
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
-    <property name="settings.editor.splitter.proportion" value="0.2" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/tests/schema_processing.js" />
-    <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="HbShouldOpenHtmlAsHb" value="" />
-    <property name="js-jscs-nodeInterpreter" value="/usr/local/bin/node" />
-    <property name="javascript.nodejs.core.library.configured.version" value="4.1.2" />
-    <property name="nodejs.mocha.node_interpreter_path" value="/usr/local/bin/node" />
     <property name="nodejs.mocha.mocha_node_package_dir" value="$PROJECT_DIR$/node_modules/mocha" />
-    <property name="JavaScriptPreferStrict" value="true" />
-    <property name="JavaScriptWeakerCompletionTypeGuess" value="true" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth0" value="103" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder0" value="0" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth1" value="201" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder1" value="1" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth2" value="118" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder2" value="2" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth3" value="815" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder3" value="3" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth0" value="103" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder0" value="0" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth1" value="113" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder1" value="1" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth2" value="118" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder2" value="2" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth3" value="903" />
-    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder3" value="3" />
-    <property name="GO_FMT" value="false" />
-    <property name="nodejs_interpreter_path" value="/usr/local/bin/node" />
-  </component>
-  <component name="RecentsManager">
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/wiki" />
-      <recent name="$PROJECT_DIR$/lib/misc" />
-      <recent name="$PROJECT_DIR$/lib/drivers/SQLite" />
-      <recent name="$PROJECT_DIR$/lib/drivers" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/tests" />
-      <recent name="$PROJECT_DIR$/lib/drivers/SQLite" />
-      <recent name="$PROJECT_DIR$/lib/ActorDB/Thrift" />
-    </key>
+    <property name="js-jscs-nodeInterpreter" value="/usr/local/bin/node" />
   </component>
   <component name="RunManager" selected="Mocha.tests/flexi_eav.js">
     <configuration default="false" name="tests/flexi_get.js" type="mocha-javascript-test-runner" factoryName="Mocha" temporary="true" nameIsGenerated="true">
@@ -483,442 +427,31 @@
     <option name="remove_strategy" value="false" />
   </component>
   <component name="SvnConfiguration">
-    <configuration>$USER_HOME$/.subversion</configuration>
-    <supportedVersion>125</supportedVersion>
-    <option name="runUnderTerminal" value="true" />
+    <configuration />
   </component>
   <component name="TaskManager">
-    <task active="true" id="Default" summary="Default task">
-      <changelist id="99baa971-f142-45d2-83ad-26bd5644d937" name="Default" comment="" />
-      <created>1444480746014</created>
-      <option name="number" value="Default" />
-      <option name="presentableId" value="Default" />
-      <updated>1444480746014</updated>
-      <workItem from="1458964889733" duration="815000" />
-      <workItem from="1459045386886" duration="3951000" />
-      <workItem from="1459085269041" duration="4781000" />
-      <workItem from="1459095718102" duration="12992000" />
-      <workItem from="1459119554826" duration="4307000" />
-      <workItem from="1459309660134" duration="1425000" />
-      <workItem from="1459384513410" duration="20696000" />
-      <workItem from="1459565318978" duration="7795000" />
-      <workItem from="1459606077566" duration="566000" />
-      <workItem from="1459607486809" duration="26758000" />
-      <workItem from="1459722832939" duration="18619000" />
-      <workItem from="1459894115847" duration="85000" />
-      <workItem from="1459894236474" duration="217000" />
-      <workItem from="1459894573595" duration="34763000" />
-      <workItem from="1460086517551" duration="5147000" />
-      <workItem from="1460177799488" duration="6951000" />
-      <workItem from="1460315009131" duration="24173000" />
-      <workItem from="1460810835567" duration="14916000" />
-      <workItem from="1460912492675" duration="1655000" />
-      <workItem from="1461185128890" duration="15086000" />
-      <workItem from="1461443386406" duration="2699000" />
-      <workItem from="1461450864125" duration="19024000" />
-      <workItem from="1461580888948" duration="8073000" />
-      <workItem from="1461963415950" duration="137000" />
-      <workItem from="1461963599049" duration="2353000" />
-      <workItem from="1461974643483" duration="108000" />
-    </task>
-    <task id="LOCAL-00004" summary="started implementing sync. Using wait.for">
-      <created>1447332557897</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1447332557897</updated>
-    </task>
-    <task id="LOCAL-00005" summary="started implementing sync. Using syncho">
-      <created>1447377665772</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1447377665772</updated>
-    </task>
-    <task id="LOCAL-00006" summary="open db connection in shared cache mode">
-      <created>1447381844486</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1447381844486</updated>
-    </task>
-    <task id="LOCAL-00007" summary="view generation">
-      <created>1447385378870</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1447385378870</updated>
-    </task>
-    <task id="LOCAL-00008" summary="fixed issue with not finalized DB statement">
-      <created>1447386304787</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1447386304787</updated>
-    </task>
-    <task id="LOCAL-00009" summary="first working version of view generation">
-      <created>1447549501152</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1447549501152</updated>
-    </task>
-    <task id="LOCAL-00010" summary="first working version of view generation">
-      <created>1447647381719</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1447647381719</updated>
-    </task>
-    <task id="LOCAL-00011" summary="refactored Driver to use TypeScript class">
-      <created>1447906083586</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1447906083587</updated>
-    </task>
-    <task id="LOCAL-00012" summary="refactored Driver to use TypeScript class">
-      <created>1447906497322</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1447906497322</updated>
-    </task>
-    <task id="LOCAL-00013" summary="added ActorDB Thrift binding&#10;">
-      <created>1448130092253</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1448130092253</updated>
-    </task>
-    <task id="LOCAL-00014" summary="added ActorDB Thrift binding&#10;">
-      <created>1448340060512</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1448340060514</updated>
-    </task>
-    <task id="LOCAL-00015" summary="refactoring in sqlite schema script">
-      <created>1448423290009</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1448423290010</updated>
-    </task>
-    <task id="LOCAL-00016" summary="improving sync model">
-      <created>1448508869477</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1448508869479</updated>
-    </task>
-    <task id="LOCAL-00017" summary="renamed system tables to start from '.'&#10;improved sync procedure">
-      <created>1448826034719</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
-      <option name="project" value="LOCAL" />
-      <updated>1448826034720</updated>
-    </task>
-    <task id="LOCAL-00018" summary="more changes">
-      <created>1449020986553</created>
-      <option name="number" value="00018" />
-      <option name="presentableId" value="LOCAL-00018" />
-      <option name="project" value="LOCAL" />
-      <updated>1449020986553</updated>
-    </task>
-    <task id="LOCAL-00019" summary="more changes">
-      <created>1449897693539</created>
-      <option name="number" value="00019" />
-      <option name="presentableId" value="LOCAL-00019" />
-      <option name="project" value="LOCAL" />
-      <updated>1449897693539</updated>
-    </task>
-    <task id="LOCAL-00020" summary="more changes">
-      <created>1450151846051</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
-      <option name="project" value="LOCAL" />
-      <updated>1450151846051</updated>
-    </task>
-    <task id="LOCAL-00021" summary="more changes">
-      <created>1450201887819</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
-      <option name="project" value="LOCAL" />
-      <updated>1450201887819</updated>
-    </task>
-    <task id="LOCAL-00022" summary="more changes">
-      <created>1450590087266</created>
-      <option name="number" value="00022" />
-      <option name="presentableId" value="LOCAL-00022" />
-      <option name="project" value="LOCAL" />
-      <updated>1450590087266</updated>
-    </task>
-    <task id="LOCAL-00023" summary="more changes">
-      <created>1451107715116</created>
-      <option name="number" value="00023" />
-      <option name="presentableId" value="LOCAL-00023" />
-      <option name="project" value="LOCAL" />
-      <updated>1451107715116</updated>
-    </task>
-    <task id="LOCAL-00024" summary="started switching to JSON storage">
-      <created>1453006028530</created>
-      <option name="number" value="00024" />
-      <option name="presentableId" value="LOCAL-00024" />
-      <option name="project" value="LOCAL" />
-      <updated>1453006028531</updated>
-    </task>
-    <task id="LOCAL-00025" summary="JSON storage support">
-      <created>1454213406862</created>
-      <option name="number" value="00025" />
-      <option name="presentableId" value="LOCAL-00025" />
-      <option name="project" value="LOCAL" />
-      <updated>1454213406863</updated>
-    </task>
-    <task id="LOCAL-00026" summary="changes in readme.md">
-      <created>1454290091248</created>
-      <option name="number" value="00026" />
-      <option name="presentableId" value="LOCAL-00026" />
-      <option name="project" value="LOCAL" />
-      <updated>1454290091248</updated>
-    </task>
-    <task id="LOCAL-00027" summary="reverse engineering from SQLite db">
-      <created>1457154009404</created>
-      <option name="number" value="00027" />
-      <option name="presentableId" value="LOCAL-00027" />
-      <option name="project" value="LOCAL" />
-      <updated>1457154009404</updated>
-    </task>
-    <task id="LOCAL-00028" summary="reverse engineering from SQLite db">
-      <created>1457228361297</created>
-      <option name="number" value="00028" />
-      <option name="presentableId" value="LOCAL-00028" />
-      <option name="project" value="LOCAL" />
-      <updated>1457228361297</updated>
-    </task>
-    <task id="LOCAL-00029" summary="stubs for tests">
-      <created>1457283561015</created>
-      <option name="number" value="00029" />
-      <option name="presentableId" value="LOCAL-00029" />
-      <option name="project" value="LOCAL" />
-      <updated>1457283561015</updated>
-    </task>
-    <task id="LOCAL-00030" summary="stubs for tests">
-      <created>1457290491569</created>
-      <option name="number" value="00030" />
-      <option name="presentableId" value="LOCAL-00030" />
-      <option name="project" value="LOCAL" />
-      <updated>1457290491569</updated>
-    </task>
-    <task id="LOCAL-00031" summary="fixed syntax errors">
-      <created>1459394483069</created>
-      <option name="number" value="00031" />
-      <option name="presentableId" value="LOCAL-00031" />
-      <option name="project" value="LOCAL" />
-      <updated>1459394483070</updated>
-    </task>
-    <task id="LOCAL-00032" summary="doc and sql script update">
-      <created>1459481688402</created>
-      <option name="number" value="00032" />
-      <option name="presentableId" value="LOCAL-00032" />
-      <option name="project" value="LOCAL" />
-      <updated>1459481688402</updated>
-    </task>
-    <task id="LOCAL-00033" summary="doc and sql script update">
-      <created>1459481766284</created>
-      <option name="number" value="00033" />
-      <option name="presentableId" value="LOCAL-00033" />
-      <option name="project" value="LOCAL" />
-      <updated>1459481766284</updated>
-    </task>
-    <task id="LOCAL-00034" summary="major code refactoring">
-      <created>1459572466447</created>
-      <option name="number" value="00034" />
-      <option name="presentableId" value="LOCAL-00034" />
-      <option name="project" value="LOCAL" />
-      <updated>1459572466447</updated>
-    </task>
-    <task id="LOCAL-00035" summary="major code refactoring">
-      <created>1459630193304</created>
-      <option name="number" value="00035" />
-      <option name="presentableId" value="LOCAL-00035" />
-      <option name="project" value="LOCAL" />
-      <updated>1459630193304</updated>
-    </task>
-    <task id="LOCAL-00036" summary="major code refactoring">
-      <created>1459652576247</created>
-      <option name="number" value="00036" />
-      <option name="presentableId" value="LOCAL-00036" />
-      <option name="project" value="LOCAL" />
-      <updated>1459652576247</updated>
-    </task>
-    <task id="LOCAL-00037" summary="major code refactoring">
-      <created>1459653581095</created>
-      <option name="number" value="00037" />
-      <option name="presentableId" value="LOCAL-00037" />
-      <option name="project" value="LOCAL" />
-      <updated>1459653581095</updated>
-    </task>
-    <task id="LOCAL-00038" summary="major code refactoring">
-      <created>1459654129900</created>
-      <option name="number" value="00038" />
-      <option name="presentableId" value="LOCAL-00038" />
-      <option name="project" value="LOCAL" />
-      <updated>1459654129900</updated>
-    </task>
-    <task id="LOCAL-00039" summary="major code refactoring">
-      <created>1459743366916</created>
-      <option name="number" value="00039" />
-      <option name="presentableId" value="LOCAL-00039" />
-      <option name="project" value="LOCAL" />
-      <updated>1459743366916</updated>
-    </task>
-    <task id="LOCAL-00040" summary="sql script and refactoring support">
-      <created>1459814252749</created>
-      <option name="number" value="00040" />
-      <option name="presentableId" value="LOCAL-00040" />
-      <option name="project" value="LOCAL" />
-      <updated>1459814252749</updated>
-    </task>
-    <task id="LOCAL-00041" summary="sql script and refactoring support">
-      <created>1459826516707</created>
-      <option name="number" value="00041" />
-      <option name="presentableId" value="LOCAL-00041" />
-      <option name="project" value="LOCAL" />
-      <updated>1459826516707</updated>
-    </task>
-    <task id="LOCAL-00042" summary="sql script and refactoring support">
-      <created>1459993069132</created>
-      <option name="number" value="00042" />
-      <option name="presentableId" value="LOCAL-00042" />
-      <option name="project" value="LOCAL" />
-      <updated>1459993069132</updated>
-    </task>
-    <task id="LOCAL-00043" summary="sql script and refactoring support">
-      <created>1459997939967</created>
-      <option name="number" value="00043" />
-      <option name="presentableId" value="LOCAL-00043" />
-      <option name="project" value="LOCAL" />
-      <updated>1459997939967</updated>
-    </task>
-    <task id="LOCAL-00044" summary="generate view">
-      <created>1460084856862</created>
-      <option name="number" value="00044" />
-      <option name="presentableId" value="LOCAL-00044" />
-      <option name="project" value="LOCAL" />
-      <updated>1460084856862</updated>
-    </task>
-    <task id="LOCAL-00045" summary="generate view">
-      <created>1460178601435</created>
-      <option name="number" value="00045" />
-      <option name="presentableId" value="LOCAL-00045" />
-      <option name="project" value="LOCAL" />
-      <updated>1460178601435</updated>
-    </task>
-    <task id="LOCAL-00046" summary="generate view">
-      <created>1460763892198</created>
-      <option name="number" value="00046" />
-      <option name="presentableId" value="LOCAL-00046" />
-      <option name="project" value="LOCAL" />
-      <updated>1460763892199</updated>
-    </task>
-    <task id="LOCAL-00047" summary="schema change">
-      <created>1460778718713</created>
-      <option name="number" value="00047" />
-      <option name="presentableId" value="LOCAL-00047" />
-      <option name="project" value="LOCAL" />
-      <updated>1460778718713</updated>
-    </task>
-    <task id="LOCAL-00048" summary="schema change">
-      <created>1460822981996</created>
-      <option name="number" value="00048" />
-      <option name="presentableId" value="LOCAL-00048" />
-      <option name="project" value="LOCAL" />
-      <updated>1460822981996</updated>
-    </task>
-    <task id="LOCAL-00049" summary="schema change">
-      <created>1460869215513</created>
-      <option name="number" value="00049" />
-      <option name="presentableId" value="LOCAL-00049" />
-      <option name="project" value="LOCAL" />
-      <updated>1460869215513</updated>
-    </task>
-    <task id="LOCAL-00050" summary="schema change">
-      <created>1461382050922</created>
-      <option name="number" value="00050" />
-      <option name="presentableId" value="LOCAL-00050" />
-      <option name="project" value="LOCAL" />
-      <updated>1461382050923</updated>
-    </task>
-    <task id="LOCAL-00051" summary="schema change">
-      <created>1461426518648</created>
-      <option name="number" value="00051" />
-      <option name="presentableId" value="LOCAL-00051" />
-      <option name="project" value="LOCAL" />
-      <updated>1461426518648</updated>
-    </task>
-    <task id="LOCAL-00052" summary="MATCH support probe tests">
-      <created>1461519628350</created>
-      <option name="number" value="00052" />
-      <option name="presentableId" value="LOCAL-00052" />
-      <option name="project" value="LOCAL" />
-      <updated>1461519628352</updated>
-    </task>
-    <option name="localTasksCounter" value="53" />
     <servers />
   </component>
-  <component name="TestHistory">
-    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 57m 57s.xml">
-      <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 13h 59m 58s.xml">
-      <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 17h 51m 46s.xml">
-      <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.24 at 22h 45m 40s.xml">
-      <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.25 at 19h 52m 56s.xml">
-      <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="tests_flexi_eav_js - 2016.04.25 at 21h 32m 55s.xml">
-      <configuration name="tests/flexi_eav.js" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="tests_reverseEng_spec_js - 2016.04.25 at 21h 31m 17s.xml">
-      <configuration name="tests/reverseEng.spec.js" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="tests_reverseEng_spec_ts - 2016.04.25 at 20h 28m 17s.xml">
-      <configuration name="tests/reverseEng.spec.ts" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="tests_reverseEng_spec_ts - 2016.04.25 at 20h 28m 43s.xml">
-      <configuration name="tests/reverseEng.spec.ts" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-    <history-entry file="tests_reverseEng_spec_ts - 2016.04.25 at 21h 30m 43s.xml">
-      <configuration name="tests/reverseEng.spec.ts" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
-  </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="238092000" />
+    <option name="totallyTimeSpent" value="238276000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="1280" height="752" extended-state="6" />
     <editor active="false" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2328125" sideWeight="0.4909091" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2328125" sideWeight="0.4909091" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="DB Browser" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.20833333" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="TypeScript Compiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.12480974" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="DB Execution Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
       <window_info id="LuaJ" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32724506" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.5981735" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.5981735" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23359375" sideWeight="0.5090909" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
@@ -1327,8 +860,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/drivers/SQLite/dbschema.sql">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="949" column="9" selection-start-line="949" selection-start-column="9" selection-end-line="949" selection-end-column="9" />
+        <state relative-caret-position="95">
+          <caret line="948" column="0" selection-start-line="948" selection-start-column="0" selection-end-line="948" selection-end-column="0" />
           <folding />
         </state>
       </provider>
