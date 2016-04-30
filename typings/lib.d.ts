@@ -10,6 +10,7 @@
 /// <reference path="../lib/def/ISchemaDefinition.d.ts" />
 /// <reference path="../lib/def/IDBRefactory.d.ts" />
 ///<reference path="../lib/def/definitions.d.ts"/>
+///<reference path="../sqlite-extensions/typings/DBDefinitions.ts"/>
 
 /*
  Extend Function prototype to allow sync calls

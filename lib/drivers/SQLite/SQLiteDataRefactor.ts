@@ -30,24 +30,22 @@ const enum COLUMN_ASSIGN_PRIORITY
     NOT_SET = 0
 }
 
-export class SQLiteDataRefactor implements IDBRefactory
-{
+export class SQLiteDataRefactor implements IDBRefactory {
+    importFromDatabase(options:IImportDatabaseOptions) {
+    }
+
     static COLUMN_LETTERS = 'ABCDEFGHIJ';
 
-    boxedObjectToLinkedObject(classID:number, refPropID:number)
-    {
+    boxedObjectToLinkedObject(classID:number, refPropID:number) {
     }
 
-    constructor(private DB:sqlite3.Database)
-    {
+    constructor(private DB:sqlite3.Database) {
 
     }
 
-    private getClassDefFromRows(rows):IFlexiClass
-    {
+    private getClassDefFromRows(rows):IFlexiClass {
         var self = this;
-        if (rows.length > 0)
-        {
+        if (rows.length > 0) {
             rows[0].Data = JSON.parse(rows[0].Data);
             let result = rows[0] as IFlexiClass;
             result.Properties = self.DB.all.sync(self.DB,
@@ -62,8 +60,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    getClassDefByName(className:string):IFlexiClass
-    {
+    getClassDefByName(className:string):IFlexiClass {
         var self = this;
         var rows = self.DB.all.sync(self.DB,
             `select * from [.classes] where NameID = (select NameID from [.names] where [Value]= $name) limit 1`,
@@ -74,8 +71,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    getClassDefByID(classID:number):IFlexiClass
-    {
+    getClassDefByID(classID:number):IFlexiClass {
         var self = this;
         var rows = self.DB.all.sync(self.DB, `select * from [.classes] where ClassID = $ClassID limit 1`,
             {$ClassID: classID});
@@ -85,8 +81,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    private getNameByValue(name:string):IFlexiName
-    {
+    private getNameByValue(name:string):IFlexiName {
         var rows = this.DB.run.sync(this.DB, `insert or ignore into [.names] ([Value]) values ($name);
             select * from [.names] where [Value] = $name limit 1`, {$name: name});
         return rows[0] as IFlexiName;
@@ -95,8 +90,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    private getNameByID(id:number):IFlexiName
-    {
+    private getNameByID(id:number):IFlexiName {
         var rows = this.DB.run.sync(this.DB, `select * from [.names] where [NameID] = id limit 1`, {$id: id});
         if (rows.length > 0)
             return rows[0] as IFlexiName;
@@ -106,19 +100,16 @@ export class SQLiteDataRefactor implements IDBRefactory
 
     private _lastActionReport:string = '';
 
-    getLastActionReport():string
-    {
+    getLastActionReport():string {
         return this._lastActionReport;
     }
 
-    alterClass(classID:number, newClassDef?:IClassDefinition, newSchemaDef?:ISchemaDefinition, newName?:string)
-    {
+    alterClass(classID:number, newClassDef?:IClassDefinition, newSchemaDef?:ISchemaDefinition, newName?:string) {
         var self = this;
 
         // Check if class exists
         var classDef = self.getClassDefByID(classID);
-        if (classDef)
-        {
+        if (classDef) {
 
         }
         else throw new Error(`Flexilite.alterClass: class with ID '${classID}' not found`);
@@ -127,14 +118,12 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    private applyClassDefinition(classDef:IFlexiClass, schemaDef:IFlexiSchema)
-    {
+    private applyClassDefinition(classDef:IFlexiClass, schemaDef:IFlexiSchema) {
         var self = this;
 
         // Regenerate view if needed
         // Check if class schema needs synchronization
-        if (!classDef.ViewOutdated)
-        {
+        if (!classDef.ViewOutdated) {
             return;
         }
 
@@ -148,20 +137,17 @@ export class SQLiteDataRefactor implements IDBRefactory
 
         // Init column assignment map
         let colMap = {} as{[propID:number]:string};
-        for (let idx = 0; idx < SQLiteDataRefactor.COLUMN_LETTERS.length; idx++)
-        {
+        for (let idx = 0; idx < SQLiteDataRefactor.COLUMN_LETTERS.length; idx++) {
             let ch = SQLiteDataRefactor.COLUMN_LETTERS[idx];
             let propID = classDef[ch];
-            if (propID)
-            {
+            if (propID) {
                 colMap[propID] = ch;
             }
         }
 
         // Process properties
         var propIdx = 0;
-        _.forEach(classDef.Properties, (p:IFlexiClassProperty, propID:number)=>
-        {
+        _.forEach(classDef.Properties, (p:IFlexiClassProperty, propID:number)=> {
             if (propIdx > 0)
                 viewSQL += ', ';
             propIdx++;
@@ -174,11 +160,9 @@ export class SQLiteDataRefactor implements IDBRefactory
             {
                 viewSQL += `o.[${colLetter}] as [${propName}]\n`;
             }
-            else
-            {
+            else {
                 viewSQL += `flexi_get(${p.PropertyID}, o.[ObjectID], s.[Data], o.[Data]`;
-                if (p.Data.defaultValue)
-                {
+                if (p.Data.defaultValue) {
                     if (_.isString(p.Data.defaultValue))
                         viewSQL += `'${p.Data.defaultValue}'`;
                     else viewSQL += `${p.Data.defaultValue}`;
@@ -206,8 +190,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         viewSQL += `insert into [${viewName}] ([ObjectID]`;
 
         var cols = '';
-        _.forEach(classDef.Properties, (p, propID)=>
-        {
+        _.forEach(classDef.Properties, (p, propID)=> {
             let propName = self.getNameByID(p.NameID).Value;
             viewSQL += `, [${propName}]`;
             cols += `, new.[${propName}]`;
@@ -233,20 +216,17 @@ export class SQLiteDataRefactor implements IDBRefactory
         viewSQL += `insert into [.objects] ([ObjectID], [ClassID], [ctlo], [Data]`;
         cols = '';
         let jsonData = `json_set({}`;
-        for (var propID in classDef.Data.properties)
-        {
+        for (var propID in classDef.Data.properties) {
             var p:IFlexiClassProperty = classDef.Properties[propID];
             let propName = self.getNameByID(p.NameID).Value;
 
             let colLetter = colMap[p.PropertyID];
             // if column is assigned
-            if (colLetter)
-            {
+            if (colLetter) {
                 viewSQL += `, [${colLetter}]`;
                 cols += `, flexi_json_value(new.[${propName}])`;
             }
-            else
-            {
+            else {
                 let jsp = schemaDef.Data.properties[propID].map.jsonPath;
                 jsonData += `, '$${jsp}', new.[${propName}]`;
             }
@@ -264,20 +244,17 @@ export class SQLiteDataRefactor implements IDBRefactory
         viewSQL += self.generateConstraintsForTrigger(viewName, classDef);
 
         var columns = '';
-        _.forEach(classDef.Properties, (p, propID)=>
-        {
+        _.forEach(classDef.Properties, (p, propID)=> {
             let colLetter = colMap[p.PropertyID];
             // if column is assigned
-            if (colLetter)
-            {
+            if (colLetter) {
                 let propName = self.getNameByID(p.NameID).Value;
                 if (columns !== '')
                     columns += ',';
                 columns += `[${colLetter}] = new.[${propName}]`;
             }
         });
-        if (columns !== '')
-        {
+        if (columns !== '') {
             viewSQL += `update [.objects] set ${columns} where [ObjectID] = new.[ObjectID];\n`;
         }
 
@@ -299,13 +276,11 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    private generateDeleteNullValues(classDef:IClassDefinition):string
-    {
+    private generateDeleteNullValues(classDef:IClassDefinition):string {
         var result = '';
 
         // Iterate through all properties
-        _.forEach(classDef.properties as any, (p:IClassProperty, propID:number) =>
-        {
+        _.forEach(classDef.properties as any, (p:IClassProperty, propID:number) => {
             //
             //if (!p.ColumnAssigned)
             //{
@@ -319,8 +294,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
      Generates beginning of INSTEAD OF trigger for dynamic view
      */
-    private generateTriggerBegin(viewName:string, triggerKind:string, triggerSuffix = '', when = ''):string
-    {
+    private generateTriggerBegin(viewName:string, triggerKind:string, triggerSuffix = '', when = ''):string {
         return `/* Autogenerated code. Do not edit or delete. ${viewName[0].toUpperCase() + viewName.slice(1)}.${triggerKind} trigger*/\n
             drop trigger if exists [trig_${viewName}_${triggerKind}${triggerSuffix}];
     create trigger if not exists [trig_${viewName}_${triggerKind}${triggerSuffix}] instead of ${triggerKind} on [${viewName}]
@@ -332,12 +306,10 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
      Generates constraints for INSTEAD OF triggers for dynamic view
      */
-    private generateConstraintsForTrigger(className:string, classDef:IFlexiClass):string
-    {
+    private generateConstraintsForTrigger(className:string, classDef:IFlexiClass):string {
         var result = '';
         // Iterate through all properties
-        _.forEach(classDef.Data.properties as any, (p:IClassProperty, propID:number)=>
-        {
+        _.forEach(classDef.Data.properties as any, (p:IClassProperty, propID:number)=> {
 // TODO Get property name by ID
             // Is required/not null?
             if (p.rules.minOccurences > 0)
@@ -363,8 +335,7 @@ export class SQLiteDataRefactor implements IDBRefactory
 
         });
 
-        if (result.length > 0)
-        {
+        if (result.length > 0) {
             result = `select raise_error(ABORT, s.Error) from (select case ${result} else null end as Error) s where s.Error is not null;\n`;
         }
         return result;
@@ -373,18 +344,15 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    private generateInsertValues(classID:number, classDef:IFlexiClass):string
-    {
+    private generateInsertValues(classID:number, classDef:IFlexiClass):string {
         var self = this;
         var result = '';
 
         // Iterate through all properties
-        _.forEach(classDef.Properties, (p:IFlexiClassProperty, propID) =>
-        {
+        _.forEach(classDef.Properties, (p:IFlexiClassProperty, propID) => {
             let propName = self.getNameByID(p.NameID).Value;
 
-            if (!p.ColumnAssigned)
-            {
+            if (!p.ColumnAssigned) {
                 result += `insert or replace into [Values] ([ObjectID], [ClassID], [PropertyID], [PropIndex], [ctlv], [Value])
              select (new.ObjectID, ${classID}, ${p.PropertyID}, 0, ${p.ctlv}, new.[${propName}]
              where new.[${propName}] is not null;\n`;
@@ -396,12 +364,10 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    createClass(name:string, classDef:IClassDefinition, schemaDef?:ISchemaDefinition)
-    {
+    createClass(name:string, classDef:IClassDefinition, schemaDef?:ISchemaDefinition) {
         var self = this;
         // TODO classDef = self.getClassDefByName(name);
-        if (classDef)
-        {
+        if (classDef) {
             /// TODO
             return;
         }
@@ -409,64 +375,49 @@ export class SQLiteDataRefactor implements IDBRefactory
 
     }
 
-    dropClass(classID:number)
-    {
+    dropClass(classID:number) {
     }
 
-    plainPropertiesToBoxedObject(classID:number, newRefProp:IClassProperty, targetClassID:number, propMap:IPropertyMap, filter:IObjectFilter)
-    {
+    plainPropertiesToBoxedObject(classID:number, newRefProp:IClassProperty, targetClassID:number, propMap:IPropertyMap, filter:IObjectFilter) {
     }
 
-    plainPropertiesToLinkedObject(classID:number, propIDs:PropertyIDs, newRefProp:IClassProperty, filter:IObjectFilter, targetClassID:number, updateData:boolean, sourceKeyPropID:PropertyIDs, targetKeyPropID:PropertyIDs)
-    {
+    plainPropertiesToLinkedObject(classID:number, propIDs:PropertyIDs, newRefProp:IClassProperty, filter:IObjectFilter, targetClassID:number, updateData:boolean, sourceKeyPropID:PropertyIDs, targetKeyPropID:PropertyIDs) {
     }
 
-    boxedObjectToPlainProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap)
-    {
+    boxedObjectToPlainProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap) {
     }
 
-    linkedObjectToPlainProps(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap)
-    {
+    linkedObjectToPlainProps(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap) {
     }
 
-    structuralMerge(sourceClassID:number, sourceFilter:IObjectFilter, sourceKeyPropID:PropertyIDs, targetClassID:number, targetKeyPropID:PropertyIDs, propMap:IPropertyMap)
-    {
+    structuralMerge(sourceClassID:number, sourceFilter:IObjectFilter, sourceKeyPropID:PropertyIDs, targetClassID:number, targetKeyPropID:PropertyIDs, propMap:IPropertyMap) {
     }
 
-    structuralSplit(sourceClassID:number, filter:IObjectFilter, targetClassID:number, propMap:IPropertyMap, targetClassDef?:IClassDefinition)
-    {
+    structuralSplit(sourceClassID:number, filter:IObjectFilter, targetClassID:number, propMap:IPropertyMap, targetClassDef?:IClassDefinition) {
     }
 
-    moveToAnotherClass(sourceClassID:number, filter:IObjectFilter, targetClassID:number, propMap:IPropertyMap)
-    {
+    moveToAnotherClass(sourceClassID:number, filter:IObjectFilter, targetClassID:number, propMap:IPropertyMap) {
     }
 
-    removeDuplicatedObjects(classID:number, filter:IObjectFilter, compareFunction:string, keyProps:PropertyIDs, replaceTargetNulls:boolean)
-    {
+    removeDuplicatedObjects(classID:number, filter:IObjectFilter, compareFunction:string, keyProps:PropertyIDs, replaceTargetNulls:boolean) {
     }
 
-    splitProperty(classID:number, sourcePropID:number, propRules:ISplitPropertyRules)
-    {
+    splitProperty(classID:number, sourcePropID:number, propRules:ISplitPropertyRules) {
     }
 
-    mergeProperties(classID:number, sourcePropIDs:number[], targetProp:IClassProperty, expression:string)
-    {
+    mergeProperties(classID:number, sourcePropIDs:number[], targetProp:IClassProperty, expression:string) {
     }
 
-    alterClassProperty(classID:number, propertyName:string, propDef:IClassProperty, newPropName?:string)
-    {
+    alterClassProperty(classID:number, propertyName:string, propDef:IClassProperty, newPropName?:string) {
     }
 
-    createClassProperty(classID:number, propertyName:string, propDef:IClassProperty)
-    {
+    createClassProperty(classID:number, propertyName:string, propDef:IClassProperty) {
     }
 
-    dropClassProperty(classID:number, propertyName:string)
-    {
+    dropClassProperty(classID:number, propertyName:string) {
     }
 
-    private getSchemaByID(schemaID:number):IFlexiSchema
-    {
+    private getSchemaByID(schemaID:number):IFlexiSchema {
         var rows = this.DB.all.sync(this.DB, `select * from [.schemas] where SchemaID=$SchemaID`, {$SchemaID: schemaID});
         return rows[0] as IFlexiSchema;
     }
@@ -474,8 +425,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    public generateView(classID:number)
-    {
+    public generateView(classID:number) {
         var classDef = this.getClassDefByID(classID);
         var schemaDef = this.getSchemaByID(classDef.BaseSchemaID);
         this.applyClassDefinition(classDef, schemaDef);
@@ -498,8 +448,7 @@ export class SQLiteDataRefactor implements IDBRefactory
      hasMany and hasOne are converted into reference properties
      */
     // TODO Callback, Sync version
-    generateClassAndSchemaDefForSync(model:ISyncOptions)
-    {
+    generateClassAndSchemaDefForSync(model:ISyncOptions) {
         var self = this;
 
         // TODO SQLite checkpoint
@@ -513,8 +462,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         // Need to transform them before saving to dictionaries by property ID
         vars.converter = new SchemaHelper(self.DB, model);
         vars.converter.getNameID = self.getNameByID.bind(self);
-        vars.converter.getClassIDbyName = (name:string)=>
-        {
+        vars.converter.getClassIDbyName = (name:string)=> {
             return self.getClassDefByName(name).ClassID;
         };
         vars.converter.convertFromNodeOrmSync();
@@ -548,8 +496,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         vars.columnAssignments = {};
 
         // Init items for [.class_properties]
-        _.forEach(vars.converter.targetClassProps, (p:IClassProperty, n:string)=>
-        {
+        _.forEach(vars.converter.targetClassProps, (p:IClassProperty, n:string)=> {
             let nameID = self.getNameByValue(n).NameID;
             let np = {} as IFlexiClassProperty;
             np.NameID = nameID;
@@ -586,29 +533,22 @@ export class SQLiteDataRefactor implements IDBRefactory
         vars.classDef.ctloMask = OBJECT_CONTROL_FLAGS.NONE;
 
         // Column assignments
-        for (let idx = 0; idx < SQLiteDataRefactor.COLUMN_LETTERS.length; idx++)
-        {
+        for (let idx = 0; idx < SQLiteDataRefactor.COLUMN_LETTERS.length; idx++) {
             let ch = SQLiteDataRefactor.COLUMN_LETTERS[idx];
             let propID = vars.columnAssignments[ch].propID;
             vars.classDef[ch] = propID;
-            if (propID)
-            {
+            if (propID) {
                 let ch_offset = ch.charCodeAt(0) - 'A'.charCodeAt(0);
                 let p:IFlexiClassProperty = vars.newProps[propID];
-                if (p.Data.unique || (p.Data.role & PROPERTY_ROLE.Code) || (p.Data.role & PROPERTY_ROLE.ID))
-                {
+                if (p.Data.unique || (p.Data.role & PROPERTY_ROLE.Code) || (p.Data.role & PROPERTY_ROLE.ID)) {
                     vars.classDef.ctloMask |= 1 << (1 + ch_offset);
                 }
-                else
-                    if (p.Data.indexed)
-                    {
-                        vars.classDef.ctloMask |= 1 << (13 + ch_offset);
-                    }
-                    else
-                        if (p.Data.fastTextSearch)
-                        {
-                            vars.classDef.ctloMask |= 1 << (25 + ch_offset);
-                        }
+                else if (p.Data.indexed) {
+                    vars.classDef.ctloMask |= 1 << (13 + ch_offset);
+                }
+                else if (p.Data.fastTextSearch) {
+                    vars.classDef.ctloMask |= 1 << (25 + ch_offset);
+                }
                 // TODO range index is not supported yet
             }
         }
@@ -626,31 +566,24 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    private assignColumns(self:SQLiteDataRefactor, vars:ISyncVariables, target_priority:COLUMN_ASSIGN_PRIORITY)
-    {
-        _.forEach(vars.newProps as any, (p:IFlexiClassProperty, id:number)=>
-        {
+    private assignColumns(self:SQLiteDataRefactor, vars:ISyncVariables, target_priority:COLUMN_ASSIGN_PRIORITY) {
+        _.forEach(vars.newProps as any, (p:IFlexiClassProperty, id:number)=> {
             let prop_priority = self.determineColAssignmentPriority(p.Data);
-            if (prop_priority === target_priority)
-            {
+            if (prop_priority === target_priority) {
                 // Find unused columns first
-                let ca = _.find(vars.columnAssignments, (ca:IColumnAssignmentInfo) =>
-                {
+                let ca = _.find(vars.columnAssignments, (ca:IColumnAssignmentInfo) => {
                     return ca.priority === COLUMN_ASSIGN_PRIORITY.NOT_SET;
                 });
-                if (ca)
-                {
+                if (ca) {
                     ca.propID = id;
                     return;
                 }
 
                 // Find already assigned columns, but associated with lower-priority properties
-                ca = _.find(vars.columnAssignments, (ca:IColumnAssignmentInfo) =>
-                {
+                ca = _.find(vars.columnAssignments, (ca:IColumnAssignmentInfo) => {
                     return ca.priority < target_priority;
                 });
-                if (ca)
-                {
+                if (ca) {
                     ca.propID = id;
                     return;
                 }
@@ -661,15 +594,12 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    private initExistingColAssignment(vars:ISyncVariables)
-    {
+    private initExistingColAssignment(vars:ISyncVariables) {
         // Set column assignment
-        for (var c = 0; c < SQLiteDataRefactor.COLUMN_LETTERS.length; c++)
-        {
+        for (var c = 0; c < SQLiteDataRefactor.COLUMN_LETTERS.length; c++) {
             let pid = vars.classDef[SQLiteDataRefactor.COLUMN_LETTERS[c]];
             let prior = COLUMN_ASSIGN_PRIORITY.NOT_SET;
-            if (pid)
-            {
+            if (pid) {
                 prior = this.determineColAssignmentPriority(vars.classDef.Data.properties[pid]);
             }
             vars.columnAssignments[c] = {propID: pid, priority: prior};
@@ -680,16 +610,13 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
-    private determineColAssignmentPriority(cp:IClassProperty)
-    {
+    private determineColAssignmentPriority(cp:IClassProperty) {
         let prior = COLUMN_ASSIGN_PRIORITY.NOT_SET;
 
         if ((cp.role & PROPERTY_ROLE.ID) || (cp.role & PROPERTY_ROLE.Code) || cp.unique || cp.indexed)
             prior = COLUMN_ASSIGN_PRIORITY.REQUIRED;
-        else
-        {
-            switch (cp.rules.type)
-            {
+        else {
+            switch (cp.rules.type) {
                 case PROPERTY_TYPE.BINARY:
                 case PROPERTY_TYPE.JSON:
                 case PROPERTY_TYPE.LINK:
@@ -703,10 +630,8 @@ export class SQLiteDataRefactor implements IDBRefactory
         return prior;
     }
 
-    private initSchemaData(self:SQLiteDataRefactor, vars:ISyncVariables, model:ISyncOptions)
-    {
-        if (!vars.schemaData)
-        {
+    private initSchemaData(self:SQLiteDataRefactor, vars:ISyncVariables, model:ISyncOptions) {
+        if (!vars.schemaData) {
             // Schema match not found. Create new one
             let sql = `insert into [.schemas] into (NameID, Data, Hash) values ($NameID, $Data, $Hash);
             select last_insert_rowid();`;
@@ -718,38 +643,31 @@ export class SQLiteDataRefactor implements IDBRefactory
                 });
             vars.schemaData = rows[0] as IFlexiSchema;
         }
-        else
-        {
+        else {
 
         }
     }
 
-    private initAndSaveProperties(self:SQLiteDataRefactor, vars:ISyncVariables)
-    {
+    private initAndSaveProperties(self:SQLiteDataRefactor, vars:ISyncVariables) {
         // Fill updated properties
         var updPropStmt = self.DB.prepare(`insert or replace into [.class_properties] 
                 (PropertyID, ClassID, NameID, ctlv) 
                 values ($PropertyID, $ClassID, $NameID, $ctlv);`);
 
         // Initialize properties
-        _.forEach(vars.converter.targetClassProps, (p:IClassProperty, propName:string)=>
-        {
+        _.forEach(vars.converter.targetClassProps, (p:IClassProperty, propName:string)=> {
             let np = {} as IFlexiClassProperty;
             np.ClassID = vars.classDef.ClassID;
             np.NameID = self.getNameByValue(propName).NameID;
             np.ctlv = 0;
-            if (p.unique)
-            {
+            if (p.unique) {
                 np.ctlv |= VALUE_CONTROL_FLAGS.UNIQUE_INDEX;
             }
-            else
-                if (p.indexed)
-                {
-                    np.ctlv |= VALUE_CONTROL_FLAGS.INDEX;
-                }
+            else if (p.indexed) {
+                np.ctlv |= VALUE_CONTROL_FLAGS.INDEX;
+            }
 
-            if (p.fastTextSearch)
-            {
+            if (p.fastTextSearch) {
                 np.ctlv |= VALUE_CONTROL_FLAGS.FULL_TEXT_INDEX;
             }
             vars.newProps[propName] = np;
@@ -763,8 +681,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         });
     }
 
-    private saveNewClass(self:SQLiteDataRefactor, vars:ISyncVariables, model:ISyncOptions)
-    {
+    private saveNewClass(self:SQLiteDataRefactor, vars:ISyncVariables, model:ISyncOptions) {
         vars.classDef = {} as IFlexiClass;
         vars.classDef.NameID = self.getNameByValue(model.table).NameID;
         // Skip BaseSchemaID now - will set it later
@@ -793,8 +710,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         vars.classDef.ClassID = clsID;
     }
 
-    private saveSchema(self:SQLiteDataRefactor, vars:ISyncVariables, classNameID:number)
-    {
+    private saveSchema(self:SQLiteDataRefactor, vars:ISyncVariables, classNameID:number) {
         self.DB.run.sync(self.DB, `insert or replace into [.schemas] (SchemaID, NameID, Hash, Data) 
                 values ($SchemaID, $NameID, $Hash, $Data);`, {
             $SchemaID: vars.schemaData.SchemaID,
@@ -807,15 +723,13 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
      Initializes vars with data from existing class
      */
-    private initWhenClassExists(self:SQLiteDataRefactor, vars:ISyncVariables)
-    {
+    private initWhenClassExists(self:SQLiteDataRefactor, vars:ISyncVariables) {
         // Load .class_properties
         var classProps = <IFlexiClassProperty[]>self.DB.all.sync(self.DB,
             `select * from [.vw_class_properties] where ClassID = $ClassID;`, {$ClassID: vars.classDef.ClassID});
 
         // Add property to either existing list or to candidates for removal
-        _.forEach(classProps, (p:IFlexiClassProperty)=>
-        {
+        _.forEach(classProps, (p:IFlexiClassProperty)=> {
             if (vars.converter.targetClassProps[p.Name])
                 vars.existingProps[p.PropertyID] = p;
             else
@@ -823,19 +737,16 @@ export class SQLiteDataRefactor implements IDBRefactory
         });
 
         // Set IDs for existing properties
-        _.forEach(vars.newProps as any, (np:IFlexiClassProperty, id:number)=>
-        {
+        _.forEach(vars.newProps as any, (np:IFlexiClassProperty, id:number)=> {
             let ep = vars.existingProps[np.NameID];
-            if (ep)
-            {
+            if (ep) {
                 np.PropertyID = ep.PropertyID;
             }
         });
 
         var delPropStmt = self.DB.prepare(`delete from [.class_properties] where PropertyID = $propID`);
         // Remove properties that are not in the new structure
-        _.forEach(vars.propsToDelete, (p:IFlexiClassProperty, idx)=>
-        {
+        _.forEach(vars.propsToDelete, (p:IFlexiClassProperty, idx)=> {
             delPropStmt.run.sync(delPropStmt, {$propID: p.PropertyID});
         });
     }
@@ -843,10 +754,8 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
      Converts schema data from Dictionary<name:string> to Dictionary<nameID>
      */
-    private prepareSchemaData(self:SQLiteDataRefactor, vars:ISyncVariables)
-    {
-        _.forEach(vars.converter.targetSchema, (p:ISchemaPropertyDefinition, n:string)=>
-        {
+    private prepareSchemaData(self:SQLiteDataRefactor, vars:ISyncVariables) {
+        _.forEach(vars.converter.targetSchema, (p:ISchemaPropertyDefinition, n:string)=> {
             let nameID = self.getNameByValue(n).NameID;
             vars.schemaData.Data.properties[nameID] = p;
         });
@@ -857,10 +766,8 @@ export class SQLiteDataRefactor implements IDBRefactory
 
         var schemas = self.DB.all.sync(self.DB, `select * from [.schemas] where Hash = $hash and NameID = $classNameID`,
             {hash: hashValue, NameID: vars.classDef.NameID});
-        let foundSchema = _.find(schemas, (item:IFlexiSchema)=>
-        {
-            if (_.isEqual(item.Data, vars.schemaData.Data))
-            {
+        let foundSchema = _.find(schemas, (item:IFlexiSchema)=> {
+            if (_.isEqual(item.Data, vars.schemaData.Data)) {
                 vars.schemaData = item;
                 return true;
             }
@@ -874,8 +781,7 @@ type IColumnAssignmentInfo = {propID?:number, priority:COLUMN_ASSIGN_PRIORITY};
  Internally used set of parameters for synchronization
  Grouped together for easy passing between functions
  */
-interface ISyncVariables
-{
+interface ISyncVariables {
     /*
      Loaded existing properties. Dictionary by property ID
      */

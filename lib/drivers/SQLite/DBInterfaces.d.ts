@@ -111,7 +111,7 @@ declare const enum VALUE_CONTROL_FLAGS
  */
 interface IFlexiName
 {
-    NameID:number;
+    NameID:NameID;
     Value:string;
     Data:any; // TODO Finalize structure. Multi language support?
     PluralOf?:number;
@@ -152,7 +152,7 @@ interface IFlexiClass
     /*
      ID of collection name
      */
-    NameID:number;
+    NameID:NameID;
 
     /*
      Class name, by NameID
@@ -207,7 +207,7 @@ interface IFlexiClassProperty
 {
     PropertyID?:number;
     ClassID:number;
-    NameID:number;
+    NameID:NameID;
     Name?:string;
     ctlv:VALUE_CONTROL_FLAGS;
     ColumnAssigned?:string;
@@ -253,7 +253,7 @@ interface IFlexiSchema
     SchemaID?:number;
 
     // Class name ID
-    NameID:number;
+    NameID:NameID;
 
     // Data signature for the fast access
     Hash:string;

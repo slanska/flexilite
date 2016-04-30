@@ -4,8 +4,7 @@
 
 ///<reference path="../../typings/lib.d.ts"/>
 
-interface IDBRefactory
-{
+interface IDBRefactory {
     /*
      Returns report on results of last refactoring action
      */
@@ -116,15 +115,56 @@ interface IDBRefactory
     /*
 
      */
+    importFromDatabase(options:IImportDatabaseOptions);
+
+
+    /*
+
+     */
     // TODO
     //changePositionInList()
 }
 
 /*
+Settings for importing data from another database/CSV/JSON/XML file etc.
+ */
+interface IImportDatabaseOptions {
+    /*
+    Optional source database connection string. If omitted, current database will be used
+    Currently only SQLite is supported
+     */
+    sourceConnectionString?:string,
+
+    /*
+    Required name of source table
+     */
+    sourceTable:string,
+
+    /*
+    Required name of target table
+     */
+    targetTable:string,
+
+    /*
+    Optional map of column names to property definitions
+     */
+    propDefs?:IClassPropertyDictionaryByName;
+
+    /*
+    Optional mapping from source column names to target property names
+     */
+    columnPropMap?: {[columnName:string]:string};
+
+    /*
+    Optional SQL syntax where clause to be applied
+     */
+    whereClause?:string;
+}
+
+/*
  Declares contract for defining list of objects either by objectID(s), filter and/or ClassID
  */
-interface IObjectFilter
-{
+interface IObjectFilter {
     objectId?:number | [number];
     filter?:any; // TODO orm filter
 }

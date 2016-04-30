@@ -256,190 +256,64 @@ namespace Flexilite.SQLite
         }
 
         /*
-         Iterates through all keys of given data and determines which keys are scalar and defined in class schema.
-         Returns object with properties separates into these 2 groups: schema and extra.ß
-         */
-        private extractSchemaProperties(schemaDef:ISchemaDefinition, data):IDataToSave
-        {
-            var result:IDataToSave = {SchemaData: {}, ExtData: {}};
-            for (var pi in data)
-            {
-                var schemaProp = false;
-
-                // Include only properties that are defined in class schema and NOT defined as reference properties
-                if (schemaDef.properties.hasOwnProperty(pi) && !schemaDef.properties[pi].ReferencedClassID)
-                {
-                    var v = data[pi];
-                    if (!_.isObject(v) && !_.isArray(v))
-                    {
-                        result.SchemaData[pi] = v;
-                        schemaProp = true;
-                    }
-                }
-                if (!schemaProp)
-                    result.ExtData[pi] = data[pi];
-            }
-            return result;
-        }
-
-        /*
-         Processes individual property. Depending on actual property's value and
-         whether it is included in schema, property will be either added to the list of EAV rows
-         or to the list to inserted/updated via view
-         @param propInfo - data for individual property to be processed
-         @param schemaProps - object with all properties which are defined in schema
-         @param nonSchemaProps - array of prop definitions which are not defined in class schema
-         */
-        // private processPropertyForSave(propInfo:IPropertyToSave, schemaProps:any, eavItems:IEAVItem[])
-        // {
-        //     var self = this;
-        //
-        //     // Check if property is included into schema
-        //     var schemaProp = propInfo.classDef.Properties[propInfo.propName];
-        //
-        //     // Make sure that property is registered as class
-        //     var propClass = schemaProp ? self.getClassDefByID(schemaProp.PropertyID) : self.getClassDefByName(propInfo.propName, true, false);
-        //     var pid = propClass.CollectionID.toString();
-        //
-        //     function doProp(propIdPrefix:string)
-        //     {
-        //         if (propInfo.propIndex === 0 && schemaProp)
-        //         {
-        //             schemaProps[propInfo.propName] = propInfo.value;
-        //         }
-        //         else
-        //         {
-        //             pid = propIdPrefix + pid;
-        //             eavItems.push({
-        //                 objectID: propInfo.objectID,
-        //                 hostID: propInfo.hostID,
-        //                 propID: propClass.CollectionID, propIndex: propInfo.propIndex,
-        //                 value: propInfo.value,
-        //                 classID: propClass.CollectionID,
-        //                 ctlv: schemaProp ? schemaProp.ctlv : VALUE_CONTROL_FLAGS.NONE
-        //             });
-        //         }
-        //     }
-        //
-        //     // Determine actual property type
-        //     if (Buffer.isBuffer(propInfo.value))
-        //     // Binary (BLOB) value. Store as base64 string
-        //     {
-        //         propInfo.value = propInfo.value.toString('base64');
-        //         doProp('X');
-        //     }
-        //     else
-        //         if (_.isDate(propInfo.value))
-        //         // Date value. Store as Julian value (double value)
-        //         {
-        //             propInfo.value = (<Date>propInfo.value).getMilliseconds();
-        //             doProp('D');
-        //         }
-        //         else
-        //             if (_.isArray(propInfo.value))
-        //             // List of properties
-        //             {
-        //                 propInfo.value.forEach(function (item, idx, arr)
-        //                 {
-        //                     var pi:IPropertyToSave = propInfo;
-        //                     pi.propIndex = idx + 1;
-        //                     self.processPropertyForSave(pi, schemaProps, eavItems);
-        //                 });
-        //             }
-        //             else
-        //                 if (_.isObject(propInfo.value))
-        //                 // Reference to another object
-        //                 {
-        //                     var refClassName:string;
-        //                     if (schemaProp)
-        //                     {
-        //                         var refClassID = schemaProp.ReferencedClassID;
-        //                         var refClass = self.getClassDefByID(refClassID);
-        //                         refClassName = refClass.NameID;
-        //                     }
-        //                     else
-        //                     {
-        //                         refClassName = propInfo.propName;
-        //                     }
-        //
-        //                     // TODO Check if object already exists???
-        //                     var refObjectID = self.saveObject(refClassName, propInfo.value, null, propInfo.hostID);
-        //                     eavItems.push({
-        //                         objectID: propInfo.objectID,
-        //                         hostID: propInfo.hostID,
-        //                         classID: propInfo.classDef.CollectionID,
-        //                         propID: propClass.CollectionID,
-        //                         propIndex: 0,
-        //                         ctlv: schemaProp ? schemaProp.ctlv : VALUE_CONTROL_FLAGS.REFERENCE_OWN,
-        //                         value: refObjectID
-        //                     });
-        //                 }
-        //                 else
-        //                 {
-        //                     // Regular scalar property
-        //                     doProp('');
-        //                 }
-        // }
-
-        /*
          Inserts or updates single object to the database.
          Returns newly generated objectID (for inserted object)
          */
-        private saveObject(table:string, data:any, objectID:number, hostID:number):number
-        {
-            var self = this;
-
-            var collDef = self.getClassDefByName(table, false, true);
-            var q = '';
-
-            // TODO
-            // if (!objectID)
-            //     objectID = self.generateObjectID();
-            if (!hostID)
-                hostID = objectID;
-
-            var schemaDef:IDataToSave = null; // TODO
-            // // self.extractSchemaProperties(collDef, data);
-
-            q = self.query.insert()
-                    .into(this.getViewName(table))
-                    .set(schemaDef.SchemaData)
-                    .build() + ';';
-
-            var schemaProps = {};
-            var nonSchemaProps:IFlexiRefValue[] = [];
-
-            for (var propName in data)
-            {
-                // Shortcut to property data
-                var v = data[propName];
-
-                // var propInfo:IFlexiRefValue = {
-                //     ObjectID: objectID, classDef: classDef,
-                //     propName: propName, propIndex: 0, value: v
-                // };
-                // TODO self.processPropertyForSave(propInfo, schemaProps, nonSchemaProps);
-            }
-
-            var info = self.db.all.sync(self.db, q);
-
-            nonSchemaProps.forEach(function (item:IFlexiRefValue, idx, arr)
-            {
-                self.execSQL(`insert or replace into [.values_view] (ObjectID, PropertyID, PropIndex,
-                [Value], [ctlv]) values (?, ?, ?, ?, ?, ?, ?)`,
-                    item.ObjectID, item.PropertyID, item.PropIndex, item.Value, item.ctlv);
-                //TODO Set ctlo. use propInfo?
-            });
-
-            if (self.opts.debug)
-            {
-                require("./Debug").sql('sqlite', q);
-            }
-
-            // FIXME - needed? self.db.all.sync(self.db, q);
-
-            return objectID;
-        }
+        // private saveObject(table:string, data:any, objectID:number, hostID:number):number
+        // {
+        //     var self = this;
+        //
+        //     var collDef = self.getClassDefByName(table, false, true);
+        //     var q = '';
+        //
+        //     // TODO
+        //     // if (!objectID)
+        //     //     objectID = self.generateObjectID();
+        //     if (!hostID)
+        //         hostID = objectID;
+        //
+        //     var schemaDef:IDataToSave = null; // TODO
+        //     // // self.extractSchemaProperties(collDef, data);
+        //
+        //     q = self.query.insert()
+        //             .into(this.getViewName(table))
+        //             .set(schemaDef.SchemaData)
+        //             .build() + ';';
+        //
+        //     var schemaProps = {};
+        //     var nonSchemaProps:IFlexiRefValue[] = [];
+        //
+        //     for (var propName in data)
+        //     {
+        //         // Shortcut to property data
+        //         var v = data[propName];
+        //
+        //         // var propInfo:IFlexiRefValue = {
+        //         //     ObjectID: objectID, classDef: classDef,
+        //         //     propName: propName, propIndex: 0, value: v
+        //         // };
+        //         // TODO self.processPropertyForSave(propInfo, schemaProps, nonSchemaProps);
+        //     }
+        //
+        //     var info = self.db.all.sync(self.db, q);
+        //
+        //     nonSchemaProps.forEach(function (item:IFlexiRefValue, idx, arr)
+        //     {
+        //         self.execSQL(`insert or replace into [.values_view] (ObjectID, PropertyID, PropIndex,
+        //         [Value], [ctlv]) values (?, ?, ?, ?, ?, ?, ?)`,
+        //             item.ObjectID, item.PropertyID, item.PropIndex, item.Value, item.ctlv);
+        //         //TODO Set ctlo. use propInfo?
+        //     });
+        //
+        //     if (self.opts.debug)
+        //     {
+        //         require("./Debug").sql('sqlite', q);
+        //     }
+        //
+        //     // FIXME - needed? self.db.all.sync(self.db, q);
+        //
+        //     return objectID;
+        // }
 
         /*
 
@@ -456,44 +330,44 @@ namespace Flexilite.SQLite
         /*
 
          */
-        insert(table:string, data:any, keyProperties, cb)
-        {
-            if (!keyProperties)
-                return cb(null);
-
-            var self = this;
-            Sync(function ()
-                {
-                    self.execSQL('savepoint a1;');
-                    try
-                    {
-                        var objectID = self.saveObject(table, data, null, null);
-                        var i, ids = {}, prop;
-
-                        if (keyProperties.length == 1 && keyProperties[0].type == 'serial')
-                        {
-                            ids[keyProperties[0].name] = objectID;
-                        }
-                        else
-                        {
-                            for (i = 0; i < keyProperties.length; i++)
-                            {
-                                prop = keyProperties[i];
-                                ids[prop.name] = data[prop.mapsTo] || null;
-                            }
-                        }
-                        self.execSQL('release a1;');
-
-                        return cb(null, ids);
-                    }
-                    catch (err)
-                    {
-                        self.execSQL('rollback;');
-                        throw err;
-                    }
-                }
-            );
-        }
+        // insert(table:string, data:any, keyProperties, cb)
+        // {
+        //     if (!keyProperties)
+        //         return cb(null);
+        //
+        //     var self = this;
+        //     Sync(function ()
+        //         {
+        //             self.execSQL('savepoint a1;');
+        //             try
+        //             {
+        //                 var objectID = self.saveObject(table, data, null, null);
+        //                 var i, ids = {}, prop;
+        //
+        //                 if (keyProperties.length == 1 && keyProperties[0].type == 'serial')
+        //                 {
+        //                     ids[keyProperties[0].name] = objectID;
+        //                 }
+        //                 else
+        //                 {
+        //                     for (i = 0; i < keyProperties.length; i++)
+        //                     {
+        //                         prop = keyProperties[i];
+        //                         ids[prop.name] = data[prop.mapsTo] || null;
+        //                     }
+        //                 }
+        //                 self.execSQL('release a1;');
+        //
+        //                 return cb(null, ids);
+        //             }
+        //             catch (err)
+        //             {
+        //                 self.execSQL('rollback;');
+        //                 throw err;
+        //             }
+        //         }
+        //     );
+        // }
 
         /*
          Updates existing data object.

@@ -20,28 +20,49 @@ declare const enum PROPERTY_ROLE
     None = 0x00,
 
     /*
-     Property has object title
+     Object Name
      */
-    Title = 0x01,
+    Name = 0x0001,
 
     /*
      Property has object description
      */
-    Description = 0x02,
+    Description = 0x0002,
 
     /*
      Property is alternative unique object ID. Once set, shouldn't be changed
      */
-    ID = 0x04,
-    IDPart1 = 0x04,
-    IDPart2 = 0x05,
-    IDPart3 = 0x06,
-    IDPart4 = 0x07,
+    ID = 0x0004,
 
     /*
      Another alternative ID. Unlike ID, can be changed
      */
-    Code = 0x08
+    Code = 0x0008,
+
+    /*
+     Alternative ID that allows duplicates
+     */
+    NonUniqueID = 0x0010,
+
+    /*
+     Timestamp on when object was created
+     */
+    CreateTime = 0x0020,
+
+    /*
+     Timestamp on when object was last updated
+     */
+    UpdateTime = 0x0040,
+
+    /*
+     Auto generated UUID (16 byte blob)
+     */
+    AutoUUID = 0x0008,
+
+    /*
+     Auto generated short ID (7-16 characters)
+     */
+    AutoShortID = 0x0010
 }
 
 declare const enum PROPERTY_TYPE
@@ -109,7 +130,12 @@ declare const enum PROPERTY_TYPE
      and can be accessed independently from master object.
      This is most flexible option.
      */
-    LINK = 12
+    LINK = 12,
+
+    RANGE_INTEGER = 13,
+    RANGE_NUMBER = 14,
+    RANGE_DECIMAL = 15,
+    RANGE_DATE = 16
 }
 
 /*
@@ -137,10 +163,11 @@ declare const enum UI_CONTROL_TYPE
     CHECKBOX = 5,
     RADIOBUTTON = 6,
     SEGMENTED = 7
+
+    // TODO More types?
 }
 
-interface IPropertyRulesSettings
-{
+interface IPropertyRulesSettings {
     type:PROPERTY_TYPE;
     minOccurences?:number; // default: 0
     maxOccurences?:number; // default: 1
@@ -155,8 +182,7 @@ declare const enum UI_COLUMN_TYPE
 // TODO Table columns
 }
 
-interface IPropertyUISettings
-{
+interface IPropertyUISettings {
     icon?:string;
 
     control?:{
@@ -173,41 +199,39 @@ interface IPropertyUISettings
 /*
  Bit flags that determine how referenced object is stored and accessed
  */
-declare const enum OBJECT_REFERENCE_TYPE
-{
-    /*
-     'linked_object':
-     referenced object is stored in separate row, has its own ID, referenced via row in [.ref-values]
-     and can be accessed independently from master object. If reversed
-     This is most flexible option.
-     */
-    LINKED_OBJECT = 0x01,
+// declare const enum OBJECT_REFERENCE_TYPE
+// {
+//     /*
+//      'linked_object':
+//      referenced object is stored in separate row, has its own ID, referenced via row in [.ref-values]
+//      and can be accessed independently from master object. If reversed
+//      This is most flexible option.
+//      */
+//     LINKED_OBJECT = 0x01,
+//
+//     /*
+//      'boxed_object':
+//      referenced object stored as a part of master object. It does not have its own ID and can be accessed
+//      only via master object. Such object can have other boxed objects or boxed references, but not LINKED_OBJECT references
+//      */
+//     BOXED_OBJECT = 0x02,
+//
+//     /*
+//      'boxed_reference':
+//      referenced object is stored in separate row, like LINKED_OBJECT. But reference to this object is stored inside of
+//      master object data. Object ID used in this case is user-defined ID, thus referenced class must have a property with role = ID.
+//      */
+//     BOXED_REFERENCE = 0x04
+// }
 
-    /*
-     'boxed_object':
-     referenced object stored as a part of master object. It does not have its own ID and can be accessed
-     only via master object. Such object can have other boxed objects or boxed references, but not LINKED_OBJECT references
-     */
-    BOXED_OBJECT = 0x02,
-
-    /*
-     'boxed_reference':
-     referenced object is stored in separate row, like LINKED_OBJECT. But reference to this object is stored inside of
-     master object data. Object ID used in this case is user-defined ID, thus referenced class must have a property with role = ID.
-     */
-    BOXED_REFERENCE = 0x04
-}
-
-interface IEnumPropertyDefinition
-{
+interface IEnumPropertyDefinition {
     /*
      Hard coded list of items to select from. Either Text or TextID are required to serve
      */
     items:[{ID:string | number, Text?:string, TextID?:NameId}]
 }
 
-interface IObjectPropertyDefinition
-{
+interface IObjectPropertyDefinition {
     classID?:number;
 
     /*
@@ -254,8 +278,7 @@ interface IObjectPropertyDefinition
 /*
  Class property metadata
  */
-interface IClassProperty
-{
+interface IClassProperty {
     /*
      Fast lookup for this property is desired
      */
@@ -289,12 +312,14 @@ interface IClassProperty
      Sets JSON path for payload output (returned by API requests). If not set, property ID will be used
      (e.g.: '.123')
      */
+    // TODO Remove
     jsonPath?:string;
 
     /*
      Alternative JSON path for exported payload output. Normally, this is needed to exchange data with
      other systems. If not set, current property name will be used. (e.g.: '.LastName')
      */
+    // TODO Remove
     exportJsonPath?:string;
 
     /*
@@ -317,8 +342,7 @@ type IClassPropertyDictionary = {[propID:number]:IClassProperty};
 /*
  Structure of .classes.Data
  */
-interface IClassDefinition
-{
+interface IClassDefinition {
     ui?:{
         defaultTemplates?:{
             form?:string;
@@ -328,9 +352,9 @@ interface IClassDefinition
         };
 
         /*
-        NameID
+         NameID
          */
-        title?: number;
+        title?:number;
     };
 
     /*
