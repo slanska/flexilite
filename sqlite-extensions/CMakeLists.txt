@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.5)
+
+enable_testing()
 
 #CMake provides three variables to describe the system:
 #
@@ -19,23 +21,22 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
-project(sqlite_shell)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c89")
+#project(sqlite_shell)
+#
+#set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c89")
 
 find_package(zlib)
 
-set(SHELL_FILES
-        lib/sqlite/shell.c
-        lib/sqlite/sqlite3.c
-        )
-
-add_executable(sqlite_shell ${SHELL_FILES})
+#set(SHELL_FILES
+#        lib/sqlite/shell.c
+#        lib/sqlite/sqlite3.c
+#        )
+#
+#add_executable(sqlite_shell ${SHELL_FILES})
 
 project(sqlite_extensions)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-
 
 set(EXT_FILES
         src/main.c
