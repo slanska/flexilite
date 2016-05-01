@@ -66,11 +66,6 @@ interface IFlexiClass
     Name?:string;
 
     /*
-     Current base schema ID (latest version of base schema)
-     */
-    BaseSchemaID:number;
-
-    /*
      If true, defines collection as system: this one cannot be modified or deleted by end user
      */
     SystemClass?:boolean;

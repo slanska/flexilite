@@ -788,7 +788,6 @@ export class SQLiteDataRefactor implements IDBRefactory
         let clsID = self.DB.all.sync(self.DB, `insert or replace into [.classes] (NameID, BaseSchemaID, ctloMask, A, B, C, D, E, F, G, H, I, J) 
                 values ($NameID, $BaseSchemaID, $ctloMask, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J); select last_insert_rowid();`, {
             $NameID: vars.classDef.NameID,
-            $BaseSchemaID: vars.classDef.BaseSchemaID,
             $ctloMask: vars.classDef.ctloMask,
             $A: vars.classDef.A,
             $B: vars.classDef.B,
