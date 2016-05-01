@@ -75,11 +75,6 @@ interface IFlexiClass
      */
     SystemClass?:boolean;
 
-    /*
-     If true, indicates that view definition is outdated and needs to be regenerated
-     */
-    ViewOutdated?:boolean;
-
     ctloMask?:OBJECT_CONTROL_FLAGS;
 
     /*
@@ -153,20 +148,20 @@ interface  IFlexiChangeLog
 /*
  .schemas
  */
-interface IFlexiSchema
-{
-    // Auto increment primary key
-    SchemaID?:number;
-
-    // Class name ID
-    NameID:NameID;
-
-    // Data signature for the fast access
-    Hash:string;
-
-    // JSON text
-    Data:ISchemaDefinition;
-}
+// interface IFlexiSchema
+// {
+//     // Auto increment primary key
+//     SchemaID?:number;
+//
+//     // Class name ID
+//     NameID:NameID;
+//
+//     // Data signature for the fast access
+//     Hash:string;
+//
+//     // JSON text
+//     Data:ISchemaDefinition;
+// }
 
 /*
  .objects
@@ -196,15 +191,6 @@ interface IFlexiObject
     H?:any;
     I?:any;
     J?:any;
-}
-
-/*
- Composite object for both, class and schema definitions
- */
-interface IClassAndSchema
-{
-    Class?:IFlexiClass;
-    Schema?:IFlexiSchema;
 }
 
 declare type IFlexiClassPropDictionaryByName = {[propName:string]:IFlexiClassProperty};

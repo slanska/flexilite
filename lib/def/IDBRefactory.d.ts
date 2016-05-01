@@ -4,7 +4,8 @@
 
 ///<reference path="../../typings/lib.d.ts"/>
 
-interface IDBRefactory {
+interface IDBRefactory
+{
     /*
      Returns report on results of last refactoring action
      */
@@ -16,13 +17,13 @@ interface IDBRefactory {
      be unique. Optional new schema mapping can be passed. If not passed, new default schema will be generated, based on
      the current basic schema
      */
-    alterClass(classID:number, newClassDef?:IClassDefinition, newSchemaDef?:ISchemaDefinition, newName?:string);
+    alterClass(classID:number, newClassDef?:IClassDefinition,  newName?:string);
 
     /*
      Creates new class with the given name (should be unique). Optional new schema mapping can be passed.
      If not passed, new default schema will be generated
      */
-    createClass(name:string, classDef:IClassDefinition, schemaDef?:ISchemaDefinition);
+    createClass(name:string);
 
     /*
      Drops class, all related schemas, objects and references from database. Operation can be undone.
@@ -126,37 +127,38 @@ interface IDBRefactory {
 }
 
 /*
-Settings for importing data from another database/CSV/JSON/XML file etc.
+ Settings for importing data from another database/CSV/JSON/XML file etc.
  */
-interface IImportDatabaseOptions {
+interface IImportDatabaseOptions
+{
     /*
-    Optional source database connection string. If omitted, current database will be used
-    Currently only SQLite is supported
+     Optional source database connection string. If omitted, current database will be used
+     Currently only SQLite is supported
      */
     sourceConnectionString?:string,
 
     /*
-    Required name of source table
+     Required name of source table
      */
     sourceTable:string,
 
     /*
-    Required name of target table
+     Required name of target table
      */
     targetTable:string,
 
     /*
-    Optional map of column names to property definitions
+     Optional map of column names to property definitions
      */
     propDefs?:IClassPropertyDictionaryByName;
 
     /*
-    Optional mapping from source column names to target property names
+     Optional mapping from source column names to target property names
      */
-    columnPropMap?: {[columnName:string]:string};
+    columnPropMap?:{[columnName:string]:string};
 
     /*
-    Optional SQL syntax where clause to be applied
+     Optional SQL syntax where clause to be applied
      */
     whereClause?:string;
 }
@@ -164,7 +166,8 @@ interface IImportDatabaseOptions {
 /*
  Declares contract for defining list of objects either by objectID(s), filter and/or ClassID
  */
-interface IObjectFilter {
+interface IObjectFilter
+{
     objectId?:number | [number];
     filter?:any; // TODO orm filter
 }

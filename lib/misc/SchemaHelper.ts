@@ -17,7 +17,6 @@ import orm = require('orm');
  */
 export interface IShemaHelper
 {
-    targetSchema:ISchemaPropertyDictionary;
     targetClassProps:IClassPropertyDictionaryByName;
     getNameID:(name:string)=>number;
     getClassIDbyName:(className:string)=>number;
@@ -30,13 +29,6 @@ export class SchemaHelper implements IShemaHelper
     constructor(private db:sqlite3.Database, public sourceSchema:ISyncOptions)
     {
     }
-
-    private _targetSchema = {} as ISchemaPropertyDictionary;
-
-    public get targetSchema()
-    {
-        return this._targetSchema
-    };
 
     private _targetClassProps = {} as IClassPropertyDictionaryByName;
 
@@ -106,18 +98,13 @@ export class SchemaHelper implements IShemaHelper
             throw new Error('getClassIDbyName() is not assigned');
 
         self._targetClassProps = {} as IClassPropertyDictionaryByName;
-        self._targetSchema = {} as ISchemaPropertyDictionary;
-
-        var s = self._targetSchema;
         var c = self._targetClassProps;
 
         _.forEach(this.sourceSchema.allProperties, (item:IORMPropertyDef, propName:string) =>
             {
                 let propID = self.getNameID(propName);
-                let sProp = item.ext || {} as ISchemaPropertyDefinition;
                 let cProp = {} as IClassProperty;
                 cProp.rules = cProp.rules || {} as IPropertyRulesSettings;
-                sProp.map = sProp.map || {} as IPropertyMapSettings;
                 cProp.ui = cProp.ui || {} as IPropertyUISettings;
 
                 switch (item.klass)
@@ -135,11 +122,6 @@ export class SchemaHelper implements IShemaHelper
                             cProp.unique = item.unique;
                             cProp.indexed = true;
                         }
-
-                        // mapsTo allows to apply basic customization to schema mapping
-                        if (!_.isEmpty(item.mapsTo) && !_.isEqual(item.mapsTo, propName))
-                            sProp.map.jsonPath = `.${String(item.mapsTo)}`;
-                        else sProp.map.jsonPath = `.${propID}`;
 
                         switch (cProp.rules.type)
                         {
@@ -191,7 +173,6 @@ export class SchemaHelper implements IShemaHelper
                         break;
                 }
 
-                s[item.name] = sProp;
                 c[item.name] = cProp;
 
             }

@@ -326,3 +326,24 @@ enum PROPERTY_ROLE
      */
     PROP_ROLE_AUTOSHORTID = 0x0010
 };
+
+/*
+ Level of priority for property to have fixed column assigned
+ */
+enum COLUMN_ASSIGN_PRIORITY
+{
+    /*
+     for indexed and ID/Code properties
+     */
+    COL_ASSIGN_REQUIRED = 2,
+
+    /*
+     For scalar properties
+     */
+    COL_ASSIGN_DESIRED = 1,
+
+    /*
+     Assignment is not set or not required
+     */
+    COL_ASSIGN_NOT_SET = 0
+};

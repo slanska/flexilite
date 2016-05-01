@@ -294,4 +294,23 @@ var PROPERTY_ROLE;
     PROPERTY_ROLE[PROPERTY_ROLE["PROP_ROLE_AUTOSHORTID"] = 16] = "PROP_ROLE_AUTOSHORTID";
 })(PROPERTY_ROLE || (PROPERTY_ROLE = {}));
 ;
+/*
+ Level of priority for property to have fixed column assigned
+ */
+var COLUMN_ASSIGN_PRIORITY;
+(function (COLUMN_ASSIGN_PRIORITY) {
+    /*
+     for indexed and ID/Code properties
+     */
+    COLUMN_ASSIGN_PRIORITY[COLUMN_ASSIGN_PRIORITY["COL_ASSIGN_REQUIRED"] = 2] = "COL_ASSIGN_REQUIRED";
+    /*
+     For scalar properties
+     */
+    COLUMN_ASSIGN_PRIORITY[COLUMN_ASSIGN_PRIORITY["COL_ASSIGN_DESIRED"] = 1] = "COL_ASSIGN_DESIRED";
+    /*
+     Assignment is not set or not required
+     */
+    COLUMN_ASSIGN_PRIORITY[COLUMN_ASSIGN_PRIORITY["COL_ASSIGN_NOT_SET"] = 0] = "COL_ASSIGN_NOT_SET";
+})(COLUMN_ASSIGN_PRIORITY || (COLUMN_ASSIGN_PRIORITY = {}));
+;
 //# sourceMappingURL=DBDefinitions.js.map
