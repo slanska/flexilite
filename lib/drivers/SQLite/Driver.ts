@@ -698,7 +698,7 @@ namespace Flexilite.SQLite
                 try
                 {
                     var refactor = new SQLiteDataRefactor(self.db);
-                    refactor.generateClassAndSchemaDefForSync(opts);
+                    refactor.generateClassDefForSync(opts);
 
                     callback();
                 }

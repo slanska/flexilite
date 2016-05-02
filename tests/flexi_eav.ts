@@ -20,16 +20,16 @@ describe('SQLite extensions: Flexilite EAV', ()=>
 
     var personMeta = {
         properties: {
-            FirstName: {rules: {type: PROPERTY_TYPE.TEXT, minOccurences: 1, maxOccurences: 1}},
-            LastName: {rules: {type: PROPERTY_TYPE.TEXT}},
-            Gender: {rules: {type: PROPERTY_TYPE.ENUM}},
-            AddressLine1: {rules: {type: PROPERTY_TYPE.TEXT}},
-            City: {rules: {type: PROPERTY_TYPE.TEXT}},
-            StateOrProvince: {rules: {type: PROPERTY_TYPE.TEXT}},
-            Country: {rules: {type: PROPERTY_TYPE.TEXT}},
-            ZipOrPostalCode: {rules: {type: PROPERTY_TYPE.TEXT}},
-            Email: {rules: {type: PROPERTY_TYPE.TEXT}},
-            Phone: {rules: {type: PROPERTY_TYPE.TEXT}}
+            FirstName: {rules: {type: PROPERTY_TYPE.PROP_TYPE_TEXT, minOccurences: 1, maxOccurences: 1}},
+            LastName: {rules: {type: PROPERTY_TYPE.PROP_TYPE_TEXT}},
+            Gender: {rules: {type: PROPERTY_TYPE.PROP_TYPE_ENUM}}, // TODO items
+            AddressLine1: {rules: {type: PROPERTY_TYPE.PROP_TYPE_TEXT}},
+            City: {rules: {type: PROPERTY_TYPE.PROP_TYPE_TEXT}},
+            StateOrProvince: {rules: {type: PROPERTY_TYPE.PROP_TYPE_TEXT}},
+            Country: {rules: {type: PROPERTY_TYPE.PROP_TYPE_TEXT}},
+            ZipOrPostalCode: {rules: {type: PROPERTY_TYPE.PROP_TYPE_TEXT}},
+            Email: {rules: {type: PROPERTY_TYPE.PROP_TYPE_TEXT}},
+            Phone: {rules: {type: PROPERTY_TYPE.PROP_TYPE_TEXT}}
         }
     } as IClassDefinition;
 

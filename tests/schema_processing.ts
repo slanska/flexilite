@@ -12,8 +12,8 @@ import faker = require('faker');
 import _ = require('lodash');
 import chai = require('chai');
 var shortid = require('shortid');
-import ReverseEngine = require( '../lib/misc/reverseEng');
-import SchemaHelper = require('../lib/misc/SchemaHelper');
+import {ReverseEngine} from '../lib/misc/reverseEng';
+import {SchemaHelper} from '../lib/misc/SchemaHelper';
 
 var expect = chai.expect;
 
@@ -44,14 +44,15 @@ describe('Flexilite schema processing', ()=>
         Sync(()=>
         {
             var dbPath = path.join(__dirname, "data", "chinook.db");
-            var revEng = new ReverseEngine(dbPath);
+            var db = new sqlite3.Database(dbPath);
+            var revEng = new ReverseEngine(db);
             var schema = revEng.loadSchemaFromDatabase.sync(revEng);
 
             _.forEach(schema, (item:ISyncOptions, className:string)=>
             {
-                let conv = new SchemaHelper(db, item);
+                let conv = new SchemaHelper(db, item, null);
                 conv.convertFromNodeOrmSync();
-                console.log(conv.targetSchema);
+                console.log(conv.targetClassProps);
             });
 
             done();

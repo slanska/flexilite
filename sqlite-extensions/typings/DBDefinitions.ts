@@ -40,8 +40,8 @@ enum SQLITE_OPEN_FLAGS
 
 enum OBJECT_CONTROL_FLAGS
 {
-    NONE = 0,
-    WEAK_OBJECT = 1 << 0,
+    CTLO_NONE = 0,
+    CTLO_WEAK_OBJECT = 1 << 0,
     A_UNIQUE = 1 << 1,
     B_UNIQUE = 1 << 2,
     C_UNIQUE = 1 << 3,

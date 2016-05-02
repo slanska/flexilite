@@ -3,7 +3,6 @@
  */
 
 /// <reference path="tsd.d.ts" />
-
 /// <reference path="node-orm-sync.d.ts" />
 
 /// <reference path="../lib/def/IClassDefinition.d.ts" />

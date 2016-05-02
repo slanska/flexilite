@@ -436,8 +436,8 @@ create table if not exists [.class_properties]
  create view if not exists [.vw_class_properties] as
  select
     [PropertyID],
-    [ClassID],
-    [NameID],
+    cp.[ClassID],
+    cp.[NameID],
     (select [Value] from [.names] n where n.NameID = NameID limit 1) as Name,
     case
         when c.A = PropertyID then 'A'
@@ -461,7 +461,7 @@ create table if not exists [.class_properties]
  TODO Triggers on insert, update, delete
  */
 
- ------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
 -- .full_text_data
 ------------------------------------------------------------------------------------------
 CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
@@ -961,7 +961,7 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
   CONSTRAINT [] PRIMARY KEY ([ObjectID], [PropertyID], [PropIndex])
 ) WITHOUT ROWID;
 
-CREATE INDEX IF NOT EXISTS [idxClassReversedRefs] ON [.ref-values] ([RefObjectID], [PropertyID]) WHERE [ctlv] & 14;
+CREATE INDEX IF NOT EXISTS [idxClassReversedRefs] ON [.ref-values] ([Value], [PropertyID]) WHERE [ctlv] & 14;
 
 CREATE INDEX IF NOT EXISTS [idxValuesByPropValue] ON [.ref-values] ([PropertyID], [Value]) WHERE ([ctlv] & 1);
 
@@ -1082,7 +1082,7 @@ CREATE VIEW IF NOT EXISTS [.ValuesEasy] AS
     NULL AS [PropertyName],
     NULL AS [PropertyIndex],
     NULL AS [Value],
-    NULL as [RefObjectID];
+    NULL as [ExtData];
 
 CREATE TRIGGER IF NOT EXISTS trigValuesEasy_Insert INSTEAD OF INSERT
 ON [.ValuesEasy]
@@ -1147,7 +1147,7 @@ BEGIN
       new.PropertyIndex,
       new.[Value],
       p.[ctlv],
-      new.RefObjectID
+      new.ExtData
     FROM [.classes] c, [.vw_class_properties] p
     WHERE c.[ClassID] = p.[ClassID] AND c.NameID = new.NameID AND p.PropertyName = new.PropertyName AND
           p.ColumnAssigned IS NULL;
@@ -1157,7 +1157,7 @@ END;
 -- .values_view - wraps access to .values table by providing separate ObjectID columns
 --------------------------------------------------------------------------------------------
 create view if not exists [.ref-values_view] as
-select [ObjectID], ctlv, PropertyID, PropIndex, [Value], RefObjectID
+select [ObjectID], ctlv, PropertyID, PropIndex, [Value], ExtData
 from [.ref-values];
 
 create trigger if not exists values_view_Insert instead of insert on [.ref-values_view]
@@ -1165,11 +1165,11 @@ for each row
 begin
     insert into [.ref-values]
     (
-     [ObjectID], ctlv, PropertyID, PropIndex, [Value], RefObjectID
+     [ObjectID], ctlv, PropertyID, PropIndex, [Value], ExtData
     )
     values (
      new.[ObjectID], new.ctlv,
-    new.PropertyID, new.PropIndex, new.[Value], new.RefObjectID);
+    new.PropertyID, new.PropIndex, new.[Value], new.ExtData);
 end;
 
 create trigger if not exists values_view_Update instead of update on [.ref-values_view]
@@ -1179,7 +1179,7 @@ begin
      [ObjectID] = new.[ObjectID] ,
      ctlv = new.ctlv,
     PropertyID = new.PropertyID, PropIndex = new.PropIndex, [Value] = new.[Value],
-    RefObjectID = new.RefObjectID
+    ExtData = new.ExtData
     where [ObjectID] = old.[ObjectID] and [PropertyID] = old.[PropertyID] and [PropIndex] = old.[PropIndex];
 end;
 

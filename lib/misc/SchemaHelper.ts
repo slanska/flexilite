@@ -24,9 +24,12 @@ export interface IShemaHelper
 }
 
 
+/*
+ Helper class for converting node-orm2 schema to Flexilite schema
+ */
 export class SchemaHelper implements IShemaHelper
 {
-    constructor(private db:sqlite3.Database, public sourceSchema:ISyncOptions)
+    constructor(private db:sqlite3.Database, public sourceSchema:ISyncOptions, private columnNameMap?:IColumnNameMap)
     {
     }
 
@@ -102,6 +105,16 @@ export class SchemaHelper implements IShemaHelper
 
         _.forEach(this.sourceSchema.allProperties, (item:IORMPropertyDef, propName:string) =>
             {
+                // Handle column name mapping
+                if (self.columnNameMap)
+                {
+                    let colMap = self.columnNameMap[propName];
+                    if (_.isEmpty( colMap))
+                        return;
+
+                    propName = colMap;
+                }
+
                 let propID = self.getNameID(propName);
                 let cProp = {} as IClassProperty;
                 cProp.rules = cProp.rules || {} as IPropertyRulesSettings;

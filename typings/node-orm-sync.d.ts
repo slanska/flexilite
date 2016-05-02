@@ -10,7 +10,6 @@ TODO: Merge these changes with node-orm master
 
 /// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
 /// <reference path="../node_modules/orm/lib/TypeScript/sql-query.d.ts" />
-
 /// <reference path="tsd.d.ts"/>
 
 /*
@@ -40,7 +39,7 @@ interface IDropOptions
     one_associations:[any];
 
     /*
-     TODO Finalize exact typeß
+     TODO Finalize exact type
      */
     many_associations:[any];
 }

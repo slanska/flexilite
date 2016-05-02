@@ -13,16 +13,17 @@ import {ReverseEngine} from '../../misc/reverseEng';
 
 export class SQLiteDataRefactor implements IDBRefactory
 {
-    private static COLUMN_LETTERS = 'ABCDEFGHIJ';
+    private static COLUMN_LETTERS = 'ABCDEFGHIJ'; // TODO KLMNOP
 
     /*
 
      */
     importFromDatabase(options:IImportDatabaseOptions):void
     {
+        var self = this;
         Sync(()=>
         {
-            let srcDB = this.DB;
+            let srcDB = self.DB;
             let srcTbl = options.sourceTable || options.targetTable;
             if (options.sourceConnectionString)
             {
@@ -36,47 +37,114 @@ export class SQLiteDataRefactor implements IDBRefactory
                     throw new Error(`Source and target tables cannot be the same`);
             }
 
-            // Check if target flexitable exists
-            let clsDef = this.getClassDefByName(options.targetTable);
-
             // load metadata for source table
             let reng = new ReverseEngine(srcDB);
             let srcMeta = reng.loadSchemaFromDatabase();
-            let syncOptions = srcMeta[srcTbl];
+            let srcTableMeta = srcMeta[srcTbl];
 
+            // Check if target flexitable exists
+            let clsDef = self.getClassDefByName(options.targetTable);
             if (!clsDef)
             {
-                let schemaHlp = new SchemaHelper(this.DB, syncOptions);
+                let schemaHlp = new SchemaHelper(self.DB, srcTableMeta, options.columnNameMap);
 
                 schemaHlp.convertFromNodeOrmSync();
+                clsDef = {} as IFlexiClass;
+                clsDef.NameID = self.getNameByValue(options.targetTable).NameID;
+                clsDef.Data = {properties: schemaHlp.targetClassProps};
 
-//                clsDef = {properties: schemaHlp.targetClassProps};
-
+                self.createClass(options.targetTable, clsDef.Data);
             }
 
-            // If flexitable already exists: check if there are source properties
-            // not mapped and not existing in the target table. These properties will
-            // be created
-            if (clsDef)
-            {
-                _.forEach(syncOptions.properties, (srcProp, srcPropName)=>
-                {
-                    let targetPropName = srcPropName;
-                    if (options.columnPropMap[srcPropName])
-                    {
+            let batchCnt = 0;
+            let sql = `select * from [${srcTbl}]`;
+            if (!_.isEmpty(options.whereClause))
+                sql += ` where ${options.whereClause}`;
+            sql += `;`;
 
+            let insSQL = '';
+            let insSQLValues = '';
+            let insStmt = null;
+            try
+            {
+                srcDB.each(sql, (error, row)=>
+                {
+                    if (error)
+                    {
+                        if (batchCnt !== 0)
+                            srcDB.exec.sync(srcDB, `rollback to savepoint aaa;`);
+                        throw error;
                     }
 
+                    if (batchCnt === 0)
+                    {
+                        srcDB.exec.sync(srcDB, `savepoint aaa;`);
+                    }
+
+                    var newObj = {};
+
+                    if (!insStmt)
+                    {
+                        insSQL = `insert into [${options.targetTable}] (`;
+                        insSQLValues = `) values (`
+                    }
+                    let fldNo = 0;
+                    _.each(row, (fld, fldName:string)=>
+                    {
+                        if (options.columnNameMap)
+                        {
+                            fldName = options.columnNameMap[fldName];
+                            if (_.isEmpty(fldName))
+                                return;
+                        }
+
+                        let paramName = `${++fldNo}`;
+                        newObj[paramName] = fld;
+                        if (!_.isEmpty(insSQLValues)                        )
+                        {
+                            insSQLValues += ', ';
+                            insSQL += `,`;
+                        }
+                        insSQLValues += paramName;
+                        insSQL += `[${fldName}]`;
+                    });
+
+                    if (!insStmt)
+                    {
+                        insSQL += insSQLValues + ');';
+                        insStmt = self.DB.prepare(insSQL);
+                    }
+
+                    insStmt.run.sync(insStmt, newObj);
+
+                    batchCnt++;
+
+                    if (batchCnt >= 10000)
+                    {
+                        srcDB.exec.sync(srcDB, `release aaa;`);
+                        batchCnt = 0;
+                    }
                 });
             }
+            catch (err)
+            {
+                if (batchCnt !== 0)
+                    srcDB.exec.sync(srcDB, `rollback to savepoint aaa;`);
+                throw err;
+            }
+
+            if (batchCnt > 0)
+            {
+                srcDB.exec.sync(srcDB, `release aaa;`);
+            }
+
+            // Generate select SQL
+            _.forEach(srcTableMeta.properties, (srcProp, srcPropName)=>
+            {
+                let targetPropName = srcPropName;
+
+            });
         });
-    }
-
-    /*
-
-     */
-    boxedObjectToLinkedObject(classID:number, refPropID:number)
-    {
     }
 
     constructor(private DB:sqlite3.Database)
@@ -155,15 +223,41 @@ export class SQLiteDataRefactor implements IDBRefactory
         return this._lastActionReport;
     }
 
+    /*
+     Alter class definition.
+     @newClassDef - can add/remove or change properties
+     Note: property renaming is not supported here. alterClassProperty should be used for that.
+
+     */
     alterClass(classID:number, newClassDef?:IClassDefinition, newName?:string)
     {
         var self = this;
+        var classChanged = false;
 
         // Check if class exists
         var classDef = self.getClassDefByID(classID);
         if (classDef)
         {
+            if (newClassDef)
+            {
+                classChanged = true;
+            }
 
+            if (!_.isEmpty(newName))
+            {
+                classDef.Name = newName;
+                classChanged = true;
+            }
+
+            if (classChanged)
+            {
+                self.DB.serialize.sync(self.DB, ()=>
+                {
+                    let newNameId = self.getNameByValue(classDef.Name).NameID;
+                    self.DB.run(`update [.classes] set NameID = $NameID where ClassID=$ClassID;`,
+                        {$NameID: newNameId, ClassID: classID});
+                });
+            }
         }
         else throw new Error(`Flexilite.alterClass: class with ID '${classID}' not found`);
     }
@@ -174,297 +268,44 @@ export class SQLiteDataRefactor implements IDBRefactory
     private applyClassDefinition(classDef:IFlexiClass)
     {
         var self = this;
-
-        // var viewName = self.getNameByID(classDef.ClassID).Value;
-        // if (viewName[0] === '.')
-        //     throw new Error(`Invalid class name ${viewName}. Class name may not start from dot ('.')`);
-        //
-        // var viewSQL = `drop view if exists [${viewName}];
-        //     \ncreate view if not exists ${viewName} as select
-        //     [ObjectID]`;
-        //
-        // Init column assignment map
-        // let colMap = {} as{[propID:number]:string};
-        // for (let idx = 0; idx < SQLiteDataRefactor.COLUMN_LETTERS.length; idx++)
-        // {
-        //     let ch = SQLiteDataRefactor.COLUMN_LETTERS[idx];
-        //     let propID = classDef[ch];
-        //     if (propID)
-        //     {
-        //         colMap[propID] = ch;
-        //     }
-        // }
-
-        // Process properties
-        // var propIdx = 0;
-        // _.forEach(classDef.Properties, (p:IFlexiClassProperty, propID:number)=>
-        // {
-        //     if (propIdx > 0)
-        //         viewSQL += ', ';
-        //     propIdx++;
-        //
-        //     let propName = self.getNameByID(p.NameID).Value;
-        //
-        //     let colLetter = colMap[p.PropertyID];
-        //     if (colLetter)
-        //     // This property is stored directly in .objects table in A..J columns
-        //     {
-        //         viewSQL += `o.[${colLetter}] as [${propName}]\n`;
-        //     }
-        //     else
-        //     {
-        //         viewSQL += `flexi_get(${p.PropertyID}, o.[ObjectID], s.[Data], o.[Data]`;
-        //         if (p.Data.defaultValue)
-        //         {
-        //             if (_.isString(p.Data.defaultValue))
-        //                 viewSQL += `'${p.Data.defaultValue}'`;
-        //             else viewSQL += `${p.Data.defaultValue}`;
-        //         }
-        //         viewSQL += `) as [${propName}]\n`;
-        //     }
-        // });
-
-    //     viewSQL += `, o.[Data] as [.json-data] from [.objects] o join [.schemas] s on o.SchemaID = s.SchemaID
-    // where o.[ClassID] = ${classDef.ClassID}`;
-    //
-    //     if (classDef.ctloMask !== 0)
-    //         viewSQL += `and ((o.[ctlo] & ${classDef.ctloMask}) = ${classDef.ctloMask})`;
-    //
-    //     viewSQL += ';\n';
-    //
-    //     // Insert trigger when ObjectID is null.
-    //     // In this case, recursively call insert statement with newly obtained ObjectID
-    //     viewSQL += self.generateTriggerBegin(viewName, 'insert', 'whenNull',
-    //         'when new.[ObjectID] is null ');
-    //
-    //     // Generate new ID
-    //     viewSQL += `insert or replace into [sqlite_sequence] (name, seq) select '.objects',
-    //             coalesce((select seq from [sqlite_sequence] where name = '.objects'), 0) + 1;`;
-    //     viewSQL += `insert into [${viewName}] ([ObjectID]`;
-    //
-    //     var cols = '';
-    //     _.forEach(classDef.Properties, (p, propID)=>
-    //     {
-    //         let propName = self.getNameByID(p.NameID).Value;
-    //         viewSQL += `, [${propName}]`;
-    //         cols += `, new.[${propName}]`;
-    //     });
-    //
-    //     // HostID is expected to be either (a) ID of another (hosting) object
-    //     // or (b) 0 or null - means that object will be self-hosted
-    //     viewSQL += `) select
-    //         [NextID],
-    //          ${cols} from
-    //          (SELECT coalesce(new.[ObjectID],
-    //          (select (seq)
-    //       FROM [sqlite_sequence]
-    //       WHERE name = '.objects' limit 1)) AS [NextID])
-    //          ;\n`;
-    //     viewSQL += `end;\n`;
-    //
-    //     // Insert trigger when ObjectID is not null
-    //     viewSQL += self.generateTriggerBegin(viewName, 'insert', 'whenNotNull',
-    //         'when new.[ObjectID] is not null');
-    //     viewSQL += self.generateConstraintsForTrigger(viewName, classDef);
-    //
-    //     viewSQL += `insert into [.objects] ([ObjectID], [ClassID], [ctlo], [Data]`;
-    //     cols = '';
-    //     let jsonData = `json_set({}`;
-    //     for (var propID in classDef.Data.properties)
-    //     {
-    //         var p:IFlexiClassProperty = classDef.Properties[propID];
-    //         let propName = self.getNameByID(p.NameID).Value;
-    //
-    //         let colLetter = colMap[p.PropertyID];
-    //         // if column is assigned
-    //         if (colLetter)
-    //         {
-    //             viewSQL += `, [${colLetter}]`;
-    //             cols += `, flexi_json_value(new.[${propName}])`;
-    //         }
-    //         else
-    //         {
-    //             let jsp = schemaDef.Data.properties[propID].map.jsonPath;
-    //             jsonData += `, '$${jsp}', new.[${propName}]`;
-    //         }
-    //     }
-    //
-    //     viewSQL += `) values (new.ObjectID,
-    //          ${classDef.ClassID}, ${classDef.ctloMask}${cols},
-    //          ${jsonData}));\n`;
-    //
-    //     viewSQL += self.generateInsertValues(classDef.ClassID, classDef);
-    //     viewSQL += 'end;\n';
-    //
-    //     // Update trigger
-    //     viewSQL += self.generateTriggerBegin(viewName, 'update');
-    //     viewSQL += self.generateConstraintsForTrigger(viewName, classDef);
-    //
-    //     var columns = '';
-    //     _.forEach(classDef.Properties, (p, propID)=>
-    //     {
-    //         let colLetter = colMap[p.PropertyID];
-    //         // if column is assigned
-    //         if (colLetter)
-    //         {
-    //             let propName = self.getNameByID(p.NameID).Value;
-    //             if (columns !== '')
-    //                 columns += ',';
-    //             columns += `[${colLetter}] = new.[${propName}]`;
-    //         }
-    //     });
-    //     if (columns !== '')
-    //     {
-    //         viewSQL += `update [.objects] set ${columns} where [ObjectID] = new.[ObjectID];\n`;
-    //     }
-    //
-    //     viewSQL += self.generateInsertValues(classDef.ClassID, classDef);
-    //     viewSQL += self.generateDeleteNullValues(classDef.Data);
-    //     viewSQL += 'end;\n';
-    //
-    //     // Delete trigger
-    //     viewSQL += self.generateTriggerBegin(viewName, 'delete');
-    //     viewSQL += `delete from [.objects] where [ObjectID] = new.[ObjectID] and [CollectionID] = ${classDef.ClassID};\n`;
-    //     viewSQL += 'end;\n';
-    //
-    //     console.log(viewSQL);
-    //
-    //     // Run view script
-    //     self.DB.exec.sync(self.DB, viewSQL);
+        // TODO
     }
 
     /*
-
+     Create new Flexilite class using @name and @classDef as class definition
      */
-    private generateDeleteNullValues(classDef:IClassDefinition):string
-    {
-        var result = '';
-
-        // Iterate through all properties
-        _.forEach(classDef.properties as any, (p:IClassProperty, propID:number) =>
-        {
-            //
-            //if (!p.ColumnAssigned)
-            //{
-            //    result += `delete from [.values] where [ObjectID] = (old.ObjectID | (old.HostID << 31)) and [PropertyID] = ${p.PropertyID}
-            //    and [PropIndex] = 0 and [ClassID] = ${classDef.ClassID} and new.[${p.PropertyName}] is not null;\n`;
-            //}
-        });
-        return result;
-    }
-
-    /*
-     Generates beginning of INSTEAD OF trigger for dynamic view
-     */
-    private generateTriggerBegin(viewName:string, triggerKind:string, triggerSuffix = '', when = ''):string
-    {
-        return `/* Autogenerated code. Do not edit or delete. ${viewName[0].toUpperCase() + viewName.slice(1)}.${triggerKind} trigger*/\n
-            drop trigger if exists [trig_${viewName}_${triggerKind}${triggerSuffix}];
-    create trigger if not exists [trig_${viewName}_${triggerKind}${triggerSuffix}] instead of ${triggerKind} on [${viewName}]
-    for each row\n
-    ${when}
-    begin\n`;
-    }
-
-    /*
-     Generates constraints for INSTEAD OF triggers for dynamic view
-     */
-    private generateConstraintsForTrigger(className:string, classDef:IFlexiClass):string
-    {
-        var result = '';
-        // Iterate through all properties
-        _.forEach(classDef.Data.properties as any, (p:IClassProperty, propID:number)=>
-        {
-// TODO Get property name by ID
-            // Is required/not null?
-            if (p.rules.minOccurences > 0)
-                result += `when new.[${propID}] is null then '${propID} is required'\n`;
-
-            // Is unique
-            // TODO Unique in Class.Property, unique in Property (all classes)
-            //         if (p.Unique)
-            //             result += `when exists(select 1 from [${collectionName}] v where v.[ObjectID] <> new.[ObjectID]
-            // and v.[${propName}] = new.[${propName}]) then '${propName} has to be unique'\n`;
-
-            // Range validation
-
-            // Max length validation
-            if ((p.rules.maxLength || 0) !== 0 && (p.rules.maxLength || 0) !== -1)
-                result += `when typeof(new.[${propID}]) in ('text', 'blob')
-        and len(new.[${propID}] > ${p.rules.maxLength}) then 'Length of ${propID} exceeds max value of ${p.rules.maxLength}'\n`;
-
-            // Regex validation
-            // TODO Use extension library for Regex
-
-            // TODO Other validation rules?
-
-        });
-
-        if (result.length > 0)
-        {
-            result = `select raise_error(ABORT, s.Error) from (select case ${result} else null end as Error) s where s.Error is not null;\n`;
-        }
-        return result;
-    }
-
-    /*
-
-     */
-    private generateInsertValues(classID:number, classDef:IFlexiClass):string
+    createClass(name:string, classDef:IClassDefinition)
     {
         var self = this;
-        var result = '';
-
-        // Iterate through all properties
-        _.forEach(classDef.Properties, (p:IFlexiClassProperty, propID) =>
+        let clsDef = self.getClassDefByName(name);
+        if (clsDef)
         {
-            let propName = self.getNameByID(p.NameID).Value;
-
-            if (!p.ColumnAssigned)
-            {
-                result += `insert or replace into [Values] ([ObjectID], [ClassID], [PropertyID], [PropIndex], [ctlv], [Value])
-             select (new.ObjectID, ${classID}, ${p.PropertyID}, 0, ${p.ctlv}, new.[${propName}]
-             where new.[${propName}] is not null;\n`;
-            }
-        });
-        return result;
+            self.alterClass(clsDef.ClassID, classDef);
+        }
+        else
+        {
+            let jsonClsDef = JSON.stringify(classDef);
+            self.DB.exec.sync(self.DB, `create table [${name}] using 'flexi_eav' ('${jsonClsDef}');`);
+        }
     }
 
     /*
-
+     Drops class and all its data
      */
-    createClass(name:string)
-    {
-        var self = this;
-        let classDef = self.getClassDefByName(name);
-        if (classDef)
-        {
-            /// TODO
-            return;
-        }
-
-
-
-
-    }
-
     dropClass(classID:number)
     {
+        var self = this;
+        var clsDef = self.getClassDefByID(classID);
+        self.DB.exec.sync(self.DB, `drop table [${clsDef.Name}]`);
     }
 
-    plainPropertiesToBoxedObject(classID:number, newRefProp:IClassProperty, targetClassID:number, propMap:IPropertyMap, filter:IObjectFilter)
+    propertiesToObject(filter:IObjectFilter, propIDs:PropertyIDs, newRefProp:IClassProperty,
+                       targetClassID:number, sourceKeyPropID:PropertyIDs,
+                       targetKeyPropID:PropertyIDs)
     {
     }
 
-    plainPropertiesToLinkedObject(classID:number, propIDs:PropertyIDs, newRefProp:IClassProperty, filter:IObjectFilter, targetClassID:number, updateData:boolean, sourceKeyPropID:PropertyIDs, targetKeyPropID:PropertyIDs)
-    {
-    }
-
-    boxedObjectToPlainProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap)
-    {
-    }
-
-    linkedObjectToPlainProps(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap)
+    objectToProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap)
     {
     }
 
@@ -504,21 +345,6 @@ export class SQLiteDataRefactor implements IDBRefactory
     {
     }
 
-    // private getSchemaByID(schemaID:number):IFlexiSchema
-    // {
-    //     var rows = this.DB.all.sync(this.DB, `select * from [.schemas] where SchemaID=$SchemaID`, {$SchemaID: schemaID});
-    //     return rows[0] as IFlexiSchema;
-    // }
-
-    /*
-
-     */
-    // public generateView(classID:number)
-    // {
-    //     var classDef = this.getClassDefByID(classID);
-    //     var schemaDef = this.getSchemaByID(classDef.BaseSchemaID);
-    //     this.applyClassDefinition(classDef, schemaDef);
-    // }
 
     /*
      Synchronizes node-orm model to .classes and .class_properties.
@@ -537,7 +363,7 @@ export class SQLiteDataRefactor implements IDBRefactory
      hasMany and hasOne are converted into reference properties
      */
     // TODO Callback, Sync version
-    generateClassAndSchemaDefForSync(model:ISyncOptions)
+    generateClassDefForSync(model:ISyncOptions)
     {
         var self = this;
 
@@ -607,7 +433,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         else
         // Class does not exist. Insert new one to get ClassID
         {
-            self.saveNewClass(self, vars, model);
+            SQLiteDataRefactor.saveNewClass(self, vars, model);
         }
 
         this.initExistingColAssignment(vars);
@@ -621,7 +447,7 @@ export class SQLiteDataRefactor implements IDBRefactory
 
         // Set class properties
         // ctloMask
-        vars.classDef.ctloMask = OBJECT_CONTROL_FLAGS.NONE;
+        vars.classDef.ctloMask = OBJECT_CONTROL_FLAGS.CTLO_NONE;
 
         // Column assignments
         for (let idx = 0; idx < SQLiteDataRefactor.COLUMN_LETTERS.length; idx++)
@@ -776,17 +602,17 @@ export class SQLiteDataRefactor implements IDBRefactory
         });
     }
 
-    private saveNewClass(self:SQLiteDataRefactor, vars:ISyncVariables, model:ISyncOptions)
+    /*
+
+     */
+    private static saveNewClass(self:SQLiteDataRefactor, vars:ISyncVariables, model:ISyncOptions)
     {
         vars.classDef = {} as IFlexiClass;
         vars.classDef.NameID = self.getNameByValue(model.table).NameID;
-        // Skip BaseSchemaID now - will set it later
         vars.classDef.ctloMask = 0; // TODO
-        // TODO set later: vars.classDef.Data = {properties: vars.newProps};
-        //vars.classDef.Hash = objectHash(vars.classDef.Data);
 
         let clsID = self.DB.all.sync(self.DB, `insert or replace into [.classes] (NameID, BaseSchemaID, ctloMask, A, B, C, D, E, F, G, H, I, J) 
-                values ($NameID, $BaseSchemaID, $ctloMask, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J); select last_insert_rowid();`, {
+                values ($NameID, $ctloMask, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J); select last_insert_rowid();`, {
             $NameID: vars.classDef.NameID,
             $ctloMask: vars.classDef.ctloMask,
             $A: vars.classDef.A,

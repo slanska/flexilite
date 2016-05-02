@@ -17,13 +17,12 @@ interface IDBRefactory
      be unique. Optional new schema mapping can be passed. If not passed, new default schema will be generated, based on
      the current basic schema
      */
-    alterClass(classID:number, newClassDef?:IClassDefinition,  newName?:string);
+    alterClass(classID:number, newClassDef?:IClassDefinition, newName?:string);
 
     /*
-     Creates new class with the given name (should be unique). Optional new schema mapping can be passed.
-     If not passed, new default schema will be generated
+     Creates new class with the given name (should be unique).
      */
-    createClass(name:string);
+    createClass(name:string, classDef:IClassDefinition);
 
     /*
      Drops class, all related schemas, objects and references from database. Operation can be undone.
@@ -31,48 +30,40 @@ interface IDBRefactory
     dropClass(classID:number);
 
     /*
-     Extracts existing properties from class definition and creates a new property of BOXED_OBJECT type.
-     New class will be created/or existing one will be updated. Object data will not be affected
+     Extracts existing properties from class definition and creates a new property of OBJECT or REFERENCE type.
+     New class will be created/or existing one will be updated.
+     Key properties can be optionally passed to check if identical object of the target class already exists.
+     In this case, new linked object will not be created, but reference will be set to existing one.
+     Example: Country column as string. Then class 'Country' was created.
+     Property 'Country' was extracted to the new class and replaced with link
+     @filter:IObjectFilter,
+     @propIDs:PropertyIDs,
+     @newRefProp:IClassProperty,
+     @targetClassID:number,
+     @sourceKeyPropID:PropertyIDs,
+     @targetKeyPropID
      */
-    plainPropertiesToBoxedObject(classID:number, newRefProp:IClassProperty, targetClassID:number, propMap:IPropertyMap, filter:IObjectFilter);
+    propertiesToObject(filter:IObjectFilter, propIDs:PropertyIDs, newRefProp:IClassProperty,
+                       targetClassID:number, sourceKeyPropID:PropertyIDs,
+                       targetKeyPropID:PropertyIDs);
 
     /*
-     Extracts existing properties to external linked object. Existing object data might be updated or stay untouched.
-     Key properties can be optionally passed to check if identical object of the target class already exists. In this case,
-     new linked object will not be created, but reference will be set to existing one.
-     Example: Country column as string. Then class 'Country' was created. Property 'Country' was extracted to the new class
-     and replaced with link
+     Action opposite to propertiesToObject - properties of existing object will be treated as
      */
-    plainPropertiesToLinkedObject(classID:number, propIDs:PropertyIDs, newRefProp:IClassProperty, filter:IObjectFilter, targetClassID:number,
-                                  updateData:boolean, sourceKeyPropID:PropertyIDs, targetKeyPropID:PropertyIDs);
+    objectToProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap);
+
+
 
     /*
-     Action opposite to extracting boxed object: existing boxed object will be disassembled into individual properties
-     and these properties will be added to the master class
-     */
-    boxedObjectToPlainProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap);
-
-    /*
-
-     */
-    boxedObjectToLinkedObject(classID:number, refPropID:number);
-
-    /*
-     Action opposite to extracting linked object: existing linked object will be disassembled into individual properties
-     and these properties will be added to the master class. This action will involve modifying object data
-     */
-    linkedObjectToPlainProps(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap);
-
-    /*
-     Joins 2 non related objects into single object, using provided property map. Corresponding objects will be found using sourceKeyPropIDs
+     Joins 2 non related objects into single object, using optional property map. Corresponding objects will be found using sourceKeyPropIDs
      and targetKeyPropIDs
      */
-    structuralMerge(sourceClassID:number, sourceFilter:IObjectFilter, sourceKeyPropID:PropertyIDs, targetClassID:number,
-                    targetKeyPropID:PropertyIDs, propMap:IPropertyMap);
+    structuralMerge(sourceClassID:number, sourceFilter:IObjectFilter, sourceKeyPropID:PropertyIDs,
+                    targetClassID:number, targetKeyPropID:PropertyIDs, propMap:IPropertyMap);
 
     /*
-     Splits objects vertically, i.e. one set of properties goes to class A, another - to class B. Resulting objects do not have any
-     relation to each other
+     Splits objects vertically, i.e. one set of properties goes to class A, another - to class B.
+     Resulting objects do not have any relation to each other
      */
     structuralSplit(sourceClassID:number, filter:IObjectFilter, targetClassID:number,
                     propMap:IPropertyMap, targetClassDef?:IClassDefinition);
@@ -123,7 +114,11 @@ interface IDBRefactory
 
      */
     // TODO
-    //changePositionInList()
+    //reorderArrayItems()
+
+    //addReference()
+
+    //deleteReference()
 }
 
 /*
@@ -148,14 +143,9 @@ interface IImportDatabaseOptions
     targetTable:string,
 
     /*
-     Optional map of column names to property definitions
-     */
-    propDefs?:IClassPropertyDictionaryByName;
-
-    /*
      Optional mapping from source column names to target property names
      */
-    columnPropMap?:{[columnName:string]:string};
+    columnNameMap?:IColumnNameMap;
 
     /*
      Optional SQL syntax where clause to be applied
@@ -168,7 +158,19 @@ interface IImportDatabaseOptions
  */
 interface IObjectFilter
 {
+    /*
+     Required class ID
+     */
+    classID:number;
+
+    /*
+     Optional single object ID or array of object IDs for the classID
+     */
     objectId?:number | [number];
+
+    /*
+     Optional where clause to be applied to classID (alternative to objectId)
+     */
     filter?:any; // TODO orm filter
 }
 
@@ -177,4 +179,6 @@ declare type ISplitPropertyRules = [{regex?:string, newPropDef:IClassProperty}];
 declare type IPropertyMap = [{sourcePropID:number, targetPropID:number}];
 
 declare type PropertyIDs = number | number[];
+
+declare type IColumnNameMap = {[columnName:string]:string};
 
