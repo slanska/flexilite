@@ -6,7 +6,7 @@
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", './helper', 'chai', '../lib/drivers/SQLite/SQLiteDataRefactor'], factory);
+        define(["require", "exports", './helper', 'chai', 'path', '../lib/drivers/SQLite/SQLiteDataRefactor'], factory);
     }
 })(function (require, exports) {
     "use strict";
@@ -14,6 +14,7 @@
     var Sync = require('syncho');
     var helper = require('./helper');
     var chai = require('chai');
+    var path = require('path');
     var shortid = require('shortid');
     var SQLiteDataRefactor_1 = require('../lib/drivers/SQLite/SQLiteDataRefactor');
     var expect = chai.expect;
@@ -24,7 +25,6 @@
             Sync(function () {
                 db = helper.openMemoryDB();
                 refactor = new SQLiteDataRefactor_1.SQLiteDataRefactor(db);
-                // db = helper.openDB("testA.db");
                 done();
             });
         });
@@ -43,13 +43,22 @@
             });
         });
         it('import TTC.trips to memory', function (done) {
-            Sync(function () {
+            // Sync(()=>
+            // {
+            try {
                 var importOptions = {};
                 importOptions.sourceTable = 'trips';
-                importOptions.sourceConnectionString = '/Users/ruslanskorynin/flexilite/tests/data/ttc.db';
+                importOptions.sourceConnectionString = path.join(__dirname, "data", "ttc.db");
                 importOptions.targetTable = 'trips';
+                refactor.importFromDatabase(importOptions);
+            }
+            catch (err) {
+                console.error(err);
+            }
+            finally {
                 done();
-            });
+            }
+            // });
         });
     });
 });

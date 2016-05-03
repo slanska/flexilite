@@ -9,6 +9,7 @@ import helper = require('./helper');
 import sqlite3 = require('sqlite3');
 import faker = require('faker');
 import chai = require('chai');
+import path = require('path');
 var shortid = require('shortid');
 import {SQLiteDataRefactor} from '../lib/drivers/SQLite/SQLiteDataRefactor';
 
@@ -17,7 +18,7 @@ var expect = chai.expect;
 describe('SQLite extensions: Flexilite EAV', ()=>
 {
     var db:sqlite3.Database;
-    var refactor: SQLiteDataRefactor;
+    var refactor:SQLiteDataRefactor;
 
     before((done)=>
     {
@@ -25,7 +26,6 @@ describe('SQLite extensions: Flexilite EAV', ()=>
         {
             db = helper.openMemoryDB();
             refactor = new SQLiteDataRefactor(db);
-            // db = helper.openDB("testA.db");
             done();
         });
     });
@@ -52,16 +52,26 @@ describe('SQLite extensions: Flexilite EAV', ()=>
 
     it('import TTC.trips to memory', (done)=>
     {
-        Sync(()=>
+        // Sync(()=>
+        // {
+        try
         {
             let importOptions = {} as IImportDatabaseOptions;
             importOptions.sourceTable = 'trips';
-            importOptions.sourceConnectionString = '/Users/ruslanskorynin/flexilite/tests/data/ttc.db';
+            importOptions.sourceConnectionString = path.join(__dirname, "data", "ttc.db");
+
             importOptions.targetTable = 'trips';
 
-
-
+            refactor.importFromDatabase(importOptions);
+        }
+        catch (err)
+        {
+            console.error(err);
+        }
+        finally
+        {
             done();
-        });
+        }
+        // });
     });
 });

@@ -10,6 +10,7 @@ import objectHash = require('object-hash');
 import {SchemaHelper, IShemaHelper} from '../../misc/SchemaHelper';
 var Sync = require('syncho');
 import {ReverseEngine} from '../../misc/reverseEng';
+import _ = require('lodash');
 
 export class SQLiteDataRefactor implements IDBRefactory
 {
@@ -27,7 +28,7 @@ export class SQLiteDataRefactor implements IDBRefactory
             let srcTbl = options.sourceTable || options.targetTable;
             if (options.sourceConnectionString)
             {
-                srcDB = new sqlite3.Database(options.sourceConnectionString);
+                srcDB = new sqlite3.Database(options.sourceConnectionString, sqlite3.OPEN_READONLY);
                 if (_.isEmpty(srcTbl))
                     srcTbl = options.targetTable;
             }
@@ -100,7 +101,7 @@ export class SQLiteDataRefactor implements IDBRefactory
 
                         let paramName = `${++fldNo}`;
                         newObj[paramName] = fld;
-                        if (!_.isEmpty(insSQLValues)                        )
+                        if (!_.isEmpty(insSQLValues))
                         {
                             insSQLValues += ', ';
                             insSQL += `,`;
