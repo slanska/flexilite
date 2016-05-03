@@ -21,16 +21,16 @@
         var db;
         var personMeta = {
             properties: {
-                FirstName: { rules: { type: PROPERTY_TYPE.PROP_TYPE_TEXT, minOccurences: 1, maxOccurences: 1 } },
-                LastName: { rules: { type: PROPERTY_TYPE.PROP_TYPE_TEXT } },
-                Gender: { rules: { type: PROPERTY_TYPE.PROP_TYPE_ENUM } },
-                AddressLine1: { rules: { type: PROPERTY_TYPE.PROP_TYPE_TEXT } },
-                City: { rules: { type: PROPERTY_TYPE.PROP_TYPE_TEXT } },
-                StateOrProvince: { rules: { type: PROPERTY_TYPE.PROP_TYPE_TEXT } },
-                Country: { rules: { type: PROPERTY_TYPE.PROP_TYPE_TEXT } },
-                ZipOrPostalCode: { rules: { type: PROPERTY_TYPE.PROP_TYPE_TEXT } },
-                Email: { rules: { type: PROPERTY_TYPE.PROP_TYPE_TEXT } },
-                Phone: { rules: { type: PROPERTY_TYPE.PROP_TYPE_TEXT } }
+                FirstName: { rules: { type: 0 /* PROP_TYPE_TEXT */, minOccurences: 1, maxOccurences: 1 } },
+                LastName: { rules: { type: 0 /* PROP_TYPE_TEXT */ } },
+                Gender: { rules: { type: 6 /* PROP_TYPE_ENUM */ } },
+                AddressLine1: { rules: { type: 0 /* PROP_TYPE_TEXT */ } },
+                City: { rules: { type: 0 /* PROP_TYPE_TEXT */ } },
+                StateOrProvince: { rules: { type: 0 /* PROP_TYPE_TEXT */ } },
+                Country: { rules: { type: 0 /* PROP_TYPE_TEXT */ } },
+                ZipOrPostalCode: { rules: { type: 0 /* PROP_TYPE_TEXT */ } },
+                Email: { rules: { type: 0 /* PROP_TYPE_TEXT */ } },
+                Phone: { rules: { type: 0 /* PROP_TYPE_TEXT */ } }
             }
         };
         function randomPersonArguments() {

@@ -19,7 +19,7 @@
  and re-defined 'const' to handle TS-style enum declarations
  */
 
-enum SQLITE_OPEN_FLAGS
+declare const enum SQLITE_OPEN_FLAGS
 {
     SHARED_CACHE = 0x00020000,
     WAL = 0x00080000
@@ -38,7 +38,7 @@ enum SQLITE_OPEN_FLAGS
 
  */
 
-enum OBJECT_CONTROL_FLAGS
+declare const enum OBJECT_CONTROL_FLAGS
 {
     CTLO_NONE = 0,
     CTLO_WEAK_OBJECT = 1 << 0,
@@ -102,7 +102,7 @@ enum OBJECT_CONTROL_FLAGS
  32 - range data
  64 - DON'T track changes
  */
-enum VALUE_CONTROL_FLAGS
+declare const enum VALUE_CONTROL_FLAGS
 {
     NONE = 0,
     INDEX = 1,
@@ -119,7 +119,7 @@ enum VALUE_CONTROL_FLAGS
     UNIQUE_INDEX = 128
 };
 
-enum Value_Control_Flags
+declare const enum Value_Control_Flags
 {
     CTLV_NONE = 0,
 
@@ -165,7 +165,7 @@ enum Value_Control_Flags
 }
 ;
 
-enum FLEXILITE_LIMITS
+declare const enum FLEXILITE_LIMITS
 {
     MaxOccurences = 1 << 31,
     MaxObjectID = 1 << 31
@@ -173,7 +173,7 @@ enum FLEXILITE_LIMITS
 ;
 
 // Property types
-enum PROPERTY_TYPE
+declare const enum PROPERTY_TYPE
 {
     PROP_TYPE_TEXT = 0,
     PROP_TYPE_INTEGER = 1,
@@ -274,7 +274,7 @@ enum PROPERTY_TYPE
 /*
  Bit flags of roles that property plays in its class
  */
-enum PROPERTY_ROLE
+declare const enum PROPERTY_ROLE
 {
     /*
      No special role
@@ -330,7 +330,7 @@ enum PROPERTY_ROLE
 /*
  Level of priority for property to have fixed column assigned
  */
-enum COLUMN_ASSIGN_PRIORITY
+declare const enum COLUMN_ASSIGN_PRIORITY
 {
     /*
      for indexed and ID/Code properties

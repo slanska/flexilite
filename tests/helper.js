@@ -36,7 +36,7 @@
         var currentUserID = db.all.sync(db, "select randomblob(16) as uuid;")[0]['uuid'];
         var sqlScript = fs.readFileSync(path.join(__dirname, '../lib/drivers/SQLite/dbschema.sql'), 'UTF-8');
         db.exec.sync(db, sqlScript);
-        // var libPath = path.join(__dirname, '../deps/sqlite_extensions/darwin-x64/libsqlite_extensions');
+        var libPath = path.join(__dirname, '../deps/sqlite_extensions/darwin-x64/libsqlite_extensions');
         var libPath = '../sqlite-extensions/bin/libsqlite_extensions';
         db.loadExtension.sync(db, libPath);
         db["CurrentUserID"] = currentUserID;

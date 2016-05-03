@@ -5,6 +5,12 @@
 #ifndef DBDEFINITIONS_H
 #define DBDEFINITIONS_H
 
+#define declare
+#define const
+
 #include "DBDefinitions.ts"
+
+#undef declare
+#undef const
 
 #endif

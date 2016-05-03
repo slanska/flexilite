@@ -43,22 +43,21 @@
             });
         });
         it('import TTC.trips to memory', function (done) {
-            // Sync(()=>
-            // {
-            try {
-                var importOptions = {};
-                importOptions.sourceTable = 'trips';
-                importOptions.sourceConnectionString = path.join(__dirname, "data", "ttc.db");
-                importOptions.targetTable = 'trips';
-                refactor.importFromDatabase(importOptions);
-            }
-            catch (err) {
-                console.error(err);
-            }
-            finally {
-                done();
-            }
-            // });
+            Sync(function () {
+                try {
+                    var importOptions = {};
+                    importOptions.sourceTable = 'trips';
+                    importOptions.sourceConnectionString = path.join(__dirname, "data", "ttc.db");
+                    importOptions.targetTable = 'trips';
+                    refactor.importFromDatabase(importOptions);
+                }
+                catch (err) {
+                    console.error(err);
+                }
+                finally {
+                    done();
+                }
+            });
         });
     });
 });

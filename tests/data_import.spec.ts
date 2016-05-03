@@ -52,26 +52,26 @@ describe('SQLite extensions: Flexilite EAV', ()=>
 
     it('import TTC.trips to memory', (done)=>
     {
-        // Sync(()=>
-        // {
-        try
+        Sync(()=>
         {
-            let importOptions = {} as IImportDatabaseOptions;
-            importOptions.sourceTable = 'trips';
-            importOptions.sourceConnectionString = path.join(__dirname, "data", "ttc.db");
+            try
+            {
+                let importOptions = {} as IImportDatabaseOptions;
+                importOptions.sourceTable = 'trips';
+                importOptions.sourceConnectionString = path.join(__dirname, "data", "ttc.db");
 
-            importOptions.targetTable = 'trips';
+                importOptions.targetTable = 'trips';
 
-            refactor.importFromDatabase(importOptions);
-        }
-        catch (err)
-        {
-            console.error(err);
-        }
-        finally
-        {
-            done();
-        }
-        // });
+                refactor.importFromDatabase(importOptions);
+            }
+            catch (err)
+            {
+                console.error(err);
+            }
+            finally
+            {
+                done();
+            }
+        });
     });
 });

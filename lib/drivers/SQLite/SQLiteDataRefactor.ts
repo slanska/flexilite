@@ -21,130 +21,130 @@ export class SQLiteDataRefactor implements IDBRefactory
      */
     importFromDatabase(options:IImportDatabaseOptions):void
     {
+
         var self = this;
-        Sync(()=>
+
+        let srcDB = self.DB;
+        let srcTbl = options.sourceTable || options.targetTable;
+        if (options.sourceConnectionString)
         {
-            let srcDB = self.DB;
-            let srcTbl = options.sourceTable || options.targetTable;
-            if (options.sourceConnectionString)
+            srcDB = new sqlite3.Database(options.sourceConnectionString, sqlite3.OPEN_READONLY);
+            if (_.isEmpty(srcTbl))
+                srcTbl = options.targetTable;
+        }
+        else
+        {
+            if (srcTbl === options.targetTable)
+                throw new Error(`Source and target tables cannot be the same`);
+        }
+
+        // load metadata for source table
+        let reng = new ReverseEngine(srcDB);
+        let srcMeta = reng.loadSchemaFromDatabase();
+        let srcTableMeta = srcMeta[srcTbl];
+
+        // Check if target flexitable exists
+        let clsDef = self.getClassDefByName(options.targetTable);
+        if (!clsDef)
+        {
+            let schemaHlp = new SchemaHelper(self.DB, srcTableMeta, options.columnNameMap);
+            schemaHlp.getNameID = self.getNameID.bind(self);
+            schemaHlp.getClassIDbyName = self.getClassIDbyName.bind(self);
+            schemaHlp.convertFromNodeOrmSync();
+            clsDef = {} as IFlexiClass;
+            clsDef.NameID = self.getNameByValue(options.targetTable).NameID;
+            clsDef.Data = {properties: schemaHlp.targetClassProps};
+
+            self.createClass(options.targetTable, clsDef.Data);
+        }
+
+        let batchCnt = 0;
+        let sql = `select * from [${srcTbl}]`;
+        if (!_.isEmpty(options.whereClause))
+            sql += ` where ${options.whereClause}`;
+        sql += `;`;
+
+        let insSQL = '';
+        let insSQLValues = '';
+        let insStmt = null;
+        try
+        {
+            srcDB.each(sql, (error, row)=>
             {
-                srcDB = new sqlite3.Database(options.sourceConnectionString, sqlite3.OPEN_READONLY);
-                if (_.isEmpty(srcTbl))
-                    srcTbl = options.targetTable;
-            }
-            else
-            {
-                if (srcTbl === options.targetTable)
-                    throw new Error(`Source and target tables cannot be the same`);
-            }
-
-            // load metadata for source table
-            let reng = new ReverseEngine(srcDB);
-            let srcMeta = reng.loadSchemaFromDatabase();
-            let srcTableMeta = srcMeta[srcTbl];
-
-            // Check if target flexitable exists
-            let clsDef = self.getClassDefByName(options.targetTable);
-            if (!clsDef)
-            {
-                let schemaHlp = new SchemaHelper(self.DB, srcTableMeta, options.columnNameMap);
-
-                schemaHlp.convertFromNodeOrmSync();
-                clsDef = {} as IFlexiClass;
-                clsDef.NameID = self.getNameByValue(options.targetTable).NameID;
-                clsDef.Data = {properties: schemaHlp.targetClassProps};
-
-                self.createClass(options.targetTable, clsDef.Data);
-            }
-
-            let batchCnt = 0;
-            let sql = `select * from [${srcTbl}]`;
-            if (!_.isEmpty(options.whereClause))
-                sql += ` where ${options.whereClause}`;
-            sql += `;`;
-
-            let insSQL = '';
-            let insSQLValues = '';
-            let insStmt = null;
-            try
-            {
-                srcDB.each(sql, (error, row)=>
+                if (error)
                 {
-                    if (error)
+                    if (batchCnt !== 0)
+                        srcDB.exec.sync(srcDB, `rollback to savepoint aaa;`);
+                    throw error;
+                }
+
+                if (batchCnt === 0)
+                {
+                    srcDB.exec.sync(srcDB, `savepoint aaa;`);
+                }
+
+                var newObj = {};
+
+                if (!insStmt)
+                {
+                    insSQL = `insert into [${options.targetTable}] (`;
+                    insSQLValues = `) values (`
+                }
+                let fldNo = 0;
+                _.each(row, (fld, fldName:string)=>
+                {
+                    if (options.columnNameMap)
                     {
-                        if (batchCnt !== 0)
-                            srcDB.exec.sync(srcDB, `rollback to savepoint aaa;`);
-                        throw error;
+                        fldName = options.columnNameMap[fldName];
+                        if (_.isEmpty(fldName))
+                            return;
                     }
 
-                    if (batchCnt === 0)
+                    let paramName = `${++fldNo}`;
+                    newObj[paramName] = fld;
+                    if (!_.isEmpty(insSQLValues))
                     {
-                        srcDB.exec.sync(srcDB, `savepoint aaa;`);
+                        insSQLValues += ', ';
+                        insSQL += `,`;
                     }
-
-                    var newObj = {};
-
-                    if (!insStmt)
-                    {
-                        insSQL = `insert into [${options.targetTable}] (`;
-                        insSQLValues = `) values (`
-                    }
-                    let fldNo = 0;
-                    _.each(row, (fld, fldName:string)=>
-                    {
-                        if (options.columnNameMap)
-                        {
-                            fldName = options.columnNameMap[fldName];
-                            if (_.isEmpty(fldName))
-                                return;
-                        }
-
-                        let paramName = `${++fldNo}`;
-                        newObj[paramName] = fld;
-                        if (!_.isEmpty(insSQLValues))
-                        {
-                            insSQLValues += ', ';
-                            insSQL += `,`;
-                        }
-                        insSQLValues += paramName;
-                        insSQL += `[${fldName}]`;
-                    });
-
-                    if (!insStmt)
-                    {
-                        insSQL += insSQLValues + ');';
-                        insStmt = self.DB.prepare(insSQL);
-                    }
-
-                    insStmt.run.sync(insStmt, newObj);
-
-                    batchCnt++;
-
-                    if (batchCnt >= 10000)
-                    {
-                        srcDB.exec.sync(srcDB, `release aaa;`);
-                        batchCnt = 0;
-                    }
+                    insSQLValues += paramName;
+                    insSQL += `[${fldName}]`;
                 });
-            }
-            catch (err)
-            {
-                if (batchCnt !== 0)
-                    srcDB.exec.sync(srcDB, `rollback to savepoint aaa;`);
-                throw err;
-            }
 
-            if (batchCnt > 0)
-            {
-                srcDB.exec.sync(srcDB, `release aaa;`);
-            }
+                if (!insStmt)
+                {
+                    insSQL += insSQLValues + ');';
+                    insStmt = self.DB.prepare(insSQL);
+                }
 
-            // Generate select SQL
-            _.forEach(srcTableMeta.properties, (srcProp, srcPropName)=>
-            {
-                let targetPropName = srcPropName;
+                insStmt.run.sync(insStmt, newObj);
 
+                batchCnt++;
+
+                if (batchCnt >= 10000)
+                {
+                    srcDB.exec.sync(srcDB, `release aaa;`);
+                    batchCnt = 0;
+                }
             });
+        }
+        catch (err)
+        {
+            if (batchCnt !== 0)
+                srcDB.exec.sync(srcDB, `rollback to savepoint aaa;`);
+            throw err;
+        }
+
+        if (batchCnt > 0)
+        {
+            srcDB.exec.sync(srcDB, `release aaa;`);
+        }
+
+        // Generate select SQL
+        _.forEach(srcTableMeta.properties, (srcProp, srcPropName)=>
+        {
+            let targetPropName = srcPropName;
+
         });
     }
 
@@ -187,6 +187,15 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
 
      */
+    getClassIDbyName(className:string):number
+    {
+        var cls = this.getClassDefByName(className);
+        return cls.ClassID;
+    }
+
+    /*
+
+     */
     getClassDefByID(classID:number):IFlexiClass
     {
         var self = this;
@@ -200,8 +209,8 @@ export class SQLiteDataRefactor implements IDBRefactory
      */
     private getNameByValue(name:string):IFlexiName
     {
-        var rows = this.DB.run.sync(this.DB, `insert or ignore into [.names] ([Value]) values ($name);
-            select * from [.names] where [Value] = $name limit 1`, {$name: name});
+        this.DB.run.sync(this.DB, `insert or ignore into [.names] ([Value]) values ($name);`, {$name: name});
+        var rows = this.DB.all.sync(this.DB, `select * from [.names] where [Value] = $name limit 1;`, {$name: name});
         return rows[0] as IFlexiName;
     }
 
@@ -215,6 +224,15 @@ export class SQLiteDataRefactor implements IDBRefactory
             return rows[0] as IFlexiName;
 
         return null;
+    }
+
+    /*
+
+     */
+    private getNameID(name:string):number
+    {
+        var nm = this.getNameByValue(name);
+        return nm.NameID;
     }
 
     private _lastActionReport:string = '';
@@ -272,6 +290,8 @@ export class SQLiteDataRefactor implements IDBRefactory
         // TODO
     }
 
+    // TODO validateClassName
+
     /*
      Create new Flexilite class using @name and @classDef as class definition
      */
@@ -286,7 +306,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         else
         {
             let jsonClsDef = JSON.stringify(classDef);
-            self.DB.exec.sync(self.DB, `create table [${name}] using 'flexi_eav' ('${jsonClsDef}');`);
+            self.DB.exec.sync(self.DB, `create virtual table [${name}] using 'flexi_eav' ('${jsonClsDef}');`);
         }
     }
 

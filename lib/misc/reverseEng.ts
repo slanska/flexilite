@@ -45,6 +45,14 @@ interface SQLiteIndexInfo
     name:string;
 }
 
+interface SQLiteTableInfo
+{
+    name:string;
+    type:string
+    tbl_name:string;
+    root_page:number;
+}
+
 interface SQLiteIndexXInfo extends SQLiteIndexInfo
 {
     unique:number | boolean;
@@ -183,82 +191,75 @@ export class ReverseEngine
     public loadSchemaFromDatabase():{[name:string]:ISyncOptions}
     {
         var self = this;
-        try
+        var result:{[name:string]:ISyncOptions} = {};
+
+        var tables = self.db.all.sync(self.db,
+            `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`);
+
+        _.forEach(tables, (item:any) =>
         {
-            var result:{[name:string]:ISyncOptions} = {};
+            var modelDef = {} as ISyncOptions;
+            modelDef.properties = {};
+            modelDef.allProperties = {};
 
-            var tables = self.db.all.sync(self.db,
-                `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`);
+            result[item.name] = modelDef;
 
-            _.forEach(tables, (item:any) =>
+            let col_sql = `pragma table_info ('${item.name}');`;
+            var cols = self.db.all.sync(self.db, col_sql) as SQLiteColumn[];
+            _.forEach(cols, (col:SQLiteColumn) =>
             {
-                var modelDef = {} as ISyncOptions;
+                var prop = ReverseEngine.sqliteTypeToOrmType(col.type) as IORMPropertyDef;
+                prop.indexed = col.pk !== 0;
+                prop.name = col.name;
 
-                result[item.name] = modelDef;
+                prop.defaultValue = col.dflt_value;
+                prop.mapsTo = col.name;
+                prop.unique = col.pk !== 0;
 
-                let col_sql = `pragma table_info ('${item.name}');`;
-                var cols = self.db.all.sync(self.db, col_sql) as SQLiteColumn[];
-                _.forEach(cols, (col:SQLiteColumn) =>
+                // Set primary key
+                if (col.pk && col.pk !== 0)
                 {
-                    var prop = ReverseEngine.sqliteTypeToOrmType(col.type) as IORMPropertyDef;
-                    prop.indexed = col.pk !== 0;
-                    prop.name = col.name;
+                    if (!modelDef.id)
+                        modelDef.id = [];
+                    modelDef.id[col.pk - 1] = col.name;
+                }
 
-                    prop.defaultValue = col.dflt_value;
-                    prop.mapsTo = col.name;
-                    prop.unique = col.pk !== 0;
+                modelDef.properties[prop.name] = prop;
+                modelDef.allProperties[prop.name] = prop;
+            });
 
-                    // Set primary key
-                    if (col.pk && col.pk !== 0)
-                    {
-                        if (!modelDef.id)
-                            modelDef.id = [];
-                        modelDef.id[col.pk - 1] = col.name;
-                    }
-
-                    if (!modelDef.properties)
-                        modelDef.properties = {};
-                    modelDef.properties[prop.name] = prop;
-
-                });
-
-                var indexList = self.db.all.sync(self.db, `pragma index_list ('${item.name}');`);
-                _.forEach(indexList, (idxItem:SQLiteIndexXInfo) =>
+            var indexList = self.db.all.sync(self.db, `pragma index_list ('${item.name}');`);
+            _.forEach(indexList, (idxItem:SQLiteIndexXInfo) =>
+            {
+                var indexCols = (self.db.all as any).sync(self.db, `pragma index_xinfo ('${idxItem.name}');`);
+                _.forEach(indexCols, (idxCol:SQLiteIndexColumn) =>
                 {
-                    var indexCols = (self.db.all as any).sync(self.db, `pragma index_xinfo ('${idxItem.name}');`);
-                    _.forEach(indexCols, (idxCol:SQLiteIndexColumn) =>
-                    {
 
-                    });
-                });
-
-                let fk_sql = `pragma foreign_key_list ('${item.name}');`;
-                var fkeys = self.db.all.sync(self.db, fk_sql);
-                _.forEach(fkeys, (item:SQLiteForeignKeyInfo) =>
-                {
-                    var oneAssoc = {} as IHasOneAssociation;
-                    oneAssoc.field = {name: {name: item.from}};
-                    oneAssoc.name = item.table;
-
-                    // Based on update and delete constraints, we can make wide
-                    // guess about how deep relation is between 2 tables.
-                    // For cascade delete we assume that referenced table belongs to
-                    // the parent table
-
-                    if (!modelDef.one_associations)
-                        modelDef.one_associations = [];
-                    modelDef.one_associations.push(oneAssoc);
-
-                    // TODO Process many-to-many associations
-                    var manyAssoc = {} as IHasManyAssociation;
                 });
             });
-        }
-        catch (err)
-        {
-            console.error(err);
-            throw err;
-        }
+
+            let fk_sql = `pragma foreign_key_list ('${item.name}');`;
+            var fkeys = self.db.all.sync(self.db, fk_sql);
+            _.forEach(fkeys, (item:SQLiteForeignKeyInfo) =>
+            {
+                var oneAssoc = {} as IHasOneAssociation;
+                oneAssoc.field = {name: {name: item.from}};
+                oneAssoc.name = item.table;
+
+                // Based on update and delete constraints, we can make wide
+                // guess about how deep relation is between 2 tables.
+                // For cascade delete we assume that referenced table belongs to
+                // the parent table
+
+                if (!modelDef.one_associations)
+                    modelDef.one_associations = [];
+                modelDef.one_associations.push(oneAssoc);
+
+                // TODO Process many-to-many associations
+                var manyAssoc = {} as IHasManyAssociation;
+            });
+        });
+
 
         return result;
     }
