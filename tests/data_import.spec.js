@@ -44,14 +44,18 @@
                 done();
             });
         });
-        it('import TTC.trips to memory', function (done) {
+        it('import TTC.trips', function (done) {
             Sync(function () {
                 try {
+                    var cnt = db.all.sync(db, "select count(*) from [trips];");
+                    console.log("\nget trip count: " + cnt);
                     var importOptions = {};
                     importOptions.sourceTable = 'trips';
                     importOptions.sourceConnectionString = path.join(__dirname, "data", "ttc.db");
                     importOptions.targetTable = 'trips';
                     refactor.importFromDatabase(importOptions);
+                    var cnt = db.all.sync(db, "select count(*) from [trips];");
+                    console.log("\nget trip count: " + cnt);
                 }
                 catch (err) {
                     console.error(err);
@@ -59,6 +63,13 @@
                 finally {
                     done();
                 }
+            });
+        });
+        it('get trip count', function (done) {
+            Sync(function () {
+                var cnt = db.all.sync(db, "select count(*) from [trips];");
+                console.log("\nget trip count: " + cnt);
+                done();
             });
         });
     });

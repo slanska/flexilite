@@ -52,12 +52,15 @@ describe('SQLite extensions: Flexilite EAV', ()=>
         });
     });
 
-    it('import TTC.trips to memory', (done)=>
+    it('import TTC.trips', (done)=>
     {
         Sync(()=>
         {
             try
             {
+                var cnt = db.all.sync(db, `select count(*) from [trips];`);
+                console.log(`\nget trip count: ${cnt}`);
+
                 let importOptions = {} as IImportDatabaseOptions;
                 importOptions.sourceTable = 'trips';
                 importOptions.sourceConnectionString = path.join(__dirname, "data", "ttc.db");
@@ -65,6 +68,10 @@ describe('SQLite extensions: Flexilite EAV', ()=>
                 importOptions.targetTable = 'trips';
 
                 refactor.importFromDatabase(importOptions);
+
+                var cnt = db.all.sync(db, `select count(*) from [trips];`);
+                console.log(`\nget trip count: ${cnt}`);
+
             }
             catch (err)
             {
@@ -74,6 +81,16 @@ describe('SQLite extensions: Flexilite EAV', ()=>
             {
                 done();
             }
+        });
+    });
+
+    it('get trip count', (done)=>
+    {
+        Sync(()=>
+        {
+            var cnt = db.all.sync(db, `select count(*) from [trips];`);
+            console.log(`\nget trip count: ${cnt}`);
+            done();
         });
     });
 });

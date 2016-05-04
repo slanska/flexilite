@@ -81,7 +81,7 @@ export class SQLiteDataRefactor implements IDBRefactory
                             {
                                 if (inTrn)
                                 {
-                                    srcDB.exec(`rollback to savepoint aaa;`);
+                                    // srcDB.exec(`rollback to savepoint aaa;`);
                                     inTrn = false;
                                 }
                                 callback(error, nProcessed);
@@ -91,7 +91,7 @@ export class SQLiteDataRefactor implements IDBRefactory
 
                             if (!inTrn)
                             {
-                                srcDB.exec(`savepoint aaa;`);
+                                // srcDB.exec(`savepoint aaa;`);
                                 inTrn = true;
                             }
 
@@ -137,7 +137,7 @@ export class SQLiteDataRefactor implements IDBRefactory
 
                             if (nProcessed % 10000 === 0 && inTrn)
                             {
-                                srcDB.exec(`release aaa;`);
+                                // srcDB.exec(`release aaa;`);
                                 inTrn = false;
                             }
                         },
@@ -146,10 +146,10 @@ export class SQLiteDataRefactor implements IDBRefactory
                             insStmt.finalize();
                             if (inTrn)
                             {
-                                if (err)
-                                    srcDB.exec(`rollback to savepoint aaa;`);
-                                else
-                                    srcDB.exec(`release aaa;`);
+                                // if (err)
+                                //     srcDB.exec(`rollback to savepoint aaa;`);
+                                // else
+                                //     srcDB.exec(`release aaa;`);
                             }
 
                             callback(err, count);
