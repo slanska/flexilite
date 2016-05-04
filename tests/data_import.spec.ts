@@ -24,7 +24,8 @@ describe('SQLite extensions: Flexilite EAV', ()=>
     {
         Sync(()=>
         {
-            db = helper.openMemoryDB();
+            db = helper.openDB('test_ttc.db');
+            // db = helper.openMemoryDB();
             refactor = new SQLiteDataRefactor(db);
             done();
         });
@@ -34,7 +35,8 @@ describe('SQLite extensions: Flexilite EAV', ()=>
     {
         Sync(()=>
         {
-            db.close.sync(db);
+            if (db)
+                db.close.sync(db);
             done();
         });
     });

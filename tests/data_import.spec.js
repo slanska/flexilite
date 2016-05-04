@@ -23,14 +23,16 @@
         var refactor;
         before(function (done) {
             Sync(function () {
-                db = helper.openMemoryDB();
+                db = helper.openDB('test_ttc.db');
+                // db = helper.openMemoryDB();
                 refactor = new SQLiteDataRefactor_1.SQLiteDataRefactor(db);
                 done();
             });
         });
         after(function (done) {
             Sync(function () {
-                db.close.sync(db);
+                if (db)
+                    db.close.sync(db);
                 done();
             });
         });

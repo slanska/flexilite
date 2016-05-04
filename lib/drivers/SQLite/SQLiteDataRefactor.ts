@@ -58,7 +58,7 @@ export class SQLiteDataRefactor implements IDBRefactory
             self.createClass(options.targetTable, clsDef.Data);
         }
 
-        let batchCnt = 0;
+        let nProcessed = 0;
         let selQry = `select * from [${srcTbl}]`;
         if (!_.isEmpty(options.whereClause))
             selQry += ` where ${options.whereClause}`;
@@ -73,37 +73,26 @@ export class SQLiteDataRefactor implements IDBRefactory
             {
                 self.DB.serialize(()=>
                 {
+                    let inTrn = false;
                     srcDB.each(selQry,
                         (error, row)=>
                         {
-                            //console.log(row);
-                        },
-                        (err, count)=>
-                        {
-                            console.log(count);
-                            callback(err, count);
-                        });
-                });
-            };
-
-            let rowHandler = function (callback:(error:Error)=>void)
-            {
-                srcDB.each(selQry, (error, row)=>
-                    {
-                        try
-                        {
                             if (error)
                             {
-                                if (batchCnt !== 0)
-                                    srcDB.exec.sync(srcDB, `rollback to savepoint aaa;`);
-                                callback(error);
+                                if (inTrn)
+                                {
+                                    srcDB.exec(`rollback to savepoint aaa;`);
+                                    inTrn = false;
+                                }
+                                callback(error, nProcessed);
                             }
 
-                            batchCnt++;
+                            nProcessed++;
 
-                            if (batchCnt === 1)
+                            if (!inTrn)
                             {
-                                srcDB.exec.sync(srcDB, `savepoint aaa;`);
+                                srcDB.exec(`savepoint aaa;`);
+                                inTrn = true;
                             }
 
                             var newObj = {};
@@ -144,38 +133,31 @@ export class SQLiteDataRefactor implements IDBRefactory
                                 insStmt = self.DB.prepare(insSQL);
                             }
 
-                            insStmt.run.sync(insStmt, newObj);
+                            insStmt.run(newObj);
 
-                            if (batchCnt >= 10000)
+                            if (nProcessed % 10000 === 0 && inTrn)
                             {
-                                srcDB.exec.sync(srcDB, `release aaa;`);
-                                batchCnt = 0;
+                                srcDB.exec(`release aaa;`);
+                                inTrn = false;
                             }
-                        }
-                        catch (err)
+                        },
+                        (err, count)=>
                         {
-                            console.error(err);
-                        }
-                    },
+                            insStmt.finalize();
+                            if (inTrn)
+                            {
+                                if (err)
+                                    srcDB.exec(`rollback to savepoint aaa;`);
+                                else
+                                    srcDB.exec(`release aaa;`);
+                            }
 
-                    (error:Error, rowCount:number)=>
-                    {
-                        if (batchCnt > 0)
-                        {
-                            srcDB.exec.sync(srcDB, `release aaa;`);
-                        }
-                    });
+                            callback(err, count);
+                        });
+                });
             };
 
             let rslt = runner.sync(self);
-            console.log(`Done`);
-            // let result = rowHandler.sync(self);
-        }
-        catch (err)
-        {
-            if (batchCnt !== 0)
-                srcDB.exec.sync(srcDB, `rollback to savepoint aaa;`);
-            throw err;
         }
         finally
         {

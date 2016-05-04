@@ -44,7 +44,7 @@ function initOpenedDB(db:sqlite3.Database)
 
     db["CurrentUserID"] = currentUserID;
     db.run.sync(db, `select var('CurrentUserID', ?);`, currentUserID);
-     return db;
+    return db;
 
 }
 
@@ -56,7 +56,7 @@ function initOpenedDB(db:sqlite3.Database)
 export function openDB(dbFileName:string):sqlite3.Database
 {
     var fname = path.join(__dirname, "data", dbFileName);
-    var result = new sqlite3.Database(fname);
+    var result = new sqlite3.Database(fname, sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE);
     return initOpenedDB(result);
 }
 
