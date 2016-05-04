@@ -45,9 +45,6 @@ describe('SQLite extensions: Flexilite EAV', ()=>
     {
         Sync(()=>
         {
-            // let rows = db.all.sync(db, `select * from Person where AddressLine1 like '%camp%'`);
-            // let rows = db.all.sync(db, `select * from Person where city match 'south*' and email match 'kristi*'`);
-            // console.log(rows.length);
             done();
         });
     });

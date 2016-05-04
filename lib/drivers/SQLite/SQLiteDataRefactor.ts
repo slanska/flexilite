@@ -112,7 +112,7 @@ export class SQLiteDataRefactor implements IDBRefactory
                                         return;
                                 }
 
-                                let paramName = `${++fldNo}`;
+                                let paramName = `$${++fldNo}`;
                                 newObj[paramName] = fld;
 
                                 if (!insStmt)
