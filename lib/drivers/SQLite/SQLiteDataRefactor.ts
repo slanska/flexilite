@@ -59,74 +59,117 @@ export class SQLiteDataRefactor implements IDBRefactory
         }
 
         let batchCnt = 0;
-        let sql = `select * from [${srcTbl}]`;
+        let selQry = `select * from [${srcTbl}]`;
         if (!_.isEmpty(options.whereClause))
-            sql += ` where ${options.whereClause}`;
-        sql += `;`;
+            selQry += ` where ${options.whereClause}`;
+        selQry += `;`;
 
         let insSQL = '';
         let insSQLValues = '';
         let insStmt = null;
         try
         {
-            srcDB.each(sql, (error, row)=>
+            let runner = function (callback:(error:Error, count:number)=>void)
             {
-                if (error)
+                self.DB.serialize(()=>
                 {
-                    if (batchCnt !== 0)
-                        srcDB.exec.sync(srcDB, `rollback to savepoint aaa;`);
-                    throw error;
-                }
-
-                if (batchCnt === 0)
-                {
-                    srcDB.exec.sync(srcDB, `savepoint aaa;`);
-                }
-
-                var newObj = {};
-
-                if (!insStmt)
-                {
-                    insSQL = `insert into [${options.targetTable}] (`;
-                    insSQLValues = `) values (`
-                }
-                let fldNo = 0;
-                _.each(row, (fld, fldName:string)=>
-                {
-                    if (options.columnNameMap)
-                    {
-                        fldName = options.columnNameMap[fldName];
-                        if (_.isEmpty(fldName))
-                            return;
-                    }
-
-                    let paramName = `${++fldNo}`;
-                    newObj[paramName] = fld;
-                    if (!_.isEmpty(insSQLValues))
-                    {
-                        insSQLValues += ', ';
-                        insSQL += `,`;
-                    }
-                    insSQLValues += paramName;
-                    insSQL += `[${fldName}]`;
+                    srcDB.each(selQry,
+                        (error, row)=>
+                        {
+                            //console.log(row);
+                        },
+                        (err, count)=>
+                        {
+                            console.log(count);
+                            callback(err, count);
+                        });
                 });
+            };
 
-                if (!insStmt)
-                {
-                    insSQL += insSQLValues + ');';
-                    insStmt = self.DB.prepare(insSQL);
-                }
+            let rowHandler = function (callback:(error:Error)=>void)
+            {
+                srcDB.each(selQry, (error, row)=>
+                    {
+                        try
+                        {
+                            if (error)
+                            {
+                                if (batchCnt !== 0)
+                                    srcDB.exec.sync(srcDB, `rollback to savepoint aaa;`);
+                                callback(error);
+                            }
 
-                insStmt.run.sync(insStmt, newObj);
+                            batchCnt++;
 
-                batchCnt++;
+                            if (batchCnt === 1)
+                            {
+                                srcDB.exec.sync(srcDB, `savepoint aaa;`);
+                            }
 
-                if (batchCnt >= 10000)
-                {
-                    srcDB.exec.sync(srcDB, `release aaa;`);
-                    batchCnt = 0;
-                }
-            });
+                            var newObj = {};
+
+                            if (!insStmt)
+                            {
+                                insSQL = `insert into [${options.targetTable}] (`;
+                                insSQLValues = `) values (`
+                            }
+                            let fldNo = 0;
+                            _.each(row, (fld, fldName:string)=>
+                            {
+                                if (options.columnNameMap)
+                                {
+                                    fldName = options.columnNameMap[fldName];
+                                    if (_.isEmpty(fldName))
+                                        return;
+                                }
+
+                                let paramName = `${++fldNo}`;
+                                newObj[paramName] = fld;
+
+                                if (!insStmt)
+                                {
+                                    if (fldNo > 1)
+                                    {
+                                        insSQLValues += ', ';
+                                        insSQL += `,`;
+                                    }
+                                    insSQLValues += paramName;
+                                    insSQL += `[${fldName}]`;
+                                }
+                            });
+
+                            if (!insStmt)
+                            {
+                                insSQL += insSQLValues + ');';
+                                insStmt = self.DB.prepare(insSQL);
+                            }
+
+                            insStmt.run.sync(insStmt, newObj);
+
+                            if (batchCnt >= 10000)
+                            {
+                                srcDB.exec.sync(srcDB, `release aaa;`);
+                                batchCnt = 0;
+                            }
+                        }
+                        catch (err)
+                        {
+                            console.error(err);
+                        }
+                    },
+
+                    (error:Error, rowCount:number)=>
+                    {
+                        if (batchCnt > 0)
+                        {
+                            srcDB.exec.sync(srcDB, `release aaa;`);
+                        }
+                    });
+            };
+
+            let rslt = runner.sync(self);
+            console.log(`Done`);
+            // let result = rowHandler.sync(self);
         }
         catch (err)
         {
@@ -134,18 +177,10 @@ export class SQLiteDataRefactor implements IDBRefactory
                 srcDB.exec.sync(srcDB, `rollback to savepoint aaa;`);
             throw err;
         }
-
-        if (batchCnt > 0)
+        finally
         {
-            srcDB.exec.sync(srcDB, `release aaa;`);
+            console.log(`Done`);
         }
-
-        // Generate select SQL
-        _.forEach(srcTableMeta.properties, (srcProp, srcPropName)=>
-        {
-            let targetPropName = srcPropName;
-
-        });
     }
 
     constructor(private DB:sqlite3.Database)
