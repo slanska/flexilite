@@ -81,7 +81,7 @@ export class SQLiteDataRefactor implements IDBRefactory
                             {
                                 if (inTrn)
                                 {
-                                    // srcDB.exec(`rollback to savepoint aaa;`);
+                                    srcDB.exec(`rollback to savepoint aaa;`);
                                     inTrn = false;
                                 }
                                 callback(error, nProcessed);
@@ -91,7 +91,7 @@ export class SQLiteDataRefactor implements IDBRefactory
 
                             if (!inTrn)
                             {
-                                // srcDB.exec(`savepoint aaa;`);
+                                srcDB.exec(`savepoint aaa;`);
                                 inTrn = true;
                             }
 
@@ -137,7 +137,7 @@ export class SQLiteDataRefactor implements IDBRefactory
 
                             if (nProcessed % 10000 === 0 && inTrn)
                             {
-                                // srcDB.exec(`release aaa;`);
+                                srcDB.exec(`release aaa;`);
                                 inTrn = false;
                             }
                         },
@@ -146,10 +146,10 @@ export class SQLiteDataRefactor implements IDBRefactory
                             insStmt.finalize();
                             if (inTrn)
                             {
-                                // if (err)
-                                //     srcDB.exec(`rollback to savepoint aaa;`);
-                                // else
-                                //     srcDB.exec(`release aaa;`);
+                                if (err)
+                                    srcDB.exec(`rollback to savepoint aaa;`);
+                                else
+                                    srcDB.exec(`release aaa;`);
                             }
 
                             callback(err, count);
@@ -617,17 +617,17 @@ export class SQLiteDataRefactor implements IDBRefactory
             np.ctlv = 0;
             if (p.unique)
             {
-                np.ctlv |= VALUE_CONTROL_FLAGS.UNIQUE_INDEX;
+                np.ctlv |= Value_Control_Flags.CTLV_UNIQUE_INDEX;
             }
             else
                 if (p.indexed)
                 {
-                    np.ctlv |= VALUE_CONTROL_FLAGS.INDEX;
+                    np.ctlv |= Value_Control_Flags.CTLV_INDEX;
                 }
 
             if (p.fastTextSearch)
             {
-                np.ctlv |= VALUE_CONTROL_FLAGS.FULL_TEXT_INDEX;
+                np.ctlv |= Value_Control_Flags.CTLV_FULL_TEXT_INDEX;
             }
             vars.newProps[propName] = np;
 

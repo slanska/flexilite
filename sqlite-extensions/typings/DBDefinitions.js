@@ -8,5 +8,4 @@
 ;
 ;
 ;
-;
 //# sourceMappingURL=DBDefinitions.js.map

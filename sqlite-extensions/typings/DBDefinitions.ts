@@ -102,23 +102,6 @@ declare const enum OBJECT_CONTROL_FLAGS
  32 - range data
  64 - DON'T track changes
  */
-declare const enum VALUE_CONTROL_FLAGS
-{
-    NONE = 0,
-    INDEX = 1,
-    REFERENCE = 2,
-    REFERENCE_OWN = 4,
-    REFERENCE_OWN_REVERSE = 6,
-    REFERENCE_OWN_MUTUAL = 8,
-    REFERENCE_DEPENDENT_MASTER = 10,
-    REFERENCE_DEPENDENT_LINK = 12,
-    REFERENCE_DEPENDENT_BOTH = 14,
-    FULL_TEXT_INDEX = 16,
-    RANGE_INDEX = 32,
-    NO_TRACK_CHANGES = 64,
-    UNIQUE_INDEX = 128
-};
-
 declare const enum Value_Control_Flags
 {
     CTLV_NONE = 0,

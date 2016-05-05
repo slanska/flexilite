@@ -32,7 +32,7 @@ interface IFlexiRefValue
     ObjectID:number;
     PropertyID:number;
     PropIndex:number;
-    ctlv:VALUE_CONTROL_FLAGS;
+    ctlv:Value_Control_Flags;
 
     /*
      Scalar value linked object ID
@@ -105,7 +105,7 @@ interface IFlexiClassProperty
     ClassID:number;
     NameID:NameID;
     Name?:string;
-    ctlv:VALUE_CONTROL_FLAGS;
+    ctlv:Value_Control_Flags;
     ColumnAssigned?:string;
 
     /*
