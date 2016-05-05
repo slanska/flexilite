@@ -3,8 +3,8 @@
 //
 
 #include <string.h>
-#include <printf.h>
 #include <assert.h>
+#include <stdio.h>
 #include "../../lib/sqlite/sqlite3ext.h"
 #include "../misc/json1.h"
 
@@ -345,7 +345,8 @@ static void sqlFlexiGetFunc(
 static void sqlFlexiGet_Destroy(void *userData)
 {
     struct flexi_prepared_statements *dataContext = userData;
-    for (int i = 0; i < SQL_STATEMENT_COUNT; i++)
+    int i;
+    for (i = 0; i < SQL_STATEMENT_COUNT; i++)
     {
         sqlite3_finalize(dataContext->statements[i]);
     }

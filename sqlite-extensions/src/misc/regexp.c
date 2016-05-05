@@ -58,8 +58,8 @@
 */
 #include <string.h>
 #include <stdlib.h>
-#include "sqlite3ext.h"
 #include "./regexp.h"
+#include "../../lib/sqlite/sqlite3ext.h"
 
 SQLITE_EXTENSION_INIT3
 

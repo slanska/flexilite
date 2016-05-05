@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 2.8)
 
 enable_testing()
 
@@ -36,7 +36,7 @@ find_package(zlib)
 
 project(sqlite_extensions)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=C99")
 
 set(EXT_FILES
         typings/DBDefinitions.h
