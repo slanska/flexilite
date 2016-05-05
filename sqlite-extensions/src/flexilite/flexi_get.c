@@ -3,7 +3,7 @@
 //
 
 #include <string.h>
-#include <printf.h>
+#include <stdio.h>
 #include <assert.h>
 #include "../../lib/sqlite/sqlite3ext.h"
 #include "../misc/json1.h"
