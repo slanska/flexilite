@@ -8,7 +8,7 @@
 import sqlite3 = require('sqlite3');
 import objectHash = require('object-hash');
 import {SchemaHelper, IShemaHelper} from '../../misc/SchemaHelper';
-var Sync = require('syncho');
+// var Sync = require('syncho');
 import {ReverseEngine} from '../../misc/reverseEng';
 import _ = require('lodash');
 
@@ -21,7 +21,6 @@ export class SQLiteDataRefactor implements IDBRefactory
      */
     importFromDatabase(options:IImportDatabaseOptions):void
     {
-
         var self = this;
 
         let srcDB = self.DB;
@@ -252,9 +251,9 @@ export class SQLiteDataRefactor implements IDBRefactory
         return nm.NameID;
     }
 
-    private _lastActionReport:string = '';
+    private _lastActionReport:ILastActionReport = [];
 
-    getLastActionReport():string
+    getLastActionReport():ILastActionReport
     {
         return this._lastActionReport;
     }
@@ -265,13 +264,13 @@ export class SQLiteDataRefactor implements IDBRefactory
      Note: property renaming is not supported here. alterClassProperty should be used for that.
 
      */
-    alterClass(classID:number, newClassDef?:IClassDefinition, newName?:string)
+    alterClass(className:string, newClassDef?:IClassDefinition, newName?:string)
     {
         var self = this;
         var classChanged = false;
 
         // Check if class exists
-        var classDef = self.getClassDefByID(classID);
+        var classDef = self.getClassDefByName(className);
         if (classDef)
         {
             if (newClassDef)
@@ -291,11 +290,11 @@ export class SQLiteDataRefactor implements IDBRefactory
                 {
                     let newNameId = self.getNameByValue(classDef.Name).NameID;
                     self.DB.run(`update [.classes] set NameID = $NameID where ClassID=$ClassID;`,
-                        {$NameID: newNameId, ClassID: classID});
+                        {$NameID: newNameId, ClassID: classDef.ClassID});
                 });
             }
         }
-        else throw new Error(`Flexilite.alterClass: class with ID '${classID}' not found`);
+        else throw new Error(`Flexilite.alterClass: class '${className}' not found`);
     }
 
     /*
@@ -318,7 +317,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         let clsDef = self.getClassDefByName(name);
         if (clsDef)
         {
-            self.alterClass(clsDef.ClassID, classDef);
+            self.alterClass(name, classDef);
         }
         else
         {
@@ -359,6 +358,9 @@ export class SQLiteDataRefactor implements IDBRefactory
     {
     }
 
+    /*
+
+     */
     removeDuplicatedObjects(classID:number, filter:IObjectFilter, compareFunction:string, keyProps:PropertyIDs, replaceTargetNulls:boolean)
     {
     }
@@ -371,8 +373,219 @@ export class SQLiteDataRefactor implements IDBRefactory
     {
     }
 
-    alterClassProperty(classID:number, propertyName:string, propDef:IClassProperty, newPropName?:string)
+    private getClassProperty(classID:number, propertyName:string):IFlexiClassProperty
     {
+        var self = this;
+        var rows = self.DB.all.sync(self.DB, `select * from [.class_properties] where ClassID = $ClassID 
+        and NameID = (select NameID from [.names] where Value = $PropName) limit 1;`,
+            {$ClassID: classID, $PropName: propertyName});
+        return rows.length === 1 ? rows[0] as IFlexiClassProperty : null;
+    }
+
+    /*
+
+     */
+    private doAlterRefProp(clsDef:IFlexiClass, propertyName:string, curPropDef:IClassProperty,
+                           propDef:IClassProperty)
+    {
+        var self = this;
+        var newRef = false;
+        var curRef = false;
+
+        // Determining scope of changes
+        if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
+        {
+            newRef = true;
+        }
+
+        if (curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
+        {
+            curRef = true;
+        }
+
+        if (newRef)
+        {
+            if (!propDef.reference)
+            {
+                throw new Error(`Reference definition is missing in ${clsDef.Name}.${propertyName}`);
+            }
+
+            if (propDef.reference.$className)
+            {
+                propDef.reference.classID = self.getNameByValue(propDef.reference.$className).NameID;
+                delete propDef.reference.$className;
+            }
+            let refClsDef = self.getClassDefByID(propDef.reference.classID);
+            if (!refClsDef)
+                throw new Error(`Referenced class (ID=${propDef.reference.classID}) not found`);
+
+            if (!curRef)
+            {
+                // TODO
+                /*
+                 if property was not reference property and now is, the following logic will be applied.
+                 existing value(s) will be treated as ID, Code, ObjectID (sequentially). If no match is found, property will stay
+                 unchanged and class will be marked with CTLO_HAS_INVALID_REFS.
+
+                 If property was reference and not is not, ID, Code, ObjectID of referenced object will be used for scalar value of
+                 property.
+
+                 If property was reference and reference definition has changed (pointing to another class, different
+                 reverseProperty): Flexilite will attempt to switch to another property
+                 */
+
+                if (propDef.reference.$reversePropertyName)
+                {
+                    propDef.reference.reversePropertyID = self.getNameByValue(propDef.reference.$reversePropertyName).NameID;
+                    delete propDef.reference.$reversePropertyName;
+                }
+
+                if (curRef && (curPropDef.reference.reversePropertyID != curPropDef.reference.reversePropertyID))
+                {
+                    let refClsDef = self.getClassDefByID(curPropDef.reference.classID);
+                    // self.doAlterClassProperty(refClsDef, propRow.Name, )
+                    // TODO Update reversed property definition
+                }
+            }
+        }
+        else
+            if (!curRef)
+            {
+            }
+    }
+
+    /*
+     Internal function for altering individual property. Applies changes directly to clsDef.properties
+     but does not start transaction, does not update [.class_properties]
+     */
+    private doAlterClassProperty(clsDef:IFlexiClass, propertyName:string, propDef:IClassProperty, newPropName?:string)
+    {
+        var self = this;
+
+        let propRow = _.find(clsDef.Properties,
+            (prop:IFlexiClassProperty, idx:number)=>
+            {
+                return prop.Name === propertyName
+            });
+
+        if (propDef.$renameTo)
+        {
+            newPropName = propDef.$renameTo;
+            delete propDef.$renameTo;
+        }
+
+        if (newPropName)
+        {
+            propRow.NameID = self.getNameByValue(newPropName).NameID;
+        }
+
+        var curPropDef = clsDef.Data.properties[propRow.PropertyID];
+
+        self.doAlterRefProp(clsDef, propertyName, curPropDef, propDef);
+
+        // If new property definition is reference, assume job is done
+        if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
+            return;
+
+        var newUnique = false;
+        var curUnique = false;
+        // Check if there are changes in indexing
+        if ((propDef.role && (PROPERTY_ROLE.PROP_ROLE_CODE || PROPERTY_ROLE.PROP_ROLE_ID) !== 0) || propDef.unique)
+        {
+            newUnique = true;
+        }
+
+        if ((curPropDef.role && (PROPERTY_ROLE.PROP_ROLE_CODE || PROPERTY_ROLE.PROP_ROLE_ID) !== 0) || curPropDef.unique)
+        {
+            curUnique = true;
+        }
+
+        if (newUnique !== curUnique)
+        {
+            // TODO
+            /*
+             if was unique and now not unique - do nothing. Just change property definition and all new updates
+             and inserts will not have CTLV_UNIQUE_INDEX flag. Also, for search index will not be used and linear
+             search will be performed.
+
+             if was not unique and now unique - need to check for possible duplicates. Only first occurences
+             of every value gets indexed with CTLV_UNIQUE_INDEX flag. Duplicates will
+             get CTLV_DUP_VALUE flag, and class property will have CTLV_DUP_VALUE flag set as well. Only first
+             occurence of every value will be indexed via CTLV_UNIQUE_INDEX (but will still get CTLV_DUP_VALUE flag)
+             Search will be performed using CTLV_UNIQUE_INDEX. When property with CTLV_DUP_VALUE gets changed,
+             all duplicated values are reviewed again for duplicates, and values that now become unique, will be
+             indexed via CTLV_UNIQUE_INDEX. Support for this is done through trigger on [.ref-values]
+             */
+            let sql = `select count(*) from [.ref-values] where [PropertyID] = $PropertyID 
+                and ObjectID = (select ObjectID from [.objects] where ClassID = $ClassID limit 1) group by Value;`;
+            let rows = self.DB.all.sync(self.DB, sql, {$PropertyID: propRow.PropertyID, $ClassID: clsDef.ClassID});
+        }
+        else
+            if (Boolean(propDef.indexed) != Boolean(curPropDef.indexed))
+            {
+                /*
+                 Indexed is treated after unique index constraint.
+                 result of this change is that flag CTLV_INDEXED is set or cleared. Index gets updated automatically
+                 as part of ctlv flags update
+                 */
+            }
+
+        if (propDef.fastTextSearch != curPropDef.fastTextSearch)
+        {
+            /*
+             Similarly to indexed flag, this attribute leads to update of CTLV_FULL_TEXT_INDEX flag.
+             If this flag is set, trigger on [.ref-values] will update/insert/delete [.full_text_data] table.
+             If this flag is cleared on property definition, no changes are applied to actual indexing, but
+             all new updates/inserts will be ignoring full text index update. When flag toggles from true to
+             false, property definition ctlv get flag CTLV_USED_FULL_TEXT_INDEX flag which indicates that
+             some property values might be indexed via full text index, and MATCH function will apply both
+             full text search and linear search
+             */
+        }
+
+        // TODO if property type changes to range*
+        /*
+         when new property type is one of PROP_TYPE_RANGE* values and existing property type is not
+         range type, the following logic gets applied.
+         if new property definition has $lowBoundPropertyName and/or $highBoundPropertyName,
+         these properties are used as source for low and high bound values respectively
+         if either $lowBoundPropertyName or $highBoundPropertyName is not specified, existing values
+         are treated as source values. If neither one is specified, existing properties are expected to be
+         in one of the following formats: 'L H' 'L;H' 'L:H' 'L..H' 'L...H' 'L,H' 'L-H'. These formats applied
+         one after another, until matching format is found. Note that some formats place limitations on the way what
+         values can be stored ('L,H' 'L-H')
+         For objects where none of those formats can be applied, flag CTLO_HAS_INVALID_DATA will be set and their
+         existing value and type will not change
+
+         If property definition has flag CTLV_RANGE_INDEX_* (A to D), those values will automatically indexed in
+         [.range-data] table for fast range lookup
+         */
+
+        // TODO Validate
+        /*
+         when any property rules change, Flexilite will scan existing property values and validate values for matching
+         to the new rules. If at least one invalid object is found, property definition will
+         get flag CTLV_HAS_INVALID_DATA. No updates to existing objects is performed. There is special API to query invalid
+         objects and optionally mark them with CTLV_HAS_INVALID_DATA and CTLO_HAS_INVALID_DATA flags.
+         */
+
+    }
+
+    /*
+     Alters single class property definition
+     */
+    alterClassProperty(className:string, propertyName:string, propDef:IClassProperty, newPropName ?:string)
+    {
+        var self = this;
+        self._lastActionReport = [];
+        let clsDef = self.getClassDefByName(className);
+        self.doAlterClassProperty(clsDef, propertyName, propDef, newPropName);
+    }
+
+    getInvalidObjects(className:string, markAsInvalid?:boolean):ObjectID[]
+    {
+        // TODO
+        return null;
     }
 
     createClassProperty(classID:number, propertyName:string, propDef:IClassProperty)
@@ -672,7 +885,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
      Initializes vars with data from existing class
      */
-    private initWhenClassExists(self:SQLiteDataRefactor, vars:ISyncVariables)
+    private    initWhenClassExists(self:SQLiteDataRefactor, vars:ISyncVariables)
     {
         // Load .class_properties
         var classProps = <IFlexiClassProperty[]>self.DB.all.sync(self.DB,

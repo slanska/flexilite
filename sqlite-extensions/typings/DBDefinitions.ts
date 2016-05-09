@@ -83,7 +83,8 @@ declare const enum OBJECT_CONTROL_FLAGS
     I_RANGE = 1 << 45,
     J_RANGE = 1 << 46,
     NO_TRACK_CHANGES = 1 << 49,
-    SCHEMA_NOT_ENFORCED = 1 << 50
+    SCHEMA_NOT_ENFORCED = 1 << 50,
+    HAS_INVALID_DATA = 1 << 52
 };
 
 /*
@@ -177,7 +178,7 @@ declare const enum PROPERTY_TYPE
     PROP_TYPE_BOOLEAN = 4,
 
     /*
-     Boxed object or collection of objects.
+     Boxed object or collection of boxed objects.
      'boxed_object':
      referenced object stored as a part of master object. It does not have its own ID and can be accessed
      only via master object. Such object can have other boxed objects or boxed references but not LINKED_OBJECT references

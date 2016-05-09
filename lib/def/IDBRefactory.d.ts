@@ -4,20 +4,29 @@
 
 ///<reference path="../../typings/lib.d.ts"/>
 
+declare type ILastActionReport =
+{
+    className:string,
+    property?:string,
+    message:string,
+    status:'warning'|'error',
+    numberOfObjects:number
+}[];
+
+
 interface IDBRefactory
 {
     /*
      Returns report on results of last refactoring action
      */
-    getLastActionReport():string;
+    getLastActionReport():ILastActionReport;
 
     /*
      Alters existing class. New properties can be added, deleted or modified in any way. Properties can be also
-     renamed if property's def has $renameTo value. If newName is set, class will be renamed. Class name should
-     be unique. Optional new schema mapping can be passed. If not passed, new default schema will be generated, based on
-     the current basic schema
+     renamed if property's def has $renameTo value. If newName is set, class will be renamed. New class name should
+     be unique.
      */
-    alterClass(classID:number, newClassDef?:IClassDefinition, newName?:string);
+    alterClass(className:string, newClassDef?:IClassDefinition, newName?:string);
 
     /*
      Creates new class with the given name (should be unique).
@@ -25,7 +34,7 @@ interface IDBRefactory
     createClass(name:string, classDef:IClassDefinition);
 
     /*
-     Drops class, all related schemas, objects and references from database. Operation can be undone.
+     Drops class, all related schemas, objects and references from database. Operation can be undone later.
      */
     dropClass(classID:number);
 
@@ -90,9 +99,19 @@ interface IDBRefactory
     mergeProperties(classID:number, sourcePropIDs:number[], targetProp:IClassProperty, expression:string);
 
     /*
-
+     Alters single class property definition.
+     Supported cases:
+     1) Convert property type: scalar to reference. Existing value is assumed as ID/Text of referenced object (equivalent of foreign key
+     in standard RDBMS)
+     2) Change property type, number of occurences, required/optional flag. Scans existing data, if found objects that do not pass
+     rules, objects are marked as HAS_INVALID_DATA flag. LastActionReport will have 'warning' entry
+     3) Change property indexing: indexed, unique, ID, full text index etc. For unique indexes existing values are verified
+     for uniqueness. Duplicates are marked as invalid objects. Last action report will have info on this with status 'warning'
+     4) Changes in reference definition: different class, reversePropertyID, selectorPropID. reversePropertyID will update existing links.
+     Other changes do not have effect on existing data
+     5) Converts reference type to scalar. Extracts ID/Text/ObjectID from referenced objects, sets value to existing links,
      */
-    alterClassProperty(classID:number, propertyName:string, propDef:IClassProperty, newPropName?:string);
+    alterClassProperty(className:string, propertyName:string, propDef:IClassProperty, newPropName?:string);
 
     /*
 
@@ -109,6 +128,14 @@ interface IDBRefactory
      */
     importFromDatabase(options:IImportDatabaseOptions);
 
+    /*
+    Retrieves list of invalid objects for the given class (objects which do not pass property rules)
+    Returns list of object IDs.
+    @className - class name to perform validation on
+    @markAsnInvalid - if set to true, invalid objects will be marked with CTLO_HAS_INVALID_DATA
+    Note that all objects will be affected and valid objects will get this flag cleared.
+     */
+    getInvalidObjects(className:string, markAsInvalid?:boolean ):ObjectID[];
 
     /*
 
@@ -181,4 +208,6 @@ declare type IPropertyMap = [{sourcePropID:number, targetPropID:number}];
 declare type PropertyIDs = number | number[];
 
 declare type IColumnNameMap = {[columnName:string]:string};
+
+declare type ObjectID = number;
 
