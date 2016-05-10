@@ -15,7 +15,8 @@ There is one table, which structure is defined the following way:
  'create table Objects (ObjectID integer, ClassID integer, A, B, C, D, E, F, G, H, I, J, K, L, M,
  N, O, P);
  
-For the sake of simplicity we assume that typical relational table has no more than 16 columns (and from my own experience 
+For the sake of simplicity we assume that typical relational table 
+has no more than 16 columns (and from my own experience 
 80-90% of all tables follow this assumption). Then, definition of, let's say, table Orders
 would look as follows:
  
@@ -84,7 +85,6 @@ PropertyID
 PropertyIndex
 Value
 ctlv
-ClassID
 
 there is unique clustered index by ObjectID, PropertyID, PropertyIndex
 

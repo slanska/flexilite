@@ -116,7 +116,7 @@ interface IDBRefactory
     /*
 
      */
-    createClassProperty(classID:number, propertyName:string, propDef:IClassProperty);
+    createClassProperty(className:string, propertyName:string, propDef:IClassProperty);
 
     /*
 

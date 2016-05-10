@@ -373,6 +373,20 @@ export class SQLiteDataRefactor implements IDBRefactory
     {
     }
 
+    /*
+     Returns class property definition by property ID
+     */
+    private getClassPropertyByID(propID:number):IFlexiClassProperty
+    {
+        var self = this;
+        var rows = self.DB.all.sync(self.DB, `select * from [.class_properties] where PropertyID = $PropertyID limit 1;`,
+            {$PropertyID: propID});
+        return rows.length === 1 ? rows[0] as IFlexiClassProperty : null;
+    }
+
+    /*
+     Returns class property definition by class ID and property name
+     */
     private getClassProperty(classID:number, propertyName:string):IFlexiClassProperty
     {
         var self = this;
@@ -383,7 +397,9 @@ export class SQLiteDataRefactor implements IDBRefactory
     }
 
     /*
-
+     Applies changes for property that either used to be reference type or switched to be reference type.
+     There is also a case when property stays reference but settings have changes (different class, different
+     reverse property etc.)
      */
     private doAlterRefProp(clsDef:IFlexiClass, propertyName:string, curPropDef:IClassProperty,
                            propDef:IClassProperty)
@@ -403,6 +419,9 @@ export class SQLiteDataRefactor implements IDBRefactory
             curRef = true;
         }
 
+        if (!curRef && !newRef)
+            return;
+
         if (newRef)
         {
             if (!propDef.reference)
@@ -410,14 +429,54 @@ export class SQLiteDataRefactor implements IDBRefactory
                 throw new Error(`Reference definition is missing in ${clsDef.Name}.${propertyName}`);
             }
 
+            let refClsDef:IFlexiClass = null;
             if (propDef.reference.$className)
             {
-                propDef.reference.classID = self.getNameByValue(propDef.reference.$className).NameID;
+                refClsDef = self.getClassDefByName(propDef.reference.$className);
+                if (!refClsDef)
+                    throw new Error(`Referenced class (Name=${propDef.reference.$className}) not found`);
+                propDef.reference.classID = refClsDef.ClassID;
                 delete propDef.reference.$className;
             }
-            let refClsDef = self.getClassDefByID(propDef.reference.classID);
-            if (!refClsDef)
-                throw new Error(`Referenced class (ID=${propDef.reference.classID}) not found`);
+            else
+            {
+                refClsDef = self.getClassDefByID(propDef.reference.classID);
+                if (!refClsDef)
+                    throw new Error(`Referenced class (ID=${propDef.reference.classID}) not found`);
+            }
+            let revPropDef:IFlexiClassProperty = null;
+            if (propDef.reference.reversePropertyID || propDef.reference.$reversePropertyName)
+            {
+
+                if (propDef.reference.reversePropertyID)
+                    revPropDef = self.getClassPropertyByID(propDef.reference.reversePropertyID);
+                else
+                    if (propDef.reference.$reversePropertyName)
+                    {
+                        revPropDef = self.getClassProperty(propDef.reference.classID, propDef.reference.$reversePropertyName);
+                        delete propDef.reference.$reversePropertyName;
+                    }
+
+                if (!revPropDef)
+                // Not found
+                {
+                    let revPropDef = {reference: {}, rules: {type: PROPERTY_TYPE.PROP_TYPE_LINK}} as IClassProperty;
+                    revPropDef.reference.classID = clsDef.ClassID;
+
+                    self.createClassProperty(propDef.reference.classID, propDef.reference.$reversePropertyName,
+                        revPropDef);
+                }
+                else
+                {
+                    let revClsDef = self.getClassDefByID(propDef.reference.classID);
+                    revPropDef.Data.rules.type = PROPERTY_TYPE.PROP_TYPE_LINK;
+                    self.alterClassProperty(revClsDef.Name, propDef.reference.$reversePropertyName, revPropDef.Data);
+                }
+
+                propDef.reference.reversePropertyID = self.getNameByValue(propDef.reference.$reversePropertyName).NameID;
+                delete propDef.reference.$reversePropertyName;
+
+            }
 
             if (!curRef)
             {
@@ -431,20 +490,66 @@ export class SQLiteDataRefactor implements IDBRefactory
                  property.
 
                  If property was reference and reference definition has changed (pointing to another class, different
-                 reverseProperty): Flexilite will attempt to switch to another property
+                 reverseProperty) - Flexilite will attempt to switch to another property
                  */
-
-                if (propDef.reference.$reversePropertyName)
+                if (propDef.reference.reversePropertyID)
                 {
-                    propDef.reference.reversePropertyID = self.getNameByValue(propDef.reference.$reversePropertyName).NameID;
-                    delete propDef.reference.$reversePropertyName;
+                    // TODO
                 }
 
-                if (curRef && (curPropDef.reference.reversePropertyID != curPropDef.reference.reversePropertyID))
+                // Load referenced class def
+                let idPropID:string;
+                // Check if it has property with role ID or Code
+                let idProp = _.find(refClsDef.Data.properties,
+                    (pd:IClassProperty, pID:string)=>
+                    {
+                        if ((pd.role & PROPERTY_ROLE.PROP_ROLE_ID) != 0)
+                        {
+                            idPropID = pID;
+                            return true;
+                        }
+                        return false;
+                    });
+                if (!idProp)
                 {
-                    let refClsDef = self.getClassDefByID(curPropDef.reference.classID);
-                    // self.doAlterClassProperty(refClsDef, propRow.Name, )
-                    // TODO Update reversed property definition
+                    idProp = _.find(refClsDef.Data.properties,
+                        (pd:IClassProperty, pID:string)=>
+                        {
+                            if ((pd.role & PROPERTY_ROLE.PROP_ROLE_CODE) != 0)
+                            {
+                                idPropID = pID;
+                                return true;
+                            }
+                            return false;
+                        });
+                }
+                if (idProp)
+                {
+                    let pn = self.getNameByID(Number(idPropID));
+                    let sql = `update [.ref-values] set [Value] = 
+                        (select rowid from [${refClsDef.Name}] where [${pn.Value}] = [.ref-values].[Value] limit 1),
+                        ctlv = ctlv | $ctlv
+                        where PropertyID = $PropertyID;`;
+                    self.DB.run.sync(self.DB, sql, {$PropertyID: 0});
+                }
+                else
+                {
+                    let pn = self.getNameByID(Number(idPropID));
+                    let sql = `update [.ref-values] set [Value] = 
+                        (select rowid from [${refClsDef.Name}] where rowid = [.ref-values].[Value] limit 1),
+                        ctlv = ctlv | $ctlv
+                        where PropertyID = $PropertyID;`;
+                    self.DB.run.sync(self.DB, sql, {$PropertyID: 0});
+                }
+            }
+            else
+            {
+                if (curPropDef.reference.reversePropertyID &&
+                    (curPropDef.reference.reversePropertyID !== propDef.reference.reversePropertyID
+                    || curPropDef.reference.classID !== propDef.reference.classID))
+                {
+                    let sql = `delete from [.class_properties] where PropertyID = $PropertyID`;
+                    self.DB.run(sql, {$PropertyID: curPropDef.reference.reversePropertyID})
                 }
             }
         }
@@ -456,7 +561,8 @@ export class SQLiteDataRefactor implements IDBRefactory
 
     /*
      Internal function for altering individual property. Applies changes directly to clsDef.properties
-     but does not start transaction, does not update [.class_properties]
+     but does not start transaction, does not update [.class_properties].
+     When applying changes, tries to minimize amount of updates on DB.
      */
     private doAlterClassProperty(clsDef:IFlexiClass, propertyName:string, propDef:IClassProperty, newPropName?:string)
     {
@@ -572,6 +678,21 @@ export class SQLiteDataRefactor implements IDBRefactory
     }
 
     /*
+     Finds property by name in collection of class properties.
+     Returns null if not found
+     */
+    private findClassPropertyByName(clsDef:IFlexiClass, propName:string):IClassProperty
+    {
+        let self = this;
+        let n = self.getNameByValue(propName);
+        let result = _.find(clsDef.Data.properties, (cp:IClassProperty, pID:string)=>
+        {
+            return Number(pID) === n.NameID;
+        });
+        return result;
+    }
+
+    /*
      Alters single class property definition
      */
     alterClassProperty(className:string, propertyName:string, propDef:IClassProperty, newPropName ?:string)
@@ -579,7 +700,25 @@ export class SQLiteDataRefactor implements IDBRefactory
         var self = this;
         self._lastActionReport = [];
         let clsDef = self.getClassDefByName(className);
-        self.doAlterClassProperty(clsDef, propertyName, propDef, newPropName);
+        if (!clsDef)
+            throw new Error(`Class ${className} not found`);
+        let cp = self.findClassPropertyByName(clsDef, propertyName);
+        if (cp)
+        {
+            self.doAlterClassProperty(clsDef, propertyName, propDef, newPropName);
+        }
+        else
+        {
+            self.doCreateClassProperty(clsDef, propertyName, propDef);
+        }
+    }
+
+    /*
+
+     */
+    private doCreateClassProperty(clsDef:IFlexiClass, propertyName:string, propDef:IClassProperty)
+    {
+
     }
 
     getInvalidObjects(className:string, markAsInvalid?:boolean):ObjectID[]
@@ -588,8 +727,9 @@ export class SQLiteDataRefactor implements IDBRefactory
         return null;
     }
 
-    createClassProperty(classID:number, propertyName:string, propDef:IClassProperty)
+    createClassProperty(className:string, propertyName:string, propDef:IClassProperty)
     {
+        this.alterClassProperty(className, propertyName, propDef);
     }
 
     dropClassProperty(classID:number, propertyName:string)

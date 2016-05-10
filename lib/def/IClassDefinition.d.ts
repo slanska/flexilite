@@ -108,7 +108,11 @@ interface IObjectPropertyDefinition
 
     /*
      Property name ID (in `referenceTo` class) used as reversed reference property for this one. Optional. If set,
-     Flexi will ensure that referenced class does have this property
+     Flexilite will ensure that referenced class does have this property.
+     'reversed property' is treated as slave of master definition. It means the following:
+     1) reversed object ID is stored in [Value] field (master's object ID in [ObjectID] field)
+     2) when master property gets modified (switches to different class or reverse property) or deleted, 
+     reverse property gets deleted
      */
     reversePropertyID?:number;
     /*
@@ -189,7 +193,7 @@ interface IClassProperty
     $highBoundPropertyName?:string;
 }
 
-type IClassPropertyDictionary = {[propID:number]:IClassProperty};
+type IClassPropertyDictionary = {[propID:string]:IClassProperty};
 
 /*
  Structure of .classes.Data
