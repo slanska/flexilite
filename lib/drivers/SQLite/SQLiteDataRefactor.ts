@@ -336,10 +336,14 @@ export class SQLiteDataRefactor implements IDBRefactory
         self.DB.exec.sync(self.DB, `drop table [${clsDef.Name}]`);
     }
 
+    /*
+     Converts set of properties into new object
+     */
     propertiesToObject(filter:IObjectFilter, propIDs:PropertyIDs, newRefProp:IClassProperty,
                        targetClassID:number, sourceKeyPropID:PropertyIDs,
                        targetKeyPropID:PropertyIDs)
     {
+
     }
 
     objectToProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap)
@@ -394,6 +398,14 @@ export class SQLiteDataRefactor implements IDBRefactory
         and NameID = (select NameID from [.names] where Value = $PropName) limit 1;`,
             {$ClassID: classID, $PropName: propertyName});
         return rows.length === 1 ? rows[0] as IFlexiClassProperty : null;
+    }
+
+    /*
+
+     */
+    checkAlterClassProperty(className:string, propertyName:string, propDef:IClassProperty, newPropName?:string,
+                            limit?:number)
+    {
     }
 
     /*
@@ -463,6 +475,7 @@ export class SQLiteDataRefactor implements IDBRefactory
                     let revPropDef = {reference: {}, rules: {type: PROPERTY_TYPE.PROP_TYPE_LINK}} as IClassProperty;
                     revPropDef.reference.classID = clsDef.ClassID;
 
+                    // TODO use class name
                     self.createClassProperty(propDef.reference.classID, propDef.reference.$reversePropertyName,
                         revPropDef);
                 }

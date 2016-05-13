@@ -16,7 +16,7 @@
  For that reason this file is created as a normal .ts file (not d.ts file). It is still OK to refer to this file as a regular d.ts file.
 
  From C prospective there is .h file (DBDefinitions.h) which includes this .ts file. H file also temporarily defines 'declare'
- and re-defined 'const' to handle TS-style enum declarations
+ and re-defines 'const' to handle TS-style enum declarations
  */
 
 declare const enum SQLITE_OPEN_FLAGS
@@ -33,9 +33,6 @@ declare const enum SQLITE_OPEN_FLAGS
  Bits 17-32: columns A-P should be indexed for full text search
  Bits 33-48: columns A-P should be treated as range values and indexed for range (spatial search) search
  Bit 49: DON'T track changes
- Bit 50: Schema is not validated. Normally, this bit is set when object was referenced in other object
- but it was not defined in the schema
-
  */
 
 declare const enum OBJECT_CONTROL_FLAGS
@@ -85,12 +82,115 @@ declare const enum OBJECT_CONTROL_FLAGS
     NO_TRACK_CHANGES = 1 << 49,
     SCHEMA_NOT_ENFORCED = 1 << 50,
     HAS_INVALID_DATA = 1 << 52
-};
+}
+;
+
+// Property types
+declare const enum PROPERTY_TYPE
+{
+    PROP_TYPE_AUTO = 0,
+
+    /*
+     'linked_object':
+     referenced object is stored in separate row has its own ID referenced via row in [.ref-values]
+     and can be accessed independently from master object.
+     This is most flexible option.
+     The same value as CTLV_REFERENCE
+     */
+    PROP_TYPE_LINK = 2,
+
+    /*
+     Boxed object or collection of boxed objects.
+     'boxed_object':
+     referenced object stored as a part of master object. It does not have its own ID and can be accessed
+     only via master object. Such object can have other boxed objects or boxed references but not LINKED_OBJECT references
+     (since it does not have its own ID).
+     The same value as CTLV_REFERENCE_OWN
+     */
+    PROP_TYPE_OBJECT = 4,
+
+    PROP_TYPE_INTEGER = 15,
+
+    /*
+     Selectable from fixed list of items
+     */
+    PROP_TYPE_ENUM = 16,
+
+    /*
+     Stored as integer * 10000. Corresponds to Decimal(19, 4). (The same format used by Visual Basic)
+     */
+    PROP_TYPE_DECIMAL = 17,
+
+    /*
+     Presented as text but internally stored as name ID. Provides localization
+     */
+    PROP_TYPE_NAME = 18,
+
+    /*
+     True or False, 1 or 0
+     */
+    PROP_TYPE_BOOLEAN = 19,
+
+    /*
+     8 byte float value
+     */
+    PROP_TYPE_NUMBER = 20,
+
+    /*
+     8 byte double corresponds to Julian day in SQLite
+     */
+    PROP_TYPE_DATETIME = 21,
+
+    /*
+     8 byte double corresponds to Julian day in SQLite
+     */
+    PROP_TYPE_TIMESPAN = 22,
+
+    /*
+     Byte array (Buffer).
+     */
+    PROP_TYPE_BINARY = 23,
+
+    /*
+     16 byte buffer.
+     */
+    PROP_TYPE_UUID = 24,
+
+    PROP_TYPE_TEXT = 25,
+
+    /*
+     Arbitrary JSON object not processed by Flexi
+     */
+    PROP_TYPE_JSON = 26,
+
+    /*
+     * Range types are tuples which combine 2 values - Start and End.
+     * End value must be not less than Start.
+     * In virtual table range types are presented as 2 columns: Start is named the same as range property, End has '^' symbol appended.
+     * For example: Lifetime as date range property would be presented as [Lifetime] and [Lifetime_1] columns. If this
+     * property has 'indexed' attribute, values would be stored in rtree table for fast lookup by range.
+     * Unique indexes are not supported for range values
+     */
+    PROP_TYPE_NUMBER_RANGE = 27,
+    PROP_TYPE_INTEGER_RANGE = 28,
+    PROP_TYPE_DECIMAL_RANGE = 29,
+    PROP_TYPE_DATE_RANGE = 30
+}
+;
 
 /*
  ctlv is used for indexing and processing control. Possible values (the same as Values.ctlv):
- 0 - Index
- 1-3 - reference
+ bit 0 - Index
+ bits 1-5 - Type (including reference types)
+ bit 6 - unique index
+ bit 7 - no change tracking
+ bit 8 - full text index
+ bits 9-12 - rtree index
+ bit 13 - bad data
+ bit 14 - formula
+
+ References:
+ ==========
  2(3 as bit 0 is set) - regular ref
  4(5) - ref: A -> B. When A deleted, delete B
  6(7) - when B deleted, delete A
@@ -99,17 +199,11 @@ declare const enum OBJECT_CONTROL_FLAGS
  12(13) - cannot delete B until this reference exists
  14(15) - cannot delete A nor B until this reference exist
 
- 16 - full text data
- 32 - range data
- 64 - DON'T track changes
  */
 declare const enum Value_Control_Flags
 {
     CTLV_NONE = 0,
 
-    /*
-     * Maximum four indexes (excluding unique indexes) are allowed per class
-     */
     CTLV_INDEX = 1,
     CTLV_REFERENCE = 2,
     CTLV_REFERENCE_OWN = 4,
@@ -118,15 +212,16 @@ declare const enum Value_Control_Flags
     CTLV_REFERENCE_DEPENDENT_MASTER = 10,
     CTLV_REFERENCE_DEPENDENT_LINK = 12,
     CTLV_REFERENCE_DEPENDENT_BOTH = 14,
-    CTLV_FULL_TEXT_INDEX = 16,
-    CTLV_RANGE_INDEX = 32,
-    CTLV_NO_TRACK_CHANGES = 64,
 
     /*
      * Though there is no limits on number of unique indexes, typically class will have 0 or 1 (rarely 2) unique index
      * in addition to object ID
      */
-    CTLV_UNIQUE_INDEX = 128,
+    CTLV_UNIQUE_INDEX = 1 << 6,
+
+    CTLV_FULL_TEXT_INDEX = 1 << 8,
+
+    CTLV_NO_TRACK_CHANGES = 1 << 7,
 
     /*
      * If property is indexed in RTREE, one of those flags would be set
@@ -134,18 +229,22 @@ declare const enum Value_Control_Flags
      * X1 - means end value
      * X means both start and end values.
      */
-    CTLV_RANGE_A0 = (1 << 8) + 0,
-    CTLV_RANGE_A1 = (1 << 8) + 1,
-    CTLV_RANGE_A = (1 << 8) + 2,
-    CTLV_RANGE_B0 = (1 << 8) + 3,
-    CTLV_RANGE_B1 = (1 << 8) + 4,
-    CTLV_RANGE_B = (1 << 8) + 5,
-    CTLV_RANGE_C0 = (1 << 8) + 6,
-    CTLV_RANGE_C1 = (1 << 8) + 7,
-    CTLV_RANGE_C = (1 << 8) + 8,
-    CTLV_RANGE_D0 = (1 << 8) + 9,
-    CTLV_RANGE_D1 = (1 << 8) + 10,
-    CTLV_RANGE_D = (1 << 8) + 11
+    CTLV_RANGE_A0 = (1 << 9) + 1,
+    CTLV_RANGE_A1 = (1 << 9) + 2,
+    CTLV_RANGE_A = (1 << 9) + 3,
+    CTLV_RANGE_B0 = (1 << 9) + 4,
+    CTLV_RANGE_B1 = (1 << 9) + 5,
+    CTLV_RANGE_B = (1 << 9) + 6,
+    CTLV_RANGE_C0 = (1 << 9) + 7,
+    CTLV_RANGE_C1 = (1 << 9) + 8,
+    CTLV_RANGE_C = (1 << 9) + 9,
+    CTLV_RANGE_D0 = (1 << 9) + 10,
+    CTLV_RANGE_D1 = (1 << 9) + 11,
+    CTLV_RANGE_D = (1 << 9) + 12,
+
+    CTLV_BAD_DATA = 1 << 13,
+
+    CTLV_FORMULA = 1 << 14
 }
 ;
 
@@ -156,103 +255,23 @@ declare const enum FLEXILITE_LIMITS
 }
 ;
 
-// Property types
-declare const enum PROPERTY_TYPE
-{
-    PROP_TYPE_TEXT = 0,
-    PROP_TYPE_INTEGER = 1,
-
-    /*
-     Stored as integer * 10000. Corresponds to Decimal(194). (The same format used by Visual Basic)
-     */
-    PROP_TYPE_DECIMAL = 2,
-
-    /*
-     8 byte float value
-     */
-    PROP_TYPE_NUMBER = 3,
-
-    /*
-     True or False
-     */
-    PROP_TYPE_BOOLEAN = 4,
-
-    /*
-     Boxed object or collection of boxed objects.
-     'boxed_object':
-     referenced object stored as a part of master object. It does not have its own ID and can be accessed
-     only via master object. Such object can have other boxed objects or boxed references but not LINKED_OBJECT references
-     (since it does not have its own ID)
-     */
-    PROP_TYPE_OBJECT = 5,
-
-    /*
-     Selectable from fixed list of items
-     */
-    PROP_TYPE_ENUM = 6,
-
-    /*
-     Byte array (Buffer). Stored as byte 64 encoded value
-     */
-    PROP_TYPE_BINARY = 7,
-
-    /*
-     16 byte buffer. Stored as byte 64 encoded value (takes 22 bytes)
-     */
-    PROP_TYPE_UUID = 8,
-
-    /*
-     8 byte double corresponds to Julian day in SQLite
-     */
-    PROP_TYPE_DATETIME = 9,
-
-    /*
-     Presented as text but internally stored as name ID. Provides localization
-     */
-    PROP_TYPE_NAME = 10,
-
-    /*
-     Arbitrary JSON object not processed by Flexi
-     */
-    PROP_TYPE_JSON = 11,
-
-    /*
-     'linked_object':
-     referenced object is stored in separate row has its own ID referenced via row in [.ref-values]
-     and can be accessed independently from master object.
-     This is most flexible option.
-     */
-    PROP_TYPE_LINK = 12,
-
-    /*
-     * Range types are tuples which combine 2 values - Start and End.
-     * End value must be not less than Start.
-     * In virtual table range types are presented as 2 columns: Start is named the same as range property, End has '^' symbol appended.
-     * For example: Lifetime as date range property would be presented as [Lifetime] and [Lifetime_1] columns. If this
-     * property has 'indexed' attribute, values would be stored in rtree table for fast lookup by range.
-     * Unique indexes are not supported for range values
-     */
-    PROP_TYPE_NUMBER_RANGE = 13,
-    PROP_TYPE_INTEGER_RANGE = 14,
-    PROP_TYPE_DECIMAL_RANGE = 15,
-
-    PROP_TYPE_DATE_RANGE = 16
-}
-;
 
 /*
- subtype
+ subtype:
+ =======
  email
  password
  captcha
  timeonly
- textdocument
+ textdocument (html)
  image
  file
  dateonly
  ip4 address
  ip6 address
-
+ video
+ audio
+ link (url)
  */
 
 /*
@@ -309,11 +328,13 @@ declare const enum PROPERTY_ROLE
      Auto generated short ID (7-16 characters)
      */
     PROP_ROLE_AUTOSHORTID = 0x0010
-};
+}
+;
 
 /*
  Level of priority for property to have fixed column assigned
  */
+// TODO remove
 declare const enum COLUMN_ASSIGN_PRIORITY
 {
     /*
@@ -330,4 +351,5 @@ declare const enum COLUMN_ASSIGN_PRIORITY
      Assignment is not set or not required
      */
     COL_ASSIGN_NOT_SET = 0
-};
+}
+;
