@@ -401,11 +401,92 @@ export class SQLiteDataRefactor implements IDBRefactory
     }
 
     /*
-
+     Validates property alteration
      */
     checkAlterClassProperty(className:string, propertyName:string, propDef:IClassProperty, newPropName?:string,
                             limit?:number)
     {
+
+    }
+
+    /*
+     Initializes 'reference' attribute of property definition. Returns referenced class definition
+     */
+    private initPropReference(clsDef:IFlexiClass, propertyName:string, propDef:IClassProperty):IFlexiClass
+    {
+        var self = this;
+        if (!propDef.reference)
+        {
+            throw new Error(`Reference definition is missing in ${clsDef.Name}.${propertyName}`);
+        }
+
+        let refClsDef:IFlexiClass = null;
+        if (propDef.reference.$className)
+        {
+            refClsDef = self.getClassDefByName(propDef.reference.$className);
+            if (!refClsDef)
+                throw new Error(`Referenced class (Name=${propDef.reference.$className}) not found`);
+            propDef.reference.classID = refClsDef.ClassID;
+            delete propDef.reference.$className;
+        }
+        else
+        {
+            refClsDef = self.getClassDefByID(propDef.reference.classID);
+            if (!refClsDef)
+                throw new Error(`Referenced class (ID=${propDef.reference.classID}) not found`);
+        }
+        let revPropDef:IFlexiClassProperty = null;
+        if (propDef.reference.reversePropertyID || propDef.reference.$reversePropertyName)
+        {
+
+            if (propDef.reference.reversePropertyID)
+                revPropDef = self.getClassPropertyByID(propDef.reference.reversePropertyID);
+            else
+                if (propDef.reference.$reversePropertyName)
+                {
+                    revPropDef = self.getClassProperty(propDef.reference.classID, propDef.reference.$reversePropertyName);
+                    delete propDef.reference.$reversePropertyName;
+                }
+
+            if (!revPropDef)
+            // Not found
+            {
+                let revPropDef = {reference: {}, rules: {type: PROPERTY_TYPE.PROP_TYPE_LINK}} as IClassProperty;
+                revPropDef.reference.classID = clsDef.ClassID;
+
+                let refClsDef = self.getClassDefByID(propDef.reference.classID);
+                self.doCreateClassProperty(refClsDef, propDef.reference.$reversePropertyName,
+                    revPropDef);
+            }
+            else
+            {
+                let revClsDef = self.getClassDefByID(propDef.reference.classID);
+                revPropDef.Data.rules.type = PROPERTY_TYPE.PROP_TYPE_LINK;
+                self.alterClassProperty(revClsDef.Name, propDef.reference.$reversePropertyName, revPropDef.Data);
+            }
+
+            propDef.reference.reversePropertyID = self.getNameByValue(propDef.reference.$reversePropertyName).NameID;
+            delete propDef.reference.$reversePropertyName;
+
+        }
+
+        /*
+         if property was not reference property and now is, the following logic will be applied.
+         existing value(s) will be treated as ID, Code, ObjectID (sequentially). If no match is found, property will stay
+         unchanged and class will be marked with CTLO_HAS_INVALID_REFS.
+
+         If property was reference and not is not, ID, Code, ObjectID of referenced object will be used for scalar value of
+         property.
+
+         If property was reference and reference definition has changed (pointing to another class, different
+         reverseProperty) - Flexilite will attempt to switch to another property
+         */
+        if (propDef.reference.reversePropertyID)
+        {
+            // TODO
+        }
+
+        return refClsDef;
     }
 
     /*
@@ -436,146 +517,78 @@ export class SQLiteDataRefactor implements IDBRefactory
 
         if (newRef)
         {
-            if (!propDef.reference)
-            {
-                throw new Error(`Reference definition is missing in ${clsDef.Name}.${propertyName}`);
-            }
+            let refClsDef = self.initPropReference(clsDef, propertyName, propDef);
 
-            let refClsDef:IFlexiClass = null;
-            if (propDef.reference.$className)
-            {
-                refClsDef = self.getClassDefByName(propDef.reference.$className);
-                if (!refClsDef)
-                    throw new Error(`Referenced class (Name=${propDef.reference.$className}) not found`);
-                propDef.reference.classID = refClsDef.ClassID;
-                delete propDef.reference.$className;
-            }
-            else
-            {
-                refClsDef = self.getClassDefByID(propDef.reference.classID);
-                if (!refClsDef)
-                    throw new Error(`Referenced class (ID=${propDef.reference.classID}) not found`);
-            }
-            let revPropDef:IFlexiClassProperty = null;
-            if (propDef.reference.reversePropertyID || propDef.reference.$reversePropertyName)
-            {
-
-                if (propDef.reference.reversePropertyID)
-                    revPropDef = self.getClassPropertyByID(propDef.reference.reversePropertyID);
-                else
-                    if (propDef.reference.$reversePropertyName)
+            let idPropID:string;
+            // Check if it has property with role ID or Code
+            let idProp = _.find(refClsDef.Data.properties,
+                (pd:IClassProperty, pID:string)=>
+                {
+                    if ((pd.role & PROPERTY_ROLE.PROP_ROLE_ID) != 0)
                     {
-                        revPropDef = self.getClassProperty(propDef.reference.classID, propDef.reference.$reversePropertyName);
-                        delete propDef.reference.$reversePropertyName;
+                        idPropID = pID;
+                        return true;
                     }
-
-                if (!revPropDef)
-                // Not found
-                {
-                    let revPropDef = {reference: {}, rules: {type: PROPERTY_TYPE.PROP_TYPE_LINK}} as IClassProperty;
-                    revPropDef.reference.classID = clsDef.ClassID;
-
-                    // TODO use class name
-                    self.createClassProperty(propDef.reference.classID, propDef.reference.$reversePropertyName,
-                        revPropDef);
-                }
-                else
-                {
-                    let revClsDef = self.getClassDefByID(propDef.reference.classID);
-                    revPropDef.Data.rules.type = PROPERTY_TYPE.PROP_TYPE_LINK;
-                    self.alterClassProperty(revClsDef.Name, propDef.reference.$reversePropertyName, revPropDef.Data);
-                }
-
-                propDef.reference.reversePropertyID = self.getNameByValue(propDef.reference.$reversePropertyName).NameID;
-                delete propDef.reference.$reversePropertyName;
-
-            }
-
-            if (!curRef)
+                    return false;
+                });
+            if (!idProp)
             {
-                // TODO
-                /*
-                 if property was not reference property and now is, the following logic will be applied.
-                 existing value(s) will be treated as ID, Code, ObjectID (sequentially). If no match is found, property will stay
-                 unchanged and class will be marked with CTLO_HAS_INVALID_REFS.
-
-                 If property was reference and not is not, ID, Code, ObjectID of referenced object will be used for scalar value of
-                 property.
-
-                 If property was reference and reference definition has changed (pointing to another class, different
-                 reverseProperty) - Flexilite will attempt to switch to another property
-                 */
-                if (propDef.reference.reversePropertyID)
-                {
-                    // TODO
-                }
-
-                // Load referenced class def
-                let idPropID:string;
-                // Check if it has property with role ID or Code
-                let idProp = _.find(refClsDef.Data.properties,
+                idProp = _.find(refClsDef.Data.properties,
                     (pd:IClassProperty, pID:string)=>
                     {
-                        if ((pd.role & PROPERTY_ROLE.PROP_ROLE_ID) != 0)
+                        if ((pd.role & PROPERTY_ROLE.PROP_ROLE_CODE) != 0)
                         {
                             idPropID = pID;
                             return true;
                         }
                         return false;
                     });
-                if (!idProp)
-                {
-                    idProp = _.find(refClsDef.Data.properties,
-                        (pd:IClassProperty, pID:string)=>
-                        {
-                            if ((pd.role & PROPERTY_ROLE.PROP_ROLE_CODE) != 0)
-                            {
-                                idPropID = pID;
-                                return true;
-                            }
-                            return false;
-                        });
-                }
-                if (idProp)
-                {
-                    let pn = self.getNameByID(Number(idPropID));
-                    let sql = `update [.ref-values] set [Value] = 
+            }
+            if (idProp)
+            {
+                let pn = self.getNameByID(Number(idPropID));
+                let sql = `update [.ref-values] set [Value] = 
                         (select rowid from [${refClsDef.Name}] where [${pn.Value}] = [.ref-values].[Value] limit 1),
                         ctlv = ctlv | $ctlv
                         where PropertyID = $PropertyID;`;
-                    self.DB.run.sync(self.DB, sql, {$PropertyID: 0});
-                }
-                else
-                {
-                    let pn = self.getNameByID(Number(idPropID));
-                    let sql = `update [.ref-values] set [Value] = 
+                self.DB.run.sync(self.DB, sql, {$PropertyID: 0});
+            }
+            else
+                // Use ObjectIDs
+            {
+                let pn = self.getNameByID(Number(idPropID));
+                let sql = `update [.ref-values] set [Value] = 
                         (select rowid from [${refClsDef.Name}] where rowid = [.ref-values].[Value] limit 1),
                         ctlv = ctlv | $ctlv
                         where PropertyID = $PropertyID;`;
-                    self.DB.run.sync(self.DB, sql, {$PropertyID: 0});
-                }
-            }
-            else
-            {
-                if (curPropDef.reference.reversePropertyID &&
-                    (curPropDef.reference.reversePropertyID !== propDef.reference.reversePropertyID
-                    || curPropDef.reference.classID !== propDef.reference.classID))
-                {
-                    let sql = `delete from [.class_properties] where PropertyID = $PropertyID`;
-                    self.DB.run(sql, {$PropertyID: curPropDef.reference.reversePropertyID})
-                }
+                self.DB.run.sync(self.DB, sql, {$PropertyID: 0});
             }
         }
         else
-            if (!curRef)
+        {
+            if (curPropDef.reference.reversePropertyID &&
+                (curPropDef.reference.reversePropertyID !== propDef.reference.reversePropertyID
+                || curPropDef.reference.classID !== propDef.reference.classID))
             {
+                let sql = `delete from [.class_properties] where PropertyID = $PropertyID`;
+                self.DB.run(sql, {$PropertyID: curPropDef.reference.reversePropertyID})
             }
+        }
+
     }
 
     /*
      Internal function for altering individual property. Applies changes directly to clsDef.properties
      but does not start transaction, does not update [.class_properties].
      When applying changes, tries to minimize amount of updates on DB.
+     Cases:
+     1) scalar to scalar. Existing values are validated against new property definition.
+     Values get changed if re-indexing is required
+     2) scalar to reference. Existing values are treated as IDs/Codes/ObjectIDs. Values get changed and indexes
+     3) reference to scalar. Existing references are converted to IDs/Codes/ObjectIDs. Values get changed
+     4) reference to reference (different class, different reverseProperty)
+     This kind of alteration is not supported and should be processed in few steps: reference->scalar->possible ID alterations
+     ->reference
      */
     private doAlterClassProperty(clsDef:IFlexiClass, propertyName:string, propDef:IClassProperty, newPropName?:string)
     {
@@ -588,6 +601,7 @@ export class SQLiteDataRefactor implements IDBRefactory
             });
 
         if (propDef.$renameTo)
+        // $renameTo has priority over newPropName
         {
             newPropName = propDef.$renameTo;
             delete propDef.$renameTo;
@@ -600,7 +614,40 @@ export class SQLiteDataRefactor implements IDBRefactory
 
         var curPropDef = clsDef.Data.properties[propRow.PropertyID];
 
-        self.doAlterRefProp(clsDef, propertyName, curPropDef, propDef);
+        var propUpdRequired = false;
+        //
+        var newRef = false;
+        var curRef = false;
+
+        // Determining scope of changes
+        if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
+        {
+            newRef = true;
+        }
+
+        if (curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
+        {
+            curRef = true;
+        }
+
+        if (newRef && curRef)
+        {
+            throw new Error(
+                `Cannot change definition of reference property ${propertyName}. 
+Its definition has to be converted to scalar first, and then to new reference definition.`);
+        }
+
+        if (curRef || newRef)
+        {
+            propUpdRequired = true;
+            self.doAlterRefProp(clsDef, propertyName, curPropDef, propDef);
+        }
+
+        // Compare index definition change
+        var oldCtlv = propRow.ctlv;
+        var newCtlv = Value_Control_Flags.CTLV_NONE;
+        if ((oldCtlv & Value_Control_Flags.CTLV_INDEXING) !== (newCtlv & Value_Control_Flags.CTLV_INDEXING))
+            propUpdRequired = true;
 
         // If new property definition is reference, assume job is done
         if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
