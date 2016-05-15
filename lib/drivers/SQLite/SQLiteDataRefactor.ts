@@ -8,7 +8,6 @@
 import sqlite3 = require('sqlite3');
 import objectHash = require('object-hash');
 import {SchemaHelper, IShemaHelper} from '../../misc/SchemaHelper';
-// var Sync = require('syncho');
 import {ReverseEngine} from '../../misc/reverseEng';
 import _ = require('lodash');
 
@@ -286,7 +285,7 @@ export class SQLiteDataRefactor implements IDBRefactory
 
             if (classChanged)
             {
-                self.DB.serialize.sync(self.DB, ()=>
+                self.DB.serialize.sync(()=>
                 {
                     let newNameId = self.getNameByValue(classDef.Name).NameID;
                     self.DB.run(`update [.classes] set NameID = $NameID where ClassID=$ClassID;`,
@@ -303,7 +302,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     private applyClassDefinition(classDef:IFlexiClass)
     {
         var self = this;
-        // TODO
+        // TODO Needed?
     }
 
     // TODO validateClassName
@@ -322,7 +321,10 @@ export class SQLiteDataRefactor implements IDBRefactory
         else
         {
             let jsonClsDef = JSON.stringify(classDef);
-            self.DB.exec.sync(self.DB, `create virtual table [${name}] using 'flexi_eav' ('${jsonClsDef}');`);
+            self.DB.serialize(()=>
+            {
+                self.DB.exec(`create virtual table [${name}] using 'flexi_eav' ('${jsonClsDef}');`);
+            });
         }
     }
 
@@ -333,7 +335,10 @@ export class SQLiteDataRefactor implements IDBRefactory
     {
         var self = this;
         var clsDef = self.getClassDefByID(classID);
-        self.DB.exec.sync(self.DB, `drop table [${clsDef.Name}]`);
+        self.DB.serialize(()=>
+        {
+            self.DB.exec(`drop table [${clsDef.Name}]`);
+        });
     }
 
     /*
@@ -490,12 +495,65 @@ export class SQLiteDataRefactor implements IDBRefactory
     }
 
     /*
+     Alters property which new and old types are PROP_TYPE_ENUM. Verifies that enum items to be removed are
+     not presented in the database
+     */
+    private doAlterEnumProp(clsDef:IFlexiClass, propertyId:number, propertyName:string,
+                            curPropDef:IClassProperty, propDef:IClassProperty)
+    {
+        let self = this;
+        if (curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_ENUM && propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_ENUM)
+        {
+            if (!propDef.enumDef)
+                throw  new Error(`Enum property ${propertyName} must have enum items`);
+
+            let removedItems = _.differenceWith(curPropDef.enumDef.items, propDef.enumDef.items,
+                (A:IEnumItem, B:IEnumItem)=>
+                {
+                    return A.ID == B.ID;
+                });
+
+            if (removedItems.length > 0)
+            /* There are enum items that are going to be removed. Need to check if there
+             existing objects which have one of those enum values
+             */
+
+            {
+                let checkSQL = `select * from [.ref-values] rv where rv.PropertyID = $PropertyID 
+                and rv.ObjectID = (select ObjectID from [.objects] where ClassID = $ClassID) and rv.[Value] in (`;
+                _.forEach(removedItems, (A:IEnumItem, i:number)=>
+                {
+                    if (i !== 0)
+                        checkSQL += ',';
+                    if (_.isString(A.ID))
+                        checkSQL += `'${A.ID}'`;
+                    else checkSQL += `${A.ID}`;
+                });
+                checkSQL += `) limit 1;`;
+                self.DB.serialize(()=>
+                {
+                    let rows = self.DB.all(checkSQL) as any;
+                    if (rows.length > 0)
+                    {
+                        // FIXME clsDef. set CTLO_HASBADDATA
+                        let p = {} as ILastActionReportItem;
+                        p.className = self.getNameByID(clsDef.ClassID).Value;
+                        p.message = ``;
+                        self._lastActionReport.push(p);
+                    }
+                });
+            }
+
+        }
+    }
+
+    /*
      Applies changes for property that either used to be reference type or switched to be reference type.
      There is also a case when property stays reference but settings have changes (different class, different
      reverse property etc.)
      */
-    private doAlterRefProp(clsDef:IFlexiClass, propertyName:string, curPropDef:IClassProperty,
-                           propDef:IClassProperty)
+    private doAlterRefProp(clsDef:IFlexiClass, propertyId:number, propertyName:string,
+                           curPropDef:IClassProperty, propDef:IClassProperty)
     {
         var self = this;
         var newRef = false;
@@ -516,65 +574,104 @@ export class SQLiteDataRefactor implements IDBRefactory
             return;
 
         if (newRef)
+        // Convert scalar to reference
         {
             let refClsDef = self.initPropReference(clsDef, propertyName, propDef);
 
-            let idPropID:string;
-            // Check if it has property with role ID or Code
-            let idProp = _.find(refClsDef.Data.properties,
+            // Determine ctlv flags
+            let ctlv = Value_Control_Flags.CTLV_NONE;
+            if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
+                ctlv |= Value_Control_Flags.CTLV_REFERENCE_OWN | Value_Control_Flags.CTLV_REFERENCE_DEPENDENT_LINK;
+            else ctlv |= Value_Control_Flags.CTLV_REFERENCE;
+
+            ctlv |= Value_Control_Flags.CTLV_INDEX;
+            let cltvMask = !Value_Control_Flags.CTLV_REFERENCE_MASK;
+
+            var idPropID = self.findIdOrCodeProperty(refClsDef);
+
+            let pn = idPropID ? self.getNameByID(idPropID).Value : 'rowid';
+
+            let sql = `insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value], ExtData) 
+                select rv.ObjectID, rv.PropertyID, rv.PropIndex, 
+                (rv.ctlv & $ctlvMask) | $ctlv, 
+                rf.rowid, 
+                rv.ExtData from [.ref-values] rv
+                join [.objects] o on o.ObjectID = rv.ObjectID and o.Class = $ClassID
+                join [${refClsDef.Name}] rf on rf.[${pn}] = rv.[Value]
+                where rv.PropertyID = $PropertyID;`;
+            self.DB.run.sync(self.DB, sql, {
+                $PropertyID: propertyId,
+                $ctlv: ctlv,
+                $cltvMask: cltvMask,
+                $ClassID: clsDef.ClassID
+            });
+        }
+        else
+        // Convert reference to scalar
+        {
+            // Delete reverse property if it exists
+            if (curPropDef.reference.reversePropertyID)
+            {
+                // TODO Trigger on .class_properties to delete entry from .classes.Data.properties, by property ID
+                let sql = `delete from [.class_properties] where PropertyID = $PropertyID;`;
+                self.DB.run(sql, {$PropertyID: curPropDef.reference.reversePropertyID})
+            }
+
+            let ctlv = Value_Control_Flags.CTLV_NONE;
+
+            let cltvMask = !Value_Control_Flags.CTLV_REFERENCE_MASK;
+
+            let refClsDef = self.getClassDefByID(curPropDef.reference.classID);
+            let idPropID = self.findIdOrCodeProperty(refClsDef);
+            let pn = idPropID ? self.getNameByID(idPropID).Value : 'rowid';
+            let sql = `insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value], ExtData) 
+                select rv.ObjectID, rv.PropertyID, rv.PropIndex, 
+                (rv.ctlv & $ctlvMask) | $ctlv, 
+                rf.rowid, 
+                rv.ExtData from [.ref-values] rv
+                join [.objects] o on o.ObjectID = rv.ObjectID and o.Class = $ClassID
+                join [${refClsDef.Name}] rf on rf.[${pn}] = rv.[Value]
+                where rv.PropertyID = $PropertyID;`;
+            self.DB.run.sync(self.DB, sql, {
+                $PropertyID: propertyId,
+                $ctlv: ctlv,
+                $cltvMask: cltvMask,
+                $ClassID: clsDef.ClassID
+            });
+        }
+    }
+
+    /*
+
+     */
+    private findIdOrCodeProperty(refClsDef:IFlexiClass):number
+    {
+        let idPropID:string;
+        // Check if it has property with role ID or Code
+        let idProp = _.find(refClsDef.Data.properties,
+            (pd:IClassProperty, pID:string)=>
+            {
+                if ((pd.role & PROPERTY_ROLE.PROP_ROLE_ID) != 0)
+                {
+                    idPropID = pID;
+                    return true;
+                }
+                return false;
+            });
+        if (!idProp)
+        {
+            idProp = _.find(refClsDef.Data.properties,
                 (pd:IClassProperty, pID:string)=>
                 {
-                    if ((pd.role & PROPERTY_ROLE.PROP_ROLE_ID) != 0)
+                    if ((pd.role & PROPERTY_ROLE.PROP_ROLE_CODE) != 0)
                     {
                         idPropID = pID;
                         return true;
                     }
                     return false;
                 });
-            if (!idProp)
-            {
-                idProp = _.find(refClsDef.Data.properties,
-                    (pd:IClassProperty, pID:string)=>
-                    {
-                        if ((pd.role & PROPERTY_ROLE.PROP_ROLE_CODE) != 0)
-                        {
-                            idPropID = pID;
-                            return true;
-                        }
-                        return false;
-                    });
-            }
-            if (idProp)
-            {
-                let pn = self.getNameByID(Number(idPropID));
-                let sql = `update [.ref-values] set [Value] = 
-                        (select rowid from [${refClsDef.Name}] where [${pn.Value}] = [.ref-values].[Value] limit 1),
-                        ctlv = ctlv | $ctlv
-                        where PropertyID = $PropertyID;`;
-                self.DB.run.sync(self.DB, sql, {$PropertyID: 0});
-            }
-            else
-                // Use ObjectIDs
-            {
-                let pn = self.getNameByID(Number(idPropID));
-                let sql = `update [.ref-values] set [Value] = 
-                        (select rowid from [${refClsDef.Name}] where rowid = [.ref-values].[Value] limit 1),
-                        ctlv = ctlv | $ctlv
-                        where PropertyID = $PropertyID;`;
-                self.DB.run.sync(self.DB, sql, {$PropertyID: 0});
-            }
         }
-        else
-        {
-            if (curPropDef.reference.reversePropertyID &&
-                (curPropDef.reference.reversePropertyID !== propDef.reference.reversePropertyID
-                || curPropDef.reference.classID !== propDef.reference.classID))
-            {
-                let sql = `delete from [.class_properties] where PropertyID = $PropertyID`;
-                self.DB.run(sql, {$PropertyID: curPropDef.reference.reversePropertyID})
-            }
-        }
-
+        return idPropID ? Number(idPropID) : null;
     }
 
     /*
@@ -588,7 +685,10 @@ export class SQLiteDataRefactor implements IDBRefactory
      3) reference to scalar. Existing references are converted to IDs/Codes/ObjectIDs. Values get changed
      4) reference to reference (different class, different reverseProperty)
      This kind of alteration is not supported and should be processed in few steps: reference->scalar->possible ID alterations
-     ->reference
+     ->reference.
+
+     Values get updated based on kind of property changes. (normally, only when new indexing is defined, [.ref-values])
+     Idea is to avoid non-mandatory massive updates, whenever possible
      */
     private doAlterClassProperty(clsDef:IFlexiClass, propertyName:string, propDef:IClassProperty, newPropName?:string)
     {
@@ -640,34 +740,24 @@ Its definition has to be converted to scalar first, and then to new reference de
         if (curRef || newRef)
         {
             propUpdRequired = true;
-            self.doAlterRefProp(clsDef, propertyName, curPropDef, propDef);
+            self.doAlterRefProp(clsDef, propRow.PropertyID, propertyName, curPropDef, propDef);
+            return;
         }
 
         // Compare index definition change
-        var oldCtlv = propRow.ctlv;
-        var newCtlv = Value_Control_Flags.CTLV_NONE;
-        if ((oldCtlv & Value_Control_Flags.CTLV_INDEXING) !== (newCtlv & Value_Control_Flags.CTLV_INDEXING))
-            propUpdRequired = true;
-
-        // If new property definition is reference, assume job is done
-        if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
-            return;
-
-        var newUnique = false;
-        var curUnique = false;
-        // Check if there are changes in indexing
-        if ((propDef.role && (PROPERTY_ROLE.PROP_ROLE_CODE || PROPERTY_ROLE.PROP_ROLE_ID) !== 0) || propDef.unique)
+        let updState = SQLiteDataRefactor.getCtlvFromPropertyDef(propDef, propRow.ctlv);
+        if (updState.updateRequired)
         {
-            newUnique = true;
-        }
+            // TODO Convert value if needed
+            let updSql = `update [.ref-values] set ctlv = $ctlv,
+             [Value] = [Value]
+             where PropertyID = $PropertyID and ObjectID = (select ObjectID from [.objects] where ClassID = $ClassID);`;
+            self.DB.run.sync(self.DB, updSql, {
+                $PropertyID: propRow.PropertyID,
+                $ctlv: updState.ctlv,
+                $ClassID: clsDef.ClassID
+            });
 
-        if ((curPropDef.role && (PROPERTY_ROLE.PROP_ROLE_CODE || PROPERTY_ROLE.PROP_ROLE_ID) !== 0) || curPropDef.unique)
-        {
-            curUnique = true;
-        }
-
-        if (newUnique !== curUnique)
-        {
             // TODO
             /*
              if was unique and now not unique - do nothing. Just change property definition and all new updates
@@ -686,28 +776,21 @@ Its definition has to be converted to scalar first, and then to new reference de
                 and ObjectID = (select ObjectID from [.objects] where ClassID = $ClassID limit 1) group by Value;`;
             let rows = self.DB.all.sync(self.DB, sql, {$PropertyID: propRow.PropertyID, $ClassID: clsDef.ClassID});
         }
-        else
-            if (Boolean(propDef.indexed) != Boolean(curPropDef.indexed))
-            {
-                /*
-                 Indexed is treated after unique index constraint.
-                 result of this change is that flag CTLV_INDEXED is set or cleared. Index gets updated automatically
-                 as part of ctlv flags update
-                 */
-            }
+        /*
+         Indexed is treated after unique index constraint.
+         result of this change is that flag CTLV_INDEXED is set or cleared. Index gets updated automatically
+         as part of ctlv flags update
+         */
 
-        if (propDef.fastTextSearch != curPropDef.fastTextSearch)
-        {
-            /*
-             Similarly to indexed flag, this attribute leads to update of CTLV_FULL_TEXT_INDEX flag.
-             If this flag is set, trigger on [.ref-values] will update/insert/delete [.full_text_data] table.
-             If this flag is cleared on property definition, no changes are applied to actual indexing, but
-             all new updates/inserts will be ignoring full text index update. When flag toggles from true to
-             false, property definition ctlv get flag CTLV_USED_FULL_TEXT_INDEX flag which indicates that
-             some property values might be indexed via full text index, and MATCH function will apply both
-             full text search and linear search
-             */
-        }
+        /*
+         Similarly to indexed flag, this attribute leads to update of CTLV_FULL_TEXT_INDEX flag.
+         If this flag is set, trigger on [.ref-values] will update/insert/delete [.full_text_data] table.
+         If this flag is cleared on property definition, no changes are applied to actual indexing, but
+         all new updates/inserts will be ignoring full text index update. When flag toggles from true to
+         false, property definition ctlv gets flag CTLV_USED_FULL_TEXT_INDEX flag which indicates that
+         some property values might be indexed via full text index, and MATCH function will apply both
+         full text search and linear search
+         */
 
         // TODO if property type changes to range*
         /*
@@ -753,7 +836,7 @@ Its definition has to be converted to scalar first, and then to new reference de
     }
 
     /*
-     Alters single class property definition
+     Alters single class property definition. Handles both creation and alteration of property
      */
     alterClassProperty(className:string, propertyName:string, propDef:IClassProperty, newPropName ?:string)
     {
@@ -771,14 +854,82 @@ Its definition has to be converted to scalar first, and then to new reference de
         {
             self.doCreateClassProperty(clsDef, propertyName, propDef);
         }
+
+        self.doSaveClassDef(clsDef);
+    }
+
+    /*
+     Internal method to save class definition into database ([.classes] table)
+     */
+    private doSaveClassDef(clsDef:IFlexiClass)
+    {
+        var self = this;
+        self.DB.serialize(()=>
+        {
+            self.DB.run(`update [.classes] set Data = $Data where ClassID = $ClassID;`, {
+                $ClassID: clsDef.ClassID,
+                $Data: JSON.stringify(clsDef.Data)
+            })
+        });
     }
 
     /*
 
      */
+    private static getCtlvFromPropertyDef(propDef:IClassProperty, oldCtlv:Value_Control_Flags):{ctlv:Value_Control_Flags, updateRequired:boolean}
+    {
+        let result = {ctlv: Value_Control_Flags.CTLV_NONE, updateRequired: false};
+
+        // Initial value for ctlv is new type
+        result.ctlv = propDef.rules.type as any;
+        if ((propDef.role && ((propDef.role & PROPERTY_ROLE.PROP_ROLE_CODE) != 0
+            || (propDef.role & PROPERTY_ROLE.PROP_ROLE_ID) != 0)) || propDef.unique)
+            result.ctlv |= Value_Control_Flags.CTLV_UNIQUE_INDEX;
+
+        if (propDef.indexed)
+            result.ctlv |= Value_Control_Flags.CTLV_INDEX;
+
+        if (propDef.fastTextSearch)
+            result.ctlv |= Value_Control_Flags.CTLV_FULL_TEXT_INDEX;
+
+        if (propDef.noTrackChanges)
+            result.ctlv |= Value_Control_Flags.CTLV_NO_TRACK_CHANGES;
+
+        if ((result.ctlv & oldCtlv) !== result.ctlv)
+            result.updateRequired = true;
+
+        return result;
+    }
+
+    /*
+     Internal method to create a new class property (property must not exist).
+     New row will be inserted into [.class_properties] table, [.classes].Data.properties definition will be updated,
+     but class itself will not be saved.
+     */
     private doCreateClassProperty(clsDef:IFlexiClass, propertyName:string, propDef:IClassProperty)
     {
+        var self = this;
+        // Get name ID
+        let pnID = self.getNameByValue(propertyName).NameID;
+        let ctlvArgs = SQLiteDataRefactor.getCtlvFromPropertyDef(propDef, Value_Control_Flags.CTLV_NONE);
+        self.DB.serialize(()=>
+        {
+            self.DB.run(`insert into [.class_properties] (ClassID, NameID, ctlv) values ($ClassID, $NameID, $ctlv);`,
+                {$ClassID: clsDef.ClassID, $NameID: pnID, $ctlv: ctlvArgs.ctlv});
+            var rows = self.DB.all(`select last_insert_rowid();`);
+            let propID = rows[0].rowid;
 
+            // Clean up temporary attributes in property definition
+            delete propDef.$rangeDef;
+            delete propDef.$renameTo;
+            if (propDef.reference)
+            {
+                delete propDef.reference.$className;
+                delete propDef.reference.$reversePropertyName;
+            }
+
+            clsDef.Data.properties[propID] = propDef;
+        });
     }
 
     getInvalidObjects(className:string, markAsInvalid?:boolean):ObjectID[]
@@ -787,15 +938,25 @@ Its definition has to be converted to scalar first, and then to new reference de
         return null;
     }
 
+    /*
+     Creates a new class property. Internally calls alter class property, which does all the job
+     */
     createClassProperty(className:string, propertyName:string, propDef:IClassProperty)
     {
         this.alterClassProperty(className, propertyName, propDef);
     }
 
+    /*
+     Deletes class property definition. Does not update existing values (they become kind of 'orphaned')
+     */
     dropClassProperty(classID:number, propertyName:string)
     {
+        var self = this;
+        self.DB.serialize(()=>
+        {
+            self.DB.run(`delete from [.class_properties] where PropertyID = $PropertyID`);
+        });
     }
-
 
     /*
      Synchronizes node-orm model to .classes and .class_properties.
@@ -841,26 +1002,18 @@ Its definition has to be converted to scalar first, and then to new reference de
          1.1 exists? get existing properties and properties to delete
          1.2 no? create new class, save in database to get class ID. BaseSchemaID is not set yet
          2.1 Get name IDs for new properties
-         2.2 Prepare list of existing column assignments: dictionary by column name (A..J) to property Name ID. Also include
-         priority level: 100 for ID role, 90 - Code, 80 - unique index, 70 - index, 60 - scalar required,
-         50 - scalar not required, 0 - others
-         2.3 for every prop check if it needs/wishes to have fixed column assigned. Rule is:
-         if there is existing property with column assigned, keep it unless there are new properties with higher
-         priority level
 
          4. Check if there are some properties which switch from BOXED_OBJECT to FKEY ->
          process them by creating new objects, copy property values, delete properties from existing records
          5. Delete obsolete properties
          6. Insert or replace new/existing properties
-         7. Update class: BaseSchemaID, ViewOutdated, Data, Hash
-         8. Generate view with triggers
+         7. Update class: Data, Hash
          */
 
         // Initialize
         vars.existingProps = {} as IFlexiClassPropDictionaryByID; // Dictionary by property name
         vars.propsToDelete = [] as IFlexiClassProperty[]; // Array of properties
         vars.newProps = {} as IFlexiClassPropDictionaryByName; // Dictionary by property name
-        vars.columnAssignments = {};
 
         // Init items for [.class_properties]
         _.forEach(vars.converter.targetClassProps, (p:IClassProperty, n:string)=>
@@ -887,131 +1040,17 @@ Its definition has to be converted to scalar first, and then to new reference de
             SQLiteDataRefactor.saveNewClass(self, vars, model);
         }
 
-        this.initExistingColAssignment(vars);
-
         self.initAndSaveProperties(self, vars);
         // Now vars.newProps are saved and have property IDs assigned
-
-        // Set column assignments
-        this.assignColumns(self, vars, COLUMN_ASSIGN_PRIORITY.COL_ASSIGN_REQUIRED);
-        this.assignColumns(self, vars, COLUMN_ASSIGN_PRIORITY.COL_ASSIGN_DESIRED);
 
         // Set class properties
         // ctloMask
         vars.classDef.ctloMask = OBJECT_CONTROL_FLAGS.CTLO_NONE;
 
-        // Column assignments
-        for (let idx = 0; idx < SQLiteDataRefactor.COLUMN_LETTERS.length; idx++)
-        {
-            let ch = SQLiteDataRefactor.COLUMN_LETTERS[idx];
-            let propID = vars.columnAssignments[ch].propID;
-            vars.classDef[ch] = propID;
-            if (propID)
-            {
-                let ch_offset = ch.charCodeAt(0) - 'A'.charCodeAt(0);
-                let p:IFlexiClassProperty = vars.newProps[propID];
-                if (p.Data.unique || (p.Data.role & PROPERTY_ROLE.PROP_ROLE_CODE) || (p.Data.role & PROPERTY_ROLE.PROP_ROLE_ID))
-                {
-                    vars.classDef.ctloMask |= 1 << (1 + ch_offset);
-                }
-                else
-                    if (p.Data.indexed)
-                    {
-                        vars.classDef.ctloMask |= 1 << (13 + ch_offset);
-                    }
-                    else
-                        if (p.Data.fastTextSearch)
-                        {
-                            vars.classDef.ctloMask |= 1 << (25 + ch_offset);
-                        }
-                // TODO range index is not supported yet
-            }
-        }
-
         // Check if there are properties that have changed from OBJECT to LINK
 // TODO
 
         self.applyClassDefinition(vars.classDef);
-    }
-
-    /*
-
-     */
-    private assignColumns(self:SQLiteDataRefactor, vars:ISyncVariables, target_priority:COLUMN_ASSIGN_PRIORITY)
-    {
-        _.forEach(vars.newProps as any, (p:IFlexiClassProperty, id:number)=>
-        {
-            let prop_priority = self.determineColAssignmentPriority(p.Data);
-            if (prop_priority === target_priority)
-            {
-                // Find unused columns first
-                let ca = _.find(vars.columnAssignments, (ca:IColumnAssignmentInfo) =>
-                {
-                    return ca.priority === COLUMN_ASSIGN_PRIORITY.COL_ASSIGN_NOT_SET;
-                });
-                if (ca)
-                {
-                    ca.propID = id;
-                    return;
-                }
-
-                // Find already assigned columns, but associated with lower-priority properties
-                ca = _.find(vars.columnAssignments, (ca:IColumnAssignmentInfo) =>
-                {
-                    return ca.priority < target_priority;
-                });
-                if (ca)
-                {
-                    ca.propID = id;
-                    return;
-                }
-            }
-        });
-    }
-
-    /*
-
-     */
-    private initExistingColAssignment(vars:ISyncVariables)
-    {
-        // Set column assignment
-        for (var c = 0; c < SQLiteDataRefactor.COLUMN_LETTERS.length; c++)
-        {
-            let pid = vars.classDef[SQLiteDataRefactor.COLUMN_LETTERS[c]];
-            let prior = COLUMN_ASSIGN_PRIORITY.COL_ASSIGN_NOT_SET;
-            if (pid)
-            {
-                prior = this.determineColAssignmentPriority(vars.classDef.Data.properties[pid]);
-            }
-            vars.columnAssignments[c] = {propID: pid, priority: prior};
-        }
-    }
-
-
-    /*
-
-     */
-    private determineColAssignmentPriority(cp:IClassProperty)
-    {
-        let prior = COLUMN_ASSIGN_PRIORITY.COL_ASSIGN_NOT_SET;
-
-        if ((cp.role & PROPERTY_ROLE.PROP_ROLE_ID) || (cp.role & PROPERTY_ROLE.PROP_ROLE_CODE) || cp.unique || cp.indexed)
-            prior = COLUMN_ASSIGN_PRIORITY.COL_ASSIGN_REQUIRED;
-        else
-        {
-            switch (cp.rules.type)
-            {
-                case PROPERTY_TYPE.PROP_TYPE_BINARY:
-                case PROPERTY_TYPE.PROP_TYPE_JSON:
-                case PROPERTY_TYPE.PROP_TYPE_LINK:
-                case PROPERTY_TYPE.PROP_TYPE_OBJECT:
-                    prior = COLUMN_ASSIGN_PRIORITY.COL_ASSIGN_NOT_SET;
-                    break;
-                default:
-                    prior = COLUMN_ASSIGN_PRIORITY.COL_ASSIGN_DESIRED;
-            }
-        }
-        return prior;
     }
 
     private initAndSaveProperties(self:SQLiteDataRefactor, vars:ISyncVariables)
@@ -1141,11 +1180,6 @@ interface ISyncVariables
      Properties to be inserted/updated. Dictionary by property name
      */
     newProps:IFlexiClassPropDictionaryByID;
-
-    /*
-
-     */
-    columnAssignments:{[col:string]:IColumnAssignmentInfo};
 
     /*
 

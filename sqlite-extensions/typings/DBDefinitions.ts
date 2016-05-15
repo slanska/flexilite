@@ -88,6 +88,14 @@ declare const enum OBJECT_CONTROL_FLAGS
 // Property types
 declare const enum PROPERTY_TYPE
 {
+    /*
+     Data type is determined on actual SQLite value type stored.
+     TEXT -> PROP_TYPE_TEXT
+     INTEGER -> PROP_TYPE_INTEGER
+     FLOAT -> PROP_TYPE_NUMBER
+     BLOB -> PROP_TYPE_BINARY
+     NULL -> NULL
+     */
     PROP_TYPE_AUTO = 0,
 
     /*
@@ -112,7 +120,7 @@ declare const enum PROPERTY_TYPE
     PROP_TYPE_INTEGER = 15,
 
     /*
-     Selectable from fixed list of items
+     Selectable from fixed list of items. Internally stored as INTEGER or TEXT
      */
     PROP_TYPE_ENUM = 16,
 
@@ -122,17 +130,17 @@ declare const enum PROPERTY_TYPE
     PROP_TYPE_DECIMAL = 17,
 
     /*
-     Presented as text but internally stored as name ID. Provides localization
+     Presented as text but internally stored as name ID (INTEGER). Provides localization
      */
     PROP_TYPE_NAME = 18,
 
     /*
-     True or False, 1 or 0
+     True or False, 1 or 0. Stored as INTEGER
      */
     PROP_TYPE_BOOLEAN = 19,
 
     /*
-     8 byte float value
+     8 byte float value. Stored as SQLite FLOAT
      */
     PROP_TYPE_NUMBER = 20,
 
@@ -164,19 +172,33 @@ declare const enum PROPERTY_TYPE
     PROP_TYPE_JSON = 26,
 
     /*
-     * Range types are tuples which combine 2 values - Start and End.
-     * End value must be not less than Start.
-     * In virtual table range types are presented as 2 columns: Start is named the same as range property, End has '^' symbol appended.
-     * For example: Lifetime as date range property would be presented as [Lifetime] and [Lifetime_1] columns. If this
-     * property has 'indexed' attribute, values would be stored in rtree table for fast lookup by range.
-     * Unique indexes are not supported for range values
+     'Virtual' property which is has real, aliased, property. 
      */
-    PROP_TYPE_NUMBER_RANGE = 27,
-    PROP_TYPE_INTEGER_RANGE = 28,
-    PROP_TYPE_DECIMAL_RANGE = 29,
-    PROP_TYPE_DATE_RANGE = 30
+    PROP_TYPE_ALIAS = 27,
+
+    PROP_TYPE_FORMULA = 28,
+
+    PROP_TYPE_ANY = 29
 }
 ;
+
+/*
+ * If property is indexed in RTREE, one of those flags would be set
+ * X0 - means start value
+ * X1 - means end value
+ * X means both start and end values.
+ */
+declare const enum Range_Column_Mapping
+{
+    RNG_MAP_RANGE_A0 = (1 << 9) + 0,
+    RNG_MAP_RANGE_A1 = (1 << 9) + 1,
+    RNG_MAP_RANGE_B0 = (1 << 9) + 2,
+    RNG_MAP_RANGE_B1 = (1 << 9) + 3,
+    RNG_MAP_RANGE_C0 = (1 << 9) + 4,
+    RNG_MAP_RANGE_C1 = (1 << 9) + 5,
+    RNG_MAP_RANGE_D0 = (1 << 9) + 6,
+    RNG_MAP_RANGE_D1 = (1 << 9) + 7
+}
 
 /*
  ctlv is used for indexing and processing control. Possible values (the same as Values.ctlv):
@@ -185,9 +207,9 @@ declare const enum PROPERTY_TYPE
  bit 6 - unique index
  bit 7 - no change tracking
  bit 8 - full text index
- bits 9-12 - rtree index
- bit 13 - bad data
- bit 14 - formula
+ bits 9-11 - rtree index
+ bit 12 - bad data
+ bit 13 - formula
 
  References:
  ==========
@@ -205,6 +227,15 @@ declare const enum Value_Control_Flags
     CTLV_NONE = 0,
 
     CTLV_INDEX = 1,
+
+    /*
+     Property types. Bits 1-5, all set(
+     */
+    CTLV_PROP_TYPE_MASK = 31 << 1,
+
+    /*
+     References
+     */
     CTLV_REFERENCE = 2,
     CTLV_REFERENCE_OWN = 4,
     CTLV_REFERENCE_OWN_REVERSE = 6,
@@ -212,6 +243,10 @@ declare const enum Value_Control_Flags
     CTLV_REFERENCE_DEPENDENT_MASTER = 10,
     CTLV_REFERENCE_DEPENDENT_LINK = 12,
     CTLV_REFERENCE_DEPENDENT_BOTH = 14,
+
+    CTLV_REFERENCE_MASK = CTLV_INDEX | CTLV_REFERENCE | CTLV_REFERENCE_OWN | CTLV_REFERENCE_OWN_REVERSE |
+        CTLV_REFERENCE_OWN_MUTUAL | CTLV_REFERENCE_DEPENDENT_MASTER | CTLV_REFERENCE_DEPENDENT_LINK |
+        CTLV_REFERENCE_DEPENDENT_BOTH,
 
     /*
      * Though there is no limits on number of unique indexes, typically class will have 0 or 1 (rarely 2) unique index
@@ -227,29 +262,24 @@ declare const enum Value_Control_Flags
      * If property is indexed in RTREE, one of those flags would be set
      * X0 - means start value
      * X1 - means end value
-     * X means both start and end values.
      */
-    CTLV_RANGE_A0 = (1 << 9) + 1,
-    CTLV_RANGE_A1 = (1 << 9) + 2,
-    CTLV_RANGE_A = (1 << 9) + 3,
-    CTLV_RANGE_B0 = (1 << 9) + 4,
-    CTLV_RANGE_B1 = (1 << 9) + 5,
-    CTLV_RANGE_B = (1 << 9) + 6,
-    CTLV_RANGE_C0 = (1 << 9) + 7,
-    CTLV_RANGE_C1 = (1 << 9) + 8,
-    CTLV_RANGE_C = (1 << 9) + 9,
-    CTLV_RANGE_D0 = (1 << 9) + 10,
-    CTLV_RANGE_D1 = (1 << 9) + 11,
-    CTLV_RANGE_D = (1 << 9) + 12,
+    CTLV_RANGE_A0 = 1 << 9,
+    CTLV_RANGE_A1 = (1 << 9) + 1,
+    CTLV_RANGE_B0 = (1 << 9) + 2,
+    CTLV_RANGE_B1 = (1 << 9) + 3,
+    CTLV_RANGE_C0 = (1 << 9) + 4,
+    CTLV_RANGE_C1 = (1 << 9) + 5,
+    CTLV_RANGE_D0 = (1 << 9) + 6,
+    CTLV_RANGE_D1 = (1 << 9) + 7,
 
-    CTLV_RANGE_INDEXING = CTLV_RANGE_A0 | CTLV_RANGE_A1 | CTLV_RANGE_A | CTLV_RANGE_B0 | CTLV_RANGE_B1 |
-        CTLV_RANGE_B | CTLV_RANGE_C0 | CTLV_RANGE_C1 | CTLV_RANGE_C | CTLV_RANGE_D0 | CTLV_RANGE_D1 | CTLV_RANGE_D,
+    CTLV_RANGE_MASK = CTLV_RANGE_A0 | CTLV_RANGE_A1 | CTLV_RANGE_B0 | CTLV_RANGE_B1 |
+        CTLV_RANGE_C0 | CTLV_RANGE_C1 | CTLV_RANGE_D0 | CTLV_RANGE_D1,
 
-    CTLV_BAD_DATA = 1 << 13,
+    CTLV_BAD_DATA = 1 << 12,
 
-    CTLV_FORMULA = 1 << 14,
+    CTLV_FORMULA = 1 << 13,
 
-    CTLV_INDEXING = CTLV_INDEX | CTLV_UNIQUE_INDEX | CTLV_FULL_TEXT_INDEX | CTLV_RANGE_INDEXING
+    CTLV_INDEX_MASK = CTLV_INDEX | CTLV_UNIQUE_INDEX | CTLV_FULL_TEXT_INDEX
 }
 ;
 

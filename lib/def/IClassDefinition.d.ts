@@ -57,16 +57,30 @@ interface IPropertyUISettings
     }
 }
 
+/*
+ Enum item definition
+ */
+interface IEnumItem
+{
+    /*
+     Required attribute: string or number item ID
+     */
+    ID:string | number,
+
+    /*
+     Either $Text or TextID should be specified. $Text has priority over TextID.
+     Internally TextID is stored, $Text is removed after obtaining name ID
+     */
+    $Text?:string,
+    TextID?:NameId
+}
+
 interface IEnumPropertyDefinition
 {
     /*
      Hard coded list of items to select from. Either Text or TextID are required to serve
      */
-    items:[{
-        ID:string | number,
-        Text?:string,
-        TextID?:NameId
-    }]
+    items:[IEnumItem]
 }
 
 interface IObjectPropertyDefinition
@@ -142,7 +156,7 @@ interface IClassProperty
     indexed?:boolean;
 
     /*
-     This property is unique among all class objects. Properties with role ID or Code are assumed to be unique
+     This property is unique among all class objects. Note: properties with role ID or Code are assumed to be unique
      */
     unique?:boolean;
 
@@ -152,7 +166,7 @@ interface IClassProperty
     fastTextSearch?:boolean;
 
     /*
-     What is functional role of this property in the class?
+     Functional role of this property in the class?
      */
     role?:PROPERTY_ROLE;
 
@@ -185,12 +199,11 @@ interface IClassProperty
     $renameTo?:string;
 
     /*
-     Applicable when property type changes from scalar to range type. In this case, $highBoundPropertyName will have
-     name of property which value will be used as high bound of range. If not specified, own property value will be
-     used for both low and high bound values
+     If set, this property will be indexed using r-tree. For type PROP_TYPE_RANGE* this attribute has to be set to one
+     of the following values: RNG_MAP_RANGE_A, RNG_MAP_RANGE_B, RNG_MAP_RANGE_C, RNG_MAP_RANGE_D.
+     This is a temporary value
      */
-    $lowBoundPropertyName?:string;
-    $highBoundPropertyName?:string;
+    $rangeDef?:Range_Column_Mapping;
 }
 
 type IClassPropertyDictionary = {[propID:string]:IClassProperty};

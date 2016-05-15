@@ -4,14 +4,16 @@
 
 ///<reference path="../../typings/lib.d.ts"/>
 
-declare type ILastActionReport =
+declare type ILastActionReportItem =
 {
     className:string,
     property?:string,
     message:string,
     status:'warning'|'error',
     numberOfObjects:number
-}[];
+};
+
+declare type ILastActionReport = ILastActionReportItem[];
 
 
 interface IDBRefactory
@@ -129,13 +131,13 @@ interface IDBRefactory
     importFromDatabase(options:IImportDatabaseOptions);
 
     /*
-    Retrieves list of invalid objects for the given class (objects which do not pass property rules)
-    Returns list of object IDs.
-    @className - class name to perform validation on
-    @markAsnInvalid - if set to true, invalid objects will be marked with CTLO_HAS_INVALID_DATA
-    Note that all objects will be affected and valid objects will get this flag cleared.
+     Retrieves list of invalid objects for the given class (objects which do not pass property rules)
+     Returns list of object IDs.
+     @className - class name to perform validation on
+     @markAsnInvalid - if set to true, invalid objects will be marked with CTLO_HAS_INVALID_DATA
+     Note that all objects will be affected and valid objects will get this flag cleared.
      */
-    getInvalidObjects(className:string, markAsInvalid?:boolean ):ObjectID[];
+    getInvalidObjects(className:string, markAsInvalid?:boolean):ObjectID[];
 
     /*
 
