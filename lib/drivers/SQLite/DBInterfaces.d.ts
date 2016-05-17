@@ -40,9 +40,9 @@ interface IFlexiRefValue
     Value?:any;
 
     /*
-     for references, referenced object ID
+     Optional extra data
      */
-    RefObjectID?:number;
+    ExtData?:any;
 }
 
 /*
@@ -104,9 +104,21 @@ interface IFlexiClassProperty
     PropertyID?:number;
     ClassID:number;
     NameID:NameID;
+
+    /*
+     Computed property. Taken from [.names] based on NameID
+     */
     Name?:string;
+
+    /*
+     Current settings
+     */
     ctlv:Value_Control_Flags;
-    ColumnAssigned?:string;
+
+    /*
+     Suggested but not yet applied settings: indexing etc.
+     */
+    ctlvPlan?:Value_Control_Flags;
 
     /*
      JSON text. Computed property taken from [.classes]

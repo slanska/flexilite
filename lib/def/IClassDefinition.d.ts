@@ -208,6 +208,11 @@ interface IClassProperty
 
 type IClassPropertyDictionary = {[propID:string]:IClassProperty};
 
+interface IPropertyIdentifier
+{
+    $propertyName?:string;
+    propertyID?:number;
+}
 /*
  Structure of .classes.Data
  */
@@ -231,6 +236,39 @@ interface IClassDefinition
      Properties definition for view generation
      */
     properties:IClassPropertyDictionary;
+
+    /*
+    Mapping properties to fixed columns in [.objects] table
+     */
+    columnMapping?:{
+        A?:IPropertyIdentifier;
+        B?:IPropertyIdentifier;
+        C?:IPropertyIdentifier;
+        D?:IPropertyIdentifier;
+        E?:IPropertyIdentifier;
+        F?:IPropertyIdentifier;
+        G?:IPropertyIdentifier;
+        H?:IPropertyIdentifier;
+        I?:IPropertyIdentifier;
+        J?:IPropertyIdentifier;
+        K?:IPropertyIdentifier;
+        L?:IPropertyIdentifier;
+        M?:IPropertyIdentifier;
+        N?:IPropertyIdentifier;
+        O?:IPropertyIdentifier;
+        P?:IPropertyIdentifier;
+    }
+
+    rangeIndexing?:{
+        A0:IPropertyIdentifier;
+        A1?:IPropertyIdentifier;
+        B0?:IPropertyIdentifier;
+        B1?:IPropertyIdentifier;
+        C0?:IPropertyIdentifier;
+        C1?:IPropertyIdentifier;
+        D0?:IPropertyIdentifier;
+        D1?:IPropertyIdentifier;
+    }
 }
 
 type IClassPropertyDictionaryByName = {[propName:string]:IClassProperty};

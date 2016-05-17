@@ -13,8 +13,6 @@ import _ = require('lodash');
 
 export class SQLiteDataRefactor implements IDBRefactory
 {
-    private static COLUMN_LETTERS = 'ABCDEFGHIJ'; // TODO KLMNOP
-
     /*
 
      */
@@ -261,18 +259,48 @@ export class SQLiteDataRefactor implements IDBRefactory
      Alter class definition.
      @newClassDef - can add/remove or change properties
      Note: property renaming is not supported here. alterClassProperty should be used for that.
+     */
+    alterClass(className:string, newClassDef?:IClassDefinition, newName?:string,
+               invalidDataBehavior:InvalidDataBehavior = InvalidDataBehavior.INV_DT_BEH_MARKCLASS)
+    {
+        var self = this;
+        let clsDef = self.getClassDefByName(name);
+        if (clsDef)
+        {
+            self.doAlterClass(name, newClassDef);
+        }
+        else
+        {
+            self.doCreateClass(name, newClassDef);
+        }
+    }
+
+    /*
 
      */
-    alterClass(className:string, newClassDef?:IClassDefinition, newName?:string)
+    private doCreateClass(name:string, classDef:IClassDefinition)
+    {
+        var self = this;
+        let jsonClsDef = JSON.stringify(classDef);
+        self.DB.serialize(()=>
+        {
+            self.DB.exec(`create virtual table [${name}] using 'flexi_eav' ('${jsonClsDef}');`);
+        });
+    }
+
+    /*
+
+     */
+    private doAlterClass(name:string, newClassDef:IClassDefinition, newName?:string)
     {
         var self = this;
         var classChanged = false;
 
         // Check if class exists
-        var classDef = self.getClassDefByName(className);
+        var classDef = self.getClassDefByName(name);
         if (classDef)
         {
-            if (newClassDef)
+            if (classDef)
             {
                 classChanged = true;
             }
@@ -293,39 +321,15 @@ export class SQLiteDataRefactor implements IDBRefactory
                 });
             }
         }
-        else throw new Error(`Flexilite.alterClass: class '${className}' not found`);
+        else throw new Error(`Flexilite.alterClass: class '${name}' not found`);
     }
 
     /*
-
-     */
-    private applyClassDefinition(classDef:IFlexiClass)
-    {
-        var self = this;
-        // TODO Needed?
-    }
-
-    // TODO validateClassName
-
-    /*
-     Create new Flexilite class using @name and @classDef as class definition
+     Create new or alters existing Flexilite class using @name and @classDef as class definition
      */
     createClass(name:string, classDef:IClassDefinition)
     {
-        var self = this;
-        let clsDef = self.getClassDefByName(name);
-        if (clsDef)
-        {
-            self.alterClass(name, classDef);
-        }
-        else
-        {
-            let jsonClsDef = JSON.stringify(classDef);
-            self.DB.serialize(()=>
-            {
-                self.DB.exec(`create virtual table [${name}] using 'flexi_eav' ('${jsonClsDef}');`);
-            });
-        }
+        this.alterClass(name, classDef);
     }
 
     /*
@@ -368,9 +372,9 @@ export class SQLiteDataRefactor implements IDBRefactory
     }
 
     /*
-
+     Removes duplicated objects
      */
-    removeDuplicatedObjects(classID:number, filter:IObjectFilter, compareFunction:string, keyProps:PropertyIDs, replaceTargetNulls:boolean)
+    removeDuplicatedObjects(filter:IObjectFilter, compareFunction:string, keyProps:PropertyIDs, replaceTargetNulls:boolean)
     {
     }
 
@@ -1021,7 +1025,7 @@ Its definition has to be converted to scalar first, and then to new reference de
             let nameID = self.getNameByValue(n).NameID;
             let np = {} as IFlexiClassProperty;
             np.NameID = nameID;
-            np.ctlv = 0; // TODO to set later
+            np.ctlv = Value_Control_Flags.CTLV_NONE;
             np.Data = p;
             vars.newProps[n] = np;
         });
@@ -1046,11 +1050,6 @@ Its definition has to be converted to scalar first, and then to new reference de
         // Set class properties
         // ctloMask
         vars.classDef.ctloMask = OBJECT_CONTROL_FLAGS.CTLO_NONE;
-
-        // Check if there are properties that have changed from OBJECT to LINK
-// TODO
-
-        self.applyClassDefinition(vars.classDef);
     }
 
     private initAndSaveProperties(self:SQLiteDataRefactor, vars:ISyncVariables)
@@ -1101,20 +1100,10 @@ Its definition has to be converted to scalar first, and then to new reference de
         vars.classDef.NameID = self.getNameByValue(model.table).NameID;
         vars.classDef.ctloMask = 0; // TODO
 
-        let clsID = self.DB.all.sync(self.DB, `insert or replace into [.classes] (NameID, BaseSchemaID, ctloMask, A, B, C, D, E, F, G, H, I, J) 
-                values ($NameID, $ctloMask, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J); select last_insert_rowid();`, {
+        let clsID = self.DB.all.sync(self.DB, `insert or replace into [.classes] (NameID, BaseSchemaID, ctloMask) 
+                values ($NameID, $ctloMask); select last_insert_rowid();`, {
             $NameID: vars.classDef.NameID,
             $ctloMask: vars.classDef.ctloMask,
-            $A: vars.classDef.A,
-            $B: vars.classDef.B,
-            $C: vars.classDef.C,
-            $D: vars.classDef.D,
-            $E: vars.classDef.E,
-            $F: vars.classDef.F,
-            $G: vars.classDef.G,
-            $H: vars.classDef.H,
-            $I: vars.classDef.I,
-            $J: vars.classDef.J,
             $Hash: vars.classDef.Hash,
             $Data: JSON.stringify(vars.classDef.Data)
         });
@@ -1124,7 +1113,7 @@ Its definition has to be converted to scalar first, and then to new reference de
     /*
      Initializes vars with data from existing class
      */
-    private    initWhenClassExists(self:SQLiteDataRefactor, vars:ISyncVariables)
+    private initWhenClassExists(self:SQLiteDataRefactor, vars:ISyncVariables)
     {
         // Load .class_properties
         var classProps = <IFlexiClassProperty[]>self.DB.all.sync(self.DB,
@@ -1157,8 +1146,6 @@ Its definition has to be converted to scalar first, and then to new reference de
         });
     }
 }
-
-type IColumnAssignmentInfo = {propID?:number, priority:COLUMN_ASSIGN_PRIORITY};
 
 /*
  Internally used set of parameters for synchronization

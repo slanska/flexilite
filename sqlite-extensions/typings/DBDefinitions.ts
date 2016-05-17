@@ -198,7 +198,14 @@ declare const enum Range_Column_Mapping
     RNG_MAP_RANGE_C1 = (1 << 9) + 5,
     RNG_MAP_RANGE_D0 = (1 << 9) + 6,
     RNG_MAP_RANGE_D1 = (1 << 9) + 7
-}
+};
+
+declare const enum InvalidDataBehavior
+{
+    INV_DT_BEH_MARKCLASS,
+    INV_DT_BEH_MARKOBJECTS,
+    INV_DT_BEH_ERROR
+};
 
 /*
  ctlv is used for indexing and processing control. Possible values (the same as Values.ctlv):

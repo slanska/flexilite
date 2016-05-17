@@ -5,16 +5,15 @@
 ///<reference path="../../typings/lib.d.ts"/>
 
 declare type ILastActionReportItem =
-{
-    className:string,
-    property?:string,
-    message:string,
-    status:'warning'|'error',
-    numberOfObjects:number
-};
+    {
+        className:string,
+        property?:string,
+        message:string,
+        status:'warning'|'error',
+        numberOfObjects:number
+    };
 
 declare type ILastActionReport = ILastActionReportItem[];
-
 
 interface IDBRefactory
 {
@@ -88,7 +87,7 @@ interface IDBRefactory
      Removes duplicated objects. Updates references to point to a new object. When resolving conflict, selects object
      with larger number of references to it, or object that was updated more recently.
      */
-    removeDuplicatedObjects(classID:number, filter:IObjectFilter, compareFunction:string, keyProps:PropertyIDs, replaceTargetNulls:boolean);
+    removeDuplicatedObjects(filter:IObjectFilter, compareFunction:string, keyProps:PropertyIDs, replaceTargetNulls:boolean);
 
     /*
      Split property into multiple: use SQL expressions
