@@ -333,6 +333,74 @@ static void init_range_column(struct flexi_prop_metadata *pRngProp, unsigned cha
 }
 
 /*
+ * Initializes database connection wide SQL statements
+ */
+static int flexi_prepare_db_statements(sqlite3 *db, void *aux_data)
+{
+    int result = SQLITE_OK;
+
+    struct flexi_db_env *data = aux_data;
+
+    const char *zDelObjSQL = "delete from [.objects] where ObjectID = :1;";
+    CHECK_CALL(sqlite3_prepare_v2(db, zDelObjSQL, -1, &data->pStmts[STMT_DEL_OBJ], NULL));
+
+    const char *zInsObjSQL = "insert into [.objects] (ObjectID, ClassID, ctlo) values (:1, :2, :3); "
+            "select last_insert_rowid();";
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsObjSQL, -1, &data->pStmts[STMT_INS_OBJ], NULL));
+
+    const char *zInsPropSQL = "insert into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
+            " values (:1, :2, :3, :4, :5);";
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, -1, &data->pStmts[STMT_INS_PROP], NULL));
+
+    const char *zUpdPropSQL = "insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
+            " values (:1, :2, :3, :4, :5);";
+    CHECK_CALL(sqlite3_prepare_v2(db, zUpdPropSQL, -1, &data->pStmts[STMT_UPD_PROP], NULL));
+
+    const char *zDelPropSQL = "delete from [.ref-values] where ObjectID = :1 and PropertyID = :2 and PropIndex = :3;";
+    CHECK_CALL(sqlite3_prepare_v2(db, zDelPropSQL, -1, &data->pStmts[STMT_DEL_PROP], NULL));
+
+    const char *zInsNameSQL = "insert or replace into [.names] ([Value], NameID)"
+            " values (:1, (select NameID from [.names] where Value = :1 limit 1));";
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsNameSQL, -1, &data->pStmts[STMT_INS_NAME], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);",
+            -1, &data->pStmts[STMT_SEL_CLS_BY_NAME], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "select NameID from [.names] where [Value] = :1;",
+            -1, &data->pStmts[STMT_SEL_NAME_ID], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "select PropertyID from [.class_properties] where ClassID = :1 and NameID = :2;",
+            -1, &data->pStmts[STMT_SEL_PROP_ID], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "insert into [.range_data] ([ObjectID], [ClassID], [ClassID_1], [A], [A_1], [B], [B_1], [C], [C_1], [D], [D_1]) values "
+                    "(:1, :2, :2, :3, :4, :5, :6, :7, :8, :9, :10);",
+            -1, &data->pStmts[STMT_INS_RTREE], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "update [.range_data] set [ClassID] = :2, [ClassID_1] = :2, [A] = :3, [A_1] = :4, [B] = :5, [B_1] = :6, "
+                    "[C] = :7, [C_1] = :8, [D] = :9, [D_1] = :10 where ObjectID = :1;",
+            -1, &data->pStmts[STMT_UPD_RTREE], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db, "delete from [.range_data] where ObjectID = :1;",
+            -1, &data->pStmts[STMT_DEL_RTREE], NULL));
+
+    goto FINALLY;
+    CATCH:
+    FINALLY:
+    return result;
+}
+
+/*
  * Loads class definition from [.classes] and [.class_properties] tables
  * into ppVTab (casted to flexi_vtab).
  * Used by Create and Connect methods
@@ -357,6 +425,12 @@ static int flexi_load_class_def(
     memset(vtab, 0, sizeof(*vtab));
 
     vtab->pDBEnv = pAux;
+
+    if (vtab->pDBEnv->nRefCount == 0)
+    {
+        CHECK_CALL(flexi_prepare_db_statements(db, vtab->pDBEnv));
+    }
+
     vtab->pDBEnv->nRefCount++;
     vtab->db = db;
 
@@ -940,6 +1014,12 @@ static void flexiCleanUpModuleEnv(struct flexi_db_env *pDBEnv)
     memset(pDBEnv, 0, sizeof(*pDBEnv));
 }
 
+static void flexiEavModuleDestroy(void *data)
+{
+    flexiCleanUpModuleEnv(data);
+    sqlite3_free(data);
+}
+
 /*
  *
  */
@@ -949,13 +1029,14 @@ static int flexiEavDisconnect(sqlite3_vtab *pVTab)
 
     /*
      * Fix for possible SQLite bug when disposing modules for virtual tables
-     * We keep our own counter for number of connected virtual tables, and once
+     * We keep our own counter for number of opened/connected virtual tables, and once
      * this counters gets to 0, we will close all prepared commonly used SQL statements
      */
     vtab->pDBEnv->nRefCount--;
     if (vtab->pDBEnv->nRefCount == 0)
     {
-        flexiCleanUpModuleEnv(vtab->pDBEnv);
+        flexiEavModuleDestroy(vtab->pDBEnv);
+//        flexiCleanUpModuleEnv(vtab->pDBEnv);
     }
 
     flexi_vtab_free(vtab);
@@ -1420,7 +1501,7 @@ static void matchTextFunction(sqlite3_context *context, int argc, sqlite3_value 
     CATCH:
     sqlite3_result_error(context, NULL, result);
     FINALLY:
-    { };
+    {};
 }
 
 /*
@@ -2017,11 +2098,6 @@ static sqlite3_module flexiEavModule = {
         0                          /* xRollbackTo */
 };
 
-static void flexiEavModuleDestroy(void *data)
-{
-    flexiCleanUpModuleEnv(data);
-    sqlite3_free(data);
-}
 
 int sqlite3_flexieav_vtable_init(
         sqlite3 *db,
@@ -2035,61 +2111,8 @@ int sqlite3_flexieav_vtable_init(
     CHECK_MALLOC(data, sizeof(*data));
     memset(data, 0, sizeof(*data));
 
-    const char *zDelObjSQL = "delete from [.objects] where ObjectID = :1;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zDelObjSQL, -1, &data->pStmts[STMT_DEL_OBJ], NULL));
-
-    const char *zInsObjSQL = "insert into [.objects] (ObjectID, ClassID, ctlo) values (:1, :2, :3); "
-            "select last_insert_rowid();";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsObjSQL, -1, &data->pStmts[STMT_INS_OBJ], NULL));
-
-    const char *zInsPropSQL = "insert into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
-            " values (:1, :2, :3, :4, :5);";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, -1, &data->pStmts[STMT_INS_PROP], NULL));
-
-    const char *zUpdPropSQL = "insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
-            " values (:1, :2, :3, :4, :5);";
-    CHECK_CALL(sqlite3_prepare_v2(db, zUpdPropSQL, -1, &data->pStmts[STMT_UPD_PROP], NULL));
-
-    const char *zDelPropSQL = "delete from [.ref-values] where ObjectID = :1 and PropertyID = :2 and PropIndex = :3;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zDelPropSQL, -1, &data->pStmts[STMT_DEL_PROP], NULL));
-
-    const char *zInsNameSQL = "insert or replace into [.names] ([Value], NameID)"
-            " values (:1, (select NameID from [.names] where Value = :1 limit 1));";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsNameSQL, -1, &data->pStmts[STMT_INS_NAME], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db,
-            "select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);",
-            -1, &data->pStmts[STMT_SEL_CLS_BY_NAME], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db,
-            "select NameID from [.names] where [Value] = :1;",
-            -1, &data->pStmts[STMT_SEL_NAME_ID], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db,
-            "select PropertyID from [.class_properties] where ClassID = :1 and NameID = :2;",
-            -1, &data->pStmts[STMT_SEL_PROP_ID], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db,
-            "insert into [.range_data] ([ObjectID], [ClassID], [ClassID_1], [A], [A_1], [B], [B_1], [C], [C_1], [D], [D_1]) values "
-                    "(:1, :2, :2, :3, :4, :5, :6, :7, :8, :9, :10);",
-            -1, &data->pStmts[STMT_INS_RTREE], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db,
-            "update [.range_data] set [ClassID] = :2, [ClassID_1] = :2, [A] = :3, [A_1] = :4, [B] = :5, [B_1] = :6, "
-                    "[C] = :7, [C_1] = :8, [D] = :9, [D_1] = :10 where ObjectID = :1;",
-            -1, &data->pStmts[STMT_UPD_RTREE], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db, "delete from [.range_data] where ObjectID = :1;",
-            -1, &data->pStmts[STMT_DEL_RTREE], NULL));
-
     // Init module
-    CHECK_CALL(sqlite3_create_module_v2(db, "flexi_eav", &flexiEavModule, data, flexiEavModuleDestroy));
+    CHECK_CALL(sqlite3_create_module_v2(db, "flexi_eav", &flexiEavModule, data, NULL));
 
     /*
      * Register match_text function, used for searhing on non-FTS indexed columns
@@ -2102,6 +2125,8 @@ int sqlite3_flexieav_vtable_init(
 
     CATCH:
     flexiEavModuleDestroy(data);
+    *pzErrMsg = sqlite3_mprintf(sqlite3_errmsg(db));
+    printf("%s", *pzErrMsg);
 
     FINALLY:
     return result;
