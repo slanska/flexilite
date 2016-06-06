@@ -1036,7 +1036,6 @@ static int flexiEavDisconnect(sqlite3_vtab *pVTab)
     if (vtab->pDBEnv->nRefCount == 0)
     {
         flexiEavModuleDestroy(vtab->pDBEnv);
-//        flexiCleanUpModuleEnv(vtab->pDBEnv);
     }
 
     flexi_vtab_free(vtab);
