@@ -844,7 +844,7 @@ static int flexiEavCreate(
         int xCtlv = 0;
 
         // Planned (postponed for future) property control flags which will be applied later
-        // when enough statisticts accumulated about best index strategy.
+        // when enough statistics accumulated about best index strategy.
         // Typically, this will happen when database size reaches few megabytes and 1K-5K records
         // On smaller databases there is no real point to apply indexing to the full extent
         // Plus, in the database schema lifetime initial period is usually associated with heavy refactoring

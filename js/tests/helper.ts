@@ -39,7 +39,7 @@ function initOpenedDB(db:sqlite3.Database)
     db.exec.sync(db, sqlScript);
 
     var libPath = path.join(__dirname, '../deps/sqlite_extensions/darwin-x64/libsqlite_extensions');
-    var libPath = '../sqlite-extensions/bin/libsqlite_extensions';
+    var libPath = '../src/bin/libsqlite_extensions';
     (db as any).loadExtension.sync(db, libPath);
 
     db["CurrentUserID"] = currentUserID;

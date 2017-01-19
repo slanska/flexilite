@@ -6,7 +6,7 @@
  Declarations for .classes Data
  */
 
-///<reference path="../../sqlite-extensions/typings/DBDefinitions.ts"/>
+///<reference path="../../src/typings/DBDefinitions.ts"/>
 
 declare type NameId = number;
 declare type NameIdOrString = NameId | string;

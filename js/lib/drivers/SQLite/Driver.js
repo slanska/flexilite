@@ -41,7 +41,7 @@ var Flexilite;
                     var fn = ((config.host ? (win32 ? config.host + ":" : config.host) : "") + (config.pathname || "")) || ':memory:';
                     this.db = sqlite3.cached.Database(fn, 131072 /* SHARED_CACHE */ | sqlite3.OPEN_READWRITE | 524288 /* WAL */);
                     // FIXME dynamically determine library path based on OS and platform
-                    var extLibPath_1 = path.join(__dirname, "../../sqlite-extensions/bin/libsqlite_extensions.dylib");
+                    var extLibPath_1 = path.join(__dirname, "../../src/bin/libsqlite_extensions.dylib");
                     Sync.Fiber(function () {
                         // TODO Handle loading library
                         _this.db.loadExtension.sync(_this.db, extLibPath_1);

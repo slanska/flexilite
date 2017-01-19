@@ -87,7 +87,7 @@ for new class. Updates class definition, regenerates view.
 ### Convert single property into array
 
 
-### Merge selected objects into another class (on property level)
+### Merge selected objects into another class (with property mapping)
 
 ### 
 

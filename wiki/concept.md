@@ -2,6 +2,7 @@
 
 Main concepts in the Flexilite ("F") are *classes*, *properties*, **schemas*,*collections*,
  *items* and *names*.
+
  
 ### Class
 Corresponds to table structure in RDBMS. Has plain list of properties. Has constraints,

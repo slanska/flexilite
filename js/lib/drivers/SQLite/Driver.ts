@@ -65,7 +65,7 @@ namespace Flexilite.SQLite
                 this.db = sqlite3.cached.Database(fn, SQLITE_OPEN_FLAGS.SHARED_CACHE | sqlite3.OPEN_READWRITE | SQLITE_OPEN_FLAGS.WAL);
 
                 // FIXME dynamically determine library path based on OS and platform
-                let extLibPath = path.join(__dirname, "../../sqlite-extensions/bin/libsqlite_extensions.dylib");
+                let extLibPath = path.join(__dirname, "../../src/bin/libsqlite_extensions.dylib");
                 Sync.Fiber(()=>
                 {
                     // TODO Handle loading library
