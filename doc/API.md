@@ -12,14 +12,13 @@ flexi_prop_drop(className:string, propName:string)
 
 ###### flexi_query(queryOptions:IQueryOptions)
 ###### flexi_query(className:string, filter:IQueryFilter, orderBy?:IQueryOrderBy)
-className:string
-filter:IQueryFilter
+from:string
+where:IQueryFilter
 orderBy:IQueryOrderBy
 select
-offset
+skip
 limit
-nestedLevel
-referencedObjects
+
 
 ###### flexi_query_multi(queryOptions:IQueryOptions[]):IQueryResult
 

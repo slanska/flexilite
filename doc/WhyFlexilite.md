@@ -1,5 +1,7 @@
 Niche for Flexilite:
-* small to medium databases - 100 KB to 10 GB of data, up to few millions of objects
+* small to medium databases - 1 MB to 10 GB of data, up to few millions of objects
+
+* moderate load - 10 writers and 200 reader, or 2 writers and 1000 readers
 
 * uncertain and volatile data schema, which evolutionates as database grows and requirements change
 
