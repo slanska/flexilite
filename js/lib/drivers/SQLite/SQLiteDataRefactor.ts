@@ -970,7 +970,7 @@ Its definition has to be converted to scalar first, and then to new reference de
      */
 
     /*
-     Links in wiki:
+     Links in doc:
      hasMany https://github.com/dresende/node-orm2/wiki/hasMany
 
      hasOne: https://github.com/dresende/node-orm2/wiki/hasOne
