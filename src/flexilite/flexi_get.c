@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
-#include "../../lib/sqlite/sqlite3ext.h"
+#include "../lib/sqlite/sqlite3ext.h"
 #include "../misc/json1.h"
 
 SQLITE_EXTENSION_INIT3

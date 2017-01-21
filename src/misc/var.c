@@ -6,7 +6,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <alloca.h>
-#include "../../lib/sqlite/sqlite3ext.h"
+#include "../lib/sqlite/sqlite3ext.h"
 #include "../util/hash.h"
 
 SQLITE_EXTENSION_INIT3

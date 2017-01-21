@@ -9,7 +9,7 @@
 #ifndef SQLITE_EXTENSIONS_FLEXI_EAV_H
 #define SQLITE_EXTENSIONS_FLEXI_EAV_H
 
-#include "../../typings/DBDefinitions.h"
+#include "../typings/DBDefinitions.h"
 
 
 /*

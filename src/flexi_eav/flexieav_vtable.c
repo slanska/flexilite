@@ -5,7 +5,7 @@
 #include <string.h>
 #include <printf.h>
 #include <assert.h>
-#include "../../lib/sqlite/sqlite3ext.h"
+#include "../lib/sqlite/sqlite3ext.h"
 #include "./flexi_eav.h"
 #include "../misc/regexp.h"
 #include "../fts/fts3Int.h"

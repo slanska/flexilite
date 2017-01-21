@@ -14,7 +14,7 @@
 ** SQL statements recursively.
 */
 
-#include "../../lib/sqlite/sqlite3ext.h"
+#include "../lib/sqlite/sqlite3ext.h"
 
 SQLITE_EXTENSION_INIT3
 

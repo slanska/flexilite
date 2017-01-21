@@ -2,7 +2,7 @@
 // Created by slanska on 2016-03-22.
 //
 
-#include "../../lib/sqlite/sqlite3ext.h"
+#include "../lib/sqlite/sqlite3ext.h"
 #include "../util/hash.h"
 #include <assert.h>
 

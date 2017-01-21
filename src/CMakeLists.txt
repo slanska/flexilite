@@ -40,31 +40,31 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 set(EXT_FILES
         typings/DBDefinitions.h
-        src/main.c
+        main.c
 
         # compress.c is temporarily disabled because of the following error: Undefined symbols for architecture x86_64:
         #        "_compress", referenced from:
         #        src/misc/compress.c
-        src/misc/eval.c
-        src/misc/fileio.c
-        src/misc/regexp.c
-        src/misc/totype.c
-        src/flexilite/flexi_get.c
-        src/flexilite/flexi_set.c
-        src/misc/var.c
-        src/misc/json1.c
+        misc/eval.c
+        misc/fileio.c
+        misc/regexp.c
+        misc/totype.c
+        flexilite/flexi_get.c
+        flexilite/flexi_set.c
+        misc/var.c
+        misc/json1.c
 
-        src/util/hash.c
-        src/util/hash.h
+        util/hash.c
+        util/hash.h
 
-        src/misc/hash.c
+        misc/hash.c
 
-        src/misc/memstat.c
-        src/flexilite/flexi_json_value.c
-        src/flexi_eav/flexieav_vtable.c
-        src/flexi_eav/flexi_eav.h
+        misc/memstat.c
+        flexilite/flexi_json_value.c
+        flexi_eav/flexieav_vtable.c
+        flexi_eav/flexi_eav.h
 
-        src/misc/regexp.h
+        misc/regexp.h
 #        lmdb/libraries/liblmdb/midl.h
 #        lmdb/libraries/liblmdb/mdb.c
 #        lmdb/libraries/liblmdb/midl.c
@@ -73,16 +73,16 @@ set(EXT_FILES
 #        duktape-1.4.0/src/duktape.c
 #        duktape-1.4.0/src/duktape.h
 
-        src/flexi_eav/flexi_class_alter.c
-        src/flexi_eav/flexi_props_to_object.c
+        flexi_eav/flexi_class_alter.c
+        flexi_eav/flexi_props_to_object.c
 
-        src/fts/fts3_expr.c
-        src/fts/fts3Int.h
-        src/fts/fts3_tokenizer.c
-        src/fts/fts3_tokenizer.h
-        src/fts/fts3_hash.c
-        src/fts/fts3_hash.h
-        src/flexi_eav/flexi_import_data.c src/flexi_eav/flexi_prop_create.c src/flexi_eav/flexi_prop_merge.c)
+        fts/fts3_expr.c
+        fts/fts3Int.h
+        fts/fts3_tokenizer.c
+        fts/fts3_tokenizer.h
+        fts/fts3_hash.c
+        fts/fts3_hash.h
+        flexi_eav/flexi_import_data.c flexi_eav/flexi_prop_create.c flexi_eav/flexi_prop_merge.c)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
 set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
