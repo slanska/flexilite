@@ -32,3 +32,4 @@ tests/data
 .idea
 
 /data/
+!/lib/cmocka/
