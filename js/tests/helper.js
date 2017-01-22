@@ -51,7 +51,7 @@ function ConnectAndSave(done) {
         try {
             // Use URI file name with shared cache mode
             var fname = "" + path.join(__dirname, "data", "test1.db");
-            var connString = util.format("flexilite://%s", fname);
+            var connString = util.format("_old_flexilite://%s", fname);
             var db = orm.connect.sync(orm, connString);
             console.log('DB opened\n');
             var Person = db.define("person", {

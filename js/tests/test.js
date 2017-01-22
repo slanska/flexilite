@@ -35,7 +35,7 @@ var drv = require('../lib/drivers/SQLite/Driver');
 //             //    {
 //             //        var dbFile = path.join(__dirname, "data", "test1.db");
 //             //        var db = new sqlite3.Database(dbFile, sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE);
-//             //        var qry = fs.readFile.sync(null, '/Users/ruslanskorynin/flexilite/lib/sqlite-schema.sql').toString();
+//             //        var qry = fs.readFile.sync(null, '/Users/ruslanskorynin/_old_flexilite/lib/sqlite-schema.sql').toString();
 //             //        db.exec.sync(db, qry);
 //             //        db.close.sync(db);
 //             //        done();
@@ -61,7 +61,7 @@ var drv = require('../lib/drivers/SQLite/Driver');
 //                 {
 //                     // Use URI file name with shared cache mode
 //                     var fname = `${path.join(__dirname, "data", "test1.db")}`;
-//                     var connString = util.format("flexilite://%s", fname);
+//                     var connString = util.format("_old_flexilite://%s", fname);
 //                     var db = (<any>orm.connect).sync(orm, connString);
 //                     db.use(orm_trn);
 //

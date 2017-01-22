@@ -34,7 +34,7 @@ Querying is implemented as 2 custom SQLite functions (in 3 variations)
         "id": 100500,
         "$or":
         {
-            "status": { "$in": ['A', 'B']},
+            "status": { "$in": ["A", "B"]},
             "createDate": { "$ge": "2012-04-23T18:25:43.511Z"}
         },
         "lines":
@@ -57,6 +57,25 @@ Querying is implemented as 2 custom SQLite functions (in 3 variations)
     "orderBy": ["customerId", "createDate"]
 }
 ````
+
+**Where operators:**
+
+* "$eq" or "=" or "=="
+* "$ne" or "<>" or "!="
+* "$gt" or ">"
+* "$lt" or "<"
+* "$ge" or ">="
+* "$le" or "<="
+* "$in"
+* "$nin"
+* "$like"
+* "$nlike"
+* "$match"
+* "$regex"
+* "$exists"
+* "$not"
+* "$or"
+* "$and"
 
 For references and nested objects it is possible to specify
 

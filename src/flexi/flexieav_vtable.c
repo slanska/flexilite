@@ -62,7 +62,7 @@ struct flexi_prop_metadata
 };
 
 /*
- * SQLite statements used for flexi_eav management
+ * SQLite statements used for flexi management
  *
  */
 #define STMT_DEL_OBJ            0
@@ -725,7 +725,7 @@ static int flexiEavCreate(
         void *pAux,
         int argc,
 
-        // argv[0] - module name. Will be 'flexi_eav'
+        // argv[0] - module name. Will be 'flexi'
         // argv[1] - database name ("main", "temp" etc.)
         // argv [2] - name of new table (class)
         // argv[3+] - arguments (property specifications/column declarations)
@@ -967,7 +967,7 @@ static int flexiEavCreate(
     return result;
 }
 
-/* Connects to flexi_eav virtual table. */
+/* Connects to flexi virtual table. */
 static int flexiEavConnect(
         sqlite3 *db,
 
@@ -1064,7 +1064,7 @@ static void setEstimatedRows(sqlite3_index_info *pIdxInfo, sqlite3_int64 nRow)
  * II) search by indexed properties
  * III) search by rtree ranges
  * IV) full text search (via match function)
- * Due to specifics of internal storage of flexilite data (EAV store), these strategies are estimated differently
+ * Due to specifics of internal storage of _old_flexilite data (EAV store), these strategies are estimated differently
  * For strategy II every additional search constraint increases estimated cost (since query in this case would be compound from multiple
  * joins)
  * For strategies III and IV it is opposite, every additional constraint reduces estimated cost, since lookup will need
@@ -2111,7 +2111,7 @@ int sqlite3_flexieav_vtable_init(
     memset(data, 0, sizeof(*data));
 
     // Init module
-    CHECK_CALL(sqlite3_create_module_v2(db, "flexi_eav", &flexiEavModule, data, NULL));
+    CHECK_CALL(sqlite3_create_module_v2(db, "flexi", &flexiEavModule, data, NULL));
 
     /*
      * Register match_text function, used for searhing on non-FTS indexed columns

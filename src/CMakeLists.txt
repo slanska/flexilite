@@ -49,8 +49,7 @@ set(EXT_FILES
         misc/fileio.c
         misc/regexp.c
         misc/totype.c
-        flexilite/flexi_get.c
-        flexilite/flexi_set.c
+        _old_flexilite/flexi_get.c
         misc/var.c
         misc/json1.c
 
@@ -60,9 +59,9 @@ set(EXT_FILES
         misc/hash.c
 
         misc/memstat.c
-        flexilite/flexi_json_value.c
-        flexi_eav/flexieav_vtable.c
-        flexi_eav/flexi_eav.h
+        _old_flexilite/flexi_json_value.c
+        flexi/flexieav_vtable.c
+        flexi/flexi_eav.h
 
         misc/regexp.h
 #        lmdb/libraries/liblmdb/midl.h
@@ -73,8 +72,8 @@ set(EXT_FILES
 #        duktape-1.4.0/src/duktape.c
 #        duktape-1.4.0/src/duktape.h
 
-        flexi_eav/flexi_class_alter.c
-        flexi_eav/flexi_props_to_object.c
+        flexi/flexi_class_alter.c
+        flexi/flexi_props_to_object.c
 
         fts/fts3_expr.c
         fts/fts3Int.h
@@ -82,7 +81,7 @@ set(EXT_FILES
         fts/fts3_tokenizer.h
         fts/fts3_hash.c
         fts/fts3_hash.h
-        flexi_eav/flexi_import_data.c flexi_eav/flexi_prop_create.c flexi_eav/flexi_prop_merge.c)
+        flexi/flexi_import_data.c flexi/flexi_prop_create.c flexi/flexi_prop_merge.c flexi/flexi_query.c functions.c)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
 set(CMAKE_FIND_LIBRARY_PREFIXES "lib")

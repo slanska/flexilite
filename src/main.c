@@ -61,7 +61,7 @@ int sqlite3_extension_init(
         result = sqlite3_memstat_init(db, pzErrMsg, pApi);
     }
 
-    // flexilite EAV module
+    // _old_flexilite EAV module
     if (result == 0)
     {
         result = sqlite3_flexieav_vtable_init(db, pzErrMsg, pApi);
