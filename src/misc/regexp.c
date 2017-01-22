@@ -56,12 +56,10 @@
 ** regular expression in the O(N*M) performance bound is computed after
 ** this expansion.
 */
-#include <string.h>
-#include <stdlib.h>
-#include "sqlite3ext.h"
-#include "./regexp.h"
 
-SQLITE_EXTENSION_INIT3
+#include "../project_defs.h"
+
+//SQLITE_EXTENSION_INIT3
 
 /* The end-of-input character */
 #define RE_EOF            0    /* End of input */

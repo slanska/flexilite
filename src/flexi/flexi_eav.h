@@ -9,8 +9,7 @@
 #ifndef SQLITE_EXTENSIONS_FLEXI_EAV_H
 #define SQLITE_EXTENSIONS_FLEXI_EAV_H
 
-#include "../typings/DBDefinitions.h"
-
+#include "../project_defs.h"
 
 /*
  Set of interfaces and constants to Flexilite's driver for SQLite database tables
@@ -30,10 +29,10 @@
 // ctlo flags
 
 // OBJECT_CONTROL_FLAGS
-#define CTLO_NONE                    0
-#define CTLO_WEAK_OBJECT             1 << 0
-#define CTLO_NO_TRACK_CHANGES        1 << 49
-#define CTLO_SCHEMA_NOT_ENFORCED     1 << 50
+//#define CTLO_NONE                    0
+//#define CTLO_WEAK_OBJECT             1 << 0
+//#define CTLO_NO_TRACK_CHANGES        1 << 49
+//#define CTLO_SCHEMA_NOT_ENFORCED     1 << 50
 
 /*
  ctlv is used for indexing and processing control. Possible values (the same as Values.ctlv):

@@ -15,7 +15,7 @@
 #ifndef _SQLITE_HASH_H_
 #define _SQLITE_HASH_H_
 
-#include "../lib/sqlite/sqlite3ext.h"
+#include "../project_defs.h"
 
 /* Forward declarations of structures. */
 typedef struct Hash Hash;

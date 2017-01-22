@@ -20,50 +20,53 @@ string(TOUPPER "${PLATFORM}" PLATFORM)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-
 project(sqlite_shell)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 find_package(zlib)
 
-#set(SHELL_FILES
-#        lib/sqlite/shell.c
-#        lib/sqlite/sqlite3.c
-#        )
-#
-#add_executable(sqlite_shell ${SHELL_FILES})
+set(SHELL_FILES
+        lib/sqlite/shell.c
+        lib/sqlite/sqlite3.c
+        )
 
-project(sqlite_extensions)
+add_executable(sqlite_shell ${SHELL_FILES})
+
+project(flexilite)
+
+# project (flexilite_test)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 set(EXT_FILES
-        typings/DBDefinitions.h
-        main.c
+        src/project_defs.h
+
+        src/typings/DBDefinitions.h
+        #main.c
 
         # compress.c is temporarily disabled because of the following error: Undefined symbols for architecture x86_64:
         #        "_compress", referenced from:
         #        src/misc/compress.c
-        misc/eval.c
-        misc/fileio.c
-        misc/regexp.c
-        misc/totype.c
-        _old_flexilite/flexi_get.c
-        misc/var.c
-        misc/json1.c
+        src/misc/eval.c
+        src/misc/fileio.c
+        src/misc/regexp.c
+        src/misc/totype.c
+        src/_old_flexilite/flexi_get.c
+        src/misc/var.c
+        src/misc/json1.c
 
-        util/hash.c
-        util/hash.h
+        src/util/hash.c
+        src/util/hash.h
 
-        misc/hash.c
+        src/misc/hash.c
 
-        misc/memstat.c
-        _old_flexilite/flexi_json_value.c
-        flexi/flexieav_vtable.c
-        flexi/flexi_eav.h
+        src/misc/memstat.c
+        src/_old_flexilite/flexi_json_value.c
+        src/flexi/flexieav_vtable.c
+        src/flexi/flexi_eav.h
 
-        misc/regexp.h
+        src/misc/regexp.h
         #        lmdb/libraries/liblmdb/midl.h
         #        lmdb/libraries/liblmdb/mdb.c
         #        lmdb/libraries/liblmdb/midl.c
@@ -72,21 +75,27 @@ set(EXT_FILES
         #        duktape-1.4.0/src/duktape.c
         #        duktape-1.4.0/src/duktape.h
 
-        flexi/flexi_class_alter.c
-        flexi/flexi_props_to_object.c
+        src/flexi/flexi_class_alter.c
+        src/flexi/flexi_props_to_object.c
 
-        fts/fts3_expr.c
-        fts/fts3Int.h
-        fts/fts3_tokenizer.c
-        fts/fts3_tokenizer.h
-        fts/fts3_hash.c
-        fts/fts3_hash.h
-        flexi/flexi_import_data.c flexi/flexi_prop_create.c flexi/flexi_prop_merge.c flexi/flexi_query.c functions.c src/project_defs.h)
+        src/fts/fts3_expr.c
+        src/fts/fts3Int.h
+        src/fts/fts3_tokenizer.c
+        src/fts/fts3_tokenizer.h
+        src/fts/fts3_hash.c
+        src/fts/fts3_hash.h
+        src/flexi/flexi_import_data.c
+        src/flexi/flexi_prop_create.c
+        src/flexi/flexi_prop_merge.c
+        src/flexi/flexi_query.c
+        src/functions.c
+        )
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
-set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
+#set(CMAKE_FIND_LIBRARY_PREFIXES "")
+#set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
 
-add_library(sqlite_extensions SHARED ${EXT_FILES})
+add_library(flexilite SHARED ${EXT_FILES})
 
 add_custom_target(install_${PROJECT_NAME}
         make install

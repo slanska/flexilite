@@ -2,13 +2,7 @@
 // Created by slanska on 2016-04-08.
 //
 
-#include <string.h>
-#include <printf.h>
-#include <assert.h>
-#include "../lib/sqlite/sqlite3ext.h"
-#include "./flexi_eav.h"
-#include "../misc/regexp.h"
-#include "../fts/fts3Int.h"
+#include "../project_defs.h"
 
 SQLITE_EXTENSION_INIT3
 

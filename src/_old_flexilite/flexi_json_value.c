@@ -2,15 +2,9 @@
 // Created by slanska on 2016-04-07.
 //
 
-#include <string.h>
-#include <printf.h>
-#include <assert.h>
-#include "../lib/sqlite/sqlite3ext.h"
-#include "../misc/json1.h"
-#include <string.h>
+#include "../project_defs.h"
 
 SQLITE_EXTENSION_INIT3
-
 
 /*
  * Flexilite (https://github.com/slanska/flexilite) specific function.

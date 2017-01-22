@@ -5,7 +5,7 @@
 #ifndef SQLITE_EXTENSIONS_JSON1_H
 #define SQLITE_EXTENSIONS_JSON1_H
 
-#include "../../lib/sqlite/sqlite3ext.h"
+//#include "../../lib/sqlite/sqlite3ext.h"
 
 #ifndef SQLITE_AMALGAMATION
 /* Unsigned integer types.  These are already defined in the sqliteInt.h,

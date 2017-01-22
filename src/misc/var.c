@@ -2,12 +2,7 @@
 // Created by slanska on 2016-03-13.
 //
 
-#include <assert.h>
-#include <string.h>
-#include <ctype.h>
-#include <alloca.h>
-#include "../lib/sqlite/sqlite3ext.h"
-#include "../util/hash.h"
+#include "../project_defs.h"
 
 SQLITE_EXTENSION_INIT3
 

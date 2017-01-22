@@ -33,3 +33,4 @@ tests/data
 
 /data/
 !/lib/cmocka/
+!/lib/sqlite/sqlite3ext.h

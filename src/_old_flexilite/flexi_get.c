@@ -5,8 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
-#include "../lib/sqlite/sqlite3ext.h"
-#include "../misc/json1.h"
+#include "../project_defs.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -374,3 +373,15 @@ int sqlite3_flexi_get_init(
     }
     return rc;
 }
+
+#undef WHERE_PROPERTY_INDEX
+#undef WHERE_VALUE_INDEX
+#undef ORDER_BY_PROPERTY_INDEX
+#undef OBJECT_ID_INDEX
+#undef REF_PROPERTY_INDEX
+#undef PROPINDEX_INDEX
+#undef SCHEMA_ID_INDEX
+#undef SQL_STATEMENT_COUNT
+#undef _SQL_WHERE_BY_PROPERTY_PART_
+#undef _SQL_ORDER_BY_PROPERTY_PART_
+#undef _SQL_SELECT_PART_ 

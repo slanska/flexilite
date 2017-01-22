@@ -14,11 +14,15 @@
 ** SQL statements recursively.
 */
 
-#include "../lib/sqlite/sqlite3ext.h"
+//#include "../../lib/sqlite/sqlite3ext.h"
+//
+//SQLITE_EXTENSION_INIT3
+//
+//#include <string.h>
 
-SQLITE_EXTENSION_INIT3
+#include "../project_defs.h"
 
-#include <string.h>
+//SQLITE_EXTENSION_INIT3
 
 /*
 ** Structure used to accumulate the output

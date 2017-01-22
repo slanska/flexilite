@@ -28,7 +28,6 @@
 #if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS3)
 
 #include <assert.h>
-#include <string.h>
 
 /*
 ** Implementation of the SQL scalar function for accessing the underlying 

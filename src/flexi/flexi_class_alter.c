@@ -6,9 +6,11 @@
  * Implementation of class alterration
  */
 
+#include "../project_defs.h"
+
 void flexi_class_alter(
         const char *zClassName,
-        conat char *zNewClassDefJson
+        const char *zNewClassDefJson
 )
 {
 

@@ -32,12 +32,13 @@
 /* If not building as part of the core, include sqlite3ext.h. */
 #ifndef SQLITE_CORE
 
-# include "sqlite3ext.h"
+# include "../project_defs.h"
 
 SQLITE_EXTENSION_INIT3
+
 #endif
 
-#include "sqlite3.h"
+//#include "sqlite3.h"
 #include "fts3_tokenizer.h"
 #include "fts3_hash.h"
 
