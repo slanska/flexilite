@@ -7,12 +7,8 @@
   "dependencies": {
     "lodash": "^3.10.1",
     "object-hash": "^1.1.2",
-    "orm": "^2.1.27",
-    "orm-transaction": "0.0.2",
     "shortid": "^2.2.2",
-    "sql-query": "^0.1.26",
-    "sqlite3": "^3.1.1",
-    "syncho": "^0.2.5"
+    "sqlite3": "^3.1.1"
   },
   "repository": {
     "type": "git",
