@@ -40,7 +40,8 @@ project(flexilite)
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 set(EXT_FILES
-        src/project_defs.h
+#        src/project_defs.h
+#        lib/sqlite/sqlite3ext.h
 
         src/typings/DBDefinitions.h
         #main.c
@@ -57,33 +58,33 @@ set(EXT_FILES
         src/misc/json1.c
 
         src/util/hash.c
-        src/util/hash.h
+#        src/util/hash.h
 
         src/misc/hash.c
 
         src/misc/memstat.c
         src/_old_flexilite/flexi_json_value.c
         src/flexi/flexieav_vtable.c
-        src/flexi/flexi_eav.h
+#        src/flexi/flexi_eav.h
 
-        src/misc/regexp.h
+#        src/misc/regexp.h
         #        lmdb/libraries/liblmdb/midl.h
         #        lmdb/libraries/liblmdb/mdb.c
         #        lmdb/libraries/liblmdb/midl.c
         #        lmdb/libraries/liblmdb/lmdb.h
 
-        #        duktape-1.4.0/src/duktape.c
-        #        duktape-1.4.0/src/duktape.h
+        lib/duktape/duktape.c
+        lib/duktape/duktape.h
 
         src/flexi/flexi_class_alter.c
         src/flexi/flexi_props_to_object.c
 
         src/fts/fts3_expr.c
-        src/fts/fts3Int.h
+#        src/fts/fts3Int.h
         src/fts/fts3_tokenizer.c
-        src/fts/fts3_tokenizer.h
+#        src/fts/fts3_tokenizer.h
         src/fts/fts3_hash.c
-        src/fts/fts3_hash.h
+#        src/fts/fts3_hash.h
         src/flexi/flexi_import_data.c
         src/flexi/flexi_prop_create.c
         src/flexi/flexi_prop_merge.c
@@ -91,8 +92,8 @@ set(EXT_FILES
         src/functions.c
         )
 
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
-#set(CMAKE_FIND_LIBRARY_PREFIXES "")
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
+set(CMAKE_FIND_LIBRARY_PREFIXES "")
 #set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
 
 add_library(flexilite SHARED ${EXT_FILES})

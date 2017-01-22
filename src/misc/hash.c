@@ -4,9 +4,12 @@
 
 #include "../project_defs.h"
 
+#include "../../lib/sqlite/sqlite3ext.h"
+
 SQLITE_EXTENSION_INIT3
 
 #include <string.h>
+#include <assert.h>
 
 static void sqlHashFunc(
         sqlite3_context *context,

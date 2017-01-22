@@ -8,7 +8,7 @@
 #define declare
 #define const
 
-#include "DBDefinitions.ts"
+#include "./DBDefinitions.ts"
 
 #undef declare
 #undef const

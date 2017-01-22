@@ -2,9 +2,17 @@
 // Created by slanska on 2016-04-08.
 //
 
+#include <stddef.h>
+#include <assert.h>
+
 #include "../project_defs.h"
 
+#include "../../lib/sqlite/sqlite3ext.h"
+
 SQLITE_EXTENSION_INIT3
+
+#include "../typings/DBDefinitions.h"
+#include "../misc/regexp.h"
 
 /*
  * Internally used structures, subclassed from SQLite structs

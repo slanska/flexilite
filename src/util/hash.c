@@ -13,11 +13,6 @@
 ** used in SQLite.
 */
 #include "hash.h"
-#include "../../lib/sqlite/sqlite3ext.h"
-#include <assert.h>
-#include <memory.h>
-
-SQLITE_EXTENSION_INIT3
 
 /* Turn bulk memory into a hash table object by initializing the
 ** fields of the Hash structure.

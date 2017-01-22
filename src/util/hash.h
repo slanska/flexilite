@@ -17,6 +17,13 @@
 
 #include "../project_defs.h"
 
+#include "../../lib/sqlite/sqlite3ext.h"
+
+SQLITE_EXTENSION_INIT3
+
+#include <assert.h>
+#include <memory.h>
+
 /* Forward declarations of structures. */
 typedef struct Hash Hash;
 typedef struct HashElem HashElem;

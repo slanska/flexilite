@@ -7,7 +7,11 @@
 #include <assert.h>
 #include "../project_defs.h"
 
+#include "../../lib/sqlite/sqlite3ext.h"
+
 SQLITE_EXTENSION_INIT3
+
+#include "../misc/json1.h"
 
 // SQL statement parameters
 #define WHERE_PROPERTY_INDEX 1

@@ -57,9 +57,7 @@
 ** this expansion.
 */
 
-#include "../project_defs.h"
-
-//SQLITE_EXTENSION_INIT3
+#include "regexp.h"
 
 /* The end-of-input character */
 #define RE_EOF            0    /* End of input */

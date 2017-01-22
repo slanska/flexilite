@@ -6,8 +6,7 @@
  * Project internal definitions
  */
 
-#ifndef SQLITE_EXTENSIONS_PROJECT_DEFS_H
-#define SQLITE_EXTENSIONS_PROJECT_DEFS_H
+#ifdef __SOME__
 
 #include "../lib/sqlite/sqlite3ext.h"
 
@@ -19,8 +18,6 @@ SQLITE_EXTENSION_INIT3
 #include <alloca.h>
 #include <stdio.h>
 
-//#include "../lib/sqlite/sqlite3.h"
-
 #include "./misc/json1.h"
 #include "./flexi/flexi_eav.h"
 #include "./typings/DBDefinitions.h"
@@ -29,4 +26,9 @@ SQLITE_EXTENSION_INIT3
 #include "./misc/regexp.h"
 #include "./fts/fts3Int.h"
 
+#ifndef SQLITE_EXTENSIONS_PROJECT_DEFS_H
+#define SQLITE_EXTENSIONS_PROJECT_DEFS_H
+
 #endif //SQLITE_EXTENSIONS_PROJECT_DEFS_H
+
+#endif

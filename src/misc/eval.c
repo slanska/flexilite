@@ -14,15 +14,13 @@
 ** SQL statements recursively.
 */
 
-//#include "../../lib/sqlite/sqlite3ext.h"
-//
-//SQLITE_EXTENSION_INIT3
-//
-//#include <string.h>
-
 #include "../project_defs.h"
 
-//SQLITE_EXTENSION_INIT3
+#include "../../lib/sqlite/sqlite3ext.h"
+
+SQLITE_EXTENSION_INIT1
+
+#include <string.h>
 
 /*
 ** Structure used to accumulate the output
@@ -121,10 +119,9 @@ int sqlite3_eval_init(
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
 ) {
-    int rc = SQLITE_OK;
     SQLITE_EXTENSION_INIT2(pApi);
     (void) pzErrMsg;  /* Unused parameter */
-    rc = sqlite3_create_function(db, "eval", 1, SQLITE_UTF8, 0,
+    int rc = sqlite3_create_function(db, "eval", 1, SQLITE_UTF8, 0,
                                  sqlEvalFunc, 0, 0);
     if (rc == SQLITE_OK) {
         rc = sqlite3_create_function(db, "eval", 2, SQLITE_UTF8, 0,

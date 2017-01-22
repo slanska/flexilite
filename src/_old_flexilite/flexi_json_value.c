@@ -2,7 +2,10 @@
 // Created by slanska on 2016-04-07.
 //
 
+#include <stddef.h>
 #include "../project_defs.h"
+
+#include "../../lib/sqlite/sqlite3ext.h"
 
 SQLITE_EXTENSION_INIT3
 

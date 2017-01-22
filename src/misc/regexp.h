@@ -6,6 +6,12 @@
 #ifndef SQLITE_EXTENSIONS_REGEXP_H
 #define SQLITE_EXTENSIONS_REGEXP_H
 
+#include <string.h>
+
+#include "../../lib/sqlite/sqlite3ext.h"
+
+SQLITE_EXTENSION_INIT3
+
 /*
 ** The following #defines change the names of some functions implemented in
 ** this file to prevent name collisions with C-library functions of the
