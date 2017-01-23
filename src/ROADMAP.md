@@ -57,7 +57,7 @@ full text indexes, rtree indexes
  
 ###Search statistics
 Accumulate search statistics. Use external DB file with 1 table:
-```
+``` sql
 create table if not exists [.search_stat] 
 (PropertyID integer,
 EqCount int default 0,
@@ -102,8 +102,6 @@ Removes duplicated objects with auto correction of links
  
 ####flexi_prop_split
  
-
-
 ####flexi_prop_alter
 
 ```
@@ -132,5 +130,5 @@ Support for custom functions with interface compatible with sqlite3 node.js
 Support for triggers and validation rules in JavaScript
 Custom converters/formatter in JS
 
-##Article(s) for CodeProject
+##Article(s) for CodeProject/blog posts (crudbit.com)
 

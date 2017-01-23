@@ -5,6 +5,7 @@
 #include "../project_defs.h"
 
 #include "../../lib/sqlite/sqlite3ext.h"
+#include "../util/hash.h"
 
 SQLITE_EXTENSION_INIT3
 

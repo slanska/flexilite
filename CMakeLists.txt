@@ -90,7 +90,7 @@ set(EXT_FILES
         src/flexi/flexi_prop_merge.c
         src/flexi/flexi_query.c
         src/functions.c
-        )
+        src/util/s_jsonHash.c)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
@@ -102,4 +102,6 @@ add_custom_target(install_${PROJECT_NAME}
         make install
         DEPENDS ${PROJECT_NAME}
         COMMENT "Installing ${PROJECT_NAME}")
+
+add_subdirectory(test)
 

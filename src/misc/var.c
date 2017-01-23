@@ -5,8 +5,8 @@
 #include "../project_defs.h"
 
 #include <string.h>
-//#include <ctype.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include "../../lib/sqlite/sqlite3ext.h"
 
@@ -81,12 +81,10 @@ int sqlite3_var_init(
         const sqlite3_api_routines *pApi
 )
 {
-    int rc = SQLITE_OK;
-
     struct Hash *varHash = sqlite3_malloc(sizeof(struct Hash));
     sqlite3HashInit(varHash);
 
-    rc = sqlite3_create_function_v2(db, "var", 1, SQLITE_UTF8, varHash,
+    int rc = sqlite3_create_function_v2(db, "var", 1, SQLITE_UTF8, varHash,
                                     sqlVarFunc, 0, 0, sqlVarFunc_Destroy);
     if (rc == SQLITE_OK)
     {

@@ -67,5 +67,11 @@ int sqlite3_extension_init(
         result = sqlite3_flexieav_vtable_init(db, pzErrMsg, pApi);
     }
 
+    // flexi_query
+
+    // flexi_prop_create
+
+    //
+
     return result;
 }
