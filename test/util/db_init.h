@@ -5,9 +5,9 @@
 #ifndef FLEXILITE_DB_INIT_H
 #define FLEXILITE_DB_INIT_H
 
-#include "../definitons.h"
+#include "../definitions.h"
 
-int db_open_in_memory();
+sqlite3 *db_open_in_memory();
 
 int db_create_or_open(const char *zFile);
 

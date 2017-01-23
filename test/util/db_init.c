@@ -4,10 +4,19 @@
 
 #include "db_init.h"
 
-int db_open_in_memory() {
+sqlite3 * db_open_in_memory() {
     sqlite3 *pDb;
-    int result = sqlite3_open_v2(":memory", &pDb, 0, 0);
-    return result;
+    int result = sqlite3_open(":memory", &pDb);
+
+    // load and run db schema
+
+    // load and run init
+
+    // load extension library
+
+    // check if it is loaded and working
+
+    return pDb;
 }
 
 int db_create_or_open(const char *zFile) {

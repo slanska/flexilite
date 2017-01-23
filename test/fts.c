@@ -2,6 +2,6 @@
 // Created by slanska on 2017-01-22.
 //
 
-#include "definitons.h"
+#include "definitions.h"
 
 // cmocka_unit_test_setup_teardown()

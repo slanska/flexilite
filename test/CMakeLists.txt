@@ -19,6 +19,6 @@ set(TEST_FILES
         ../lib/sqlite/sqlite3.c
         fts.c
         main.c
-        fts.c vtable.c util/db_init.c util/db_init.h definitons.h)
+        fts.c vtable.c util/db_init.c util/db_init.h definitions.h util/file_helper.c util/file_helper.h)
 
 add_executable(flexilite_test ${TEST_FILES})
