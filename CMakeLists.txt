@@ -41,10 +41,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 set(EXT_FILES
 #        src/project_defs.h
-#        lib/sqlite/sqlite3ext.h
+        lib/sqlite/sqlite3ext.h
 
         src/typings/DBDefinitions.h
-        #main.c
+        src/main.c
 
         # compress.c is temporarily disabled because of the following error: Undefined symbols for architecture x86_64:
         #        "_compress", referenced from:

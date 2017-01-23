@@ -14,11 +14,11 @@
 ** SQL statements recursively.
 */
 
-#include "../project_defs.h"
+//#include "../project_defs.h"
 
 #include "../../lib/sqlite/sqlite3ext.h"
 
-SQLITE_EXTENSION_INIT1
+SQLITE_EXTENSION_INIT3
 
 #include <string.h>
 
@@ -119,7 +119,7 @@ int sqlite3_eval_init(
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
 ) {
-    SQLITE_EXTENSION_INIT2(pApi);
+//    SQLITE_EXTENSION_INIT2(pApi);
     (void) pzErrMsg;  /* Unused parameter */
     int rc = sqlite3_create_function(db, "eval", 1, SQLITE_UTF8, 0,
                                  sqlEvalFunc, 0, 0);

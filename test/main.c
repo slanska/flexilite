@@ -8,6 +8,7 @@
 /* A test case that does nothing and succeeds. */
 static void null_test_success(void **state) {
     struct sqlite3 *pDb = db_open_in_memory();
+    assert_non_null(pDb);
     printf("In memory database was opened");
     sqlite3_close(pDb);
     pDb = NULL;

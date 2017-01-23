@@ -6,7 +6,7 @@
 #define SQLITE_EXTENSIONS_MAIN_H
 
 #include <string.h>
-#include "lib/sqlite/sqlite3ext.h"
+#include "../lib/sqlite/sqlite3ext.h"
 
 SQLITE_EXTENSION_INIT1
 

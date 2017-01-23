@@ -4,9 +4,13 @@
 
 #include "db_init.h"
 
-sqlite3 * db_open_in_memory() {
+sqlite3 *db_open_in_memory() {
     sqlite3 *pDb;
-    int result = sqlite3_open(":memory", &pDb);
+    int result = sqlite3_open(":memory:", &pDb);
+
+    result = sqlite3_enable_load_extension(pDb, 1);
+    char *zErrMsg;
+    result = sqlite3_load_extension(pDb, "../../bin/libflexilite", NULL, &zErrMsg);
 
     // load and run db schema
 
