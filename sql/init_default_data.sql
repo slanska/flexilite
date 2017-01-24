@@ -11,7 +11,7 @@ INSERT INTO sqlite_sequence (name, seq) SELECT
                                                          FROM sqlite_sequence
                                                          WHERE name = 'Objects');
 
-INSERT INTO Classes ([ClassName], [SystemClass]) VALUES ('$Application', 1);
+INSERT INTO [.classes] ([ClassName], [SystemClass]) VALUES ('$Application', 1);
 
 INSERT INTO Classes ([ClassName], [SystemClass]) VALUES ('$DBView', 1);
 

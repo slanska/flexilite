@@ -3,26 +3,49 @@
 //
 
 #include "db_init.h"
+#include "file_helper.h"
+#include "../../src/project_defs.h"
 
-sqlite3 *db_open_in_memory() {
-    sqlite3 *pDb;
-    int result = sqlite3_open(":memory:", &pDb);
-
-    result = sqlite3_enable_load_extension(pDb, 1);
-    char *zErrMsg;
-    result = sqlite3_load_extension(pDb, "../../bin/libflexilite", NULL, &zErrMsg);
-
-    // load and run db schema
-
-    // load and run init
-
-    // load extension library
-
-    // check if it is loaded and working
-
-    return pDb;
+int db_open_in_memory(sqlite3 **pDb) {
+    return db_create_or_open(":memory:", pDb);
 }
 
-int db_create_or_open(const char *zFile) {
-    return SQLITE_OK;
+int db_create_or_open(const char *zFile, sqlite3 **pDb) {
+
+    int result = SQLITE_OK;
+
+    *pDb = NULL;
+    char *zErrMsg = NULL;
+
+    CHECK_CALL(sqlite3_enable_shared_cache(1));
+
+    CHECK_CALL(sqlite3_open_v2(zFile, pDb,
+                               SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_SHAREDCACHE,
+                               NULL));
+
+    CHECK_CALL(sqlite3_enable_load_extension(*pDb, 1));
+
+    // load extension library
+    CHECK_CALL(sqlite3_load_extension(*pDb, "../../bin/libflexilite", NULL, &zErrMsg));
+
+    // load and run db schema
+    char *zSql = NULL;
+    CHECK_CALL(file_load_utf8("../../sql/dbschema.sql", &zSql));
+    CHECK_CALL(sqlite3_exec(*pDb, (const char *) zSql, NULL, NULL, &zErrMsg));
+    goto FINALLY;
+
+    CATCH:
+    if (*pDb) {
+        sqlite3_close(*pDb);
+        *pDb = NULL;
+    }
+
+    if (zErrMsg)
+        printf("Error: %s", zErrMsg);
+
+    FINALLY:
+    sqlite3_free(zErrMsg);
+    sqlite3_free(zSql);
+
+    return result;
 }

@@ -7,6 +7,6 @@
 
 #include "../definitions.h"
 
-int file_load(const char * zFileName, void **ppBuf);
+int file_load_utf8(const char *zFileName, char **ppBuf);
 
 #endif //FLEXILITE_FILE_HELPER_H

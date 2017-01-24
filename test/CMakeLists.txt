@@ -21,4 +21,10 @@ set(TEST_FILES
         main.c
         fts.c vtable.c util/db_init.c util/db_init.h definitions.h util/file_helper.c util/file_helper.h)
 
+
+add_definitions(-DSQLITE_ENABLE_FTS4
+        -DSQLITE_ENABLE_RTREE
+        -DSQLITE_ENABLE_LOAD_EXTENSION
+        -DSQLITE_ENABLE_JSON1)
+
 add_executable(flexilite_test ${TEST_FILES})

@@ -7,8 +7,8 @@
 
 #include "../definitions.h"
 
-sqlite3 *db_open_in_memory();
+int db_open_in_memory(sqlite3 **pDb);
 
-int db_create_or_open(const char *zFile);
+int db_create_or_open(const char *zFile, sqlite3 **pDb);
 
 #endif //FLEXILITE_DB_INIT_H

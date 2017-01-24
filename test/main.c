@@ -6,21 +6,27 @@
 #include "util/db_init.h"
 
 /* A test case that does nothing and succeeds. */
-static void null_test_success(void **state) {
-    struct sqlite3 *pDb = db_open_in_memory();
+static void init_memory_db(void **state) {
+    struct sqlite3 *pDb;
+    db_open_in_memory(&pDb);
     assert_non_null(pDb);
-    printf("In memory database was opened");
     sqlite3_close(pDb);
     pDb = NULL;
-    (void) state; /* unused */
+}
+
+/* A test case that does nothing and succeeds. */
+static void init_db(void **state) {
+    struct sqlite3 *pDb;
+    db_create_or_open("../../data/test5.db", &pDb);
+    assert_non_null(pDb);
+    sqlite3_close(pDb);
+    pDb = NULL;
 }
 
 int main() {
-    printf("Test !!!\n");
-
     const struct CMUnitTest tests[] = {
-            cmocka_unit_test(null_test_success),
+            cmocka_unit_test(init_memory_db),
+            cmocka_unit_test(init_db),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
-
 }

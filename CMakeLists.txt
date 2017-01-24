@@ -31,6 +31,11 @@ set(SHELL_FILES
         lib/sqlite/sqlite3.c
         )
 
+add_definitions(-DSQLITE_ENABLE_FTS4
+        -DSQLITE_ENABLE_RTREE
+        -DSQLITE_ENABLE_LOAD_EXTENSION
+        -DSQLITE_ENABLE_JSON1)
+
 add_executable(sqlite_shell ${SHELL_FILES})
 
 project(flexilite)
