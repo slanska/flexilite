@@ -6,11 +6,10 @@
  Declarations for .classes Data
  */
 
-///<reference path="../../src/typings/DBDefinitions.ts"/>
+// /<reference path="../../typings/DBDefinitions.ts"/>
 
 declare type NameId = number;
 declare type NameIdOrString = NameId | string;
-
 
 declare const enum UI_CONTROL_TYPE
 {

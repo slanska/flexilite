@@ -1,5 +1,6 @@
 * test flexi_class_create
-* flexi_load - node.js utility (TypeScript)
+* flexish - node.js utility (TypeScript)
+* generate schema from non-Flexi database
 * add Northwind to Git
 * convert Northwind database to Flexi
 * support for indexes when saving data

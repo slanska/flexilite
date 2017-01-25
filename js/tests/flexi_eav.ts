@@ -3,7 +3,7 @@
  */
 
 
-/// <reference path="../typings/tests.d.ts"/>
+/// <reference path="../../typings/tests.d.ts"/>
 
 var Sync = require('syncho');
 import helper = require('./helper');
@@ -16,9 +16,9 @@ var expect = chai.expect;
 
 describe('SQLite extensions: Flexilite EAV', ()=>
 {
-    var db:sqlite3.Database;
+    let db:sqlite3.Database;
 
-    var personMeta = {
+    const personMeta = {
         properties: {
             FirstName: {rules: {type: PROPERTY_TYPE.PROP_TYPE_TEXT, minOccurences: 1, maxOccurences: 1}},
             LastName: {rules: {type: PROPERTY_TYPE.PROP_TYPE_TEXT}},

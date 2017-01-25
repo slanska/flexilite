@@ -5,6 +5,8 @@
   "author": "slanska",
   "private": false,
   "dependencies": {
+    "colors": "^1.1.2",
+    "commander": "^2.9.0",
     "lodash": "^3.10.1",
     "object-hash": "^1.1.2",
     "shortid": "^2.2.2",

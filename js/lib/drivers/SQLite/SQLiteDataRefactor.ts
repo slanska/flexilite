@@ -2,7 +2,7 @@
  * Created by slanska on 2016-01-16.
  */
 
-///<reference path="../../../typings/lib.d.ts"/>
+///<reference path="../../../../typings/lib.d.ts"/>
 ///<reference path="DBInterfaces.d.ts"/>
 
 import sqlite3 = require('sqlite3');

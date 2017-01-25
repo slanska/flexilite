@@ -1,13 +1,11 @@
 /**
  * Created by slanska on 03.10.2015.
  */
-/// <reference path="../../../typings/tsd.d.ts"/>
+/// <reference path="../../../../typings/tsd.d.ts"/>
 /// <reference path="./DBInterfaces.d.ts"/>
 'use strict';
 var _ = require("lodash");
 var sqlite3 = require("sqlite3");
-var Query = require("sql-query").Query;
-var Sync = require("syncho");
 var path = require('path');
 var SQLiteDataRefactor_1 = require("./SQLiteDataRefactor");
 var Flexilite;

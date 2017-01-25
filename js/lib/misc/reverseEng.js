@@ -1,9 +1,8 @@
 /**
  * Created by slanska on 2016-03-04.
  */
-/// <reference path="../../typings/lib.d.ts" />
+/// <reference path="../../../typings/lib.d.ts" />
 'use strict';
-var Sync = require('syncho');
 var _ = require('lodash');
 var ReverseEngine = (function () {
     function ReverseEngine(db) {

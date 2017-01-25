@@ -2,7 +2,7 @@
  * Created by slanska on 03.10.2015.
  */
 
-/// <reference path="../../../typings/tsd.d.ts"/>
+/// <reference path="../../../../typings/tsd.d.ts"/>
 /// <reference path="./DBInterfaces.d.ts"/>
 
 'use strict';
@@ -10,10 +10,8 @@
 import _ = require("lodash");
 import util = require("../../misc/Util");
 import sqlite3 = require("sqlite3");
-var Query = require("sql-query").Query;
-var Sync = require("syncho");
 import path = require('path');
-import orm = require("orm");
+// import orm = require("orm");
 import objectHash = require('object-hash');
 import SchemaHelper =require("../../misc/SchemaHelper");
 import {SQLiteDataRefactor} from "./SQLiteDataRefactor";

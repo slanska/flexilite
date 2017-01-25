@@ -2,12 +2,11 @@
  * Created by slanska on 2016-03-04.
  */
 
-/// <reference path="../../typings/lib.d.ts" />
+/// <reference path="../../../typings/lib.d.ts" />
 
 'use strict';
 
 import sqlite = require('sqlite3');
-var Sync = require('syncho');
 import _ = require('lodash');
 
 interface SQLiteColumn

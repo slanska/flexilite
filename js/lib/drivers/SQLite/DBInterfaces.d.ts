@@ -2,7 +2,7 @@
  * Created by slanska on 2016-03-26.
  */
 
-///<reference path="../../../typings/lib.d.ts"/>
+///<reference path="../../../../typings/lib.d.ts"/>
 
 /*
  Set of interfaces and constants to Flexilite's driver for SQLite database tables
@@ -141,7 +141,7 @@ interface  IFlexiAccessRule
 /*
  .change_log
  */
-interface  IFlexiChangeLog
+interface IFlexiChangeLog
 {
     ID:number;
     TimeStamp:number, // Julian day with fractional time (SQLite format)
@@ -151,24 +151,6 @@ interface  IFlexiChangeLog
     Value:any;
     ChangedBy:any
 }
-
-/*
- .schemas
- */
-// interface IFlexiSchema
-// {
-//     // Auto increment primary key
-//     SchemaID?:number;
-//
-//     // Class name ID
-//     NameID:NameID;
-//
-//     // Data signature for the fast access
-//     Hash:string;
-//
-//     // JSON text
-//     Data:ISchemaDefinition;
-// }
 
 /*
  .objects

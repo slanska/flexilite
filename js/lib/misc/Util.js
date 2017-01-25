@@ -2,7 +2,7 @@
  * Created by slanska on 2015-12-09.
  */
 "use strict";
-///<reference path="../../typings/tsd.d.ts"/>
+///<reference path="../../../typings/tsd.d.ts"/>
 var Util = (function () {
     function Util() {
     }

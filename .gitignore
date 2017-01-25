@@ -34,3 +34,6 @@ tests/data
 /data/
 !/lib/cmocka/
 !/lib/sqlite/sqlite3ext.h
+/node_modules/
+/js/flexish/index.js.map
+/js/flexish/index.js
