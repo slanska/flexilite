@@ -381,6 +381,42 @@ static int flexi_prepare_db_statements(sqlite3 *db, void *aux_data) {
 }
 
 /*
+ * Global mapping of type names between Flexilite and SQLite
+ */
+typedef struct {
+    const char *zFlexi_t;
+    const char *zSqlite_t;
+    int propType;
+} FlexiTypesToSqliteTypeMap;
+
+const static FlexiTypesToSqliteTypeMap g_FlexiTypesToSqliteTypes[] = {
+        {"text",     "TEXT",    PROP_TYPE_TEXT},
+        {"integer",  "INTEGER", PROP_TYPE_INTEGER},
+        {"boolean",  "INTEGER", PROP_TYPE_BOOLEAN},
+        {"enum",     "INTEGER", PROP_TYPE_ENUM},
+        {"number",   "FLOAT",   PROP_TYPE_NUMBER},
+        {"datetime", "FLOAT",   PROP_TYPE_DATETIME},
+        {"uuid",     "BLOB",    PROP_TYPE_UUID},
+        {"binary",   "BLOB",    PROP_TYPE_BINARY},
+        {"name",     "TEXT",    PROP_TYPE_NAME},
+        {"decimal",  "FLOAT",   PROP_TYPE_DECIMAL},
+        {"json",     "JSON1",   PROP_TYPE_JSON},
+        {"date",     "FLOAT",   PROP_TYPE_DATE},
+        {"time",     "FLOAT",   PROP_TYPE_TIMESPAN},
+        {NULL,       "TEXT",    PROP_TYPE_TEXT}
+};
+
+static const FlexiTypesToSqliteTypeMap *findSqliteTypeByFlexiType(const char *t) {
+    int ii = 0;
+    for (; ii < sizeof(g_FlexiTypesToSqliteTypes) / sizeof(g_FlexiTypesToSqliteTypes[0]); ii++) {
+        if (g_FlexiTypesToSqliteTypes[ii].zFlexi_t && strcmp(g_FlexiTypesToSqliteTypes[ii].zFlexi_t, t) == 0)
+            return &g_FlexiTypesToSqliteTypes[ii];
+    }
+
+    return &g_FlexiTypesToSqliteTypes[sizeof(g_FlexiTypesToSqliteTypes) / sizeof(g_FlexiTypesToSqliteTypes[0]) - 1];
+}
+
+/*
  * Loads class definition from [.classes] and [.class_properties] tables
  * into ppVTab (casted to flexi_vtab).
  * Used by Create and Connect methods
@@ -486,7 +522,8 @@ static int flexi_load_class_def(
             goto CATCH;
         }
 
-        int iType = sqlite3_column_int(pGetClsPropStmt, 6);
+        // TODO Use string value
+        char *zFlexiType = (char *)sqlite3_column_text(pGetClsPropStmt, 6);
 
         int iNewColCnt = nPropIdx;
 
@@ -512,7 +549,9 @@ static int flexi_load_class_def(
         p->bUnique = (char) sqlite3_column_int(pGetClsPropStmt, 3);
         p->bFullTextIndex = (char) sqlite3_column_int(pGetClsPropStmt, 4);
         p->xRole = (short int) sqlite3_column_int(pGetClsPropStmt, 5);
-        p->type = iType;
+
+        const FlexiTypesToSqliteTypeMap *pPropType = findSqliteTypeByFlexiType(zFlexiType);
+        p->type = pPropType->propType;
 
         int iRxLen = sqlite3_column_bytes(pGetClsPropStmt, 7);
         if (iRxLen > 0) {
@@ -566,45 +605,9 @@ static int flexi_load_class_def(
             sqlite3_free(pTmp);
         }
 
-        const char *zType = NULL;
-        switch (iType) {
-            case PROP_TYPE_UUID:
-            case PROP_TYPE_BINARY:
-                zType = "BLOB";
-                break;
-
-            case PROP_TYPE_NAME:
-            case PROP_TYPE_TEXT:
-                zType = "TEXT";
-                break;
-
-            case PROP_TYPE_DECIMAL:
-            case PROP_TYPE_NUMBER:
-                zType = "FLOAT";
-                break;
-
-            case PROP_TYPE_ENUM:
-            case PROP_TYPE_INTEGER:
-            case PROP_TYPE_BOOLEAN:
-                zType = "INTEGER";
-                break;
-
-            case PROP_TYPE_JSON:
-                zType = "JSON1";
-                break;
-
-            case PROP_TYPE_DATETIME:
-                zType = "FLOAT";
-                break;
-
-            default:
-                zType = "";
-                break;
-        }
-
         {
             void *pTmp = sbClassDef;
-            sbClassDef = sqlite3_mprintf("%s[%s] %s", pTmp, vtab->pProps[nPropIdx].zName, zType);
+            sbClassDef = sqlite3_mprintf("%s[%s] %s", pTmp, vtab->pProps[nPropIdx].zName, pPropType);
             sqlite3_free(pTmp);
         }
 

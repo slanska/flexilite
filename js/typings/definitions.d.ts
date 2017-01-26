@@ -57,6 +57,9 @@ declare interface IQueryDef {
     skip?: number;
     select?: IQuerySelectDef;
     orderBy?: IQueryOrderByDef;
+    userId?: string;
+    culture?: string;
+    bookmark?: string;
 }
 
 declare type QueryOperator = '$eq' | '$ne' | '$lt' | '$gt' | '$le' | '$ge' | '$in'

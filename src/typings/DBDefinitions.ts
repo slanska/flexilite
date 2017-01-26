@@ -178,7 +178,9 @@ declare const enum PROPERTY_TYPE
 
     PROP_TYPE_FORMULA = 28,
 
-    PROP_TYPE_ANY = 29
+    PROP_TYPE_ANY = 29,
+
+    PROP_TYPE_DATE = 30
 }
 ;
 
