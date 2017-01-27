@@ -10,7 +10,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "../lib/cmocka/include/cmocka.h"
-#include "../lib/sqlite/sqlite3.h"
+#include <cmocka.h>
+#include <sqlite3.h>
 
 #endif //FLEXILITE_DEFINITONS_H

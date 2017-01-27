@@ -14,6 +14,11 @@ project(flexilite_test)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
+include_directories(
+        ../lib/cmocka/include
+        ../lib/sqlite
+)
+
 set(TEST_FILES
         ../lib/cmocka/src/cmocka.c
         ../lib/sqlite/sqlite3.c
