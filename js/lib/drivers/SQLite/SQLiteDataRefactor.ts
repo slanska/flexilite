@@ -8,7 +8,7 @@
 import sqlite3 = require('sqlite3');
 import objectHash = require('object-hash');
 import {SchemaHelper, IShemaHelper} from '../../misc/SchemaHelper';
-import {ReverseEngine} from '../../misc/reverseEng';
+import {ReverseEngine} from '../../../flexish/reverseEng';
 import _ = require('lodash');
 
 export class SQLiteDataRefactor implements IDBRefactory

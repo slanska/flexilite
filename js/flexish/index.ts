@@ -12,10 +12,23 @@
 
 /// <reference path="../../typings/tsd.d.ts"/>
 
+/*
+ Helper utility for auxiliary tasks with Flexilite database
+ * Generate JSON schema from existing SQLite database
+ * Create or modify classes based on JSON schema
+ * Execute query in JSON format (from external file or command line or console input)
+ * Load data from external database (via Knex.js driver) to Flexilite database
+ * Output schema from Flexilite database
+ * Output statistics on Flexilite usage
+ */
+
+///<reference path="../../typings/index.d.ts"/>
+
 let commander = require('commander');
 let colors = require('colors');
+import Promise = require('bluebird');
 
-import {ReverseEngine} from '../lib/misc/reverseEng';
+import {ReverseEngine} from './reverseEng';
 
 commander
     .version('0.0.1')

@@ -10,7 +10,7 @@ var sqlite3 = require('sqlite3');
 var _ = require('lodash');
 var chai = require('chai');
 var shortid = require('shortid');
-var reverseEng_1 = require('../lib/misc/reverseEng');
+var reverseEng_1 = require('../flexish/reverseEng');
 var SchemaHelper_1 = require('../lib/misc/SchemaHelper');
 var expect = chai.expect;
 describe('Flexilite schema processing', function () {

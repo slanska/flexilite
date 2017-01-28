@@ -7,7 +7,7 @@
 /// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
 /// <reference path="../typings/tsd.d.ts" />
 'use strict';
-var Flexilite = require('../lib/misc/reverseEng');
+var Flexilite = require('../flexish/reverseEng');
 require('../lib/drivers/SQLite');
 var Sync = require('syncho');
 describe('More data refactoring', function () {

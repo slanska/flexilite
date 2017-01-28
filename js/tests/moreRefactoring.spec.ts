@@ -10,7 +10,7 @@
 
 'use strict';
 
-var Flexilite = require('../lib/misc/reverseEng');
+var Flexilite = require('../flexish/reverseEng');
 import mocha = require('mocha');
 require('../lib/drivers/SQLite');
 import path = require('path');

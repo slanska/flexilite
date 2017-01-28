@@ -3,11 +3,13 @@
 //
 
 /*
- * General purpose class which parses JSON string and provides fast access to parsed JSON
+ * General purpose class which parses JSON string and provides fast access to parsed JSON.
+ * Uses JSON functionality from SQLite JSON extension, specifically json_tree
+ * Calls json_tree, then iterates over rows and populates internal structure for fast access
  */
 
 #include <stddef.h>
-#include "../../lib/sqlite/sqlite3ext.h"
+#include <sqlite3ext.h>
 #include "../util/hash.h"
 
 SQLITE_EXTENSION_INIT3

@@ -2,7 +2,7 @@
  * Created by slanska on 2016-03-04.
  */
 
-/// <reference path="../../../typings/lib.d.ts" />
+/// <reference path="../../typings/lib.d.ts" />
 
 'use strict';
 
@@ -76,7 +76,7 @@ interface SQLiteIndexColumn
 interface SQLiteForeignKeyInfo
 {
     /*
-     Sequenial number
+     Sequential number
      */
     seq:number;
 
@@ -172,32 +172,32 @@ export class ReverseEngine
     /*
 
      */
-    public getPropertiesFromORMDriverSchema(schema:ISyncOptions):{[propName:string]:IORMPropertyDef}
-    {
-        var result = {} as {[propName:string]:IORMPropertyDef};
-        _.forEach(schema.properties, (prop:IORMPropertyDef) =>
-        {
-            result[prop.name] = prop;
-        });
-        return result;
-    }
+    // public getPropertiesFromORMDriverSchema(schema:ISyncOptions):{[propName:string]:IORMPropertyDef}
+    // {
+    //     var result = {} as {[propName:string]:IORMPropertyDef};
+    //     _.forEach(schema.properties, (prop:IORMPropertyDef) =>
+    //     {
+    //         result[prop.name] = prop;
+    //     });
+    //     return result;
+    // }
 
     /*
      Retrieves all database metadata and returns array of model definitions in the format
      expected by node-orm2 Driver.
      Expected to be run inside Sync() call
      */
-    public loadSchemaFromDatabase():{[name:string]:ISyncOptions}
+    public loadSchemaFromDatabase():{[name:string]:any}
     {
         var self = this;
-        var result:{[name:string]:ISyncOptions} = {};
+        var result:{[name:string]:any} = {};
 
         var tables = self.db.all.sync(self.db,
             `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`);
 
         _.forEach(tables, (item:any) =>
         {
-            var modelDef = {} as ISyncOptions;
+            var modelDef = {} as any; //
             modelDef.properties = {};
             modelDef.allProperties = {};
 
@@ -207,7 +207,7 @@ export class ReverseEngine
             var cols = self.db.all.sync(self.db, col_sql) as SQLiteColumn[];
             _.forEach(cols, (col:SQLiteColumn) =>
             {
-                var prop = ReverseEngine.sqliteTypeToOrmType(col.type) as IORMPropertyDef;
+                var prop = ReverseEngine.sqliteTypeToOrmType(col.type) as any; //
                 prop.indexed = col.pk !== 0;
                 prop.name = col.name;
 
@@ -241,7 +241,7 @@ export class ReverseEngine
             var fkeys = self.db.all.sync(self.db, fk_sql);
             _.forEach(fkeys, (item:SQLiteForeignKeyInfo) =>
             {
-                var oneAssoc = {} as IHasOneAssociation;
+                var oneAssoc = {} as any; //
                 oneAssoc.field = {name: {name: item.from}};
                 oneAssoc.name = item.table;
 
@@ -255,7 +255,7 @@ export class ReverseEngine
                 modelDef.one_associations.push(oneAssoc);
 
                 // TODO Process many-to-many associations
-                var manyAssoc = {} as IHasManyAssociation;
+                var manyAssoc = {} as any; //
             });
         });
 

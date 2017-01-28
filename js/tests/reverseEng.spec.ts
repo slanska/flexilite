@@ -6,7 +6,7 @@
 
 'use strict';
 
-var ReverseEngine = require('../lib/misc/reverseEng');
+var ReverseEngine = require('../flexish/reverseEng');
 import mocha = require('mocha');
 require('../lib/drivers/SQLite');
 import path = require('path');

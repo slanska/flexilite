@@ -5,6 +5,7 @@
   "author": "slanska",
   "private": false,
   "dependencies": {
+    "bluebird": "^3.4.7",
     "colors": "^1.1.2",
     "commander": "^2.9.0",
     "lodash": "^3.10.1",

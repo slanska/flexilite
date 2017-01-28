@@ -12,7 +12,7 @@ import faker = require('faker');
 import _ = require('lodash');
 import chai = require('chai');
 var shortid = require('shortid');
-import {ReverseEngine} from '../lib/misc/reverseEng';
+import {ReverseEngine} from '../flexish/reverseEng';
 import {SchemaHelper} from '../lib/misc/SchemaHelper';
 
 var expect = chai.expect;

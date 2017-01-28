@@ -6,7 +6,7 @@
 ///<reference path="DBInterfaces.d.ts"/>
 var sqlite3 = require('sqlite3');
 var SchemaHelper_1 = require('../../misc/SchemaHelper');
-var reverseEng_1 = require('../../misc/reverseEng');
+var reverseEng_1 = require('../../../flexish/reverseEng');
 var _ = require('lodash');
 var SQLiteDataRefactor = (function () {
     function SQLiteDataRefactor(DB) {
