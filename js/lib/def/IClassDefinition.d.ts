@@ -56,6 +56,7 @@ interface IPropertyUISettings
     }
 }
 
+
 /*
  Enum item definition
  */
@@ -73,7 +74,6 @@ interface IEnumItem
     $Text?:string,
     TextID?:NameId
 }
-
 interface IEnumPropertyDefinition
 {
     /*

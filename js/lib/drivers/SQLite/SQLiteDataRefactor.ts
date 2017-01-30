@@ -36,7 +36,7 @@ export class SQLiteDataRefactor implements IDBRefactory
 
         // load metadata for source table
         let reng = new ReverseEngine(srcDB);
-        let srcMeta = reng.loadSchemaFromDatabase();
+        let srcMeta = reng.parseSQLiteSchema();
         let srcTableMeta = srcMeta[srcTbl];
 
         // Check if target flexitable exists
@@ -348,7 +348,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
      Converts set of properties into new object
      */
-    propertiesToObject(filter:IObjectFilter, propIDs:PropertyIDs, newRefProp:IClassProperty,
+    propertiesToObject(filter:IObjectFilter, propIDs:PropertyIDs, newRefProp:IClassPropertyDef,
                        targetClassID:number, sourceKeyPropID:PropertyIDs,
                        targetKeyPropID:PropertyIDs)
     {
@@ -382,7 +382,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     {
     }
 
-    mergeProperties(classID:number, sourcePropIDs:number[], targetProp:IClassProperty, expression:string)
+    mergeProperties(classID:number, sourcePropIDs:number[], targetProp:IClassPropertyDef, expression:string)
     {
     }
 
@@ -412,7 +412,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
      Validates property alteration
      */
-    checkAlterClassProperty(className:string, propertyName:string, propDef:IClassProperty, newPropName?:string,
+    checkAlterClassProperty(className:string, propertyName:string, propDef:IClassPropertyDef, newPropName?:string,
                             limit?:number)
     {
 
@@ -421,7 +421,7 @@ export class SQLiteDataRefactor implements IDBRefactory
     /*
      Initializes 'reference' attribute of property definition. Returns referenced class definition
      */
-    private initPropReference(clsDef:IFlexiClass, propertyName:string, propDef:IClassProperty):IFlexiClass
+    private initPropReference(clsDef:IFlexiClass, propertyName:string, propDef:IClassPropertyDef):IFlexiClass
     {
         var self = this;
         if (!propDef.reference)
@@ -460,7 +460,7 @@ export class SQLiteDataRefactor implements IDBRefactory
             if (!revPropDef)
             // Not found
             {
-                let revPropDef = {reference: {}, rules: {type: PROPERTY_TYPE.PROP_TYPE_LINK}} as IClassProperty;
+                let revPropDef = {reference: {}, rules: {type: PROPERTY_TYPE.PROP_TYPE_LINK}} as IClassPropertyDef;
                 revPropDef.reference.classID = clsDef.ClassID;
 
                 let refClsDef = self.getClassDefByID(propDef.reference.classID);
@@ -503,7 +503,7 @@ export class SQLiteDataRefactor implements IDBRefactory
      not presented in the database
      */
     private doAlterEnumProp(clsDef:IFlexiClass, propertyId:number, propertyName:string,
-                            curPropDef:IClassProperty, propDef:IClassProperty)
+                            curPropDef:IClassPropertyDef, propDef:IClassPropertyDef)
     {
         let self = this;
         if (curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_ENUM && propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_ENUM)
@@ -557,7 +557,7 @@ export class SQLiteDataRefactor implements IDBRefactory
      reverse property etc.)
      */
     private doAlterRefProp(clsDef:IFlexiClass, propertyId:number, propertyName:string,
-                           curPropDef:IClassProperty, propDef:IClassProperty)
+                           curPropDef:IClassPropertyDef, propDef:IClassPropertyDef)
     {
         var self = this;
         var newRef = false;
@@ -653,7 +653,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         let idPropID:string;
         // Check if it has property with role ID or Code
         let idProp = _.find(refClsDef.Data.properties,
-            (pd:IClassProperty, pID:string)=>
+            (pd:IClassPropertyDef, pID:string)=>
             {
                 if ((pd.role & PROPERTY_ROLE.PROP_ROLE_ID) != 0)
                 {
@@ -665,7 +665,7 @@ export class SQLiteDataRefactor implements IDBRefactory
         if (!idProp)
         {
             idProp = _.find(refClsDef.Data.properties,
-                (pd:IClassProperty, pID:string)=>
+                (pd:IClassPropertyDef, pID:string)=>
                 {
                     if ((pd.role & PROPERTY_ROLE.PROP_ROLE_CODE) != 0)
                     {
@@ -694,7 +694,7 @@ export class SQLiteDataRefactor implements IDBRefactory
      Values get updated based on kind of property changes. (normally, only when new indexing is defined, [.ref-values])
      Idea is to avoid non-mandatory massive updates, whenever possible
      */
-    private doAlterClassProperty(clsDef:IFlexiClass, propertyName:string, propDef:IClassProperty, newPropName?:string)
+    private doAlterClassProperty(clsDef:IFlexiClass, propertyName:string, propDef:IClassPropertyDef, newPropName?:string)
     {
         var self = this;
 
@@ -828,11 +828,11 @@ Its definition has to be converted to scalar first, and then to new reference de
      Finds property by name in collection of class properties.
      Returns null if not found
      */
-    private findClassPropertyByName(clsDef:IFlexiClass, propName:string):IClassProperty
+    private findClassPropertyByName(clsDef:IFlexiClass, propName:string):IClassPropertyDef
     {
         let self = this;
         let n = self.getNameByValue(propName);
-        let result = _.find(clsDef.Data.properties, (cp:IClassProperty, pID:string)=>
+        let result = _.find(clsDef.Data.properties, (cp:IClassPropertyDef, pID:string)=>
         {
             return Number(pID) === n.NameID;
         });
@@ -842,7 +842,7 @@ Its definition has to be converted to scalar first, and then to new reference de
     /*
      Alters single class property definition. Handles both creation and alteration of property
      */
-    alterClassProperty(className:string, propertyName:string, propDef:IClassProperty, newPropName ?:string)
+    alterClassProperty(className:string, propertyName:string, propDef:IClassPropertyDef, newPropName ?:string)
     {
         var self = this;
         self._lastActionReport = [];
@@ -880,7 +880,7 @@ Its definition has to be converted to scalar first, and then to new reference de
     /*
 
      */
-    private static getCtlvFromPropertyDef(propDef:IClassProperty, oldCtlv:Value_Control_Flags):{ctlv:Value_Control_Flags, updateRequired:boolean}
+    private static getCtlvFromPropertyDef(propDef:IClassPropertyDef, oldCtlv:Value_Control_Flags):{ctlv:Value_Control_Flags, updateRequired:boolean}
     {
         let result = {ctlv: Value_Control_Flags.CTLV_NONE, updateRequired: false};
 
@@ -910,7 +910,7 @@ Its definition has to be converted to scalar first, and then to new reference de
      New row will be inserted into [.class_properties] table, [.classes].Data.properties definition will be updated,
      but class itself will not be saved.
      */
-    private doCreateClassProperty(clsDef:IFlexiClass, propertyName:string, propDef:IClassProperty)
+    private doCreateClassProperty(clsDef:IFlexiClass, propertyName:string, propDef:IClassPropertyDef)
     {
         var self = this;
         // Get name ID
@@ -945,7 +945,7 @@ Its definition has to be converted to scalar first, and then to new reference de
     /*
      Creates a new class property. Internally calls alter class property, which does all the job
      */
-    createClassProperty(className:string, propertyName:string, propDef:IClassProperty)
+    createClassProperty(className:string, propertyName:string, propDef:IClassPropertyDef)
     {
         this.alterClassProperty(className, propertyName, propDef);
     }
@@ -989,7 +989,7 @@ Its definition has to be converted to scalar first, and then to new reference de
         vars.DB = self.DB;
 
         // Get mapping schema and class properties.
-        // They come as Dictionary of IClassProperty by property name and
+        // They come as Dictionary of IClassPropertyDef by property name and
         // Dictionary of schema property def by property name
         // Need to transform them before saving to dictionaries by property ID
         vars.converter = new SchemaHelper(self.DB, model);
@@ -1020,7 +1020,7 @@ Its definition has to be converted to scalar first, and then to new reference de
         vars.newProps = {} as IFlexiClassPropDictionaryByName; // Dictionary by property name
 
         // Init items for [.class_properties]
-        _.forEach(vars.converter.targetClassProps, (p:IClassProperty, n:string)=>
+        _.forEach(vars.converter.targetClassProps, (p:IClassPropertyDef, n:string)=>
         {
             let nameID = self.getNameByValue(n).NameID;
             let np = {} as IFlexiClassProperty;
@@ -1060,7 +1060,7 @@ Its definition has to be converted to scalar first, and then to new reference de
                 values ($PropertyID, $ClassID, $NameID, $ctlv);`);
 
         // Initialize properties
-        _.forEach(vars.converter.targetClassProps, (p:IClassProperty, propName:string)=>
+        _.forEach(vars.converter.targetClassProps, (p:IClassPropertyDef, propName:string)=>
         {
             let np = {} as IFlexiClassProperty;
             np.ClassID = vars.classDef.ClassID;

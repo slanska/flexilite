@@ -28,7 +28,7 @@ let commander = require('commander');
 let colors = require('colors');
 import Promise = require('bluebird');
 
-import {ReverseEngine} from './reverseEng';
+import {parseSQLiteSchema} from './sqliteSchemaParser';
 
 commander
     .version('0.0.1')
@@ -40,4 +40,8 @@ commander
     .option('-c', '--config', 'Path to config file')
     .option('-s', '--source', 'Source database connection string')
     .option('-o', '-output', 'Output file name')
+    .option('-f', '-fkey', 'Process foreign keys')
+    .option('-m', '-many2many', 'Make guesses about many to many relationship')
     .parse(process.argv);
+
+//var parser = new SQLiteSchemaParser();

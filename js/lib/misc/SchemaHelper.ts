@@ -85,7 +85,7 @@ export class SchemaHelper implements IShemaHelper
         }
     }
 
-    private convertProperty(item:IORMPropertyDef, propName:string, itemKind:'primary'|'hasOne'|'hasMany'):IClassProperty
+    private convertProperty(item:IORMPropertyDef, propName:string, itemKind:'primary'|'hasOne'|'hasMany'):IClassPropertyDef
     {
         var self = this;
 
@@ -100,7 +100,7 @@ export class SchemaHelper implements IShemaHelper
         }
 
         let propID = self.getNameID(propName);
-        let cProp = {} as IClassProperty;
+        let cProp = {} as IClassPropertyDef;
         cProp.rules = cProp.rules || {} as IPropertyRulesSettings;
         cProp.ui = cProp.ui || {} as IPropertyUISettings;
 

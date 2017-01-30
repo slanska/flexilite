@@ -48,12 +48,12 @@ interface IDBRefactory
      Property 'Country' was extracted to the new class and replaced with link
      @filter:IObjectFilter,
      @propIDs:PropertyIDs,
-     @newRefProp:IClassProperty,
+     @newRefProp:IClassPropertyDef,
      @targetClassID:number,
      @sourceKeyPropID:PropertyIDs,
      @targetKeyPropID
      */
-    propertiesToObject(filter:IObjectFilter, propIDs:PropertyIDs, newRefProp:IClassProperty,
+    propertiesToObject(filter:IObjectFilter, propIDs:PropertyIDs, newRefProp:IClassPropertyDef,
                        targetClassID:number, sourceKeyPropID:PropertyIDs,
                        targetKeyPropID:PropertyIDs);
 
@@ -97,7 +97,7 @@ interface IDBRefactory
     /*
      Merge many properties into one: use SQL expressions
      */
-    mergeProperties(classID:number, sourcePropIDs:number[], targetProp:IClassProperty, expression:string);
+    mergeProperties(classID:number, sourcePropIDs:number[], targetProp:IClassPropertyDef, expression:string);
 
     /*
      Alters single class property definition.
@@ -112,12 +112,12 @@ interface IDBRefactory
      Other changes do not have effect on existing data
      5) Converts reference type to scalar. Extracts ID/Text/ObjectID from referenced objects, sets value to existing links,
      */
-    alterClassProperty(className:string, propertyName:string, propDef:IClassProperty, newPropName?:string);
+    alterClassProperty(className:string, propertyName:string, propDef:IClassPropertyDef, newPropName?:string);
 
     /*
 
      */
-    createClassProperty(className:string, propertyName:string, propDef:IClassProperty);
+    createClassProperty(className:string, propertyName:string, propDef:IClassPropertyDef);
 
     /*
 
@@ -202,7 +202,7 @@ interface IObjectFilter
     filter?:any; // TODO orm filter
 }
 
-declare type ISplitPropertyRules = [{regex?:string, newPropDef:IClassProperty}];
+declare type ISplitPropertyRules = [{regex?:string, newPropDef:IClassPropertyDef}];
 
 declare type IPropertyMap = [{sourcePropID:number, targetPropID:number}];
 

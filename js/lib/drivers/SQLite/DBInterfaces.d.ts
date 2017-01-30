@@ -123,7 +123,7 @@ interface IFlexiClassProperty
     /*
      JSON text. Computed property taken from [.classes]
      */
-    Data?:IClassProperty;
+    Data?:IClassPropertyDef;
 }
 
 

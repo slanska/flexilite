@@ -32,7 +32,7 @@ describe('Flexilite schema processing', function () {
             var dbPath = path.join(__dirname, "data", "chinook.db");
             var db = new sqlite3.Database(dbPath);
             var revEng = new reverseEng_1.ReverseEngine(db);
-            var schema = revEng.loadSchemaFromDatabase.sync(revEng);
+            var schema = revEng.parseSQLiteSchema.sync(revEng);
             _.forEach(schema, function (item, className) {
                 var conv = new SchemaHelper_1.SchemaHelper(db, item, null);
                 conv.convertFromNodeOrmSync();

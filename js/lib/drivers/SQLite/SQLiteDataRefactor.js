@@ -31,7 +31,7 @@ var SQLiteDataRefactor = (function () {
         }
         // load metadata for source table
         var reng = new reverseEng_1.ReverseEngine(srcDB);
-        var srcMeta = reng.loadSchemaFromDatabase();
+        var srcMeta = reng.parseSQLiteSchema();
         var srcTableMeta = srcMeta[srcTbl];
         // Check if target flexitable exists
         var clsDef = self.getClassDefByName(options.targetTable);

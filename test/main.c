@@ -2,12 +2,15 @@
 // Created by slanska on 2017-01-18.
 //
 
+#include <stdint.h>
+#include <string.h>
 #include "definitions.h"
 #include "util/db_init.h"
 
 
 /* A test case that does nothing and succeeds. */
 static void init_memory_db(void **state) {
+
     struct sqlite3 *pDb;
     db_open_in_memory(&pDb);
     assert_non_null(pDb);
