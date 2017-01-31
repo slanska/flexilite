@@ -8,9 +8,26 @@ PRAGMA recursive_triggers = 1;
 ------------------------------------------------------------------------------------------
 -- .names
 ------------------------------------------------------------------------------------------
+
+/*
+.names table has rows of 2 types - class properties and symbolic names. Column 'type' defines
+which sort of entity it is: 1 - property, 2 - name, 3 - both name and property
+The reason why 2 entities are combined into single table is to share IDs.
+Objects may have attributes which are not defined in .classes.Data.properties
+(if .classes.Data.allowNotDefinedProps = 1). Such attributes will be stored as IDs to .names table,
+where ID will correspond to name subtype.
+
+*/
 create table if not exists [.names]
 (
     NameID INTEGER  NOT NULL PRIMARY KEY AUTOINCREMENT,
+
+    Type INTEGER NOT NULL
+
+
+    /*
+    Name specific columns
+    */
 
     -- Case sensitive
     [Value] TEXT COLLATE BINARY NOT NULL CHECK (rtrim(ltrim([Value])) <> ''),
@@ -22,7 +39,29 @@ create table if not exists [.names]
             CONSTRAINT [fkNamesByAliasOf]
             REFERENCES [.names] ([NameID]) ON DELETE SET NULL ON UPDATE RESTRICT,
 
-    Data JSON1 null
+    Data JSON1 null,
+
+        [ClassID]  INTEGER NOT NULL CONSTRAINT [fkClassPropertiesToClasses]
+        REFERENCES [.classes] ([ClassID]) ON DELETE CASCADE ON UPDATE RESTRICT,
+
+/*
+Property specific columns
+*/
+        /*
+        Property name
+        */
+    [NameID] INTEGER NOT NULL constraint [fkClassPropertiesToNames] references [.names] ([NameID])
+        on delete restrict on update restrict,
+
+        /*
+        Actual control flags
+        */
+    [ctlv] INTEGER NOT NULL DEFAULT 0,
+
+    /*
+    Planned/desired control flags
+    */
+    [ctlvPlan] INTEGER NOT NULL DEFAULT 0
 );
 
 create unique index if not exists [namesByValue] on [.names]([Value]);
@@ -123,6 +162,10 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   IClassDefinition. Can be set to null for a newly created class
   */
   Data JSON1 NULL,
+
+  /*
+  Class definition hash. Used for fast lookup for duplicated definitions and schema verification
+  */
   Hash TEXT(40) NULL
 );
 

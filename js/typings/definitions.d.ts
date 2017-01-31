@@ -9,7 +9,7 @@
 /*
  Property types
  */
-declare type IPropertyType =
+declare type PropertyType =
     'text' |
 
         /*
@@ -53,9 +53,14 @@ declare type IPropertyType =
 
         /*
          Property can be of any type. No validation or additional processing is applied.
-         Property can be still indexed
+         Property can be still indexed.
          */
-        'any';
+        'any' |
+
+        /*
+         JSON type
+         */
+        'json';
 
 declare type PropertyIndexMode =
     /*
@@ -64,12 +69,14 @@ declare type PropertyIndexMode =
     'none'
 
         /*
-         Property is indexed for fast lookup. Duplicates are allowed
+         Property is indexed for fast lookup. Duplicates are allowed. Applied for text(up to 255),
+         blob (up to 255), date*, integer and float values
          */
         | 'index'
 
         /*
          This property is unique among all class objects. Note: properties with role ID or Code are assumed to be unique
+         Data types supported are the same as for 'index'
          */
         | 'unique'
 
@@ -83,19 +90,19 @@ declare type PropertyIndexMode =
         | 'range'
 
         /*
-         Content will be indexed for full text search. Only text values are indexed
+         Content will be indexed for full text search. Applicable to text values only
          */
         | 'fulltext';
 
 /*
  Type of relationship between objects.
  */
-declare type RelationType =
+declare type RelationRule =
     /*
-     References object(s) are details.
+     Referenced object(s) are details (dependents).
      They will be deleted when master is deleted
      */
-    'master-to-details' |
+    'cascade' |
 
         /*
          Referenced objects are treated as part of master object, but accessed via additional
@@ -104,19 +111,9 @@ declare type RelationType =
         'nested' |
 
         /*
-         Many to many
+         When marked object gets deleted, corresponding relation entry to linked object is deleted too.
          */
-        'association' |
-
-        /*
-         Referenced class extends this class, in one-to-one relationship
-         */
-        'extend' |
-
-        /*
-         Opposite to 'master-to-detail'
-         */
-        'detail-to-master';
+        'set-null' ;
 
 declare interface IReferencePropertyDef {
     classID?: number;
@@ -150,47 +147,25 @@ declare interface IReferencePropertyDef {
     /*
 
      */
-    relationType?; RelationType;
+    relationRule?; RelationRule;
 }
 
 declare interface IEnumPropertyDef {
     enumId: number;
     /*
-    or
+     or
      */
-    $enumName?:string;
+    $enumName?: string;
     /*
-    or
+     or
      */
     items?: IEnumItem[];
 }
 
 declare type NameId = number;
 
-declare interface IPropertyDef {
-    rules: {
-        type: IPropertyType;
-        minOccurences?: number;
-        maxOccurences?: number;
-        regex?: string;
-    },
-    indexing?: PropertyIndexMode;
-    name: string,
-    defaultValue?: Object;
-
-    /*
-     Required if rules.type == 'reference'
-     */
-    refDef?: IReferencePropertyDef;
-
-    /*
-     Required if rules.type == 'enum'
-     */
-    enumDef?: IEnumPropertyDef;
-}
-
 declare interface IPropertyRulesSettings {
-    type: IPropertyType;
+    type: PropertyType;
 
     // TODO subType?: PropertySubType;
 
@@ -228,14 +203,14 @@ declare interface IEnumItem {
     /*
      Required attribute: string or number item ID
      */
-    ID: string | number,
+    id: string | number,
 
     /*
      Either $Text or TextID should be specified. $Text has priority over TextID.
      Internally TextID is stored, $Text is removed after obtaining name ID
      */
-    $Text?: string,
-    TextID?: NameId
+    $text?: string,
+    textID?: NameId
 }
 
 interface IEnumPropertyDefinition {
@@ -247,6 +222,8 @@ interface IEnumPropertyDefinition {
 
 /*
  'Object' property settings
+
+ TODO Needed?
  */
 interface IObjectPropertyDefinition {
     classID?: number;
@@ -310,62 +287,6 @@ interface IObjectPropertyDefinition {
 }
 
 /*
- Bit flags of roles that property plays in its class
- */
-declare const enum PROPERTY_ROLE
-{
-    /*
-     No special role
-     */
-    PROP_ROLE_NONE = 0x0000,
-
-        /*
-         Object Name
-         */
-    PROP_ROLE_NAME = 0x0001,
-
-        /*
-         Property has object description
-         */
-    PROP_ROLE_DESCRIPTION = 0x0002,
-
-        /*
-         Property is alternative unique object ID. Once set, shouldn't be changed
-         */
-    PROP_ROLE_ID = 0x0004,
-
-        /*
-         Another alternative ID. Unlike ID, can be changed
-         */
-    PROP_ROLE_CODE = 0x0008,
-
-        /*
-         Alternative ID that allows duplicates
-         */
-    PROP_ROLE_NONUNIQUEID = 0x0010,
-
-        /*
-         Timestamp on when object was created
-         */
-    PROP_ROLE_CREATETIME = 0x0020,
-
-        /*
-         Timestamp on when object was last updated
-         */
-    PROP_ROLE_UPDATETIME = 0x0040,
-
-        /*
-         Auto generated UUID (16 byte blob)
-         */
-    PROP_ROLE_AUTOUUID = 0x0008,
-
-        /*
-         Auto generated short ID (7-16 characters)
-         */
-    PROP_ROLE_AUTOSHORTID = 0x0010
-}
-
-/*
  Class property metadata
  */
 interface IClassPropertyDef {
@@ -374,11 +295,6 @@ interface IClassPropertyDef {
      Fast lookup for this property is desired
      */
     index?: PropertyIndexMode;
-
-    /*
-     Functional role of this property in the class?
-     */
-    role?: PROPERTY_ROLE;
 
     // TODO
     // ui?: IPropertyUISettings;
@@ -391,9 +307,17 @@ interface IClassPropertyDef {
     noTrackChanges?: boolean;
 
     /*
-     Extended data for REFERENCE and OBJECT types
+
      */
-    reference?: IObjectPropertyDefinition;
+    // /*
+    //  Extended data for REFERENCE and OBJECT types
+    //  */
+    // reference?: IObjectPropertyDefinition;
+
+    /*
+     Required if rules.type == 'reference'
+     */
+    refDef?: IReferencePropertyDef;
 
     dateTime?: 'dateOnly' | 'timeOnly' | 'dateTime';
 
@@ -405,18 +329,13 @@ interface IClassPropertyDef {
     defaultValue?: any;
 
     /*
-     List of volatile, non-storable attributes, which are used as instructions for property alteration
+     List of command, non-stored attributes, which are used as instructions for property alteration
      */
     $renameTo?: string;
 
     /*
      Property will be removed by flexi_class_alter
      */
-    $drop?: boolean;
-}
-
-declare interface IPropertyRefactorDef extends IPropertyDef {
-    $renameTo?: string;
     $drop?: boolean;
 }
 
@@ -441,8 +360,16 @@ declare interface IQueryOrderByDef {
  5) [{ "$expr" : {} ] // expression
  */
 declare interface IQuerySelectDef {
+    /*
+     Property names, expressions
+     */
 }
 
+/*
+ Structure to define query
+ Mimics SQL SELECT
+ 'where' can be used standalone
+ */
 declare interface IQueryDef {
     select?: IQuerySelectDef;
     from?: string;
@@ -498,7 +425,11 @@ interface IClassDefinition {
         /*
          NameID
          */
-        title?: number;
+        title?: NameId;
+        /*
+         or
+         */
+        $title?: string;
     };
 
     /*
@@ -539,6 +470,57 @@ interface IClassDefinition {
         // N?: IPropertyIdentifier;
         // O?: IPropertyIdentifier;
         // P?: IPropertyIdentifier;
+    }
+
+    /*
+     Optional set of properties that serve special purpose
+     */
+    specialProperties?: {
+        /*
+         User defined unique object ID.
+         Once set, cannot be changed
+         */
+        uid?: IPropertyIdentifier;
+
+        /*
+         Object Name
+         */
+        name?: IPropertyIdentifier;
+
+        /*
+         Object description
+         */
+        description?: IPropertyIdentifier;
+
+        /*
+         Another alternative ID. Unlike ID, can be changed
+         */
+        code?: IPropertyIdentifier;
+
+        /*
+         Alternative ID that allows duplicates
+         */
+        nonUniqueId?: IPropertyIdentifier;
+
+        /*
+         Timestamp on when object was created
+         */
+        createTime?: IPropertyIdentifier;
+
+        /*
+         Timestamp on when object was last updated
+         */
+        updateTime?: IPropertyIdentifier;
+
+        /*
+         Auto generated UUID (16 byte blob)
+         */
+        autoUuid?: IPropertyIdentifier;
+
+        /*
+         Auto generated short ID (7-16 characters)
+         */
+        autoShortId?: IPropertyIdentifier;
     }
 
     /*

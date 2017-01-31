@@ -1,4 +1,4 @@
-* define TypeScript interfaces for basic operations
+* &#10004; define TypeScript interfaces for basic operations
 * test flexi_class_create
 * add Northwind to Git
 * flexish - node.js utility (TypeScript)

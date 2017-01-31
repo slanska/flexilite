@@ -31,7 +31,7 @@ describe('Reverse Engineering for existing SQLite databases', function () {
         });
     }
     it('Generate schema for Northwind database', function (done) {
-        var srcDBName = path.join(__dirname, './data/northwind.db');
+        var srcDBName = path.join(__dirname, './data/northwind.db3');
         reverseEngineering(srcDBName, done);
     });
     it('Generate schema for Chinook database', function (done) {

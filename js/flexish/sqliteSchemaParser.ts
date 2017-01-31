@@ -4,7 +4,7 @@
 
 /// <reference path="../../typings/lib.d.ts" />
 ///<reference path="../typings/api.d.ts"/>
-
+///<reference path="../typings/definitions.d.ts"/>
 
 'use strict';
 
@@ -36,7 +36,16 @@ interface ISQLiteColumn {
      <null> -> any
      */
     type: string;
+
+    /*
+     0 - if not required
+     1 - if required
+     */
     notnull: number;
+
+    /*
+     Default value
+     */
     dflt_value: any;
 
     /*
@@ -130,43 +139,67 @@ interface ISQLiteForeignKeyInfo {
 }
 
 
-function sqliteTypeToOrmType(type: string): {type: string, size?: number, time?: boolean} {
-    if (_.isNull(type))
-        return {type: 'text'};
+function sqliteTypeToFlexiType(sqliteCol: ISQLiteColumn): IClassPropertyDef {
+    let p = {rules: {type: 'text'} as IPropertyRulesSettings} as IClassPropertyDef;
 
-    switch (type.toLowerCase()) {
-        case 'text':
-            return {type: 'text'};
-        case 'numeric':
-        case 'real':
-            return {type: 'number'};
-        case 'bool':
-            return {type: 'boolean'};
-        case 'json1':
-            return {type: 'object'};
-        case 'date':
-            return {type: 'date', time: false};
-        case 'datetime':
-            return {type: 'date', time: true};
-        case 'blob':
-            return {type: 'binary'};
-        case 'integer':
-            return {type: 'integer'};
-        default:
-            let regx = /([^)]+)\(([^)]+)\)/;
-            let matches = regx.exec(type.toLowerCase());
-            if (matches.length === 3) {
-                if (matches[1] === 'blob')
-                    return {type: 'binary', size: Number(matches[2])};
+    if (!_.isNull(sqliteCol.type)) {
+        switch (sqliteCol.type.toLowerCase()) {
+            case 'text':
+                p.rules.type = 'text';
+                break;
 
-                if (matches[1] === 'numeric') {
-                    return {type: 'number'};
+            case 'numeric':
+            case 'real':
+                p.rules.type = 'number';
+                break;
+
+            case 'bool':
+                p.rules.type = 'boolean';
+                break;
+
+            case 'json1':
+                p.rules.type = 'json';
+                break;
+
+            case 'date':
+                p.rules.type = 'date';
+                break;
+
+            case 'datetime':
+                p.rules.type = 'datetime';
+                break;
+
+            case 'blob':
+                p.rules.type = 'binary';
+                break;
+
+            case 'integer':
+                p.rules.type = 'integer';
+                break;
+
+            default:
+                let regx = /([^)]+)\(([^)]+)\)/;
+                let matches = regx.exec(sqliteCol.type.toLowerCase());
+                if (matches.length === 3) {
+                    let size = Number(matches[2]);
+                    if (matches[1] === 'blob') {
+                        if (sqliteCol.notnull === 1 && size === 16)
+                            p.rules.type = 'uuid';
+                        else {
+                            p.rules.type = 'binary';
+                            p.rules.maxLength = size;
+                        }
+                    }
+
+                    if (matches[1] === 'numeric') {
+                        // TODO Process size for numeric?
+                        p.rules.type = 'number';
+                    }
                 }
-
-                return {type: 'text', size: Number(matches[2])};
-            }
-            return {type: 'text'};
+        }
     }
+
+    return p;
 }
 
 /*
@@ -177,79 +210,69 @@ function sqliteTypeToOrmType(type: string): {type: string, size?: number, time?:
 export function parseSQLiteSchema(db: sqlite.Database, outSchema: {[name: string]: any}) {
     outSchema = {} as any;
 
-    let tables = db.all(
-        `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`);
+    return new Promise((resolve, reject) => {
 
-    _.forEach(tables, (item: any) => {
-        var modelDef = {} as any; //
-        modelDef.properties = {};
-        modelDef.allProperties = {};
+        let tables = db.all(
+            `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`);
 
-        outSchema[item.name] = modelDef;
+        _.forEach(tables, (item: any) => {
+            let modelDef = {} as IClassDefinition;
+            modelDef.properties = {};
 
-        let col_sql = `pragma table_info ('${item.name}');`;
-        db.allAsync(col_sql).then((cols: ISQLiteColumn[]) => {
-            _.forEach(cols, (col: ISQLiteColumn) => {
-                var prop = sqliteTypeToOrmType(col.type) as any; //
-                prop.indexed = col.pk !== 0;
-                prop.name = col.name;
+            outSchema[item.name] = modelDef;
 
-                prop.defaultValue = col.dflt_value;
-                prop.mapsTo = col.name;
-                prop.unique = col.pk !== 0;
+            let col_sql = `pragma table_info ('${item.name}');`;
+            db.allAsync(col_sql).then((cols: ISQLiteColumn[]) => {
+                _.forEach(cols, (col: ISQLiteColumn) => {
+                    var prop = sqliteTypeToFlexiType(col);
 
-                // Set primary key
-                if (col.pk && col.pk !== 0) {
-                    if (!modelDef.id)
-                        modelDef.id = [];
-                    modelDef.id[col.pk - 1] = col.name;
-                }
+                    if (col.pk !== 0) {
+                        prop.index = 'unique';
+                    }
 
-                modelDef.properties[prop.name] = prop;
-                modelDef.allProperties[prop.name] = prop;
-            });
-            return db.allAsync(`pragma index_list ('${item.name}');`);
-        })
-            .then(indexList => {
-                _.forEach(indexList, (idxItem: ISQLiteIndexXInfo) => {
-                    var indexCols = db.allAsync(`pragma index_xinfo ('${idxItem.name}');`);
-                    _.forEach(indexCols, (idxCol: ISQLiteIndexColumn) => {
+                    prop.defaultValue = col.dflt_value;
+
+                    // Set primary key
+                    // if (col.pk && col.pk !== 0) {
+                    //     if (!modelDef.id)
+                    //         modelDef.id = [];
+                    //     modelDef.id[col.pk - 1] = col.name;
+                    // }
+
+                    modelDef.properties[col.name] = prop;
+
+                });
+
+                return db.allAsync(`pragma index_list ('${item.name}');`);
+            })
+                .then(indexList => {
+                    _.forEach(indexList, (idxItem: ISQLiteIndexXInfo) => {
+                        let indexCols = db.allAsync(`pragma index_xinfo ('${idxItem.name}');`);
+                        _.forEach(indexCols, (idxCol: ISQLiteIndexColumn) => {
+
+                        });
+                    });
+
+                    let fk_sql = `pragma foreign_key_list ('${item.name}');`;
+                    return db.all(fk_sql);
+                })
+                .then(fkeys => {
+                    _.forEach(fkeys, (item: ISQLiteForeignKeyInfo) => {
+                        let oneAssoc = {} as any; //
+                        oneAssoc.field = {name: {name: item.from}};
+                        oneAssoc.name = item.table;
+
+                        // Based on update and delete constraints, we can make wide
+                        // guess about how deep relation is between 2 tables.
+                        // For cascade delete we assume that referenced table belongs to
+                        // the parent table
+
 
                     });
-                });
-
-                let fk_sql = `pragma foreign_key_list ('${item.name}');`;
-                return db.all(fk_sql);
-            })
-            .then(fkeys => {
-                _.forEach(fkeys, (item: ISQLiteForeignKeyInfo) => {
-                    var oneAssoc = {} as any; //
-                    oneAssoc.field = {name: {name: item.from}};
-                    oneAssoc.name = item.table;
-
-                    // Based on update and delete constraints, we can make wide
-                    // guess about how deep relation is between 2 tables.
-                    // For cascade delete we assume that referenced table belongs to
-                    // the parent table
-
-                    if (!modelDef.one_associations)
-                        modelDef.one_associations = [];
-                    modelDef.one_associations.push(oneAssoc);
-
-                    // TODO Process many-to-many associations
-                    var manyAssoc = {} as any; //
-
 
                 });
+        });
 
-            });
+        return outSchema;
     });
-
-    return outSchema;
 }
-
-
-
-
-
-

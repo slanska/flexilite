@@ -48,7 +48,7 @@ describe('Reverse Engineering for existing SQLite databases', () =>
 
     it('Generate schema for Northwind database', (done)=>
     {
-        var srcDBName = path.join(__dirname, './data/northwind.db');
+        var srcDBName = path.join(__dirname, './data/northwind.db3');
         reverseEngineering(srcDBName, done);
 
     });

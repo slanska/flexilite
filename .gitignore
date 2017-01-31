@@ -28,10 +28,8 @@ build/Release
 # Dependency directory
 # https://docs.npmjs.com/misc/faq#should-i-check-my-node-modules-folder-into-git
 node_modules
-tests/data
 .idea
 
-/data/
 !/lib/cmocka/
 !/lib/sqlite/sqlite3ext.h
 /node_modules/
@@ -39,3 +37,10 @@ tests/data
 /js/flexish/index.js
 /js/flexish/reverseEng.js
 /js/flexish/reverseEng.js.map
+/js/flexish/initDb.js.map
+/js/flexish/initDb.js
+/js/flexish/sqliteSchemaParser.js
+/js/flexish/sqliteSchemaParser.js.map
+/js/flexish/runQuery.js
+/js/flexish/runQuery.js.map
+
