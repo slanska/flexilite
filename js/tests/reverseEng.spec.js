@@ -1,7 +1,7 @@
 /**
  * Created by slanska on 2016-03-04.
  */
-/// <reference path="../typings/tests.d.ts" />
+/// <reference path="../../typings/tests.d.ts" />
 'use strict';
 var ReverseEngine = require('../flexish/reverseEng');
 require('../lib/drivers/SQLite');

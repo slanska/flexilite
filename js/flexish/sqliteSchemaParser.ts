@@ -12,10 +12,6 @@ import sqlite = require('sqlite3');
 import _ = require('lodash');
 import Promise = require('bluebird');
 
-Promise.promisify(sqlite.Database.prototype.all);
-Promise.promisify(sqlite.Database.prototype.exec);
-Promise.promisify(sqlite.Database.prototype.run);
-
 /*
  Contracts to SQLite system objects
  */
@@ -32,6 +28,7 @@ interface ISQLiteColumn {
      DATETIME
      BOOL
      JSON1
+     NVARCHAR(x), NVARCHAR
 
      <null> -> any
      */
@@ -145,6 +142,8 @@ function sqliteTypeToFlexiType(sqliteCol: ISQLiteColumn): IClassPropertyDef {
     if (!_.isNull(sqliteCol.type)) {
         switch (sqliteCol.type.toLowerCase()) {
             case 'text':
+            case 'nvarchar':
+            case 'varchar':
                 p.rules.type = 'text';
                 break;
 
@@ -182,18 +181,27 @@ function sqliteTypeToFlexiType(sqliteCol: ISQLiteColumn): IClassPropertyDef {
                 let matches = regx.exec(sqliteCol.type.toLowerCase());
                 if (matches.length === 3) {
                     let size = Number(matches[2]);
-                    if (matches[1] === 'blob') {
-                        if (sqliteCol.notnull === 1 && size === 16)
-                            p.rules.type = 'uuid';
-                        else {
-                            p.rules.type = 'binary';
-                            p.rules.maxLength = size;
-                        }
-                    }
+                    switch (matches[1]) {
+                        case 'blob':
+                            if (sqliteCol.notnull === 1 && size === 16)
+                                p.rules.type = 'uuid';
+                            else {
+                                p.rules.type = 'binary';
+                                p.rules.maxLength = size;
+                            }
+                            break;
 
-                    if (matches[1] === 'numeric') {
-                        // TODO Process size for numeric?
-                        p.rules.type = 'number';
+                        case 'numeric':
+                            // TODO Process size for numeric?
+                            p.rules.type = 'number';
+                            break;
+
+                        case 'nvarchar':
+                        case 'varchar':
+                        case 'text':
+                            p.rules.type = 'text';
+                            p.rules.maxLength = size;
+                            break;
                     }
                 }
         }
@@ -203,76 +211,85 @@ function sqliteTypeToFlexiType(sqliteCol: ISQLiteColumn): IClassPropertyDef {
 }
 
 /*
+ Determine if this is many-to-many relationship
+ Conditions:
+ 1) table should have only 2 columns (A & B)
+ 2) table should have primary index on both columns (A and B)
+ 3) Both columns are foreign keys to some tables
+ 4) there might be index on column B (optional, not required)
+
+ If conditions 1-3 are met, this table is considered as a many-to-many list.
+ Classes for both referencing tables will have reference properties, named
+ */
+function checkIfManyToMany() {
+
+
+}
+
+type ClassDefCollection = {[name: string]: IClassDefinition};
+
+/*
  Loads schema from SQLite database
  and parses it to Flexilite class definition
  Returns promise which resolves to dictionary of Flexilite classes
  */
-export function parseSQLiteSchema(db: sqlite.Database, outSchema: {[name: string]: any}) {
-    outSchema = {} as any;
+export function parseSQLiteSchema(db: sqlite.Database): Promise<ClassDefCollection> {
+    let outSchema: ClassDefCollection = {};
+    let result: Promise<ClassDefCollection>;
+    let colInfoArray = [];
+    let idxInfoArray = [];
+    let fkInfoArray = [];
 
-    return new Promise((resolve, reject) => {
+    let tableNames: string[] = [];
 
-        let tables = db.all(
-            `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`);
+    result = new Promise<ClassDefCollection>((resolve, reject) => {
 
-        _.forEach(tables, (item: any) => {
-            let modelDef = {} as IClassDefinition;
-            modelDef.properties = {};
-
-            outSchema[item.name] = modelDef;
-
-            let col_sql = `pragma table_info ('${item.name}');`;
-            db.allAsync(col_sql).then((cols: ISQLiteColumn[]) => {
-                _.forEach(cols, (col: ISQLiteColumn) => {
-                    var prop = sqliteTypeToFlexiType(col);
-
-                    if (col.pk !== 0) {
-                        prop.index = 'unique';
-                    }
-
-                    prop.defaultValue = col.dflt_value;
-
-                    // Set primary key
-                    // if (col.pk && col.pk !== 0) {
-                    //     if (!modelDef.id)
-                    //         modelDef.id = [];
-                    //     modelDef.id[col.pk - 1] = col.name;
-                    // }
-
-                    modelDef.properties[col.name] = prop;
-
+        db.allAsync(
+            `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`)
+            .then((tables: ISQLiteTableInfo[]) => {
+                _.forEach(tables, (item: any) => {
+                    colInfoArray.push(db.allAsync(`pragma table_info ('${item.name}');`));
+                    idxInfoArray.push(db.allAsync(`pragma index_list ('${item.name}');`));
+                    fkInfoArray.push(db.allAsync(`pragma foreign_key_list ('${item.name}');`));
+                    tableNames.push(item.name);
                 });
 
-                return db.allAsync(`pragma index_list ('${item.name}');`);
-            })
-                .then(indexList => {
-                    _.forEach(indexList, (idxItem: ISQLiteIndexXInfo) => {
-                        let indexCols = db.allAsync(`pragma index_xinfo ('${idxItem.name}');`);
-                        _.forEach(indexCols, (idxCol: ISQLiteIndexColumn) => {
+                return Promise.all([
+                    Promise.each(colInfoArray, (cols: ISQLiteColumn[], idx: number) => {
+                        let tblName = tableNames[idx];
+                        let modelDef = {} as IClassDefinition;
+                        modelDef.properties = {};
 
+                        outSchema[tblName] = modelDef;
+
+                        _.forEach(cols, (col: ISQLiteColumn) => {
+                            let prop = sqliteTypeToFlexiType(col);
+
+                            if (col.pk !== 0) {
+                                prop.index = 'unique';
+                            }
+
+                            prop.defaultValue = col.dflt_value;
+
+                            modelDef.properties[col.name] = prop;
                         });
-                    });
+                    }),
+                    Promise.each(idxInfoArray, (indexList: ISQLiteIndexInfo[], ii: number) => {
+                        _.forEach(indexList, (idxItem: ISQLiteIndexXInfo) => {
+                            return db.allAsync(`pragma index_xinfo ('${idxItem.name}');`)
+                                .then(indexCols => {
+                                    _.forEach(indexCols, (idxCol: ISQLiteIndexColumn) => {
 
-                    let fk_sql = `pragma foreign_key_list ('${item.name}');`;
-                    return db.all(fk_sql);
-                })
-                .then(fkeys => {
-                    _.forEach(fkeys, (item: ISQLiteForeignKeyInfo) => {
-                        let oneAssoc = {} as any; //
-                        oneAssoc.field = {name: {name: item.from}};
-                        oneAssoc.name = item.table;
-
-                        // Based on update and delete constraints, we can make wide
-                        // guess about how deep relation is between 2 tables.
-                        // For cascade delete we assume that referenced table belongs to
-                        // the parent table
-
-
-                    });
-
-                });
-        });
-
-        return outSchema;
+                                    });
+                                });
+                        });
+                    })
+                ]);
+            })
+            .then(() => {
+                return resolve(outSchema);
+            });
     });
+
+    return result;
 }

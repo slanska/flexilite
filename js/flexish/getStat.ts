@@ -2,5 +2,6 @@
  * Created by slanska on 2017-01-30.
  */
 
-export function runFlexiliteQuery() {
+
+export function getFlexiliteStat() {
 }

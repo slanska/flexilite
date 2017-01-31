@@ -27,8 +27,15 @@
 let commander = require('commander');
 let colors = require('colors');
 import Promise = require('bluebird');
+import sqlite = require('sqlite3');
 
 import {parseSQLiteSchema} from './sqliteSchemaParser';
+import {runFlexiliteQuery} from './runQuery';
+import {initFlexiliteDatabase} from './initDb';
+
+Promise.promisify(sqlite.Database.prototype.all);
+Promise.promisify(sqlite.Database.prototype.exec);
+Promise.promisify(sqlite.Database.prototype.run);
 
 commander
     .version('0.0.1')
