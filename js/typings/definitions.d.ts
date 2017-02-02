@@ -60,7 +60,14 @@ declare type PropertyType =
         /*
          JSON type
          */
-        'json';
+        'json' |
+
+        /*
+         Stored as integer with 4 decimal places.
+         For example, $100.39 will be stored as 1003900
+         (the same storage format used by Basic script)
+         */
+        'money';
 
 declare type PropertyIndexMode =
     /*
@@ -103,6 +110,8 @@ declare type RelationRule =
      They will be deleted when master is deleted
      */
     'cascade' |
+
+        'no_action' |
 
         /*
          Referenced objects are treated as part of master object, but accessed via additional

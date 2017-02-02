@@ -2,7 +2,7 @@
  * Created by Ruslan Skorynin on 04.10.2015.
  */
 
-/// <reference path="../typings/tests.d.ts" />
+/// <reference path="../../typings/tests.d.ts" />
 
 'use strict';
 
@@ -11,7 +11,7 @@ import chai = require('chai');
 // TODO var expect = chai.expect;
 //var Driver = require('../lib/FlexiliteAdapter').Driver;
 
-import orm = require("orm");
+// import orm = require("orm");
 import sqlite3 = require("sqlite3");
 import util = require("util");
 import path =require("path");

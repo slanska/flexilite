@@ -11,6 +11,8 @@
 import sqlite = require('sqlite3');
 import _ = require('lodash');
 import Promise = require('bluebird');
+import Dictionary = _.Dictionary;
+var Pluralize = require('pluralize');
 
 /*
  Contracts to SQLite system objects
@@ -20,17 +22,39 @@ interface ISQLiteColumn {
     name: string;
 
     /*
-     The following values might be returned by SQLite:
+     This is the list of SQLite column types and their mapping to
+     Flexilite property types and other attributes:
      INTEGER
-     NUMERIC
-     TEXT(x), TEXT
-     BLOB(x), BLOB
-     DATETIME
-     BOOL
-     JSON1
-     NVARCHAR(x), NVARCHAR
+     SMALLINT -> minValue is set to -32768, maxValue +32767
+     TINYINT -> minValue is set to 0, maxValue +255
 
-     <null> -> any
+     MONEY -> Basic format is used. Money values are stored as integers,
+     with 4 decimal signs. Float and integer values are accepted
+
+     NUMERIC -> number
+     FLOAT
+     REAL
+
+     TEXT(x), TEXT -> text. If (x) is specified, it used for maxLength attribute
+     NVARCHAR(x), NVARCHAR
+     VARCHAR(x), VARCHAR
+     NCHAR(x), NCHAR
+
+     BLOB(x), BLOB -> blob
+     BINARY(x), BINARY
+     VARBINARY(x), VARBINARY
+
+     MEMO -> text
+     JSON1
+
+     DATETIME -> stored as float, in Julian days
+     DATE
+     TIME
+
+     BOOL -> bool
+     BIT
+
+     <null> or <other> -> any
      */
     type: string;
 
@@ -53,8 +77,19 @@ interface ISQLiteColumn {
 }
 
 interface ISQLiteIndexInfo {
+    /*
+     position in index (for multi column indexes)
+     */
     seq: number;
+
+    /*
+     column number
+     */
     cid: number;
+
+    /*
+     index name
+     */
     name: string;
 }
 
@@ -82,7 +117,15 @@ interface ISQLiteIndexXInfo extends ISQLiteIndexInfo {
  */
 interface ISQLiteIndexColumn {
     seq: number;
+
+    /*
+     Column ID as number
+     */
     cid: number;
+
+    /*
+     Index name
+     */
     name: string;
     desc: number;
     coll: string;
@@ -135,24 +178,31 @@ interface ISQLiteForeignKeyInfo {
     match: string;
 }
 
-
-function sqliteTypeToFlexiType(sqliteCol: ISQLiteColumn): IClassPropertyDef {
-    let p = {rules: {type: 'text'} as IPropertyRulesSettings} as IClassPropertyDef;
+function sqliteColToFlexiProp(sqliteCol: ISQLiteColumn): IClassPropertyDef {
+    let p = {rules: {type: 'any'} as IPropertyRulesSettings} as IClassPropertyDef;
 
     if (!_.isNull(sqliteCol.type)) {
         switch (sqliteCol.type.toLowerCase()) {
             case 'text':
             case 'nvarchar':
             case 'varchar':
+            case 'nchar':
+            case 'memo':
                 p.rules.type = 'text';
+                break;
+
+            case 'money':
+                p.rules.type = 'money';
                 break;
 
             case 'numeric':
             case 'real':
+            case 'float':
                 p.rules.type = 'number';
                 break;
 
             case 'bool':
+            case 'bit':
                 p.rules.type = 'boolean';
                 break;
 
@@ -164,11 +214,17 @@ function sqliteTypeToFlexiType(sqliteCol: ISQLiteColumn): IClassPropertyDef {
                 p.rules.type = 'date';
                 break;
 
+            case 'time':
+                p.rules.type = 'timespan';
+                break;
+
             case 'datetime':
                 p.rules.type = 'datetime';
                 break;
 
             case 'blob':
+            case 'binary':
+            case 'varbinary':
                 p.rules.type = 'binary';
                 break;
 
@@ -176,13 +232,27 @@ function sqliteTypeToFlexiType(sqliteCol: ISQLiteColumn): IClassPropertyDef {
                 p.rules.type = 'integer';
                 break;
 
+            case 'smallint':
+                p.rules.type = 'integer';
+                p.rules.minValue = -32768;
+                p.rules.maxValue = 32767;
+                break;
+
+            case 'tinyint':
+                p.rules.type = 'integer';
+                p.rules.minValue = 0;
+                p.rules.maxValue = 255;
+                break;
+
             default:
                 let regx = /([^)]+)\(([^)]+)\)/;
                 let matches = regx.exec(sqliteCol.type.toLowerCase());
-                if (matches.length === 3) {
+                if (matches && matches.length === 3) {
                     let size = Number(matches[2]);
                     switch (matches[1]) {
                         case 'blob':
+                        case 'binary':
+                        case 'varbinary':
                             if (sqliteCol.notnull === 1 && size === 16)
                                 p.rules.type = 'uuid';
                             else {
@@ -196,6 +266,7 @@ function sqliteTypeToFlexiType(sqliteCol: ISQLiteColumn): IClassPropertyDef {
                             p.rules.type = 'number';
                             break;
 
+                        case 'nchar':
                         case 'nvarchar':
                         case 'varchar':
                         case 'text':
@@ -229,6 +300,21 @@ function checkIfManyToMany() {
 type ClassDefCollection = {[name: string]: IClassDefinition};
 
 /*
+ Internally used declaration. Has table name and mapping between column numbers and column names
+ */
+interface ISQLiteColumnMapping {
+    /*
+     Table name
+     */
+    table: string;
+
+    /*
+     Column info mapping by column ID (number)
+     */
+    columns: {[cid: number]: ISQLiteColumn};
+}
+
+/*
  Loads schema from SQLite database
  and parses it to Flexilite class definition
  Returns promise which resolves to dictionary of Flexilite classes
@@ -240,51 +326,103 @@ export function parseSQLiteSchema(db: sqlite.Database): Promise<ClassDefCollecti
     let idxInfoArray = [];
     let fkInfoArray = [];
 
-    let tableNames: string[] = [];
+    let tableNames: ISQLiteColumnMapping[] = [];
 
     result = new Promise<ClassDefCollection>((resolve, reject) => {
 
         db.allAsync(
             `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`)
             .then((tables: ISQLiteTableInfo[]) => {
-                _.forEach(tables, (item: any) => {
+                // On this step prepare class definition and create promises for requests on individual tables
+                _.forEach(tables, (item: ISQLiteTableInfo) => {
+
+                    // Init resulting dictionary
+                    outSchema[item.name] = {
+                        properties: {},
+                        specialProperties: {}
+                    } as IClassDefinition;
+
                     colInfoArray.push(db.allAsync(`pragma table_info ('${item.name}');`));
                     idxInfoArray.push(db.allAsync(`pragma index_list ('${item.name}');`));
                     fkInfoArray.push(db.allAsync(`pragma foreign_key_list ('${item.name}');`));
-                    tableNames.push(item.name);
+                    tableNames.push({table: item.name, columns: {}});
                 });
 
-                return Promise.all([
-                    Promise.each(colInfoArray, (cols: ISQLiteColumn[], idx: number) => {
-                        let tblName = tableNames[idx];
-                        let modelDef = {} as IClassDefinition;
-                        modelDef.properties = {};
+                return Promise.each(colInfoArray, (cols: ISQLiteColumn[], idx: number) => {
+                    let tblMap = tableNames[idx];
+                    let modelDef = outSchema[tblMap.table];
 
-                        outSchema[tblName] = modelDef;
+                    _.forEach(cols, (col: ISQLiteColumn) => {
+                        let prop = sqliteColToFlexiProp(col);
 
-                        _.forEach(cols, (col: ISQLiteColumn) => {
-                            let prop = sqliteTypeToFlexiType(col);
+                        prop.rules.maxOccurences = 1;
+                        prop.rules.minOccurences = Number(col.notnull);
 
-                            if (col.pk !== 0) {
-                                prop.index = 'unique';
-                            }
+                        if (col.pk !== 0) {
+                            // Handle multiple column PKEY
+                            prop.index = 'unique';
+                        }
 
-                            prop.defaultValue = col.dflt_value;
+                        prop.defaultValue = col.dflt_value;
 
-                            modelDef.properties[col.name] = prop;
-                        });
-                    }),
-                    Promise.each(idxInfoArray, (indexList: ISQLiteIndexInfo[], ii: number) => {
-                        _.forEach(indexList, (idxItem: ISQLiteIndexXInfo) => {
-                            return db.allAsync(`pragma index_xinfo ('${idxItem.name}');`)
-                                .then(indexCols => {
-                                    _.forEach(indexCols, (idxCol: ISQLiteIndexColumn) => {
+                        modelDef.properties[col.name] = prop;
 
-                                    });
+                        tblMap.columns[col.cid] = col;
+                    });
+                });
+            })
+            .then(() => {
+                return Promise.each(idxInfoArray, (indexList: ISQLiteIndexInfo[], idx: number) => {
+                    let tbl = tableNames[idx];
+                    _.forEach(indexList, (idxItem: ISQLiteIndexXInfo) => {
+                        return db.allAsync(`pragma index_xinfo ('${idxItem.name}');`)
+                            .then(indexCols => {
+                                _.forEach(indexCols, (idxCol: ISQLiteIndexColumn) => {
+
                                 });
+                            });
+                    });
+                });
+            })
+            .then(() => {
+                return Promise.each(fkInfoArray, (fkInfo: ISQLiteForeignKeyInfo[], idx: number) => {
+                    if (fkInfo.length > 0) {
+                        let tbl = tableNames[idx];
+
+                        _.forEach(fkInfo, (fk: ISQLiteForeignKeyInfo, idx: number) => {
+                            /*
+                             Create relations based on foreign key definition
+                             Reference property gets name based on name of references table
+                             and, optionally, 'from' column, so for relation between Order->OrderDetails by OrderID
+                             (for both tables) 2 properties will be created:
+                             a) in Orders: OrderDetails
+                             b) in OrderDetails: Order (singular form of Orders)
+                             In case of name conflict, ref property gets fully qualified name:
+                             Order_OrderID, OrderDetails_OrderID
+
+                             */
+
+                            /*
+                             1st prop: master to linked
+                             */
+
+                            /*
+                             2nd prop: linked to master
+                             */
+                            let prop2 = {
+                                rules: {type: 'reference'},
+                                refDef: {
+                                    $className: fk.table,
+                                    relationRule: fk.on_delete
+                                }
+                            } as IClassPropertyDef;
+
+
+                            // Check if we have tables which are used for many-to-many relation
+
                         });
-                    })
-                ]);
+                    }
+                });
             })
             .then(() => {
                 return resolve(outSchema);

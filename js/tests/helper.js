@@ -1,11 +1,11 @@
 /**
  * Created by Ruslan Skorynin on 04.10.2015.
  */
-/// <reference path="../typings/tests.d.ts" />
+/// <reference path="../../typings/tests.d.ts" />
 'use strict';
 // TODO var expect = chai.expect;
 //var Driver = require('../lib/FlexiliteAdapter').Driver;
-var orm = require("orm");
+// import orm = require("orm");
 var sqlite3 = require("sqlite3");
 var util = require("util");
 var path = require("path");
