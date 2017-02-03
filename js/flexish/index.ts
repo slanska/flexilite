@@ -37,12 +37,16 @@ Promise.promisify(sqlite.Database.prototype.all);
 Promise.promisify(sqlite.Database.prototype.exec);
 Promise.promisify(sqlite.Database.prototype.run);
 
+const usage = "[options] <file ...>";
+
 commander
     .version('0.0.1')
-    .usage('[options] <file ...>')
+    .usage(usage)
     .command('load')
     .command('schema')
     .command('query')
+    .command('init')
+    .command('help')
     .option('-d', '--database', 'Path to SQLite database file')
     .option('-c', '--config', 'Path to config file')
     .option('-s', '--source', 'Source database connection string')
@@ -50,5 +54,7 @@ commander
     .option('-f', '-fkey', 'Process foreign keys')
     .option('-m', '-many2many', 'Make guesses about many to many relationship')
     .parse(process.argv);
+
+// commander.
 
 //var parser = new SQLiteSchemaParser();

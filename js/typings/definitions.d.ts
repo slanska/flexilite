@@ -156,7 +156,7 @@ declare interface IReferencePropertyDef {
     /*
 
      */
-    relationRule?; RelationRule;
+    relationRule?: RelationRule;
 }
 
 declare interface IEnumPropertyDef {

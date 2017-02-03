@@ -36,7 +36,7 @@ export class SQLiteDataRefactor implements IDBRefactory
 
         // load metadata for source table
         let reng = new ReverseEngine(srcDB);
-        let srcMeta = reng.parseSQLiteSchema();
+        let srcMeta = reng.parseSchema();
         let srcTableMeta = srcMeta[srcTbl];
 
         // Check if target flexitable exists

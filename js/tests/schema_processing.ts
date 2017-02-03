@@ -46,7 +46,7 @@ describe('Flexilite schema processing', ()=>
             var dbPath = path.join(__dirname, "data", "chinook.db");
             var db = new sqlite3.Database(dbPath);
             var revEng = new ReverseEngine(db);
-            var schema = revEng.parseSQLiteSchema.sync(revEng);
+            var schema = revEng.parseSchema.sync(revEng);
 
             _.forEach(schema, (item:ISyncOptions, className:string)=>
             {

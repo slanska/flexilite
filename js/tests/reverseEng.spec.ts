@@ -26,7 +26,7 @@ describe('Reverse Engineering for existing SQLite databases', () =>
         Sync(()=>
         {
             var re = new ReverseEngine(srcDBName);
-            var schema = re.parseSQLiteSchema.sync(re);
+            var schema = re.parseSchema.sync(re);
 
             var destDBName = `${path.join(__dirname, "data", "json_flexi.db")}`;
             var connString = `flexilite://${destDBName}`;

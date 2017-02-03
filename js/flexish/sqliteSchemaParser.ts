@@ -135,6 +135,8 @@ interface ISQLiteIndexColumn {
 /*
  Contract for foreign key information as returned by SQLite
  PRAGMA foreign_key_list('table_name')
+
+ In addition to columns coming from PRAGMA has additional column to track source table
  */
 interface ISQLiteForeignKeyInfo {
     /*
@@ -176,258 +178,344 @@ interface ISQLiteForeignKeyInfo {
      ???
      */
     match: string;
+
+    srcTable?: string;
 }
 
-function sqliteColToFlexiProp(sqliteCol: ISQLiteColumn): IClassPropertyDef {
-    let p = {rules: {type: 'any'} as IPropertyRulesSettings} as IClassPropertyDef;
-
-    if (!_.isNull(sqliteCol.type)) {
-        switch (sqliteCol.type.toLowerCase()) {
-            case 'text':
-            case 'nvarchar':
-            case 'varchar':
-            case 'nchar':
-            case 'memo':
-                p.rules.type = 'text';
-                break;
-
-            case 'money':
-                p.rules.type = 'money';
-                break;
-
-            case 'numeric':
-            case 'real':
-            case 'float':
-                p.rules.type = 'number';
-                break;
-
-            case 'bool':
-            case 'bit':
-                p.rules.type = 'boolean';
-                break;
-
-            case 'json1':
-                p.rules.type = 'json';
-                break;
-
-            case 'date':
-                p.rules.type = 'date';
-                break;
-
-            case 'time':
-                p.rules.type = 'timespan';
-                break;
-
-            case 'datetime':
-                p.rules.type = 'datetime';
-                break;
-
-            case 'blob':
-            case 'binary':
-            case 'varbinary':
-                p.rules.type = 'binary';
-                break;
-
-            case 'integer':
-                p.rules.type = 'integer';
-                break;
-
-            case 'smallint':
-                p.rules.type = 'integer';
-                p.rules.minValue = -32768;
-                p.rules.maxValue = 32767;
-                break;
-
-            case 'tinyint':
-                p.rules.type = 'integer';
-                p.rules.minValue = 0;
-                p.rules.maxValue = 255;
-                break;
-
-            default:
-                let regx = /([^)]+)\(([^)]+)\)/;
-                let matches = regx.exec(sqliteCol.type.toLowerCase());
-                if (matches && matches.length === 3) {
-                    let size = Number(matches[2]);
-                    switch (matches[1]) {
-                        case 'blob':
-                        case 'binary':
-                        case 'varbinary':
-                            if (sqliteCol.notnull === 1 && size === 16)
-                                p.rules.type = 'uuid';
-                            else {
-                                p.rules.type = 'binary';
-                                p.rules.maxLength = size;
-                            }
-                            break;
-
-                        case 'numeric':
-                            // TODO Process size for numeric?
-                            p.rules.type = 'number';
-                            break;
-
-                        case 'nchar':
-                        case 'nvarchar':
-                        case 'varchar':
-                        case 'text':
-                            p.rules.type = 'text';
-                            p.rules.maxLength = size;
-                            break;
-                    }
-                }
-        }
-    }
-
-    return p;
-}
-
-/*
- Determine if this is many-to-many relationship
- Conditions:
- 1) table should have only 2 columns (A & B)
- 2) table should have primary index on both columns (A and B)
- 3) Both columns are foreign keys to some tables
- 4) there might be index on column B (optional, not required)
-
- If conditions 1-3 are met, this table is considered as a many-to-many list.
- Classes for both referencing tables will have reference properties, named
- */
-function checkIfManyToMany() {
-
-
-}
 
 type ClassDefCollection = {[name: string]: IClassDefinition};
 
 /*
- Internally used declaration. Has table name and mapping between column numbers and column names
+ Internally used object with table name, mapping between column numbers and column names and other attributes
  */
-interface ISQLiteColumnMapping {
+interface ITableInfo {
     /*
      Table name
      */
     table: string;
 
+    columnCount: number;
+
     /*
      Column info mapping by column ID (number)
      */
     columns: {[cid: number]: ISQLiteColumn};
+
+    /*
+     All foreign key definitions which point to this table
+     */
+    inFKeys: ISQLiteForeignKeyInfo[];
+
+    /*
+
+     */
+    outFKeys: ISQLiteForeignKeyInfo[];
+
+    /*
+     Set to true during processing many-to-many tables
+     */
+    manyToManyTable: boolean;
 }
 
-/*
- Loads schema from SQLite database
- and parses it to Flexilite class definition
- Returns promise which resolves to dictionary of Flexilite classes
- */
-export function parseSQLiteSchema(db: sqlite.Database): Promise<ClassDefCollection> {
-    let outSchema: ClassDefCollection = {};
-    let result: Promise<ClassDefCollection>;
-    let colInfoArray = [];
-    let idxInfoArray = [];
-    let fkInfoArray = [];
+export interface IFlexishResultItem {
+    type: 'error' | 'warn' | 'info';
+    message: string;
+    tableName: string;
+}
 
-    let tableNames: ISQLiteColumnMapping[] = [];
+export type FlexishResults = IFlexishResultItem[];
 
-    result = new Promise<ClassDefCollection>((resolve, reject) => {
+export class SQLiteSchemaParser {
 
-        db.allAsync(
-            `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`)
-            .then((tables: ISQLiteTableInfo[]) => {
-                // On this step prepare class definition and create promises for requests on individual tables
-                _.forEach(tables, (item: ISQLiteTableInfo) => {
+    public outSchema: ClassDefCollection = {};
+    public tableInfo: ITableInfo[] = [];
+    public results: FlexishResults = [];
 
-                    // Init resulting dictionary
-                    outSchema[item.name] = {
-                        properties: {},
-                        specialProperties: {}
-                    } as IClassDefinition;
+    constructor(protected db: sqlite.Database) {
+    }
 
-                    colInfoArray.push(db.allAsync(`pragma table_info ('${item.name}');`));
-                    idxInfoArray.push(db.allAsync(`pragma index_list ('${item.name}');`));
-                    fkInfoArray.push(db.allAsync(`pragma foreign_key_list ('${item.name}');`));
-                    tableNames.push({table: item.name, columns: {}});
-                });
+    private sqliteColToFlexiProp(sqliteCol: ISQLiteColumn): IClassPropertyDef {
+        let p = {rules: {type: 'any'} as IPropertyRulesSettings} as IClassPropertyDef;
 
-                return Promise.each(colInfoArray, (cols: ISQLiteColumn[], idx: number) => {
-                    let tblMap = tableNames[idx];
-                    let modelDef = outSchema[tblMap.table];
+        if (!_.isNull(sqliteCol.type)) {
+            switch (sqliteCol.type.toLowerCase()) {
+                case 'text':
+                case 'nvarchar':
+                case 'varchar':
+                case 'nchar':
+                case 'memo':
+                    p.rules.type = 'text';
+                    break;
 
-                    _.forEach(cols, (col: ISQLiteColumn) => {
-                        let prop = sqliteColToFlexiProp(col);
+                case 'money':
+                    p.rules.type = 'money';
+                    break;
 
-                        prop.rules.maxOccurences = 1;
-                        prop.rules.minOccurences = Number(col.notnull);
+                case 'numeric':
+                case 'real':
+                case 'float':
+                    p.rules.type = 'number';
+                    break;
 
-                        if (col.pk !== 0) {
-                            // Handle multiple column PKEY
-                            prop.index = 'unique';
-                        }
+                case 'bool':
+                case 'bit':
+                    p.rules.type = 'boolean';
+                    break;
 
-                        prop.defaultValue = col.dflt_value;
+                case 'json1':
+                    p.rules.type = 'json';
+                    break;
 
-                        modelDef.properties[col.name] = prop;
+                case 'date':
+                    p.rules.type = 'date';
+                    break;
 
-                        tblMap.columns[col.cid] = col;
-                    });
-                });
-            })
-            .then(() => {
-                return Promise.each(idxInfoArray, (indexList: ISQLiteIndexInfo[], idx: number) => {
-                    let tbl = tableNames[idx];
-                    _.forEach(indexList, (idxItem: ISQLiteIndexXInfo) => {
-                        return db.allAsync(`pragma index_xinfo ('${idxItem.name}');`)
-                            .then(indexCols => {
-                                _.forEach(indexCols, (idxCol: ISQLiteIndexColumn) => {
+                case 'time':
+                    p.rules.type = 'timespan';
+                    break;
 
-                                });
-                            });
-                    });
-                });
-            })
-            .then(() => {
-                return Promise.each(fkInfoArray, (fkInfo: ISQLiteForeignKeyInfo[], idx: number) => {
-                    if (fkInfo.length > 0) {
-                        let tbl = tableNames[idx];
+                case 'datetime':
+                    p.rules.type = 'datetime';
+                    break;
 
-                        _.forEach(fkInfo, (fk: ISQLiteForeignKeyInfo, idx: number) => {
-                            /*
-                             Create relations based on foreign key definition
-                             Reference property gets name based on name of references table
-                             and, optionally, 'from' column, so for relation between Order->OrderDetails by OrderID
-                             (for both tables) 2 properties will be created:
-                             a) in Orders: OrderDetails
-                             b) in OrderDetails: Order (singular form of Orders)
-                             In case of name conflict, ref property gets fully qualified name:
-                             Order_OrderID, OrderDetails_OrderID
+                case 'blob':
+                case 'binary':
+                case 'varbinary':
+                    p.rules.type = 'binary';
+                    break;
 
-                             */
+                case 'integer':
+                    p.rules.type = 'integer';
+                    break;
 
-                            /*
-                             1st prop: master to linked
-                             */
+                case 'smallint':
+                    p.rules.type = 'integer';
+                    p.rules.minValue = -32768;
+                    p.rules.maxValue = 32767;
+                    break;
 
-                            /*
-                             2nd prop: linked to master
-                             */
-                            let prop2 = {
-                                rules: {type: 'reference'},
-                                refDef: {
-                                    $className: fk.table,
-                                    relationRule: fk.on_delete
+                case 'tinyint':
+                    p.rules.type = 'integer';
+                    p.rules.minValue = 0;
+                    p.rules.maxValue = 255;
+                    break;
+
+                default:
+                    let regx = /([^)]+)\(([^)]+)\)/;
+                    let matches = regx.exec(sqliteCol.type.toLowerCase());
+                    if (matches && matches.length === 3) {
+                        let size = Number(matches[2]);
+                        switch (matches[1]) {
+                            case 'blob':
+                            case 'binary':
+                            case 'varbinary':
+                                if (sqliteCol.notnull === 1 && size === 16)
+                                    p.rules.type = 'uuid';
+                                else {
+                                    p.rules.type = 'binary';
+                                    p.rules.maxLength = size;
                                 }
-                            } as IClassPropertyDef;
+                                break;
 
+                            case 'numeric':
+                                // TODO Process size for numeric?
+                                p.rules.type = 'number';
+                                break;
 
-                            // Check if we have tables which are used for many-to-many relation
-
-                        });
+                            case 'nchar':
+                            case 'nvarchar':
+                            case 'varchar':
+                            case 'text':
+                                p.rules.type = 'text';
+                                p.rules.maxLength = size;
+                                break;
+                        }
                     }
-                });
-            })
-            .then(() => {
-                return resolve(outSchema);
-            });
-    });
+            }
+        }
 
-    return result;
+        return p;
+    }
+
+    /*
+     Iterates over list of tables and tries to find candidates for many-to-many relation tables.
+     Canonical conditions:
+     1) table should have only 2 columns (A & B)
+     2) table should have primary index on both columns (A and B)
+     3) Both columns are foreign keys to some tables
+     4) there is an index on column B (optional, not required)
+
+     If conditions 1-4 are met, this table is considered as a many-to-many list.
+     Foreign key info in SQLite comes from detail/linked table, so it is either N:1 or 1:1
+
+     */
+    private processMany2ManyRelations() {
+        // Find tables with 2 columns
+        // Check if conditions 2 and 3 are met
+        // If so, create 2 relational properties
+        /*
+         Their names would be based on the following rules:
+         Assume that there are tables A and B, with ID columns a and b.
+         As and Bs are pluralized form of table names
+         Properties will be named: As, or As_a (if As already used) and Bs or Bs_b, respectively
+
+         */
+        let self = this;
+        _.forEach(self.tableInfo, (it) => {
+            if (it.columnCount === 2) {
+
+            }
+        });
+
+    }
+
+    private findTableInfoByName(tableName: string): ITableInfo {
+        return _.find(this.tableInfo, (ti: ITableInfo) => {
+            return ti.table === tableName;
+        });
+    }
+
+    private createReferenceProperties() {
+        /*
+         reference property
+         */
+        // let refProp = {rules: {type: 'reference'}} as IClassPropertyDef;
+        // refProp.refDef = {
+        //     $className: fk.table,
+        //     relationRule: 'no_action',
+        //
+        // };
+
+        // Check if we have tables which are used for many-to-many relation
+
+    }
+
+    /*
+     Loads schema from SQLite database
+     and parses it to Flexilite class definition
+     Returns promise which resolves to dictionary of Flexilite classes
+     */
+    public parseSchema(): Promise<ClassDefCollection> {
+        let self = this;
+        self.outSchema = {};
+        let result: Promise<ClassDefCollection>;
+        let colInfoArray = [];
+        let idxInfoArray = [];
+        let fkInfoArray = [];
+
+        self.tableInfo = [];
+
+        result = new Promise<ClassDefCollection>((resolve, reject) => {
+
+            self.db.allAsync(
+                `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`)
+                .then((tables: ISQLiteTableInfo[]) => {
+                    // On this step prepare class definition and create promises for requests on individual tables
+                    _.forEach(tables, (item: ISQLiteTableInfo) => {
+
+                        // Init resulting dictionary
+                        self.outSchema[item.name] = {
+                            properties: {},
+                            specialProperties: {}
+                        } as IClassDefinition;
+
+                        colInfoArray.push(self.db.allAsync(`pragma table_info ('${item.name}');`));
+                        idxInfoArray.push(self.db.allAsync(`pragma index_list ('${item.name}');`));
+                        fkInfoArray.push(self.db.allAsync(`pragma foreign_key_list ('${item.name}');`));
+                        self.tableInfo.push({
+                            table: item.name,
+                            columnCount: 0,
+                            columns: {},
+                            inFKeys: [],
+                            outFKeys: [],
+                            manyToManyTable: false
+                        });
+                    });
+
+                    return Promise.each(colInfoArray, (cols: ISQLiteColumn[], idx: number) => {
+                        let tblMap = self.tableInfo[idx];
+                        let modelDef = self.outSchema[tblMap.table];
+
+                        _.forEach(cols, (col: ISQLiteColumn) => {
+                            let prop = self.sqliteColToFlexiProp(col);
+
+                            prop.rules.maxOccurences = 1;
+                            prop.rules.minOccurences = Number(col.notnull);
+
+                            if (col.pk !== 0) {
+                                // Handle multiple column PKEY
+                                prop.index = 'unique';
+                            }
+
+                            prop.defaultValue = col.dflt_value;
+
+                            modelDef.properties[col.name] = prop;
+
+                            tblMap.columns[col.cid] = col;
+                            tblMap.columnCount++;
+                        });
+                    });
+                })
+                .then(() => {
+                    return Promise.each(idxInfoArray, (indexList: ISQLiteIndexInfo[], idx: number) => {
+                        let tbl = self.tableInfo[idx];
+                        _.forEach(indexList, (idxItem: ISQLiteIndexXInfo) => {
+                            return self.db.allAsync(`pragma index_xinfo ('${idxItem.name}');`)
+                                .then(indexCols => {
+                                    _.forEach(indexCols, (idxCol: ISQLiteIndexColumn) => {
+
+                                    });
+                                });
+                        });
+                    });
+                })
+                .then(() => {
+                    return Promise.each(fkInfoArray, (fkInfo: ISQLiteForeignKeyInfo[], idx: number) => {
+                        if (fkInfo.length > 0) {
+                            let tbl = self.tableInfo[idx];
+
+                            _.forEach(fkInfo, (fk: ISQLiteForeignKeyInfo, idx: number) => {
+                                fk.srcTable = tbl.table;
+                                tbl.outFKeys.push(fk);
+
+                                let outTbl = self.findTableInfoByName(fk.table);
+                                if (!outTbl) {
+                                    self.results.push({
+                                        type: 'error',
+                                        message: `Table specified in FKEY not found`, tableName: fk.table
+                                    });
+                                    return;
+                                }
+
+                                outTbl.inFKeys.push(fk);
+                            });
+                        }
+                    });
+                })
+                .then(() => {
+                    /*
+                     First process all candidates for many-to-many relations.
+                     After this step, some tables and foreign key specs may be removed from internal tblInfo list
+                     */
+                    self.processMany2ManyRelations();
+
+                    /*
+                     Second, processing what has left and create reference properties
+                     Reference property gets name based on name of references table
+                     and, optionally, 'from' column, so for relation between Order->OrderDetails by OrderID
+                     (for both tables) 2 properties will be created:
+                     a) in Orders: OrderDetails
+                     b) in OrderDetails: Order (singular form of Orders)
+                     In case of name conflict, ref property gets fully qualified name:
+                     Order_OrderID, OrderDetails_OrderID
+                     */
+                    self.createReferenceProperties();
+
+                    return resolve(self.outSchema);
+                });
+        });
+
+        return result;
+    }
+
 }
