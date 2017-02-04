@@ -9,10 +9,6 @@ import {SQLiteSchemaParser} from '../flexish/sqliteSchemaParser';
 import path = require('path');
 import Promise =require( 'bluebird');
 
-sqlite.Database.prototype['allAsync'] = Promise.promisify(sqlite.Database.prototype.all) as any;
-// Promise.promisify(sqlite.Database.prototype.exec);
-// Promise.promisify(sqlite.Database.prototype.run);
-
 describe('Parse SQLite schema and generate Flexilite model', () => {
     beforeEach((done) => {
         done();

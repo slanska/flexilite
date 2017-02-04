@@ -5,9 +5,13 @@
 ///<reference path="../typings/api.d.ts"/>
 ///<reference path="../typings/definitions.d.ts"/>
 'use strict';
+var sqlite = require('sqlite3');
 var _ = require('lodash');
 var Promise = require('bluebird');
 var Pluralize = require('pluralize');
+sqlite.Database.prototype['allAsync'] = Promise.promisify(sqlite.Database.prototype.all);
+sqlite.Database.prototype['execAsync'] = Promise.promisify(sqlite.Database.prototype.exec);
+sqlite.Database.prototype['runAsync'] = Promise.promisify(sqlite.Database.prototype.run);
 var SQLiteSchemaParser = (function () {
     function SQLiteSchemaParser(db) {
         this.db = db;
@@ -202,6 +206,7 @@ var SQLiteSchemaParser = (function () {
         var fkInfoArray = [];
         self.tableInfo = [];
         result = new Promise(function (resolve, reject) {
+            // Get list of tables (excluding internal tables)
             self.db.allAsync("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
                 .then(function (tables) {
                 // On this step prepare class definition and create promises for requests on individual tables
@@ -224,6 +229,7 @@ var SQLiteSchemaParser = (function () {
                     });
                 });
                 return Promise.each(colInfoArray, function (cols, idx) {
+                    // Process columns
                     var tblMap = self.tableInfo[idx];
                     var modelDef = self.outSchema[tblMap.table];
                     _.forEach(cols, function (col) {
@@ -242,10 +248,11 @@ var SQLiteSchemaParser = (function () {
                 });
             })
                 .then(function () {
+                // Populate indexes
                 return Promise.each(idxInfoArray, function (indexList, idx) {
                     var tbl = self.tableInfo[idx];
                     _.forEach(indexList, function (idxItem) {
-                        return self.db.allAsync("pragma index_xinfo ('" + idxItem.name + "');")
+                        return self.db.allAsync("pragma index_info ('" + idxItem.name + "');")
                             .then(function (indexCols) {
                             _.forEach(indexCols, function (idxCol) {
                             });
@@ -254,6 +261,7 @@ var SQLiteSchemaParser = (function () {
                 });
             })
                 .then(function () {
+                // Populate foreign key info
                 return Promise.each(fkInfoArray, function (fkInfo, idx) {
                     if (fkInfo.length > 0) {
                         var tbl_1 = self.tableInfo[idx];

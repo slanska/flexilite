@@ -24,12 +24,12 @@
 
 ///<reference path="../../typings/index.d.ts"/>
 
-let commander = require('commander');
-let colors = require('colors');
+let cli = require('cli');
 import Promise = require('bluebird');
 import sqlite = require('sqlite3');
+import path = require('path');
 
-import {parseSQLiteSchema} from './sqliteSchemaParser';
+import {SQLiteSchemaParser} from './sqliteSchemaParser';
 import {runFlexiliteQuery} from './runQuery';
 import {initFlexiliteDatabase} from './initDb';
 
@@ -37,25 +37,90 @@ Promise.promisify(sqlite.Database.prototype.all);
 Promise.promisify(sqlite.Database.prototype.exec);
 Promise.promisify(sqlite.Database.prototype.run);
 
-const usage = "[options] <file ...>";
+const usage = "command <param> -options" +
+    "";
 
-commander
-    .version('0.0.1')
-    .usage(usage)
-    .command('load')
-    .command('schema')
-    .command('query')
-    .command('init')
-    .command('help')
-    .option('-d', '--database', 'Path to SQLite database file')
-    .option('-c', '--config', 'Path to config file')
-    .option('-s', '--source', 'Source database connection string')
-    .option('-o', '-output', 'Output file name')
-    .option('-f', '-fkey', 'Process foreign keys')
-    .option('-m', '-many2many', 'Make guesses about many to many relationship')
-    .parse(process.argv);
+cli.setApp('Flexilite Shell Utility', '0.0.1');
+cli.setUsage(usage);
+cli.no_color = false;
+cli.enable('status', 'version', 'catchall');
 
-console.log(commander);
-// commander.
+cli.parse(
+    // Switches
+    {
+        output: ['o', 'Output file name', 'file'],
+        config: ['c', 'Path to config file', 'file'],
+        query: ['q', 'Path to query file', 'as-is'],
+        database: ['d', 'Path to SQLite database file', 'file']
+    },
 
-//var parser = new SQLiteSchemaParser();
+    // Commands
+    ['schema', 'load', 'query', 'help', 'init']);
+
+function generateSchema(args, options) {
+    let db = new sqlite.Database(options.database);
+    let parser = new SQLiteSchemaParser(db);
+    return parser.parseSchema()
+        .then(() => {
+            return 0;
+        });
+}
+
+function queryDatabase(args, options) {
+    return runFlexiliteQuery();
+}
+
+function loadData(args, options) {
+}
+
+function initDatabase(args, options) {
+}
+
+/*
+ Main function will get list of free standing arguments (not commands)
+ and hash of named options
+ */
+cli.main((args, options) => {
+    switch (cli.command) {
+        case 'schema':
+            if (!options.database)
+                options.database = args[0];
+
+            generateSchema(args, options)
+                .then((exitCode: number) => {
+                    process.exit(exitCode);
+                });
+            break;
+
+        case 'query':
+            if (options.query) {
+
+            }
+            else {
+            }
+            break;
+
+        case 'load':
+            break;
+
+        case 'help':
+            cli.getUsage();
+            cli.exit(0);
+            break;
+    }
+
+});
+
+//
+// cli.info('Info');
+// cli.error('Error');
+// cli.ok('OK');
+// console.warn('Like this');
+// cli.status('Status', 'debug');
+// console.log('Command is: ' + cli.command);
+// cli.spinner('Working..');
+// setTimeout(() => {
+//     cli.spinner('Done!', true);
+//     process.exit(0);
+// }, 2000);
+//

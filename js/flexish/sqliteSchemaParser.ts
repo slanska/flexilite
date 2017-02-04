@@ -12,10 +12,15 @@ import sqlite = require('sqlite3');
 import _ = require('lodash');
 import Promise = require('bluebird');
 import Dictionary = _.Dictionary;
-var Pluralize = require('pluralize');
+let Pluralize = require('pluralize');
+
+sqlite.Database.prototype['allAsync'] = Promise.promisify(sqlite.Database.prototype.all) as any;
+sqlite.Database.prototype['execAsync'] = Promise.promisify(sqlite.Database.prototype.exec) as any;
+sqlite.Database.prototype['runAsync'] = Promise.promisify(sqlite.Database.prototype.run)as any;
 
 /*
  Contracts to SQLite system objects
+ Row structure of pragma table_info(<TableName>)
  */
 interface ISQLiteColumn {
     cid: number;
@@ -93,13 +98,13 @@ interface ISQLiteIndexInfo {
     name: string;
 
     /*
-     Extra attribute with index column data
+     Additional attribute with index column data
      */
     columns?: ISQLiteIndexColumn[];
 }
 
 /*
- Row structure of pragma table_info <TableName>
+
  */
 interface ISQLiteTableInfo {
     name: string;
@@ -108,17 +113,17 @@ interface ISQLiteTableInfo {
     root_page: number;
 }
 
-/*
- pragma index_xinfo
- */
-interface ISQLiteIndexXInfo extends ISQLiteIndexInfo {
-    unique: number | boolean;
-    origin: string;
-    partial: number | boolean;
-}
+// /*
+//  pragma index_xinfo
+//  */
+// interface ISQLiteIndexXInfo extends ISQLiteIndexInfo {
+//     unique: number | boolean;
+//     origin: string;
+//     partial: number | boolean;
+// }
 
 /*
- pragma index_list
+ pragma index_info
  */
 interface ISQLiteIndexColumn {
     seq: number;
@@ -132,9 +137,6 @@ interface ISQLiteIndexColumn {
      Index name
      */
     name: string;
-    desc: number;
-    coll: string;
-    key: number | boolean;
 }
 
 /*
@@ -460,6 +462,7 @@ export class SQLiteSchemaParser {
 
         result = new Promise<ClassDefCollection>((resolve, reject) => {
 
+            // Get list of tables (excluding internal tables)
             self.db.allAsync(
                 `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`)
                 .then((tables: ISQLiteTableInfo[]) => {
@@ -486,6 +489,7 @@ export class SQLiteSchemaParser {
                     });
 
                     return Promise.each(colInfoArray, (cols: ISQLiteColumn[], idx: number) => {
+                        // Process columns
                         let tblMap = self.tableInfo[idx];
                         let modelDef = self.outSchema[tblMap.table];
 
@@ -509,11 +513,13 @@ export class SQLiteSchemaParser {
                         });
                     });
                 })
+
                 .then(() => {
+                    // Populate indexes
                     return Promise.each(idxInfoArray, (indexList: ISQLiteIndexInfo[], idx: number) => {
                         let tbl = self.tableInfo[idx];
-                        _.forEach(indexList, (idxItem: ISQLiteIndexXInfo) => {
-                            return self.db.allAsync(`pragma index_xinfo ('${idxItem.name}');`)
+                        _.forEach(indexList, (idxItem: ISQLiteIndexInfo) => {
+                            return self.db.allAsync(`pragma index_info ('${idxItem.name}');`)
                                 .then(indexCols => {
                                     _.forEach(indexCols, (idxCol: ISQLiteIndexColumn) => {
 
@@ -523,6 +529,7 @@ export class SQLiteSchemaParser {
                     });
                 })
                 .then(() => {
+                    // Populate foreign key info
                     return Promise.each(fkInfoArray, (fkInfo: ISQLiteForeignKeyInfo[], idx: number) => {
                         if (fkInfo.length > 0) {
                             let tbl = self.tableInfo[idx];
@@ -570,5 +577,4 @@ export class SQLiteSchemaParser {
 
         return result;
     }
-
 }
