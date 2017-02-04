@@ -55,6 +55,7 @@ commander
     .option('-m', '-many2many', 'Make guesses about many to many relationship')
     .parse(process.argv);
 
+console.log(commander);
 // commander.
 
 //var parser = new SQLiteSchemaParser();

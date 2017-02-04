@@ -91,6 +91,11 @@ interface ISQLiteIndexInfo {
      index name
      */
     name: string;
+
+    /*
+     Extra attribute with index column data
+     */
+    columns?: ISQLiteIndexColumn[];
 }
 
 /*
@@ -136,11 +141,11 @@ interface ISQLiteIndexColumn {
  Contract for foreign key information as returned by SQLite
  PRAGMA foreign_key_list('table_name')
 
- In addition to columns coming from PRAGMA has additional column to track source table
+ In addition to columns coming from PRAGMA this object has additional column to track source table
  */
 interface ISQLiteForeignKeyInfo {
     /*
-     Sequential number
+     Foreign key sequential number
      */
     seq: number;
 
@@ -212,9 +217,11 @@ interface ITableInfo {
     outFKeys: ISQLiteForeignKeyInfo[];
 
     /*
-     Set to true during processing many-to-many tables
+     Set to true if table was found as many-to-many association
      */
     manyToManyTable: boolean;
+
+    indexes?: ISQLiteIndexInfo[];
 }
 
 export interface IFlexishResultItem {
@@ -375,7 +382,12 @@ export class SQLiteSchemaParser {
         });
     }
 
-    private createReferenceProperties() {
+    /*
+     Creates reference properties based on foreign key information
+     If FKEY is from primary key, relation 1:1 is assumed (extending class)
+     Otherwise, 1:N relation is assumed
+     */
+    private processReferenceProperties() {
         /*
          reference property
          */
@@ -387,6 +399,47 @@ export class SQLiteSchemaParser {
         // };
 
         // Check if we have tables which are used for many-to-many relation
+
+    }
+
+    /*
+     Processes indexes specification using following rules:
+     1) primary and unique indexes on single columns are processed as is
+     2) unique indexes as well as partial indexes are not supported. Warning will be generated
+     TODO: create composite computed properties
+     3) DESC clause in index definition is ignored. Warning will be generated.
+     4) non-unique indexes on text columns are converted to FTS indexes
+     5) all numeric and datetime columns included into non-unique indexes (both single and multi column)
+     are considered to participate in RTree index. Maximum 5 columns can be RTree-indexed. Priority is given
+     6) Columns from non-unique indexes that were not included into FTS nor RTree indexes will be indexed. Note:
+     for multi-column indexes only first columns in index definitions will be processed.
+     7) All columns from non-unique indexes that were not included into FTS, RTree or regular indexes will NOT be indexed
+     Warning be generated
+     */
+    private processIndexes() {
+        let self = this;
+        _.forEach(self.tableInfo, (ti) => {
+            // ti.indexes.
+        });
+
+    }
+
+    /*
+     Determines which columns should be skipped during schema generation
+     */
+    private processColumns() {
+    }
+
+    /*
+     Applies some guessing about role of columns based on their indexing and naming
+     The following rules are applied:
+     1) primary not autoincrement or unique non-text column gets role "uid"
+     2) unique text column(s) get roles "code" and "name".
+     3) If unique column name ends with '*Code'
+     or its max length is shortest among other unique text columns, it gets role "code"
+     4) If unique column name ends with "*Name", it gets role "name",
+     */
+    private processPropertyRoles() {
 
     }
 
@@ -509,7 +562,7 @@ export class SQLiteSchemaParser {
                      In case of name conflict, ref property gets fully qualified name:
                      Order_OrderID, OrderDetails_OrderID
                      */
-                    self.createReferenceProperties();
+                    self.processReferenceProperties();
 
                     return resolve(self.outSchema);
                 });
