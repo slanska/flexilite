@@ -67,7 +67,8 @@ function generateSchema(args, options) {
 }
 
 function queryDatabase(args, options) {
-    return runFlexiliteQuery();
+    // Init db
+    // return runFlexiliteQuery();
 }
 
 function loadData(args, options) {

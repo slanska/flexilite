@@ -47,7 +47,8 @@ declare type PropertyType =
 
         /*
          Property is a relation and references another object(s). If this property type is set,
-         property definition must have refDef filled (IReferencePropertyDefinition)
+         property definition must have refDef filled (IReferencePropertyDefinition).
+         Usually reference properties are defined
          */
         'reference' |
 
@@ -67,7 +68,12 @@ declare type PropertyType =
          For example, $100.39 will be stored as 1003900
          (the same storage format used by Basic script)
          */
-        'money';
+        'money' |
+
+        /*
+         Volatile, not stored property. Accepted on input but ignored
+         */
+        'computed';
 
 declare type PropertyIndexMode =
     /*
@@ -409,6 +415,9 @@ declare type QueryWhereOperator = '$eq' | '$ne' | '$lt' | '$gt' | '$le' | '$ge' 
 
 type IClassPropertyDictionary = {[propID: string]: IClassPropertyDef};
 
+/*
+ User friendly and internal way to specify a property
+ */
 interface IPropertyIdentifier {
     /*
      User supplied value. During save will be converted to propertyID which will be used thereafter
@@ -419,6 +428,22 @@ interface IPropertyIdentifier {
      */
     propertyID?: number;
 }
+
+/*
+ User-friendly and internal way to specify class
+ */
+interface IClassIdentifier {
+    /*
+     User supplied value. During save will be converted to classID which will be used thereafter
+     */
+    $className?: string;
+    /*
+     or
+     */
+    classID?: number;
+
+}
+
 /*
  Structure of .classes.Data
  */
@@ -556,6 +581,23 @@ interface IClassDefinition {
         E0?: IPropertyIdentifier;
         E1?: IPropertyIdentifier;
     }
+
+    /*
+     Optional full text indexing. Maximum 4 properties are allowed for full text index.
+     These properties are mapped to X1-X4 columns in [.full_text_data] table
+     */
+    fullTextIndexing?: {
+        X1?: IPropertyIdentifier;
+        X2?: IPropertyIdentifier;
+        X3?: IPropertyIdentifier;
+        X4?: IPropertyIdentifier;
+    }
+
+    /*
+     (Optional) list of base classes. Defines classes that given class can 'extend', i.e. use their
+     properties
+     */
+    mixin?: IClassIdentifier[];
 }
 
 type IClassPropertyDictionaryByName = {[propName: string]: IClassPropertyDef};

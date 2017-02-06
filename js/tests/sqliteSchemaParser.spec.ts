@@ -19,6 +19,7 @@ describe('Parse SQLite schema and generate Flexilite model', () => {
         let db = new sqlite.Database(dbPath, sqlite.OPEN_CREATE | sqlite.OPEN_READWRITE);
         let parser = new SQLiteSchemaParser(db);
         parser.parseSchema().then(model => {
+            console.log(model);
             done();
         });
     });

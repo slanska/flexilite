@@ -19,6 +19,16 @@ sqlite.Database.prototype['execAsync'] = Promise.promisify(sqlite.Database.proto
 sqlite.Database.prototype['runAsync'] = Promise.promisify(sqlite.Database.prototype.run)as any;
 
 /*
+ Row structure as returned by 'select * from sqlite_master'
+ */
+interface ISQLiteTableInfo {
+    name: string;
+    type: string
+    tbl_name: string;
+    root_page: number;
+}
+
+/*
  Contracts to SQLite system objects
  Row structure of pragma table_info(<TableName>)
  */
@@ -81,49 +91,49 @@ interface ISQLiteColumn {
     pk: number;
 }
 
+/*
+ Structure of index info
+ Returned by PRAGMA INDEX_LIST()
+ */
 interface ISQLiteIndexInfo {
     /*
-     position in index (for multi column indexes)
+     Sequential number
      */
     seq: number;
 
     /*
-     column number
-     */
-    cid: number;
-
-    /*
-     index name
+     Index name
      */
     name: string;
 
     /*
-     Additional attribute with index column data
+     0 - non-unique index
+     1 - unique index
+     */
+    unique: number;
+
+    /*
+     TODO Need to confirm?
+     'c' - column based index (standard index)
+     '?' - expression based index (maybe, 'e' ?)
+     */
+    origin: string;
+
+    /*
+     0 - index is on rows
+     1 - partial index is on subset of rows
+     */
+    partial: number;
+
+    /*
+     Extra attributes
      */
     columns?: ISQLiteIndexColumn[];
 }
 
 /*
-
- */
-interface ISQLiteTableInfo {
-    name: string;
-    type: string
-    tbl_name: string;
-    root_page: number;
-}
-
-// /*
-//  pragma index_xinfo
-//  */
-// interface ISQLiteIndexXInfo extends ISQLiteIndexInfo {
-//     unique: number | boolean;
-//     origin: string;
-//     partial: number | boolean;
-// }
-
-/*
- pragma index_info
+ Structure of column information in index
+ Returned pragma index_info
  */
 interface ISQLiteIndexColumn {
     seq: number;
@@ -152,7 +162,7 @@ interface ISQLiteForeignKeyInfo {
     seq: number;
 
     /*
-     Name of referenced table
+     Name of referenced table ("to" table)
      */
     table: string;
 
@@ -189,7 +199,6 @@ interface ISQLiteForeignKeyInfo {
     srcTable?: string;
 }
 
-
 type ClassDefCollection = {[name: string]: IClassDefinition};
 
 /*
@@ -223,7 +232,16 @@ interface ITableInfo {
      */
     manyToManyTable: boolean;
 
+    /*
+     All existing indexes including not currently supported
+     */
     indexes?: ISQLiteIndexInfo[];
+
+    /*
+     Subset of indexes, currently supported by Flexilite
+     Does not include partial and/or expression indexes
+     */
+    supportedIndexes?: ISQLiteIndexInfo[];
 }
 
 export interface IFlexishResultItem {
@@ -426,10 +444,11 @@ export class SQLiteSchemaParser {
 
     }
 
+
     /*
-     Determines which columns should be skipped during schema generation
+     Determines which properties should be skipped during schema generation
      */
-    private processColumns() {
+    private processColumns(tableName: string) {
     }
 
     /*
@@ -441,8 +460,310 @@ export class SQLiteSchemaParser {
      or its max length is shortest among other unique text columns, it gets role "code"
      4) If unique column name ends with "*Name", it gets role "name",
      */
-    private processPropertyRoles() {
+    private processPropertyRoles(tableName: string) {
+        let self = this;
+        let ti = self.tableInfo[tableName];
 
+        // Analyze indexes
+        _.forEach(ti.indexes, (idx: ISQLiteIndexInfo) => {
+            if (idx.columns.length === 1 && idx.unique) {
+            }
+        });
+
+    }
+
+    /*
+     Loads all metadata for the SQLite table (columns, indexes, foreign keys)
+     Builds complete ITableInfo and returns promise for it
+     */
+    private loadTableInfo(tblDef: ISQLiteTableInfo): Promise<ITableInfo> {
+        let self = this;
+
+        // Init resulting dictionary
+        let modelDef = {
+            properties: {},
+            specialProperties: {}
+        } as IClassDefinition;
+        self.outSchema[tblDef.name] = modelDef;
+
+        let tableInfo = {
+            table: tblDef.name,
+            columnCount: 0,
+            columns: {},
+            inFKeys: [],
+            outFKeys: [],
+            manyToManyTable: false
+        } as ITableInfo;
+        self.tableInfo.push(tableInfo);
+
+        let result = self.db.allAsync(`pragma table_info ('${tblDef.name}');`)
+        // Process columns
+            .then((cols: ISQLiteColumn[]) => {
+                _.forEach(cols, (col: ISQLiteColumn) => {
+                    let prop = self.sqliteColToFlexiProp(col);
+
+                    prop.rules.maxOccurences = 1;
+                    prop.rules.minOccurences = Number(col.notnull);
+
+                    if (col.pk !== 0) {
+                        // Handle multiple column PKEY
+                        prop.index = 'unique';
+                    }
+
+                    prop.defaultValue = col.dflt_value;
+
+                    modelDef.properties[col.name] = prop;
+
+                    tableInfo.columns[col.cid] = col;
+                    tableInfo.columnCount++;
+                });
+
+                return self.db.allAsync(`pragma index_list('${tblDef.name}')`);
+            })
+            // Process indexes
+            .then((indexes: ISQLiteIndexInfo[]) => {
+                let deferredIdxCols = [];
+
+                tableInfo.indexes = indexes;
+                tableInfo.supportedIndexes = _.filter(indexes, (idx) => {
+                    return idx.partial === 0 && idx.origin.toLowerCase() === 'c';
+                });
+
+                // Process all supported indexes
+                _.forEach(tableInfo.supportedIndexes, (idx: ISQLiteIndexInfo) => {
+                    idx.columns = [];
+                    deferredIdxCols.push(self.db.allAsync(`pragma index_info('${idx.name}')`));
+                });
+                return Promise
+                    .each(deferredIdxCols, (idxCols: ISQLiteIndexColumn[], ii: number) => {
+                        // Process index columns
+                        _.forEach(idxCols, (idxCol) => {
+                            tableInfo.supportedIndexes[ii].columns.push(idxCol);
+                        });
+                    })
+                    .then(() => self.db.allAsync(`pragma foreign_key_list('${tblDef.name}')`));
+            })
+            // Process foreign keys
+            .then((fkInfo: ISQLiteForeignKeyInfo[]) => {
+                if (fkInfo.length > 0) {
+                    _.forEach(fkInfo, (fk: ISQLiteForeignKeyInfo, idx: number) => {
+                        fk.srcTable = tableInfo.table;
+                        tableInfo.outFKeys.push(fk);
+
+                        let outTbl = self.findTableInfoByName(fk.table);
+                        if (!outTbl) {
+                            self.results.push({
+                                type: 'error',
+                                message: `Table specified in FKEY not found`,
+                                tableName: fk.table
+                            });
+                            return;
+                        }
+
+                        outTbl.inFKeys.push(fk);
+                    });
+                }
+                return tableInfo;
+            });
+
+        return result as any;
+    }
+
+    private getIndexColumnNames(tbl: ITableInfo, idx: ISQLiteIndexInfo) {
+        let result = [];
+        _.forEach(idx.columns, (c: ISQLiteIndexColumn) => {
+            result.push(tbl.columns[c.cid].name);
+        });
+        return result.join(',');
+    }
+
+    private processFlexiliteClassDef(tblInfo: ITableInfo) {
+
+        let self = this;
+        let classDef = self.outSchema[tblInfo.table];
+
+        // Get primary field
+        let pkCol = _.find(tblInfo.columns, (cc: ISQLiteColumn) => {
+            return cc.pk === 1;
+        });
+
+        /*
+         Set indexing
+         */
+
+        /*
+         Split all indexes into the following categories:
+         1) Unique one column, by text column: special property and unique index, sorted by max length
+         2) Unique one column, date, number or integer: special property and unique index, sorted by type - with integer on top
+         3) Unique multi-column indexes: currently not supported
+         4) Non-unique: only first column gets indexed. Text - full text search or index. Numeric types - RTree or index
+         */
+
+        // Get all unique one column indexes on text columns. They might be considered as Code, Name or Description special properties
+        let uniqTxtIndexes = _.sortBy(_.filter(tblInfo.supportedIndexes,
+            (idx) => {
+                return idx.columns.length === 1 && idx.unique === 1
+                    && classDef.properties[tblInfo.columns[idx.columns[0].cid].name].rules.type === 'text';
+            }),
+            (idx) => {
+                return classDef.properties[tblInfo.columns[idx.columns[0].cid].name].rules.maxLength;
+            });
+
+        if (uniqTxtIndexes.length > 0) {
+            // Items assigned to code, name, description
+            classDef.specialProperties.code = tblInfo.columns[uniqTxtIndexes[0].columns[0].cid].name;
+            classDef.specialProperties.name = tblInfo.columns[uniqTxtIndexes[uniqTxtIndexes.length > 1 ? 1 : 0].columns[0].cid].name;
+            classDef.specialProperties.description = tblInfo.columns[_.last(uniqTxtIndexes).columns[0].cid].name;
+        }
+
+        // unique non-text one column indexes, sorted by type
+        let uniqOtherIndexes = _.sortBy(_.filter(tblInfo.supportedIndexes,
+            (idx) => {
+                let tt = classDef.properties[tblInfo.columns[idx.columns[0].cid].name].rules.type;
+                return idx.columns.length === 1 && idx.unique === 1
+                    && (tt === 'integer' || tt === 'number' || tt === 'datetime' || tt === 'binary');
+            }),
+            (idx) => {
+                let tt = classDef.properties[tblInfo.columns[idx.columns[0].cid].name].rules.type;
+                switch (tt) {
+                    case 'integer':
+                        return 0;
+                    case 'number':
+                        return 1;
+                    case 'binary':
+                        return 2;
+                    default:
+                        return 3;
+                }
+            });
+
+        if (uniqOtherIndexes.length > 0) {
+            classDef.specialProperties.uid = tblInfo.columns[uniqOtherIndexes[0].columns[0].cid].name;
+            _.forEach(uniqOtherIndexes, (idx: ISQLiteIndexInfo) => {
+                let col = tblInfo.columns[idx.columns[0].cid];
+                let prop = classDef.properties[col.name];
+                if (prop.rules.type === 'binary' && prop.rules.maxLength === 16) {
+                    classDef.specialProperties.autoUuid = tblInfo.columns[idx.columns[0].cid].name;
+                }
+            });
+        }
+
+        let uniqMultiIndexes = _.filter(tblInfo.supportedIndexes,
+            (idx) => {
+                return idx.columns.length > 1 && idx.unique === 1;
+            });
+
+        _.forEach(uniqMultiIndexes, (idx) => {
+            // Unique multi column indexes are not supported
+            let msg = `Index [${idx.name}] by ${self.getIndexColumnNames(tblInfo, idx)} is ignored as multi-column unique indexes are not supported by Flexilite`;
+            self.results.push({
+                type: 'warn',
+                message: msg,
+                tableName: tblInfo.table
+            });
+        });
+
+        let nonUniqIndexes = _.filter(tblInfo.supportedIndexes,
+            (idx) => {
+                return idx.unique !== 1;
+            });
+
+        /*
+         Pool of full text columns
+         */
+        let ftsCols = ['X1', 'X2', 'X3', 'X4'];
+
+        /*
+         Pool of rtree columns
+         */
+        let rtCols = ['A', 'B', 'C', 'D', 'E'];
+
+        _.forEach(nonUniqIndexes, (idx) => {
+            let col = tblInfo.columns[idx.columns[0].cid];
+            let prop = classDef.properties[col.name];
+            switch (prop.rules.type) {
+                case 'text':
+                    // try to apply full text index
+                    if (ftsCols.length === 0) {
+                        prop.index = 'index';
+                    }
+                    else {
+                        let ftsCol = ftsCols.shift();
+                        classDef.fullTextIndexing[ftsCol] = col.name;
+                        prop.index = 'fulltext';
+                    }
+                    break;
+
+                case 'integer':
+                case 'number':
+                case 'datetime':
+                    //try to apply r-tree index
+                    if (rtCols.length === 0) {
+                        prop.index = 'index';
+                    }
+                    else {
+                        let rtCol = rtCols.shift();
+                        classDef.rangeIndexing[rtCol + '0'] = col.name;
+                        classDef.rangeIndexing[rtCol + '1'] = col.name;
+                        prop.index = 'range';
+                    }
+                    break;
+
+                default:
+                    prop.index = 'index';
+                    break;
+            }
+        });
+
+        /*
+         Process foreign keys. Defines reference properties.
+         There are 3 cases:
+         1) normal 1:N, (1 is defined in inFKeys, N - in outFKeys)
+         2) extending 1:1, when outFKeys column is primary column
+         3) many-to-many M:N, via special table with 2 columns which are foreign keys to other table(s)
+
+         Note: currently Flexilite does not support multi-column primary keys, thus multi-column
+         foreign keys are not supported either
+         */
+
+        if (tblInfo.columnCount === 2 && tblInfo.outFKeys.length === 2) {
+            /*
+             Candidate for many-to-many association
+             Full condition: both columns are required
+             Both columns are in outFKeys
+             Primary key is on columns A and B
+             There is another non unique index on column B
+             */
+
+        }
+        else {
+            // Check for 1:1 relation
+            let extCol = _.find(tblInfo.outFKeys, (fk: ISQLiteForeignKeyInfo) => {
+                return pkCol && pkCol.name === fk.from;
+            });
+            if (extCol) {
+                // set mixin class
+                classDef.mixin = [{$className: extCol.table}];
+                _.remove(tblInfo.outFKeys, extCol);
+            }
+
+            /*
+             Processing what has left and create reference properties
+             Reference property gets name based on name of references table
+             and, optionally, 'from' column, so for relation between Order->OrderDetails by OrderID
+             (for both tables) 2 properties will be created:
+             a) in Orders: OrderDetails
+             b) in OrderDetails: Order (singular form of Orders)
+             In case of name conflict, ref property gets fully qualified name:
+             Order_OrderID, OrderDetails_OrderID
+
+             'from' columns for outFKeys are converted to computed properties: they accept input value,
+             treat it as uid property of master class and don't get stored.
+
+             */
+
+
+        }
     }
 
     /*
@@ -450,131 +771,22 @@ export class SQLiteSchemaParser {
      and parses it to Flexilite class definition
      Returns promise which resolves to dictionary of Flexilite classes
      */
-    public parseSchema(): Promise<ClassDefCollection> {
+    public parseSchema(): Promise < ClassDefCollection > {
         let self = this;
         self.outSchema = {};
-        let result: Promise<ClassDefCollection>;
-        let colInfoArray = [];
-        let idxInfoArray = [];
-        let fkInfoArray = [];
-
         self.tableInfo = [];
 
-        result = new Promise<ClassDefCollection>((resolve, reject) => {
-
-            // Get list of tables (excluding internal tables)
-            self.db.allAsync(
-                `select * from sqlite_master where type = 'table' and name not like 'sqlite%';`)
-                .then((tables: ISQLiteTableInfo[]) => {
-                    // On this step prepare class definition and create promises for requests on individual tables
-                    _.forEach(tables, (item: ISQLiteTableInfo) => {
-
-                        // Init resulting dictionary
-                        self.outSchema[item.name] = {
-                            properties: {},
-                            specialProperties: {}
-                        } as IClassDefinition;
-
-                        colInfoArray.push(self.db.allAsync(`pragma table_info ('${item.name}');`));
-                        idxInfoArray.push(self.db.allAsync(`pragma index_list ('${item.name}');`));
-                        fkInfoArray.push(self.db.allAsync(`pragma foreign_key_list ('${item.name}');`));
-                        self.tableInfo.push({
-                            table: item.name,
-                            columnCount: 0,
-                            columns: {},
-                            inFKeys: [],
-                            outFKeys: [],
-                            manyToManyTable: false
-                        });
-                    });
-
-                    return Promise.each(colInfoArray, (cols: ISQLiteColumn[], idx: number) => {
-                        // Process columns
-                        let tblMap = self.tableInfo[idx];
-                        let modelDef = self.outSchema[tblMap.table];
-
-                        _.forEach(cols, (col: ISQLiteColumn) => {
-                            let prop = self.sqliteColToFlexiProp(col);
-
-                            prop.rules.maxOccurences = 1;
-                            prop.rules.minOccurences = Number(col.notnull);
-
-                            if (col.pk !== 0) {
-                                // Handle multiple column PKEY
-                                prop.index = 'unique';
-                            }
-
-                            prop.defaultValue = col.dflt_value;
-
-                            modelDef.properties[col.name] = prop;
-
-                            tblMap.columns[col.cid] = col;
-                            tblMap.columnCount++;
-                        });
-                    });
-                })
-
-                .then(() => {
-                    // Populate indexes
-                    return Promise.each(idxInfoArray, (indexList: ISQLiteIndexInfo[], idx: number) => {
-                        let tbl = self.tableInfo[idx];
-                        _.forEach(indexList, (idxItem: ISQLiteIndexInfo) => {
-                            return self.db.allAsync(`pragma index_info ('${idxItem.name}');`)
-                                .then(indexCols => {
-                                    _.forEach(indexCols, (idxCol: ISQLiteIndexColumn) => {
-
-                                    });
-                                });
-                        });
-                    });
-                })
-                .then(() => {
-                    // Populate foreign key info
-                    return Promise.each(fkInfoArray, (fkInfo: ISQLiteForeignKeyInfo[], idx: number) => {
-                        if (fkInfo.length > 0) {
-                            let tbl = self.tableInfo[idx];
-
-                            _.forEach(fkInfo, (fk: ISQLiteForeignKeyInfo, idx: number) => {
-                                fk.srcTable = tbl.table;
-                                tbl.outFKeys.push(fk);
-
-                                let outTbl = self.findTableInfoByName(fk.table);
-                                if (!outTbl) {
-                                    self.results.push({
-                                        type: 'error',
-                                        message: `Table specified in FKEY not found`, tableName: fk.table
-                                    });
-                                    return;
-                                }
-
-                                outTbl.inFKeys.push(fk);
-                            });
-                        }
-                    });
-                })
-                .then(() => {
-                    /*
-                     First process all candidates for many-to-many relations.
-                     After this step, some tables and foreign key specs may be removed from internal tblInfo list
-                     */
-                    self.processMany2ManyRelations();
-
-                    /*
-                     Second, processing what has left and create reference properties
-                     Reference property gets name based on name of references table
-                     and, optionally, 'from' column, so for relation between Order->OrderDetails by OrderID
-                     (for both tables) 2 properties will be created:
-                     a) in Orders: OrderDetails
-                     b) in OrderDetails: Order (singular form of Orders)
-                     In case of name conflict, ref property gets fully qualified name:
-                     Order_OrderID, OrderDetails_OrderID
-                     */
-                    self.processReferenceProperties();
-
-                    return resolve(self.outSchema);
+        // Get list of tables (excluding internal tables)
+        return self.db.allAsync(`select * from sqlite_master where type = 'table' and name not like 'sqlite%';`)
+            .then((tables: ISQLiteTableInfo[]) => {
+                let deferredTables = [];
+                _.forEach(tables, (item: ISQLiteTableInfo) => {
+                    deferredTables.push(self.loadTableInfo(item));
                 });
-        });
-
-        return result;
+                return Promise.each(deferredTables,
+                    (tblInfo: ITableInfo) => self.processFlexiliteClassDef(tblInfo));
+            })
+            .then(() => self.outSchema);
     }
 }
+
