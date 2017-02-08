@@ -48,7 +48,8 @@ declare type PropertyType =
         /*
          Property is a relation and references another object(s). If this property type is set,
          property definition must have refDef filled (IReferencePropertyDefinition).
-         Usually reference properties are defined
+         Usually reference properties are defined in both related classes. One class is master,
+         second is linked.
          */
         'reference' |
 
@@ -598,6 +599,28 @@ interface IClassDefinition {
      properties
      */
     mixin?: IClassIdentifier[];
+
+    /*
+     Optional storage mode. By default - 'flexi-data', which means that data will be stored in Flexilite
+     internal tables (.objects and .ref-values).
+     'flexi-rel' means that data will not stored anywhere, and class with this storage mode will be serving
+     as a proxy to many-to-many relation.
+     If class has 'flexi-rel' storage mode, it is required to have exactly 2 properties (of any type)
+     and storageFlexiRel attribute must be configured, to define relationship between 2 other classes in
+     Flexilite database
+     */
+    storage?: 'flexi-data' | 'flexi-rel';
+    storageFlexiRel?: {
+        master: IStorageFlexiRelProperty;
+        detail: IStorageFlexiRelProperty;
+    }
+
+}
+
+interface IStorageFlexiRelProperty {
+    ownProperty: IPropertyIdentifier;
+    refClass: IClassIdentifier;
+    refProperty: IPropertyIdentifier;
 }
 
 type IClassPropertyDictionaryByName = {[propName: string]: IClassPropertyDef};

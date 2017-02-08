@@ -28,6 +28,7 @@ let cli = require('cli');
 import Promise = require('bluebird');
 import sqlite = require('sqlite3');
 import path = require('path');
+var jsBeautify = require('js-beautify');
 
 import {SQLiteSchemaParser} from './sqliteSchemaParser';
 import {runFlexiliteQuery} from './runQuery';
@@ -61,7 +62,8 @@ function generateSchema(args, options) {
     let db = new sqlite.Database(options.database);
     let parser = new SQLiteSchemaParser(db);
     return parser.parseSchema()
-        .then(() => {
+        .then((schema) => {
+            let out = jsBeautify(schema);
             return 0;
         });
 }

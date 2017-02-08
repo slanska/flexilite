@@ -8,6 +8,8 @@ import sqlite = require('sqlite3');
 import {SQLiteSchemaParser} from '../flexish/sqliteSchemaParser';
 import path = require('path');
 import Promise =require( 'bluebird');
+let jsBeautify = require('js-beautify');
+import fs = require('fs');
 
 describe('Parse SQLite schema and generate Flexilite model', () => {
     beforeEach((done) => {
@@ -19,7 +21,9 @@ describe('Parse SQLite schema and generate Flexilite model', () => {
         let db = new sqlite.Database(dbPath, sqlite.OPEN_CREATE | sqlite.OPEN_READWRITE);
         let parser = new SQLiteSchemaParser(db);
         parser.parseSchema().then(model => {
-            console.log(model);
+            let out = jsBeautify(JSON.stringify(model));
+            fs.writeFileSync(path.join(__dirname, '../../data/Northwind.db3.schema.json'), out);
+            // console.log(out);
             done();
         });
     });
