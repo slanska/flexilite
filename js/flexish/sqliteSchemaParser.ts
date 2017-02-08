@@ -421,26 +421,6 @@ export class SQLiteSchemaParser {
     }
 
     /*
-     Creates reference properties based on foreign key information
-     If FKEY is from primary key, relation 1:1 is assumed (extending class)
-     Otherwise, 1:N relation is assumed
-     */
-    private processReferenceProperties() {
-        /*
-         reference property
-         */
-        // let refProp = {rules: {type: 'reference'}} as IClassPropertyDef;
-        // refProp.refDef = {
-        //     $className: fk.table,
-        //     relationRule: 'no_action',
-        //
-        // };
-
-        // Check if we have tables which are used for many-to-many relation
-
-    }
-
-    /*
      Processes indexes specification using following rules:
      1) primary and unique indexes on single columns are processed as is
      2) unique indexes as well as partial indexes are not supported. Warning will be generated
@@ -454,20 +434,6 @@ export class SQLiteSchemaParser {
      7) All columns from non-unique indexes that were not included into FTS, RTree or regular indexes will NOT be indexed
      Warning be generated
      */
-    private processIndexes() {
-        let self = this;
-        _.forEach(self.tableInfo, (ti) => {
-            // ti.indexes.
-        });
-
-    }
-
-
-    /*
-     Determines which properties should be skipped during schema generation
-     */
-    private processColumns(tableName: string) {
-    }
 
     /*
      Applies some guessing about role of columns based on their indexing and naming
@@ -478,17 +444,7 @@ export class SQLiteSchemaParser {
      or its max length is shortest among other unique text columns, it gets role "code"
      4) If unique column name ends with "*Name", it gets role "name",
      */
-    private processPropertyRoles(tableName: string) {
-        let self = this;
-        let ti = self.tableInfo[tableName];
 
-        // Analyze indexes
-        _.forEach(ti.indexes, (idx: ISQLiteIndexInfo) => {
-            if (idx.columns.length === 1 && idx.unique) {
-            }
-        });
-
-    }
 
     /*
      Loads all metadata for the SQLite table (columns, indexes, foreign keys)
@@ -553,14 +509,34 @@ export class SQLiteSchemaParser {
             .then((indexes: ISQLiteIndexInfo[]) => {
                 let deferredIdxCols = [];
 
+                // Check if primary key is included into list of indexes
+                if (!_.find(indexes, (ix: ISQLiteIndexInfo) => ix.origin === 'pk')) {
+                    let pkCol = _.find(tableInfo.columns, (cc: ISQLiteColumn) => cc.pk === 1);
+                    if (pkCol) {
+                        indexes.push({
+                            seq: indexes.length,
+                            name: 'pk',
+                            unique: 1,
+                            origin: 'pk',
+                            partial: 0,
+                            columns: [{
+                                seq: 0,
+                                cid: pkCol.cid,
+                                name: pkCol.name
+                            }]
+                        });
+                    }
+                }
+
                 tableInfo.indexes = indexes;
+
                 tableInfo.supportedIndexes = _.filter(indexes, (idx) => {
-                    return idx.partial === 0 && idx.origin.toLowerCase() === 'c';
+                    return idx.partial === 0 && (idx.origin.toLowerCase() === 'c' || idx.origin.toLowerCase() === 'pk');
                 });
 
                 // Process all supported indexes
                 _.forEach(tableInfo.supportedIndexes, (idx: ISQLiteIndexInfo) => {
-                    idx.columns = [];
+                    idx.columns = idx.columns || [];
                     deferredIdxCols.push(self.db.allAsync(`pragma index_info('${idx.name}')`));
                 });
                 return Promise
@@ -693,7 +669,7 @@ export class SQLiteSchemaParser {
                     rules: {
                         type: 'reference',
                         minOccurences: cc.rules.minOccurences,
-                        maxOccurences: Math.floor(Number.MAX_VALUE)
+                        maxOccurences: 1 << 32 - 1
                     }
                 } as IClassPropertyDef;
                 let propName = Pluralize.singular(`${fk.table}`);
@@ -721,8 +697,8 @@ export class SQLiteSchemaParser {
         /*
          Set indexing
          */
-        this.processUniqueTextIndexes(tblInfo, classDef);
         this.processUniqueNonTextIndexes(tblInfo, classDef);
+        this.processUniqueTextIndexes(tblInfo, classDef);
         this.processUniqueMutiColumnIndexes(tblInfo, self);
         this.processNonUniqueIndexes(tblInfo, classDef);
     }
@@ -783,7 +759,7 @@ export class SQLiteSchemaParser {
         });
     }
 
-    private    processUniqueMutiColumnIndexes(tblInfo: ITableInfo, self: SQLiteSchemaParser) {
+    private processUniqueMutiColumnIndexes(tblInfo: ITableInfo, self: SQLiteSchemaParser) {
         let uniqMultiIndexes = _.filter(tblInfo.supportedIndexes,
             (idx) => {
                 return idx.columns.length > 1 && idx.unique === 1;
@@ -856,6 +832,8 @@ export class SQLiteSchemaParser {
         if (uniqTxtIndexes.length > 0) {
             // Items assigned to code, name, description
             classDef.specialProperties.code = tblInfo.columns[uniqTxtIndexes[0].columns[0].cid].name;
+            if (!classDef.specialProperties.uid)
+                classDef.specialProperties.uid = classDef.specialProperties.code;
             classDef.specialProperties.name = tblInfo.columns[uniqTxtIndexes[uniqTxtIndexes.length > 1 ? 1 : 0].columns[0].cid].name;
             classDef.specialProperties.description = tblInfo.columns[_.last(uniqTxtIndexes).columns[0].cid].name;
         }
