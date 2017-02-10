@@ -68,7 +68,6 @@ set(EXT_FILES
         src/misc/hash.c
 
         src/misc/memstat.c
-        src/_old_flexilite/flexi_json_value.c
         src/flexi/flexieav_vtable.c
 #        src/flexi/flexi_eav.h
 
@@ -81,6 +80,8 @@ set(EXT_FILES
         lib/duktape/duktape.c
         lib/duktape/duktape.h
 
+        src/flexi/flexi_class.c
+        src/flexi/flexi_prop.c
         src/flexi/flexi_class_alter.c
         src/flexi/flexi_props_to_object.c
 
@@ -93,6 +94,7 @@ set(EXT_FILES
         src/flexi/flexi_import_data.c
         src/flexi/flexi_prop_create.c
         src/flexi/flexi_prop_merge.c
+        src/flexi/flexi_data_vtable.c
         src/flexi/flexi_query.c
         src/functions.c
         src/util/s_jsonHash.c)

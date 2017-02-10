@@ -2,9 +2,9 @@
 // Created by slanska on 2017-01-22.
 //
 
+#include "../../src/project_defs.h"
 #include "db_init.h"
 #include "file_helper.h"
-#include "../../src/project_defs.h"
 
 int db_open_in_memory(sqlite3 **pDb) {
     return db_create_or_open(":memory:", pDb);
@@ -32,6 +32,9 @@ int db_create_or_open(const char *zFile, sqlite3 **pDb) {
     char *zSql = NULL;
     CHECK_CALL(file_load_utf8("../../sql/dbschema.sql", &zSql));
     CHECK_CALL(sqlite3_exec(*pDb, (const char *) zSql, NULL, NULL, &zErrMsg));
+
+    CHECK_CALL(sqlite3_exec(*pDb, "select var('Foo', 'Boo');", NULL, NULL, &zErrMsg));
+
     goto FINALLY;
 
     CATCH:

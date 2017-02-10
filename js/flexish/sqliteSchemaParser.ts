@@ -588,9 +588,9 @@ export class SQLiteSchemaParser {
         let self = this;
         let classDef = self.outSchema[tblInfo.table];
 
-        // Get primary field
-        let pkCol = _.find(tblInfo.columns, (cc: ISQLiteColumn) => {
-            return cc.pk === 1;
+        // Get primary fields
+        let pkCols = _.filter(tblInfo.columns, (cc: ISQLiteColumn) => {
+            return cc.pk > 0;
         });
 
         /*
@@ -637,7 +637,7 @@ export class SQLiteSchemaParser {
         // Check for 1:1 relation
         let
             extCol = _.find(tblInfo.outFKeys, (fk: ISQLiteForeignKeyInfo) => {
-                return pkCol && pkCol.name === fk.from;
+                return pkCols && pkCols.length === 1 && pkCols[0].name === fk.from;
             });
 
         if (extCol) {
@@ -669,7 +669,7 @@ export class SQLiteSchemaParser {
                     rules: {
                         type: 'reference',
                         minOccurences: cc.rules.minOccurences,
-                        maxOccurences: 1 << 32 - 1
+                        maxOccurences: -(1 << 31)
                     }
                 } as IClassPropertyDef;
                 let propName = Pluralize.singular(`${fk.table}`);
@@ -724,31 +724,35 @@ export class SQLiteSchemaParser {
             let prop = classDef.properties[col.name];
             switch (prop.rules.type) {
                 case 'text':
-                    // try to apply full text index
-                    if (ftsCols.length === 0) {
-                        prop.index = 'index';
-                    }
-                    else {
-                        let ftsCol = ftsCols.shift();
-                        classDef.fullTextIndexing = classDef.fullTextIndexing || {};
-                        classDef.fullTextIndexing[ftsCol] = col.name;
-                        prop.index = 'fulltext';
+                    if (!prop.index) {
+                        // try to apply full text index
+                        if (ftsCols.length === 0) {
+                            prop.index = 'index';
+                        }
+                        else {
+                            let ftsCol = ftsCols.shift();
+                            classDef.fullTextIndexing = classDef.fullTextIndexing || {};
+                            classDef.fullTextIndexing[ftsCol] = col.name;
+                            prop.index = 'fulltext';
+                        }
                     }
                     break;
 
                 case 'integer':
                 case 'number':
                 case 'datetime':
-                    //try to apply r-tree index
-                    if (rtCols.length === 0) {
-                        prop.index = 'index';
-                    }
-                    else {
-                        let rtCol = rtCols.shift();
-                        classDef.rangeIndexing = classDef.rangeIndexing || {} as any;
-                        classDef.rangeIndexing[rtCol + '0'] = col.name;
-                        classDef.rangeIndexing[rtCol + '1'] = col.name;
-                        prop.index = 'range';
+                    if (!prop.index) {
+                        //try to apply r-tree index
+                        if (rtCols.length === 0) {
+                            prop.index = 'index';
+                        }
+                        else {
+                            let rtCol = rtCols.shift();
+                            classDef.rangeIndexing = classDef.rangeIndexing || {} as any;
+                            classDef.rangeIndexing[rtCol + '0'] = col.name;
+                            classDef.rangeIndexing[rtCol + '1'] = col.name;
+                            prop.index = 'range';
+                        }
                     }
                     break;
 

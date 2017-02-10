@@ -6,16 +6,7 @@
  * Project internal definitions
  */
 
-//#include "../lib/sqlite/sqlite3ext.h"
-//
-//SQLITE_EXTENSION_INIT3
-//
-//#include <assert.h>
-//#include <string.h>
-//#include <ctype.h>
-//#include <alloca.h>
-//#include <stdio.h>
-//
+
 //#include "./misc/json1.h"
 //#include "./flexi/flexi_eav.h"
 //#include "./typings/DBDefinitions.h"
@@ -26,6 +17,16 @@
 
 #ifndef SQLITE_EXTENSIONS_PROJECT_DEFS_H
 #define SQLITE_EXTENSIONS_PROJECT_DEFS_H
+
+#include "../lib/sqlite/sqlite3ext.h"
+
+SQLITE_EXTENSION_INIT3
+
+#include <assert.h>
+#include <string.h>
+#include <ctype.h>
+#include <alloca.h>
+#include <stdio.h>
 
 /*
  * Utility macros
@@ -61,6 +62,25 @@
  */
 // TODO temporary implementation
 #define IS_RANGE_PROPERTY(propType) 0
+
+/*
+ * Internal API
+ */
+
+///
+/// \param db
+/// \param zClassName
+/// \param zClassDef
+/// \param bCreateVTable
+/// \param pzError
+/// \return
+int flexi_class_create(sqlite3 *db,
+        // User data
+                       void *pAux,
+                       const char *zClassName,
+                       const char *zClassDef,
+                       int bCreateVTable,
+                       char **pzError);
 
 #endif //SQLITE_EXTENSIONS_PROJECT_DEFS_H
 

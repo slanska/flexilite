@@ -15,14 +15,8 @@ SQLITE_EXTENSION_INIT3
 #include "../misc/regexp.h"
 
 /*
- * Internally used structures, subclassed from SQLite structs
+ * Internally used structures, sub-classed from SQLite structs
  */
-
-//struct flexi_prop_col_map
-//{
-//    sqlite3_int64 iPropID;
-//    int iCol;
-//};
 
 struct flexi_prop_metadata {
     sqlite3_int64 iPropID;
@@ -44,7 +38,7 @@ struct flexi_prop_metadata {
     int xCtlv;
 
     /*
-     * 1-8: column is mapped to .range_data columns (1 = A0, 2 = A1, 3 = B0 and so on)
+     * 1-10: column is mapped to .range_data columns (1 = A0, 2 = A1, 3 = B0 and so on)
      * 0: not mapped
      */
     unsigned char cRangeColumn;
@@ -404,6 +398,13 @@ const static FlexiTypesToSqliteTypeMap g_FlexiTypesToSqliteTypes[] = {
         {"date",     "FLOAT",   PROP_TYPE_DATE},
         {"time",     "FLOAT",   PROP_TYPE_TIMESPAN},
         {NULL,       "TEXT",    PROP_TYPE_TEXT}
+        /* TODO
+         * NVARCHAR
+         * NCHAR
+         * MONEY
+         * IMAGE
+         * VARCHAR
+         */
 };
 
 static const FlexiTypesToSqliteTypeMap *findSqliteTypeByFlexiType(const char *t) {
@@ -523,7 +524,7 @@ static int flexi_load_class_def(
         }
 
         // TODO Use string value
-        char *zFlexiType = (char *)sqlite3_column_text(pGetClsPropStmt, 6);
+        char *zFlexiType = (char *) sqlite3_column_text(pGetClsPropStmt, 6);
 
         int iNewColCnt = nPropIdx;
 
@@ -688,6 +689,7 @@ static int db_insert_name(struct flexi_db_env *pDBEnv, const char *zName, sqlite
 
 /*
  * Creates new class
+ * TODO Move to flexi_class_alter
  */
 static int flexiEavCreate(
         sqlite3 *db,
@@ -695,16 +697,19 @@ static int flexiEavCreate(
         void *pAux,
         int argc,
 
-        // argv[0] - module name. Will be 'flexi'
-        // argv[1] - database name ("main", "temp" etc.)
-        // argv [2] - name of new table (class)
-        // argv[3+] - arguments (property specifications/column declarations)
+        // argv[0] - module name. Should be 'flexi'
+        // argv[1] - database name ("main", "temp" etc.) Ignored as all changes will be stored in main database
+        // argv[2] - name of new table (class)
+        // argv[3] - class definition in JSON
         const char *const *argv,
 
         // Result of function - table spec
         sqlite3_vtab **ppVTab,
         char **pzErr) {
-    assert(argc >= 4);
+    assert(argc == 4);
+
+    const char *zClassName = argv[2];
+    const char *zClassDef = argv[3];
 
     int result = SQLITE_OK;
 
@@ -717,8 +722,6 @@ static int flexiEavCreate(
     char *sbClassDefJSON = sqlite3_mprintf("{\"properties\":{");
 
     struct flexi_db_env *pDBEnv = pAux;
-
-    const char *zClassName = argv[2];
 
     struct flexi_prop_metadata dProp;
     memset(&dProp, 0, sizeof(dProp));
@@ -773,10 +776,10 @@ static int flexiEavCreate(
             "value as prop_def" // 6 - Original property definition JSON
             " from json_each(:1, '$.properties');";
 
-    // Need to remove leading and traliling quotes
-    int iJSONLen = (int) strlen(argv[3]);
+    // Need to remove leading and trailing quotes
+    int iJSONLen = (int) strlen(zClassDef);
     CHECK_CALL(sqlite3_prepare_v2(db, zExtractPropSQL, -1, &pExtractProps, NULL));
-    CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, argv[3] + sizeof(char), iJSONLen - 2, NULL));
+    CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, zClassDef + sizeof(char), iJSONLen - 2, NULL));
 
     int iPropCnt = 0;
 
@@ -1898,6 +1901,7 @@ static int flexiEavUpdate(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, s
 
 /*
  * Renames class to a new name (zNew)
+ * TODO use flexi_class_rename
  */
 static int flexiEavRename(sqlite3_vtab *pVtab, const char *zNew) {
     int result = SQLITE_OK;
