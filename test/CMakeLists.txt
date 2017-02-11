@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.5)
 
 enable_testing()
 
-#message(WARNING "Platform: ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
 message(WARNING "Platform: ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}-${PLATFORM}")
 set(PLATFORM "${CMAKE_SYSTEM_NAME}")
 string(TOUPPER "${PLATFORM}" PLATFORM)
@@ -24,7 +23,13 @@ set(TEST_FILES
         ../lib/sqlite/sqlite3.c
         fts.c
         main.c
-        fts.c vtable.c util/db_init.c util/db_init.h definitions.h util/file_helper.c util/file_helper.h)
+        fts.c
+        vtable.c
+        util/db_init.c
+        util/db_init.h
+        definitions.h
+        util/file_helper.c
+        util/file_helper.h )
 
 
 add_definitions(-DSQLITE_ENABLE_FTS4
@@ -32,4 +37,4 @@ add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_LOAD_EXTENSION
         -DSQLITE_ENABLE_JSON1)
 
-add_executable(flexilite_test ${TEST_FILES})
+add_executable(flexilite_test ${TEST_FILES} )

@@ -2,12 +2,10 @@
 // Created by slanska on 2016-03-13.
 //
 
-#include <string.h>
-#include <stdio.h>
-#include <assert.h>
+//#include <string.h>
+//#include <stdio.h>
+//#include <assert.h>
 #include "../project_defs.h"
-
-#include "../../lib/sqlite/sqlite3ext.h"
 
 SQLITE_EXTENSION_INIT3
 

@@ -7,14 +7,6 @@
  */
 
 
-//#include "./misc/json1.h"
-//#include "./flexi/flexi_eav.h"
-//#include "./typings/DBDefinitions.h"
-//#include "./util/hash.h"
-//#include "./flexi/flexi_eav.h"
-//#include "./misc/regexp.h"
-//#include "./fts/fts3Int.h"
-
 #ifndef SQLITE_EXTENSIONS_PROJECT_DEFS_H
 #define SQLITE_EXTENSIONS_PROJECT_DEFS_H
 

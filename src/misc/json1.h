@@ -20,8 +20,7 @@ typedef unsigned char u8;
 ** under construction.  Really, this is a generic string accumulator
 ** that can be and is used to create strings other than JSON.
 */
-struct JsonString
-{
+struct JsonString {
     sqlite3_context *pCtx;
     /* Function context - put error messages here */
     char *zBuf;
@@ -64,8 +63,7 @@ void jsonReset(JsonString *p);
 
 /* A single node of parsed JSON
 */
-struct JsonNode
-{
+struct JsonNode {
     u8 eType;
     /* One of the JSON_ type values */
     u8 jnFlags;
@@ -74,8 +72,7 @@ struct JsonNode
     /* Replacement value when JNODE_REPLACE */
     u32 n;
     /* Bytes of content, or number of sub-nodes */
-    union
-    {
+    union {
         const char *zJContent;
         /* Content for INT, REAL, and STRING */
         u32 iAppend;
@@ -86,8 +83,7 @@ struct JsonNode
 
 /* A completely parsed JSON string
 */
-struct JsonParse
-{
+struct JsonParse {
     u32 nNode;
     /* Number of slots of aNode[] used */
     u32 nAlloc;
@@ -104,6 +100,11 @@ struct JsonParse
 };
 
 /*
+ * Initialize the JsonString object
+*/
+void jsonInit(JsonString *p, sqlite3_context *pCtx);
+
+/*
 ** Parse a complete JSON string.  Return 0 on success or non-zero if there
 ** are any errors.  If an error occurs, free all memory associated with
 ** pParse.
@@ -116,6 +117,16 @@ int jsonParse(
         const char *zJson            /* Input JSON text to be parsed */
 );
 
+/*
+** Do a node lookup using zPath.  Return a pointer to the node on success.
+** Return NULL if not found or if there is an error.
+**
+** On an error, write an error message into pCtx and increment the
+** pParse->nErr counter.
+**
+** If pApnd!=NULL then try to append missing nodes and set *pApnd = 1 if
+** nodes are appended.
+*/
 JsonNode *jsonLookup(
         JsonParse *pParse,      /* The JSON to search */
         const char *zPath,      /* The path to search */
@@ -134,6 +145,22 @@ void jsonReturn(
         sqlite3_value **aReplace    /* Array of replacement values */
 );
 
+int jsonSetValue(sqlite3_context *ctx,
+                 JsonParse *x,
+                 const char *zPath,
+                 int index,
+                 int bIsSet);
+
+/*
+** Convert the JsonNode pNode into a pure JSON string and
+** append to pOut.  Subsubstructure is also included.  Return
+** the number of JsonNode objects that are encoded.
+*/
+void jsonRenderNode(
+        JsonNode *pNode,               /* The node to render */
+        JsonString *pOut,              /* Write JSON here */
+        sqlite3_value **aReplace       /* Replacement values */
+);
 
 
 #endif //SQLITE_EXTENSIONS_JSON1_H

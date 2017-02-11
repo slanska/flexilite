@@ -11,7 +11,7 @@ enable_testing()
 set(CMAKE_BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 #message(WARNING "Platform: ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
-message(WARNING "Platform: ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}-${PLATFORM}")
+#message(WARNING "Platform: ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}-${PLATFORM}")
 set(PLATFORM "${CMAKE_SYSTEM_NAME}")
 string(TOUPPER "${PLATFORM}" PLATFORM)
 
@@ -45,7 +45,6 @@ project(flexilite)
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 set(EXT_FILES
-#        src/project_defs.h
         lib/sqlite/sqlite3ext.h
 
         src/typings/DBDefinitions.h
@@ -72,10 +71,6 @@ set(EXT_FILES
 #        src/flexi/flexi_eav.h
 
 #        src/misc/regexp.h
-        #        lmdb/libraries/liblmdb/midl.h
-        #        lmdb/libraries/liblmdb/mdb.c
-        #        lmdb/libraries/liblmdb/midl.c
-        #        lmdb/libraries/liblmdb/lmdb.h
 
         lib/duktape/duktape.c
         lib/duktape/duktape.h
@@ -97,13 +92,15 @@ set(EXT_FILES
         src/flexi/flexi_data_vtable.c
         src/flexi/flexi_query.c
         src/functions.c
-        src/util/s_jsonHash.c)
+#        src/util/json_proc.c
+        src/resources/dbschema.res.c
+        )
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
 #set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
 
-add_library(flexilite SHARED ${EXT_FILES})
+#add_library(flexilite SHARED ${EXT_FILES} )
 
 add_custom_target(install_${PROJECT_NAME}
         make install

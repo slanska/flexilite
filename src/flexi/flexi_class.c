@@ -32,6 +32,15 @@ int flexi_class_create(sqlite3 *db,
                        char **pzError) {
     int result = SQLITE_OK;
 
+    /*
+     * jsonParse
+     * jsonLookup
+     * jsonRenderNode
+     * jsonReturnJson (sets sqlite3_result_*)
+     *
+     * jsonParseReset
+     */
+
     goto FINALLY;
 
     CATCH:
