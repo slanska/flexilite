@@ -7,7 +7,6 @@
 #include "definitions.h"
 #include "util/db_init.h"
 
-
 /* A test case that does nothing and succeeds. */
 static void init_memory_db(void **state) {
 

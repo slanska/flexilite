@@ -47,7 +47,7 @@ JsonNode *json_set(JSON_Processor *json, const char *zPath, sqlite3_value *val) 
     JsonNode *result = jsonLookup(&json->parser, zPath, &iApnd, json->out.pCtx);
     int len = sqlite3_value_bytes(val);
     char *zValue = sqlite3_malloc(len);
-    strcpy(zValue, sqlite3_value_text(val));
+    strncpy(zValue, sqlite3_value_text(val), len - 1);
     // TODO When zValue will be disposed?
     result->u.zJContent = zValue;
     return result;

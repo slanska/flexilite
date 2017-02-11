@@ -38,9 +38,29 @@ add_definitions(-DSQLITE_ENABLE_FTS4
 
 add_executable(sqlite_shell ${SHELL_FILES})
 
-project(flexilite)
+# libFlexilite library
+project(Flexilite)
 
-# project (flexilite_test)
+#add_custom_command(
+#        OUTPUT src/resources/dbschema.res
+#        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#        COMMAND xxd -i sql/dbschema.sql > src/resources/dbschema.res.h
+#        COMMENT "Generating resource file for SQL schema."
+#        DEPENDS sql/dbschema.sql
+#)
+
+add_custom_target(Generate_Resources
+        ALL
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMAND xxd -i sql/dbschema.sql > src/resources/dbschema.res.h
+        COMMENT "Generating resource file for SQL schema."
+        DEPENDS sql/dbschema.sql)
+
+set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TRUE)
+
+#if (NOT XXD_SQL_RESULT EQUAL 0)
+#    message(FATAL_ERROR "Failed to generate resource file for SQL schema")
+#endif ()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
@@ -62,15 +82,15 @@ set(EXT_FILES
         src/misc/json1.c
 
         src/util/hash.c
-#        src/util/hash.h
+        #        src/util/hash.h
 
         src/misc/hash.c
 
         src/misc/memstat.c
         src/flexi/flexieav_vtable.c
-#        src/flexi/flexi_eav.h
+        #        src/flexi/flexi_eav.h
 
-#        src/misc/regexp.h
+        #        src/misc/regexp.h
 
         lib/duktape/duktape.c
         lib/duktape/duktape.h
@@ -81,31 +101,32 @@ set(EXT_FILES
         src/flexi/flexi_props_to_object.c
 
         src/fts/fts3_expr.c
-#        src/fts/fts3Int.h
+        #        src/fts/fts3Int.h
         src/fts/fts3_tokenizer.c
-#        src/fts/fts3_tokenizer.h
+        #        src/fts/fts3_tokenizer.h
         src/fts/fts3_hash.c
-#        src/fts/fts3_hash.h
+        #        src/fts/fts3_hash.h
         src/flexi/flexi_import_data.c
         src/flexi/flexi_prop_create.c
         src/flexi/flexi_prop_merge.c
         src/flexi/flexi_data_vtable.c
         src/flexi/flexi_query.c
         src/functions.c
-#        src/util/json_proc.c
-        src/resources/dbschema.res.c
-        )
+        src/util/json_proc.c
+        src/common/common.h
+        src/resources/dbschema.res.h
+        src/flexi/flexi_init.c)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
 #set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
 
-#add_library(flexilite SHARED ${EXT_FILES} )
+add_library(Flexilite SHARED ${EXT_FILES})
 
 add_custom_target(install_${PROJECT_NAME}
         make install
         DEPENDS ${PROJECT_NAME}
         COMMENT "Installing ${PROJECT_NAME}")
 
-add_subdirectory(test)
+#add_subdirectory(test)
 
