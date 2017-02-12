@@ -8,8 +8,14 @@
  */
 
 #include "json_proc.h"
+#include "../project_defs.h"
 
 SQLITE_EXTENSION_INIT3
+
+static void _free_value(void *elem) {
+    char *pp = *(char *) elem;
+    sqlite3_free((void *) *pp);
+}
 
 int json_parse(JSON_Processor *json, sqlite3_context *pCtx, const char *zJSON) {
     int result = SQLITE_OK;
@@ -17,6 +23,7 @@ int json_parse(JSON_Processor *json, sqlite3_context *pCtx, const char *zJSON) {
     memset(json, 0, sizeof(*json));
     jsonParse(&json->parser, pCtx, zJSON);
     jsonInit(&json->out, pCtx);
+    buffer_init(&json->nodeValues, sizeof(sqlite3_value), _free_value);
 
     return result;
 }
@@ -39,6 +46,16 @@ void json_n_stringify(JSON_Processor *json, JsonNode *pNode, char **pzOut) {
 JsonNode *json_get(JSON_Processor *json, const char *zPath) {
     int iApnd = 0;
     JsonNode *result = jsonLookup(&json->parser, zPath, &iApnd, json->out.pCtx);
+    return result;
+}
+
+JsonNode *json_n_get(JSON_Processor *json, JsonNode *pRoot, const char *zPath) {
+    int iApnd = 0;
+    const char *pzErr;
+    JsonNode *result = jsonLookupStep(&json->parser, pRoot->n, zPath, &iApnd, &pzErr);
+    if (*pzErr)
+        return NULL;
+
     return result;
 }
 

@@ -34,5 +34,10 @@
 #define CHECK_MALLOC(v, s) v = sqlite3_malloc(s); \
         if (v == NULL) { result = SQLITE_NOMEM; goto CATCH;}
 
+/* Mark a function parameter as unused, to suppress nuisance compiler
+** warnings. */
+#ifndef UNUSED_PARAM
+# define UNUSED_PARAM(X)  (void)(X)
+#endif
 
 #endif //FLEXILITE_COMMON_H

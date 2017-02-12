@@ -7,10 +7,23 @@
 
 #include "../project_defs.h"
 #include "../misc/json1.h"
+#include "buffer.h"
 
 struct JSON_Processor {
+    /*
+     * JSON parser. Keeps list of parsed nodes and original JSON string
+     */
     JsonParse parser;
+
+    /*
+     * JSON string builder
+     */
     JsonString out;
+
+    /*
+     * List of sqlite3_value[] - replaced/added values
+     */
+    Buffer nodeValues;
 };
 
 typedef struct JSON_Processor JSON_Processor;

@@ -13,4 +13,6 @@
 #include <cmocka.h>
 #include <sqlite3.h>
 
+#include "../src/common/common.h"
+
 #endif //FLEXILITE_DEFINITIONS_H

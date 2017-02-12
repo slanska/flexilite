@@ -4,8 +4,7 @@
 
 #include "db_init.h"
 #include "file_helper.h"
-#include "../../src/project_defs.h"
-
+#include "../definitions.h"
 
 int db_open_in_memory(sqlite3 **pDb) {
     return db_create_or_open(":memory:", pDb);

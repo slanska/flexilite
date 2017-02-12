@@ -4,13 +4,15 @@
 
 #include "../project_defs.h"
 
-extern unsigned char sql_dbschema_sql[];
-extern unsigned int sql_dbschema_sql_len;
+// Forward declarations
+unsigned char sql_dbschema_sql[];
+unsigned int sql_dbschema_sql_len;
 
 int flexi_init(sqlite3 *pDb, sqlite3_context *pCtx) {
 
 #include "../resources/dbschema.res.h"
 
-    sql_dbschema_sql[0] = ' ';
+    char *zError;
+    sqlite3_exec(pDb, sql_dbschema_sql, NULL, NULL, &zError);
 }
 

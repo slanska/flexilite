@@ -64,20 +64,27 @@ void jsonReset(JsonString *p);
 /* A single node of parsed JSON
 */
 struct JsonNode {
-    u8 eType;
     /* One of the JSON_ type values */
-    u8 jnFlags;
+    u8 eType;
+
     /* JNODE flags */
-    u8 iVal;
+    u8 jnFlags;
+
     /* Replacement value when JNODE_REPLACE */
-    u32 n;
+    u8 iVal;
+
     /* Bytes of content, or number of sub-nodes */
+    u32 n;
+
     union {
-        const char *zJContent;
         /* Content for INT, REAL, and STRING */
-        u32 iAppend;
+        const char *zJContent;
+
         /* More terms for ARRAY and OBJECT */
-        u32 iKey;              /* Key for ARRAY objects in json_tree() */
+        u32 iAppend;
+
+        /* Key for ARRAY objects in json_tree() */
+        u32 iKey;
     } u;
 };
 
@@ -162,5 +169,26 @@ void jsonRenderNode(
         sqlite3_value **aReplace       /* Replacement values */
 );
 
+/*
+** Compute the parentage of all nodes in a completed parse.
+*/
+int jsonParseFindParents(JsonParse *pParse);
+
+/*
+** Search along zPath to find the node specified.  Return a pointer
+** to that node, or NULL if zPath is malformed or if there is no such
+** node.
+**
+** If pApnd!=0, then try to append new nodes to complete zPath if it is
+** possible to do so and if no existing node corresponds to zPath.  If
+** new nodes are appended *pApnd is set to 1.
+*/
+JsonNode *jsonLookupStep(
+        JsonParse *pParse,      /* The JSON to search */
+        u32 iRoot,              /* Begin the search at this node */
+        const char *zPath,      /* The path to search */
+        int *pApnd,             /* Append nodes to complete path if not NULL */
+        const char **pzErr      /* Make *pzErr point to any syntax error in zPath */
+);
 
 #endif //SQLITE_EXTENSIONS_JSON1_H

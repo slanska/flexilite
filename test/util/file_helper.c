@@ -4,7 +4,6 @@
 
 #include <stdio.h>
 #include "file_helper.h"
-#include "../../src/project_defs.h"
 
 int file_load_utf8(const char *zFileName, char **ppBuf) {
     int result = SQLITE_OK;

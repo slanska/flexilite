@@ -867,7 +867,7 @@ static void jsonParseFillInParentage(JsonParse *pParse, u32 i, u32 iParent) {
 /*
 ** Compute the parentage of all nodes in a completed parse.
 */
-static int jsonParseFindParents(JsonParse *pParse) {
+int jsonParseFindParents(JsonParse *pParse) {
     u32 *aUp;
     assert(pParse->aUp == 0);
     aUp = pParse->aUp = sqlite3_malloc(sizeof(u32) * pParse->nNode);
@@ -905,7 +905,7 @@ static JsonNode *jsonLookupAppend(JsonParse *, const char *, int *, const char *
 ** possible to do so and if no existing node corresponds to zPath.  If
 ** new nodes are appended *pApnd is set to 1.
 */
-static JsonNode *jsonLookupStep(
+JsonNode *jsonLookupStep(
         JsonParse *pParse,      /* The JSON to search */
         u32 iRoot,              /* Begin the search at this node */
         const char *zPath,      /* The path to search */
