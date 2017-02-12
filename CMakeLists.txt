@@ -115,7 +115,7 @@ set(EXT_FILES
         src/util/json_proc.c
         src/common/common.h
         src/resources/dbschema.res.h
-        src/flexi/flexi_init.c src/util/buffer.c src/util/buffer.h)
+        src/flexi/flexi_init.c src/util/buffer.c src/util/buffer.h src/flexi/flexi_class.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")

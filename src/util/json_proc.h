@@ -26,6 +26,8 @@ struct JSON_Processor {
     Buffer nodeValues;
 };
 
+typedef struct MyStruct MyType;
+
 typedef struct JSON_Processor JSON_Processor;
 
 int json_parse(JSON_Processor *json, sqlite3_context *pCtx, const char *zJSON);
@@ -38,7 +40,7 @@ void json_n_stringify(JSON_Processor *json, JsonNode *pNode, char **pzOut);
 
 JsonNode *json_get(JSON_Processor *json, const char *zPath);
 
-JsonNode *json_set(JSON_Processor *json, const char *zPath, sqlite3_value *val);
+//JsonNode *json_set(JSON_Processor *json, const char *zPath, sqlite3_value *val);
 
 JsonNode *json_insert(JSON_Processor *json, const char *zPath, sqlite3_value *val);
 

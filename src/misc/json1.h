@@ -15,6 +15,15 @@ typedef unsigned int u32;
 typedef unsigned char u8;
 #endif
 
+/* Bit values for the JsonNode.jnFlag field
+*/
+#define JNODE_RAW     0x01         /* Content is raw, not JSON encoded */
+#define JNODE_ESCAPE  0x02         /* Content is text with \ escapes */
+#define JNODE_REMOVE  0x04         /* Do not output */
+#define JNODE_REPLACE 0x08         /* Replace with JsonNode.iVal */
+#define JNODE_APPEND  0x10         /* More ARRAY/OBJECT entries at u.iAppend */
+#define JNODE_LABEL   0x20         /* Is a label of an object */
+
 /* Objects */
 /* An instance of this object represents a JSON string
 ** under construction.  Really, this is a generic string accumulator

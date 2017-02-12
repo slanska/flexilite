@@ -8,13 +8,10 @@
  */
 
 #include "json_proc.h"
-#include "../project_defs.h"
-
-SQLITE_EXTENSION_INIT3
 
 static void _free_value(void *elem) {
-    char *pp = *(char *) elem;
-    sqlite3_free((void *) *pp);
+    void **p = (void **)elem;
+    sqlite3_free(*p);
 }
 
 int json_parse(JSON_Processor *json, sqlite3_context *pCtx, const char *zJSON) {
@@ -23,7 +20,7 @@ int json_parse(JSON_Processor *json, sqlite3_context *pCtx, const char *zJSON) {
     memset(json, 0, sizeof(*json));
     jsonParse(&json->parser, pCtx, zJSON);
     jsonInit(&json->out, pCtx);
-    buffer_init(&json->nodeValues, sizeof(sqlite3_value), _free_value);
+    buffer_init(&json->nodeValues, sizeof(sqlite3_value *), _free_value);
 
     return result;
 }
@@ -59,16 +56,19 @@ JsonNode *json_n_get(JSON_Processor *json, JsonNode *pRoot, const char *zPath) {
     return result;
 }
 
-JsonNode *json_set(JSON_Processor *json, const char *zPath, sqlite3_value *val) {
-    int iApnd = 1;
-    JsonNode *result = jsonLookup(&json->parser, zPath, &iApnd, json->out.pCtx);
-    int len = sqlite3_value_bytes(val);
-    char *zValue = sqlite3_malloc(len);
-    strncpy(zValue, sqlite3_value_text(val), len - 1);
-    // TODO When zValue will be disposed?
-    result->u.zJContent = zValue;
-    return result;
-}
+//JsonNode *json_set(JSON_Processor *json, const char *zPath, sqlite3_value *val) {
+//    int iApnd = 1;
+//    JsonNode *result = jsonLookup(&json->parser, zPath, &iApnd, json->out.pCtx);
+//    int len = sqlite3_value_bytes(val);
+//    char *zValue = sqlite3_malloc(len);
+//    strncpy(zValue, sqlite3_value_text(val), len - 1);
+//    // TODO When zValue will be disposed?
+//    sqlite3_value
+//    result->u.zJContent = zValue;
+//    result->jnFlags |= JNODE_REPLACE;
+//    result->n = json->nodeValues.
+//    return result;
+//}
 
 void json_dispose(JSON_Processor *json) {
     jsonReset(&json->out);

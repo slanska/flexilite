@@ -15,7 +15,7 @@ struct Buffer {
     /*
      * Array of items
      */
-    void *items;
+    char *items;
 
     /*
      * Current number of items

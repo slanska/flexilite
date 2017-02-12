@@ -40,13 +40,13 @@ static int _buffer_ensure_capacity(Buffer *pBuf, u32 newCnt) {
         memcpy(newItems, pBuf->items, pBuf->iElemSize * pBuf->iCnt);
         pBuf->items = newItems;
         pBuf->iCapacity = newCap;
-        return SQLITE_OK;
     }
+    return SQLITE_OK;
 }
 
 inline void *buffer_get(Buffer *pBuf, u32 index) {
     assert(index < pBuf->iCnt);
-    void *result = (void *) ((char *) pBuf->items)[pBuf->iElemSize * index];
+    void *result = &pBuf->items[pBuf->iElemSize * index];
     return result;
 }
 
