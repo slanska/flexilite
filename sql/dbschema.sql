@@ -32,7 +32,7 @@ Objects may have attributes which are not defined in .classes.Data.properties
 (if .classes.Data.allowNotDefinedProps = 1). Such attributes will be stored as IDs to .names table,
 where ID will be for record with type = 0 (name). Normally, object properties defined in schema will be referencing
 rows with type = 1 (property). Having both types of entities in one table allows shared space for names. Both types are exposed as
-updateable views (.names and .class_properties), so their exposition will not be much different from real table
+updatable views (.names and .class_properties), so their exposition will not be much different from real table
 
 When a new property is created, a new row gets inserted with Type = 1. Also, if needed row for Name (with Type = 0) gets inserted as well.
 
@@ -641,7 +641,9 @@ END;
 
 CREATE VIRTUAL TABLE IF NOT EXISTS [.range_data] USING rtree (
   [ObjectID],
+
   [ClassID0], [ClassID1],
+
   [A0], [A1],
   [B0], [B1],
   [C0], [C1],
@@ -821,7 +823,7 @@ BEGIN
       ctlo = c.ctloMask
 
     FROM [.classes] c, [.class_properties] p
-    WHERE new.ObjectID is not null and c.[ClassID] = p.[ClassID] AND c.NameID = new.NameID AND p.Name = new.PropertyName
+    WHERE new.ObjectID IS NOT NULL AND c.[ClassID] = p.[ClassID] AND c.NameID = new.NameID AND p.Name = new.PropertyName
           AND (p.[ctlv] & 14) = 0 AND p.ColumnAssigned IS NOT NULL AND new.PropertyIndex = 0;
 
   INSERT OR REPLACE INTO [.ref-values] (ObjectID, PropertyID, PropIndex, [Value], ctlv, RefValueID)

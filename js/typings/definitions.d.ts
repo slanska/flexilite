@@ -486,6 +486,7 @@ interface IClassDefinition {
     allowNotDefinedProps?: boolean;
 
     /*
+     Reserved for future use.
      Mapping properties to fixed columns in [.objects] table
      */
     columnMapping?: {
@@ -499,12 +500,6 @@ interface IClassDefinition {
         H?: IPropertyIdentifier;
         I?: IPropertyIdentifier;
         J?: IPropertyIdentifier;
-        // K?: IPropertyIdentifier;
-        // L?: IPropertyIdentifier;
-        // M?: IPropertyIdentifier;
-        // N?: IPropertyIdentifier;
-        // O?: IPropertyIdentifier;
-        // P?: IPropertyIdentifier;
     }
 
     /*
