@@ -1,18 +1,35 @@
 # To-Do list
 
 ###Mem leaks
-Close statements, free allocated memory
-*Done*
+&#10004; Close statements, free allocated memory
 
 ###MATCH function 
-MATCH for plain unindexed text. Borrow from SQLite sources (FTS3 or FTS5)
+&#10004;MATCH for plain unindexed text. Borrow from SQLite sources (FTS3 or FTS5)
 *Done (more optimization required - using SQLite FTS3 parser and regex)*
 
 ###Range properties
-Generate 2 scalar columns (with link from high bound prop to low bound prop)
+&#10004;Generate 2 scalar columns (with link from high bound prop to low bound prop)
 *Done* TODO Test
 
-###flexi_import_data
+### Update SQL script
+* *.names* and *.class_properties* as updatable views
+* .classes.UnresolvedNames
+* Finalize refDef and enumDef structures
+
+### JSON processing
+* Set value - array of sqlite3_values
+* Unit tests
+
+### flexi_class_create
+* class definition validation
+* indexing
+* full text search
+* rtree
+
+###flexi_data virtual table
+* process references
+* INSERT/UPDATE/DELETE operations
+
 
 ```
 (

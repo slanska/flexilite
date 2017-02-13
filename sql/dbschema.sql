@@ -1,79 +1,149 @@
-PRAGMA page_size = 8192;
+-- TODO Configurable page size?
+-- PRAGMA page_size = 8192;
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = 1;
 PRAGMA encoding = 'UTF-8';
 PRAGMA recursive_triggers = 1;
 
 ------------------------------------------------------------------------------------------
+-- .full_text_data
+------------------------------------------------------------------------------------------
+CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
+
+-- Class type. 0 for .names
+  ClassID,
+
+  -- Mapped columns
+  [X1], [X2], [X3], [X4]
+
+  -- to allow case insensitive search for different languages
+  tokenize=unicode61
+);
+
+------------------------------------------------------------------------------------------
 -- .names
 ------------------------------------------------------------------------------------------
 
 /*
-.names table has rows of 2 types - class properties and symbolic names. Column 'type' defines
+.names_props table has rows of 2 types - class properties and symbolic names. Column 'type' defines
 which sort of entity it is: 0 - name, 1 - property name
 The reason why 2 entities are combined into single table is to share IDs.
 Objects may have attributes which are not defined in .classes.Data.properties
 (if .classes.Data.allowNotDefinedProps = 1). Such attributes will be stored as IDs to .names table,
-where ID will correspond to name subtype.
+where ID will be for record with type = 0 (name). Normally, object properties defined in schema will be referencing
+rows with type = 1 (property). Having both types of entities in one table allows shared space for names. Both types are exposed as
+updateable views (.names and .class_properties), so their exposition will not be much different from real table
 
-When a new property is created, a new row gets inserted with Type = 1. Also, if needed row for Name (with Type = 0) gets inserted if needed.
+When a new property is created, a new row gets inserted with Type = 1. Also, if needed row for Name (with Type = 0) gets inserted as well.
 
 */
-CREATE TABLE IF NOT EXISTS [.names]
+CREATE TABLE IF NOT EXISTS [.names_props]
 (
-  NameID       INTEGER             NOT NULL PRIMARY KEY               AUTOINCREMENT,
+  ID           INTEGER             NOT NULL PRIMARY KEY               AUTOINCREMENT,
 
-  Type         INTEGER             NOT NULL CHECK (Type IN [0, 1]),
+  /*
+  0 - name
+  1 - class property
+   */
+  Type         SMALLINT            NOT NULL CHECK (Type IN [0, 1]),
+
+  /*
+  Flag indicating that record was deleted. Records from .names table are never deleted to avoid problems with possible references
+  Instead soft deleting is used. Such records are considered as source of NULL string during search. They are also deleted from
+   */
+  Deleted      BOOLEAN             NOT NULL                           DEFAULT 0,
 
   /*
   Name specific columns
   */
 
   /* Case sensitive
-  Used as Value for Name type and as a
+  Used as Value for Name type and as a text value for related types (e.g. enum)
+  For type = 0 this value is required and must be unique. It also gets indexed in full text search index
+  to allow FTS on objects with properties with type = PROP_TYPE_NAME
   */
 
   [Value]      TEXT COLLATE BINARY NULL CHECK (rtrim(ltrim([Value])) <> ''),
 
   /*
   These 2 columns are reserved for future to be used for semantic search.
-   */
+ */
   PluralOf     INTEGER             NULL
     CONSTRAINT [fkNamesByPluralOf]
-    REFERENCES [.names] ([NameID]) ON DELETE SET NULL ON UPDATE RESTRICT,
+    REFERENCES [.names] ([ID]) ON DELETE SET NULL ON UPDATE RESTRICT,
   AliasOf      INTEGER             NULL
     CONSTRAINT [fkNamesByAliasOf]
-    REFERENCES [.names] ([NameID]) ON DELETE SET NULL ON UPDATE RESTRICT,
-
-  Data         JSON1               NULL,
-
-  [ClassID]    INTEGER             NOT NULL CONSTRAINT [fkClassPropertiesToClasses]
-  REFERENCES [.classes] ([ClassID]) ON DELETE CASCADE ON UPDATE RESTRICT,
+    REFERENCES [.names] ([ID]) ON DELETE SET NULL ON UPDATE RESTRICT,
 
   /*
   Property specific columns
   */
+  [ClassID]    INTEGER             NULL CONSTRAINT [fkClassPropertiesToClasses]
+  REFERENCES [.classes] ([ClassID]) ON DELETE CASCADE ON UPDATE RESTRICT,
+
   /*
-  Property name. If null, Value will be used.
+  ID of property name
   */
-  [PropNameID] INTEGER             NOT NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.names] ([NameID])
+  [PropNameID] INTEGER             NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.names_props] ([NameID])
   ON DELETE RESTRICT ON UPDATE RESTRICT,
 
   /*
   Actual control flags (already applied).
-  These flags define indexing, logging and other storage attributes
+  These flags define indexing, logging and other property attributes
   */
   [ctlv]       INTEGER             NOT NULL                           DEFAULT 0,
 
   /*
   Planned/desired control flags which are not yet applied
   */
-  [ctlvPlan]   INTEGER             NOT NULL                           DEFAULT 0
+  [ctlvPlan]   INTEGER             NOT NULL                           DEFAULT 0,
+
+  /*
+
+   */
+  Data         JSON1               NULL,
+
+  RefClassID   INTEGER             NULL CONSTRAINT [fkClassPropertiesToRefClass] REFERENCES [.classes] (ClassID)
+  ON DELETE RESTRICT ON UPDATE RESTRICT,
+
+  RefPropID    INTEGER             NULL CONSTRAINT (fkClassPropertiesToRefProp) REFERENCES [.names_props] (ID)
+  ON DELETE RESTRICT ON UPDATE RESTRICT
 );
 
+CREATE TRIGGER IF NOT EXISTS [namesAfterInsert]
+AFTER INSERT
+  ON [.names]
+  WHEN new.Value IS NOT NULL
+FOR EACH ROW
+BEGIN
+INSERT INTO [.full_text_data] (id, ClassID, X1) VALUES (-new.ID, 0, new.Value);
+END;
+
+CREATE TRIGGER IF NOT EXISTS [namesAfterUpdate]
+AFTER UPDATE
+  ON [.names]
+  WHEN new.Value IS NOT NULL
+FOR EACH ROW
+BEGIN
+UPDATE [.full_text_data]
+SET X1 = new.Value
+WHERE id = -new.ID;
+END;
+
+CREATE TRIGGER IF NOT EXISTS [namesAfterDelete]
+AFTER DELETE
+  ON [.names]
+  WHEN old.Value IS NOT NULL
+FOR EACH ROW
+BEGIN
+DELETE FROM [.full_text_data]
+WHERE id = -old.ID;
+END;
+
+-- .names specific indexes
 CREATE UNIQUE INDEX IF NOT EXISTS [namesByValue]
-  ON [.names] ([Value])
-  WHERE [Value] IS NOT NULL AND Type = 0;
+  ON [.names_props] ([Value])
+  WHERE [Value] IS NOT NULL;
 CREATE INDEX IF NOT EXISTS [namesByAliasOf]
   ON [.names] ([AliasOf])
   WHERE AliasOf IS NOT NULL;
@@ -81,50 +151,132 @@ CREATE INDEX IF NOT EXISTS [namesByPluralOf]
   ON [.names] ([PluralOf])
   WHERE PluralOf IS NOT NULL;
 
-
+-- .class_properties specific indexes
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByClassAndName]
   ON [.class_properties]
-  (ClassID, NameID)
-  WHERE ClassID IS NOT NULL AND Type = 1;
+  (ClassID, ID)
+  WHERE ClassID IS NOT NULL;
 
-CREATE VIEW IF NOT EXISTS [.vw_class_properties] AS
+CREATE VIEW IF NOT EXISTS [.class_properties] AS
   SELECT
-    [NameID]                                                        AS PropertyID,
+    [ID]                                                    AS PropertyID,
     cp.[ClassID],
-    cp.[PropNameID]                        AS NameID,
+    cp.[PropNameID]                                         AS NameID,
     (SELECT [Value]
      FROM [.names] n
-     WHERE n.NameID = PropNameID
-     LIMIT 1)                                                       AS Name,
+     WHERE n.ID = PropNameID
+     LIMIT 1)                                               AS Name,
     CASE
-    WHEN c.A = NameID
+    WHEN c.A = ID
       THEN 'A'
-    WHEN c.B = NameID
+    WHEN c.B = ID
       THEN 'B'
-    WHEN c.C = NameID
+    WHEN c.C = ID
       THEN 'C'
-    WHEN c.D = NameID
+    WHEN c.D = ID
       THEN 'D'
-    WHEN c.E = NameID
+    WHEN c.E = ID
       THEN 'E'
-    WHEN c.F = NameID
+    WHEN c.F = ID
       THEN 'F'
-    WHEN c.G = NameID
+    WHEN c.G = ID
       THEN 'G'
-    WHEN c.H = NameID
+    WHEN c.H = ID
       THEN 'H'
-    WHEN c.I = NameID
+    WHEN c.I = ID
       THEN 'I'
-    WHEN c.J = NameID
+    WHEN c.J = ID
       THEN 'J'
     ELSE NULL
-    END                                                             AS [ColumnAssigned],
-    ctlv,
-    (json_extract(c.Data, printf('$.properties.%d', [NameID]))) AS Data
+    END                                                     AS [ColumnAssigned],
+    cp.ctlv                                                 AS ctlv,
+    cp.ctlvPlan                                             AS ctlvPlan,
+    (json_extract(c.Data, printf('$.properties.%d', [ID]))) AS Data,
+    cp.RefClassID                                           AS RefClassID,
+    cp.RefPropID                                            AS RefPropID
 
   FROM [.names] cp
-    JOIN [.classes] c ON cp.NameID = c.ClassID
-  WHERE Type = 1;
+    JOIN [.classes] c ON cp.ClassID = c.ClassID
+  WHERE Type = 1 AND Deleted = 0;
+
+CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Insert]
+INSTEAD OF INSERT
+  ON [.class_properties]
+FOR EACH ROW
+BEGIN
+  INSERT OR IGNORE INTO [.names_props] (Value, Type) VALUES (new.Name, 0);
+  INSERT INTO [.names_props] (Type, PropNameID, ClassID, ctlv, ctlvPlan, RefClassID, RefPropID)
+  VALUES (1, (SELECT ID
+              FROM [.names_props]
+              WHERE Value = new.Name
+              LIMIT 1),
+          new.ClassID, new.ctlv, new.ctlvPlan, new.RefClassID, new.RefPropID);
+END;
+
+CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Update]
+INSTEAD OF UPDATE
+  ON [.class_properties]
+FOR EACH ROW
+BEGIN
+  INSERT OR IGNORE INTO [.names_props] (Value, Type, RefClassID, RefPropID)
+  VALUES (new.Name, 0, new.RefClassID, new.RefPropID);
+  UPDATE [.names_props]
+  SET PropNameID = (SELECT ID
+                    FROM [.names_props]
+                    WHERE Value = new.Name
+                    LIMIT 1),
+    ClassID      = new.ClassID, ctlv = new.ctlv, ctlvPlan = new.ctlvPlan
+  WHERE ID = old.PropertyID;
+END;
+
+CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Delete]
+INSTEAD OF DELETE
+  ON [.class_properties]
+FOR EACH ROW
+BEGIN
+  DELETE FROM [.names_props]
+  WHERE ID = old.PropertyID;
+
+  DELETE FROM [.ref-values]
+  WHERE [PropertyID] = old.PropertyID;
+END;
+
+/*
+.names view
+ */
+CREATE VIEW IF NOT EXISTS [.names] AS
+  SELECT
+    ID AS NameID,
+    Value,
+    AliasOf,
+    PluralOf
+  FROM [.names_props]
+  WHERE Type = 0;
+
+CREATE TRIGGER IF NOT EXISTS [names_Insert]
+INSTEAD OF INSERT
+  ON [.names]
+FOR EACH ROW
+BEGIN
+  INSERT INTO [.names_props] (Value, AliasOf, PluralOf, Type) VALUES (new.Value, new.AliasOf, new.PluralOf, 0);
+END;
+
+CREATE TRIGGER IF NOT EXISTS [names_Update]
+INSTEAD OF UPDATE
+  ON [.names]
+FOR EACH ROW
+BEGIN
+UPDATE [.names_props] Value = new.Value, AliasOf = new.Value, PluralOf = new.PluralOf WHERE ID = old.NameID;
+END;
+
+CREATE TRIGGER IF NOT EXISTS [names_Delete]
+INSTEAD OF DELETE
+  ON [.names]
+FOR EACH ROW
+BEGIN
+  DELETE FROM [.names_props]
+  WHERE ID = old.NameID;
+END;
 
 ------------------------------------------------------------------------------------------
 -- .access_rules
@@ -191,58 +343,26 @@ END;
 -- .classes
 ------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [.classes] (
-  [ClassID]      INTEGER  NOT NULL PRIMARY KEY AUTOINCREMENT,
-  [NameID]       INTEGER  NOT NULL CONSTRAINT [fkClassesNameID]
-  REFERENCES [.names] ([NameID]) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  [ViewOutdated] BOOL     NOT NULL             DEFAULT 1,
+  [ClassID]     INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  [NameID]      INTEGER NOT NULL CONSTRAINT [fkClassesNameID]
+  REFERENCES [.names_props] ([ID]) ON DELETE RESTRICT ON UPDATE RESTRICT,
 
   -- System class is used internally by the system and cannot be changed or deleted by end-user
-
-  [SystemClass]  BOOL     NOT NULL             DEFAULT 0,
-
-  -- Optional mappings for JSON property shortcuts and/or indexing
-  -- Values are property IDs
-  [A]            INTEGER  NULL,
-  [B]            INTEGER  NULL,
-  [C]            INTEGER  NULL,
-  [D]            INTEGER  NULL,
-  [E]            INTEGER  NULL,
-  [F]            INTEGER  NULL,
-  [G]            INTEGER  NULL,
-  [H]            INTEGER  NULL,
-  [I]            INTEGER  NULL,
-  [J]            INTEGER  NULL,
+  [SystemClass] BOOL    NOT NULL             DEFAULT 0,
 
   -- Control bitmask for objects belonging to this class
-  [ctloMask]     INTEGER  NOT NULL             DEFAULT 0,
+  [ctloMask]    INTEGER NOT NULL             DEFAULT 0,
 
-  AccessRules    JSON1    NULL,
+  AccessRules   JSON1   NULL,
 
   /*
   IClassDefinition. Can be set to null for a newly created class
   */
-  Data           JSON1    NULL,
-
-  /*
-  Class definition hash. Used for fast lookup for duplicated definitions and schema verification
-
-  TODO Needed?
-  */
-  Hash           TEXT(40) NULL
+  Data          JSON1   NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClasses_byNameID]
   ON [.classes] ([NameID]);
-
-CREATE TRIGGER IF NOT EXISTS [trigClassesAfterUpdateName]
-AFTER UPDATE OF NameID
-  ON [.classes]
-FOR EACH ROW
-BEGIN
-  UPDATE [.schemas]
-  SET NameID = new.NameID
-  WHERE NameID = old.NameID;
-END;
 
 CREATE TRIGGER IF NOT EXISTS [trigClassesAfterInsert]
 AFTER INSERT
@@ -256,50 +376,11 @@ BEGIN
              "$.SystemClass", new.SystemClass,
              "$.ViewOutdated", new.ViewOutdated,
              "$.ctloMask", new.ctloMask,
+             "$.Data", new.Data,
 
              CASE WHEN new.AccessRules IS NULL
                THEN NULL
-             ELSE "$.AccessRules" END, new.AccessRules,
-
-             CASE WHEN new.A IS NULL
-               THEN NULL
-             ELSE "$.A" END, new.A,
-
-             CASE WHEN new.B IS NULL
-               THEN NULL
-             ELSE "$.B" END, new.B,
-
-             CASE WHEN new.C IS NULL
-               THEN NULL
-             ELSE "$.C" END, new.C,
-
-             CASE WHEN new.D IS NULL
-               THEN NULL
-             ELSE "$.D" END, new.D,
-
-             CASE WHEN new.E IS NULL
-               THEN NULL
-             ELSE "$.E" END, new.E,
-
-             CASE WHEN new.F IS NULL
-               THEN NULL
-             ELSE "$.F" END, new.F,
-
-             CASE WHEN new.G IS NULL
-               THEN NULL
-             ELSE "$.G" END, new.G,
-
-             CASE WHEN new.H IS NULL
-               THEN NULL
-             ELSE "$.H" END, new.H,
-
-             CASE WHEN new.I IS NULL
-               THEN NULL
-             ELSE "$.I" END, new.I,
-
-             CASE WHEN new.J IS NULL
-               THEN NULL
-             ELSE "$.J" END, new.J
+             ELSE "$.AccessRules" END, new.AccessRules
     )
   );
 
@@ -325,50 +406,11 @@ BEGIN
                  "$.SystemClass", old.SystemClass,
                  "$.ViewOutdated", old.ViewOutdated,
                  "$.ctloMask", old.ctloMask,
+                 "$.Data", old.Data,
 
                  CASE WHEN old.AccessRules IS NULL
                    THEN NULL
-                 ELSE "$.AccessRules" END, old.AccessRules,
-
-                 CASE WHEN old.A IS NULL
-                   THEN NULL
-                 ELSE "$.A" END, old.A,
-
-                 CASE WHEN old.B IS NULL
-                   THEN NULL
-                 ELSE "$.B" END, old.B,
-
-                 CASE WHEN old.C IS NULL
-                   THEN NULL
-                 ELSE "$.C" END, old.C,
-
-                 CASE WHEN old.D IS NULL
-                   THEN NULL
-                 ELSE "$.D" END, old.D,
-
-                 CASE WHEN old.E IS NULL
-                   THEN NULL
-                 ELSE "$.E" END, old.E,
-
-                 CASE WHEN old.F IS NULL
-                   THEN NULL
-                 ELSE "$.F" END, old.F,
-
-                 CASE WHEN old.G IS NULL
-                   THEN NULL
-                 ELSE "$.G" END, old.G,
-
-                 CASE WHEN old.H IS NULL
-                   THEN NULL
-                 ELSE "$.H" END, old.H,
-
-                 CASE WHEN old.I IS NULL
-                   THEN NULL
-                 ELSE "$.I" END, old.I,
-
-                 CASE WHEN old.J IS NULL
-                   THEN NULL
-                 ELSE "$.J" END, old.J
+                 ELSE "$.AccessRules" END, old.AccessRules
         )                                                     AS [OldValue],
 
         '@' || CAST(new.ClassID AS TEXT)                      AS [KEY],
@@ -377,77 +419,16 @@ BEGIN
                  "$.SystemClass", new.SystemClass,
                  "$.ViewOutdated", new.ViewOutdated,
                  "$.ctloMask", new.ctloMask,
+                 "$.Data", new.Data,
 
                  CASE WHEN new.AccessRules IS NULL
                    THEN NULL
-                 ELSE "$.AccessRules" END, new.AccessRules,
-
-                 CASE WHEN new.A IS NULL
-                   THEN NULL
-                 ELSE "$.A" END, new.A,
-
-                 CASE WHEN new.B IS NULL
-                   THEN NULL
-                 ELSE "$.B" END, new.B,
-
-                 CASE WHEN new.C IS NULL
-                   THEN NULL
-                 ELSE "$.C" END, new.C,
-
-                 CASE WHEN new.D IS NULL
-                   THEN NULL
-                 ELSE "$.D" END, new.D,
-
-                 CASE WHEN new.E IS NULL
-                   THEN NULL
-                 ELSE "$.E" END, new.E,
-
-                 CASE WHEN new.F IS NULL
-                   THEN NULL
-                 ELSE "$.F" END, new.F,
-
-                 CASE WHEN new.G IS NULL
-                   THEN NULL
-                 ELSE "$.G" END, new.G,
-
-                 CASE WHEN new.H IS NULL
-                   THEN NULL
-                 ELSE "$.H" END, new.H,
-
-                 CASE WHEN new.I IS NULL
-                   THEN NULL
-                 ELSE "$.I" END, new.I,
-
-                 CASE WHEN new.J IS NULL
-                   THEN NULL
-                 ELSE "$.J" END, new.J
+                 ELSE "$.AccessRules" END, new.AccessRules
         )
                                                               AS [Value]
     )
     WHERE [OldValue] <> [Value] OR (nullif([OldKey], [KEY])) IS NOT NULL;
 END;
-
---CREATE TRIGGER IF NOT EXISTS [trigClassesAfterUpdateOfctloMaskOrColumns]
---AFTER UPDATE OF [ctloMask], [A], [B], [C], [D], [E], [F], [G], [H], [I], [J]
---ON [.classes]
---FOR EACH ROW
---BEGIN
--- Update objects with shortcuts if needed
---  update [.objects] set
---        [ctlo] = new.[ctloMask],
---        [A] = flexi_get(new.A, ObjectID, SchemaID, [Data]),
---        [B] = flexi_get(new.B, ObjectID, SchemaID, [Data]),
---        [C] = flexi_get(new.C , ObjectID, SchemaID, [Data]),
---        [D] = flexi_get(new.D , ObjectID, SchemaID, [Data]),
---        [E] = flexi_get(new.E, ObjectID, SchemaID, [Data]),
---        [F] = flexi_get(new.F , ObjectID, SchemaID, [Data]),
---        [G] = flexi_get(new.G , ObjectID, SchemaID, [Data]),
---        [H] = flexi_get(new.H , ObjectID, SchemaID, [Data]),
---        [I] = flexi_get(new.I , ObjectID, SchemaID, [Data]),
---        [J] = flexi_get(new.J , ObjectID, SchemaID, [Data])
---
---        where [ClassID] = new.ClassID;
---END;
 
 CREATE TRIGGER IF NOT EXISTS [trigClassesAfterDelete]
 AFTER DELETE
@@ -465,68 +446,14 @@ BEGIN
              "$.SystemClass", old.SystemClass,
              "$.ViewOutdated", old.ViewOutdated,
              "$.ctloMask", old.ctloMask,
+             "$.Data", old.Data,
 
              CASE WHEN old.AccessRules IS NULL
                THEN NULL
-             ELSE "$.AccessRules" END, old.AccessRules,
-
-             CASE WHEN old.A IS NULL
-               THEN NULL
-             ELSE "$.A" END, old.A,
-
-             CASE WHEN old.B IS NULL
-               THEN NULL
-             ELSE "$.B" END, old.B,
-
-             CASE WHEN old.C IS NULL
-               THEN NULL
-             ELSE "$.C" END, old.C,
-
-             CASE WHEN old.D IS NULL
-               THEN NULL
-             ELSE "$.D" END, old.D,
-
-             CASE WHEN old.E IS NULL
-               THEN NULL
-             ELSE "$.E" END, old.E,
-
-             CASE WHEN old.F IS NULL
-               THEN NULL
-             ELSE "$.F" END, old.F,
-
-             CASE WHEN old.G IS NULL
-               THEN NULL
-             ELSE "$.G" END, old.G,
-
-             CASE WHEN old.H IS NULL
-               THEN NULL
-             ELSE "$.H" END, old.H,
-
-             CASE WHEN old.I IS NULL
-               THEN NULL
-             ELSE "$.I" END, old.I,
-
-             CASE WHEN old.J IS NULL
-               THEN NULL
-             ELSE "$.J" END, old.J
+             ELSE "$.AccessRules" END, old.AccessRules
     )
   );
 END;
-
-------------------------------------------------------------------------------------------
--- .full_text_data
-------------------------------------------------------------------------------------------
-CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
-
-  [PropertyID],
-  [ClassID],
-  [ObjectID],
-  [PropertyIndex],
-  [Value],
-
--- to allow case insensitive search for different languages
-  tokenize=unicode61
-);
 
 ------------------------------------------------------------------------------------------
 -- [.objects]
@@ -539,121 +466,24 @@ CREATE TABLE IF NOT EXISTS [.objects] (
   /*
   This is bit mask which regulates index storage.
   Bit 0: this object is a WEAK object and must be auto deleted after last reference to this object gets deleted.
-   Bits 1-10: columns A-J should be indexed and be unique
-  Bits 13-22: columns A-J should be indexed for fast lookup. These bits are checked by partial indexes
-  Bits 25-34: columns A-J should be indexed for full text search
-  Bits 37-46: columns A-J should be treated as range values and indexed for range (spatial search) search
-
   Bit 49: DON'T track changes
-  Bit 50: Schema is not validated. Normally, this bit is set when object was referenced in other object
-  but it was not defined in the schema
 
   */
   [ctlo]     INTEGER,
 
-  -- Remove A-J columns
-  [A],
-  [B],
-  [C],
-  [D],
-  [E],
-  [F],
-  [G],
-  [H],
-  [I],
-  [J],
+  /*
+  Reserved for future use. Will be used tp store certain property values directly with object
+   */
   [Data]     JSON1   NULL,
 
   /*
-  Optional data for object/row (font/color etc. customization)
+  Optional data for object/row (font/color/formulas etc. customization)
   */
   [ExtData]  JSON1   NULL
 );
 
 CREATE INDEX IF NOT EXISTS [idxObjectsByClassSchema]
   ON [.objects] ([ClassID]);
-
--- Conditional indexes
-CREATE INDEX IF NOT EXISTS [idxObjectsByA]
-  ON [.objects] ([ClassID], [A])
-  WHERE (ctlo AND (1 << 13)) <> 0 AND [A] IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS [idxObjectsByB]
-  ON [.objects] ([ClassID], [B])
-  WHERE (ctlo AND (1 << 14)) <> 0 AND [B] IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS [idxObjectsByC]
-  ON [.objects] ([ClassID], [C])
-  WHERE (ctlo AND (1 << 15)) <> 0 AND [C] IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS [idxObjectsByD]
-  ON [.objects] ([ClassID], [D])
-  WHERE (ctlo AND (1 << 16)) <> 0 AND [D] IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS [idxObjectsByE]
-  ON [.objects] ([ClassID], [E])
-  WHERE (ctlo AND (1 << 17)) <> 0 AND [E] IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS [idxObjectsByF]
-  ON [.objects] ([ClassID], [F])
-  WHERE (ctlo AND (1 << 18)) <> 0 AND [F] IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS [idxObjectsByG]
-  ON [.objects] ([ClassID], [G])
-  WHERE (ctlo AND (1 << 19)) <> 0 AND [G] IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS [idxObjectsByH]
-  ON [.objects] ([ClassID], [H])
-  WHERE (ctlo AND (1 << 20)) <> 0 AND [H] IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS [idxObjectsByI]
-  ON [.objects] ([ClassID], [I])
-  WHERE (ctlo AND (1 << 21)) <> 0 AND [I] IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS [idxObjectsByJ]
-  ON [.objects] ([ClassID], [J])
-  WHERE (ctlo AND (1 << 22)) <> 0 AND [J] IS NOT NULL;
-
--- Unique conditional indexes
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByA]
-  ON [.objects] ([ClassID], [A])
-  WHERE (ctlo AND (1 << 1)) <> 0 AND [A] IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByB]
-  ON [.objects] ([ClassID], [B])
-  WHERE (ctlo AND (1 << 2)) <> 0 AND [B] IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByC]
-  ON [.objects] ([ClassID], [C])
-  WHERE (ctlo AND (1 << 3)) <> 0 AND [C] IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByD]
-  ON [.objects] ([ClassID], [D])
-  WHERE (ctlo AND (1 << 4)) <> 0 AND [D] IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByE]
-  ON [.objects] ([ClassID], [E])
-  WHERE (ctlo AND (1 << 5)) <> 0 AND [E] IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByF]
-  ON [.objects] ([ClassID], [F])
-  WHERE (ctlo AND (1 << 6)) <> 0 AND [F] IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByG]
-  ON [.objects] ([ClassID], [G])
-  WHERE (ctlo AND (1 << 7)) <> 0 AND [G] IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByH]
-  ON [.objects] ([ClassID], [H])
-  WHERE (ctlo AND (1 << 8)) <> 0 AND [H] IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByI]
-  ON [.objects] ([ClassID], [I])
-  WHERE (ctlo AND (1 << 9)) <> 0 AND [I] IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByJ]
-  ON [.objects] ([ClassID], [J])
-  WHERE (ctlo AND (1 << 10)) <> 0 AND [J] IS NOT NULL;
 
 -- Triggers
 CREATE TRIGGER IF NOT EXISTS [trigObjectsAfterInsert]
@@ -672,86 +502,19 @@ BEGIN
     SELECT
       printf('@%s.%s', new.[ClassID], new.[ObjectID]),
       json_set('{}',
-               '$.Data', new.Data,
-               CASE WHEN new.A IS NULL
+               CASE WHEN new.Data IS NULL
                  THEN NULL
-               ELSE '$.A' END, new.A,
-               CASE WHEN new.B IS NULL
+               ELSE '$.Data' END, new.Data,
+
+               CASE WHEN new.ExtData IS NULL
                  THEN NULL
-               ELSE '$.B' END, new.B,
-               CASE WHEN new.C IS NULL
-                 THEN NULL
-               ELSE '$.C' END, new.C,
-               CASE WHEN new.D IS NULL
-                 THEN NULL
-               ELSE '$.D' END, new.D,
-               CASE WHEN new.E IS NULL
-                 THEN NULL
-               ELSE '$.E' END, new.E,
-               CASE WHEN new.F IS NULL
-                 THEN NULL
-               ELSE '$.F' END, new.F,
-               CASE WHEN new.G IS NULL
-                 THEN NULL
-               ELSE '$.G' END, new.G,
-               CASE WHEN new.H IS NULL
-                 THEN NULL
-               ELSE '$.H' END, new.H,
-               CASE WHEN new.I IS NULL
-                 THEN NULL
-               ELSE '$.I' END, new.I,
-               CASE WHEN new.J IS NULL
-                 THEN NULL
-               ELSE '$.J' END, new.J,
+               ELSE '$.ExtData' END, new.ExtData,
+
                CASE WHEN new.ctlo IS NULL
                  THEN NULL
                ELSE '$.ctlo' END, new.ctlo
       )
     WHERE new.[ctlo] IS NULL OR new.[ctlo] & (1 << 49);
-
-  -- Full text and range data using INSTEAD OF triggers of dummy view
-  INSERT INTO [.vw_object_column_data] ([ClassID], [ObjectID], [ctlo], [ColumnAssigned], [Value]) VALUES
-    (
-      new.[ClassID], new.[ObjectID], new.[ctlo], 'A', new.[A]
-    );
-  INSERT INTO [.vw_object_column_data] ([ClassID], [ObjectID], [ctlo], [ColumnAssigned], [Value]) VALUES
-    (
-      new.[ClassID], new.[ObjectID], new.[ctlo], 'B', new.[B]
-    );
-
-  INSERT INTO [.vw_object_column_data] ([ClassID], [ObjectID], [ctlo], [ColumnAssigned], [Value]) VALUES
-    (
-      new.[ClassID], new.[ObjectID], new.[ctlo], 'C', new.[C]
-    );
-  INSERT INTO [.vw_object_column_data] ([ClassID], [ObjectID], [ctlo], [ColumnAssigned], [Value]) VALUES
-    (
-      new.[ClassID], new.[ObjectID], new.[ctlo], 'D', new.[D]
-    );
-  INSERT INTO [.vw_object_column_data] ([ClassID], [ObjectID], [ctlo], [ColumnAssigned], [Value]) VALUES
-    (
-      new.[ClassID], new.[ObjectID], new.[ctlo], 'E', new.[E]
-    );
-  INSERT INTO [.vw_object_column_data] ([ClassID], [ObjectID], [ctlo], [ColumnAssigned], [Value]) VALUES
-    (
-      new.[ClassID], new.[ObjectID], new.[ctlo], 'F', new.[F]
-    );
-  INSERT INTO [.vw_object_column_data] ([ClassID], [ObjectID], [ctlo], [ColumnAssigned], [Value]) VALUES
-    (
-      new.[ClassID], new.[ObjectID], new.[ctlo], 'G', new.[G]
-    );
-  INSERT INTO [.vw_object_column_data] ([ClassID], [ObjectID], [ctlo], [ColumnAssigned], [Value]) VALUES
-    (
-      new.[ClassID], new.[ObjectID], new.[ctlo], 'H', new.[H]
-    );
-  INSERT INTO [.vw_object_column_data] ([ClassID], [ObjectID], [ctlo], [ColumnAssigned], [Value]) VALUES
-    (
-      new.[ClassID], new.[ObjectID], new.[ctlo], 'I', new.[I]
-    );
-  INSERT INTO [.vw_object_column_data] ([ClassID], [ObjectID], [ctlo], [ColumnAssigned], [Value]) VALUES
-    (
-      new.[ClassID], new.[ObjectID], new.[ctlo], 'J', new.[J]
-    );
-
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigObjectsAfterUpdate]
@@ -771,37 +534,14 @@ BEGIN
          || '.' || CAST(nullif(old.ObjectID, new.[ObjectID]) AS TEXT) AS [OldKey],
 
          json_set('{}',
-                  '$.Data', new.Data,
-                  CASE WHEN nullif(new.A, old.A) IS NULL
+
+                  CASE WHEN new.Data IS NULL
                     THEN NULL
-                  ELSE '$.A' END, new.A,
-                  CASE WHEN nullif(new.B, old.B) IS NULL
+                  ELSE '$.Data' END, new.Data,
+
+                  CASE WHEN new.ExtData IS NULL
                     THEN NULL
-                  ELSE '$.B' END, new.B,
-                  CASE WHEN nullif(new.C, old.C) IS NULL
-                    THEN NULL
-                  ELSE '$.C' END, new.C,
-                  CASE WHEN nullif(new.D, old.D) IS NULL
-                    THEN NULL
-                  ELSE '$.D' END, new.D,
-                  CASE WHEN nullif(new.E, old.E) IS NULL
-                    THEN NULL
-                  ELSE '$.E' END, new.E,
-                  CASE WHEN nullif(new.F, old.F) IS NULL
-                    THEN NULL
-                  ELSE '$.F' END, new.F,
-                  CASE WHEN nullif(new.G, old.G) IS NULL
-                    THEN NULL
-                  ELSE '$.G' END, new.G,
-                  CASE WHEN nullif(new.H, old.H) IS NULL
-                    THEN NULL
-                  ELSE '$.H' END, new.H,
-                  CASE WHEN nullif(new.I, old.I) IS NULL
-                    THEN NULL
-                  ELSE '$.I' END, new.I,
-                  CASE WHEN nullif(new.J, old.J) IS NULL
-                    THEN NULL
-                  ELSE '$.J' END, new.J,
+                  ELSE '$.ExtData' END, new.ExtData,
 
                   CASE WHEN nullif(new.ctlo, old.ctlo) IS NULL
                     THEN NULL
@@ -812,36 +552,10 @@ BEGIN
                   CASE WHEN nullif(new.Data, old.Data) IS NULL
                     THEN NULL
                   ELSE '$.Data' END, old.Data,
-                  CASE WHEN nullif(new.A, old.A) IS NULL
+
+                  CASE WHEN nullif(new.ExtData, old.ExtData) IS NULL
                     THEN NULL
-                  ELSE '$.A' END, old.A,
-                  CASE WHEN nullif(new.B, old.B) IS NULL
-                    THEN NULL
-                  ELSE '$.B' END, old.B,
-                  CASE WHEN nullif(new.C, old.C) IS NULL
-                    THEN NULL
-                  ELSE '$.C' END, old.C,
-                  CASE WHEN nullif(new.D, old.D) IS NULL
-                    THEN NULL
-                  ELSE '$.D' END, old.D,
-                  CASE WHEN nullif(new.E, old.E) IS NULL
-                    THEN NULL
-                  ELSE '$.E' END, old.E,
-                  CASE WHEN nullif(new.F, old.F) IS NULL
-                    THEN NULL
-                  ELSE '$.F' END, old.F,
-                  CASE WHEN nullif(new.G, old.G) IS NULL
-                    THEN NULL
-                  ELSE '$.G' END, old.G,
-                  CASE WHEN nullif(new.H, old.H) IS NULL
-                    THEN NULL
-                  ELSE '$.H' END, old.H,
-                  CASE WHEN nullif(new.I, old.I) IS NULL
-                    THEN NULL
-                  ELSE '$.I' END, old.I,
-                  CASE WHEN nullif(new.J, old.J) IS NULL
-                    THEN NULL
-                  ELSE '$.J' END, old.J,
+                  ELSE '$.ExtData' END, new.ExtData,
 
                   CASE WHEN nullif(new.ctlo, old.ctlo) IS NULL
                     THEN NULL
@@ -851,49 +565,6 @@ BEGIN
       )
     WHERE (new.[ctlo] IS NULL OR new.[ctlo] & (1 << 49))
           AND ([OldValue] <> [Value] OR (nullif([OldKey], [KEY])) IS NOT NULL);
-
-  -- Update columns' full text and range data using dummy view with INSTEAD OF triggers
-  UPDATE [.vw_object_column_data]
-  SET [oldClassID] = old.[ClassID], [oldObjectID] = old.[ObjectID], [ColumnAssigned] = 'A', [oldValue] = old.[A],
-    [ClassID]      = new.[ClassID], [ObjectID] = new.[ObjectID], [ColumnAssigned] = 'A', [Value] = new.[A],
-    [oldctlo]      = old.[ctlo], [ctlo] = new.[ctlo];
-  UPDATE [.vw_object_column_data]
-  SET [oldClassID] = old.[ClassID], [oldObjectID] = old.[ObjectID], [ColumnAssigned] = 'B', [oldValue] = old.[B],
-    [ClassID]      = new.[ClassID], [ObjectID] = new.[ObjectID], [ColumnAssigned] = 'B', [Value] = new.[B],
-    [oldctlo]      = old.[ctlo], [ctlo] = new.[ctlo];
-  UPDATE [.vw_object_column_data]
-  SET [oldClassID] = old.[ClassID], [oldObjectID] = old.[ObjectID], [ColumnAssigned] = 'C', [oldValue] = old.[C],
-    [ClassID]      = new.[ClassID], [ObjectID] = new.[ObjectID], [ColumnAssigned] = 'C', [Value] = new.[C],
-    [oldctlo]      = old.[ctlo], [ctlo] = new.[ctlo];
-  UPDATE [.vw_object_column_data]
-  SET [oldClassID] = old.[ClassID], [oldObjectID] = old.[ObjectID], [ColumnAssigned] = 'D', [oldValue] = old.[D],
-    [ClassID]      = new.[ClassID], [ObjectID] = new.[ObjectID], [ColumnAssigned] = 'D', [Value] = new.[D],
-    [oldctlo]      = old.[ctlo], [ctlo] = new.[ctlo];
-  UPDATE [.vw_object_column_data]
-  SET [oldClassID] = old.[ClassID], [oldObjectID] = old.[ObjectID], [ColumnAssigned] = 'E', [oldValue] = old.[E],
-    [ClassID]      = new.[ClassID], [ObjectID] = new.[ObjectID], [ColumnAssigned] = 'E', [Value] = new.[E],
-    [oldctlo]      = old.[ctlo], [ctlo] = new.[ctlo];
-  UPDATE [.vw_object_column_data]
-  SET [oldClassID] = old.[ClassID], [oldObjectID] = old.[ObjectID], [ColumnAssigned] = 'F', [oldValue] = old.[F],
-    [ClassID]      = new.[ClassID], [ObjectID] = new.[ObjectID], [ColumnAssigned] = 'F', [Value] = new.[F],
-    [oldctlo]      = old.[ctlo], [ctlo] = new.[ctlo];
-  UPDATE [.vw_object_column_data]
-  SET [oldClassID] = old.[ClassID], [oldObjectID] = old.[ObjectID], [ColumnAssigned] = 'G', [oldValue] = old.[G],
-    [ClassID]      = new.[ClassID], [ObjectID] = new.[ObjectID], [ColumnAssigned] = 'G', [Value] = new.[G],
-    [oldctlo]      = old.[ctlo], [ctlo] = new.[ctlo];
-  UPDATE [.vw_object_column_data]
-  SET [oldClassID] = old.[ClassID], [oldObjectID] = old.[ObjectID], [ColumnAssigned] = 'H', [oldValue] = old.[H],
-    [ClassID]      = new.[ClassID], [ObjectID] = new.[ObjectID], [ColumnAssigned] = 'H', [Value] = new.[H],
-    [oldctlo]      = old.[ctlo], [ctlo] = new.[ctlo];
-  UPDATE [.vw_object_column_data]
-  SET [oldClassID] = old.[ClassID], [oldObjectID] = old.[ObjectID], [ColumnAssigned] = 'I', [oldValue] = old.[I],
-    [ClassID]      = new.[ClassID], [ObjectID] = new.[ObjectID], [ColumnAssigned] = 'I', [Value] = new.[I],
-    [oldctlo]      = old.[ctlo], [ctlo] = new.[ctlo];
-  UPDATE [.vw_object_column_data]
-  SET [oldClassID] = old.[ClassID], [oldObjectID] = old.[ObjectID], [ColumnAssigned] = 'J', [oldValue] = old.[J],
-    [ClassID]      = new.[ClassID], [ObjectID] = new.[ObjectID], [ColumnAssigned] = 'J', [Value] = new.[J],
-    [oldctlo]      = old.[ctlo], [ctlo] = new.[ctlo];
-
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigObjectsAfterUpdateOfClassID_ObjectID]
@@ -937,36 +608,10 @@ BEGIN
                CASE WHEN old.Data IS NULL
                  THEN NULL
                ELSE '$.Data' END, old.Data,
-               CASE WHEN old.A IS NULL
+
+               CASE WHEN old.ExtData IS NULL
                  THEN NULL
-               ELSE '$.A' END, old.A,
-               CASE WHEN old.B IS NULL
-                 THEN NULL
-               ELSE '$.B' END, old.B,
-               CASE WHEN old.C IS NULL
-                 THEN NULL
-               ELSE '$.C' END, old.C,
-               CASE WHEN old.D IS NULL
-                 THEN NULL
-               ELSE '$.D' END, old.D,
-               CASE WHEN old.E IS NULL
-                 THEN NULL
-               ELSE '$.E' END, old.E,
-               CASE WHEN old.F IS NULL
-                 THEN NULL
-               ELSE '$.F' END, old.F,
-               CASE WHEN old.G IS NULL
-                 THEN NULL
-               ELSE '$.G' END, old.G,
-               CASE WHEN old.H IS NULL
-                 THEN NULL
-               ELSE '$.H' END, old.H,
-               CASE WHEN old.I IS NULL
-                 THEN NULL
-               ELSE '$.I' END, old.I,
-               CASE WHEN old.J IS NULL
-                 THEN NULL
-               ELSE '$.J' END, old.J,
+               ELSE '$.ExtData' END, old.ExtData,
 
                CASE WHEN old.ctlo IS NULL
                  THEN NULL
@@ -988,109 +633,6 @@ BEGIN
   -- Delete all Values
   DELETE FROM [.ref-values]
   WHERE ObjectID IN (old.ObjectID, (1 << 62) | old.ObjectID);
-
-  -- Delete full text and range data using dummy view with INSTEAD OF triggers
-  DELETE FROM [.vw_object_column_data]
-  WHERE [oldClassID] = old.[ClassID] AND [oldObjectID] = old.[ObjectID] AND [oldctlo] = old.[ctlo]
-        AND [ColumnAssigned] = 'A';
-  DELETE FROM [.vw_object_column_data]
-  WHERE [oldClassID] = old.[ClassID] AND [oldObjectID] = old.[ObjectID] AND [oldctlo] = old.[ctlo]
-        AND [ColumnAssigned] = 'B';
-  DELETE FROM [.vw_object_column_data]
-  WHERE [oldClassID] = old.[ClassID] AND [oldObjectID] = old.[ObjectID] AND [oldctlo] = old.[ctlo]
-        AND [ColumnAssigned] = 'C';
-  DELETE FROM [.vw_object_column_data]
-  WHERE [oldClassID] = old.[ClassID] AND [oldObjectID] = old.[ObjectID] AND [oldctlo] = old.[ctlo]
-        AND [ColumnAssigned] = 'D';
-  DELETE FROM [.vw_object_column_data]
-  WHERE [oldClassID] = old.[ClassID] AND [oldObjectID] = old.[ObjectID] AND [oldctlo] = old.[ctlo]
-        AND [ColumnAssigned] = 'E';
-  DELETE FROM [.vw_object_column_data]
-  WHERE [oldClassID] = old.[ClassID] AND [oldObjectID] = old.[ObjectID] AND [oldctlo] = old.[ctlo]
-        AND [ColumnAssigned] = 'F';
-  DELETE FROM [.vw_object_column_data]
-  WHERE [oldClassID] = old.[ClassID] AND [oldObjectID] = old.[ObjectID] AND [oldctlo] = old.[ctlo]
-        AND [ColumnAssigned] = 'G';
-  DELETE FROM [.vw_object_column_data]
-  WHERE [oldClassID] = old.[ClassID] AND [oldObjectID] = old.[ObjectID] AND [oldctlo] = old.[ctlo]
-        AND [ColumnAssigned] = 'H';
-  DELETE FROM [.vw_object_column_data]
-  WHERE [oldClassID] = old.[ClassID] AND [oldObjectID] = old.[ObjectID] AND [oldctlo] = old.[ctlo]
-        AND [ColumnAssigned] = 'I';
-  DELETE FROM [.vw_object_column_data]
-  WHERE [oldClassID] = old.[ClassID] AND [oldObjectID] = old.[ObjectID] AND [oldctlo] = old.[ctlo]
-        AND [ColumnAssigned] = 'J';
-END;
-
-------------------------------------------------------------------------------------------
--- .vw_object_column_data
-------------------------------------------------------------------------------------------
-CREATE VIEW IF NOT EXISTS [.vw_object_column_data]
-AS
-  SELECT
-    NULL AS [oldClassID],
-    NULL AS [oldObjectID],
-    NULL AS [oldctlo],
-    NULL AS [oldValue],
-    NULL AS [ClassID],
-    NULL AS [ObjectID],
-    NULL AS [ctlo],
-    NULL AS [ColumnAssigned],
-    NULL AS [Value];
-
-CREATE TRIGGER IF NOT EXISTS [trigDummyObjectColumnDataInsert]
-INSTEAD OF INSERT ON [.vw_object_column_data]
-FOR EACH ROW
-BEGIN
-  INSERT INTO [.full_text_data] ([PropertyID], [ClassID], [ObjectID], [PropertyIndex], [Value])
-    SELECT
-      printf('#%s#', new.[ColumnAssigned]),
-      printf('#%s#', new.[ClassID]),
-      printf('#%s#', new.[ObjectID]),
-      '#0#',
-      new.[Value]
-    WHERE new.[ColumnAssigned] IS NOT NULL AND new.ctlo & (1 << (25 + unicode(new.[ColumnAssigned]) - unicode('A'))) AND
-          typeof(new.[Value]) = 'text';
-END;
-
-CREATE TRIGGER IF NOT EXISTS [trigDummyObjectColumnDataUpdate]
-INSTEAD OF UPDATE ON [.vw_object_column_data]
-FOR EACH ROW
-BEGIN
-  -- Process full text data based on ctlo
-  DELETE FROM [.full_text_data]
-  WHERE
-    new.[ColumnAssigned] IS NOT NULL AND
-    new.oldctlo & (1 << (25 + unicode(new.[ColumnAssigned]) - unicode('A'))) AND typeof(new.[oldValue]) = 'text'
-    AND [PropertyID] MATCH printf('#%s#', new.[ColumnAssigned])
-    AND [ClassID] MATCH printf('#%s#', new.[oldClassID])
-    AND [ObjectID] MATCH printf('#%s#', new.[oldObjectID])
-    AND [PropertyIndex] MATCH '#0#';
-
-  INSERT INTO [.full_text_data] ([PropertyID], [ClassID], [ObjectID], [PropertyIndex], [Value])
-    SELECT
-      printf('#%s#', new.[ColumnAssigned]),
-      printf('#%s#', new.[ClassID]),
-      printf('#%s#', new.[ObjectID]),
-      '#0#',
-      new.[Value]
-    WHERE new.[ColumnAssigned] IS NOT NULL AND new.ctlo & (1 << (25 + unicode(new.[ColumnAssigned]) - unicode('A'))) AND
-          typeof(new.[Value]) = 'text';
-END;
-
-CREATE TRIGGER IF NOT EXISTS [trigDummyObjectColumnDataDelete]
-INSTEAD OF DELETE ON [.vw_object_column_data]
-FOR EACH ROW
-BEGIN
-  -- Process full text data based on ctlo
-  DELETE FROM [.full_text_data]
-  WHERE
-    old.[ColumnAssigned] IS NOT NULL AND
-    old.oldctlo & (1 << (25 + unicode(old.[ColumnAssigned]) - unicode('A'))) AND typeof(old.[oldValue]) = 'text'
-    AND [PropertyID] MATCH printf('#%s#', old.[ColumnAssigned])
-    AND [ClassID] MATCH printf('#%s#', old.[oldClassID])
-    AND [ObjectID] MATCH printf('#%s#', old.[oldObjectID])
-    AND [PropertyIndex] MATCH '#0#';
 END;
 
 ------------------------------------------------------------------------------------------
@@ -1099,11 +641,11 @@ END;
 
 CREATE VIRTUAL TABLE IF NOT EXISTS [.range_data] USING rtree (
   [ObjectID],
-  [ClassID], [ClassID_1],
-  [A], [A_1],
-  [B], [B_1],
-  [C], [C_1],
-  [D], [D_1]
+  [ClassID0], [ClassID1],
+  [A0], [A1],
+  [B0], [B1],
+  [C0], [C1],
+  [D0], [D1]
 );
 
 ------------------------------------------------------------------------------------------
@@ -1177,8 +719,6 @@ BEGIN
       printf('#%s#', new.[PropIndex]),
       new.[Value]
     WHERE new.ctlv & 16 AND typeof(new.[Value]) = 'text';
-
-  -- process range data
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigValuesAfterUpdate]
@@ -1226,9 +766,6 @@ BEGIN
       printf('#%s#', new.[PropIndex]),
       new.[Value]
     WHERE new.ctlv & 16 AND typeof(new.[Value]) = 'text';
-
-  -- Process range data based on ctlv
-  -- TODO
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigValuesAfterDelete]
@@ -1258,8 +795,6 @@ BEGIN
     AND [PropertyID] MATCH printf('#%s#', old.[PropertyID])
     AND [ObjectID] MATCH printf('#%s#', old.[ObjectID])
     AND [PropertyIndex] MATCH printf('#%s#', old.[PropIndex]);
-
-  -- TODO Process range data based on ctlv
 END;
 
 --------------------------------------------------------------------------------------------
@@ -1279,54 +814,14 @@ INSTEAD OF INSERT
   ON [.ValuesEasy]
 FOR EACH ROW
 BEGIN
-  INSERT OR REPLACE INTO [.objects] (ClassID, ObjectID, ctlo, A, B, C, D, E, F, G, H, I, J)
+  INSERT OR REPLACE INTO [.objects] (ClassID, ObjectID, ctlo)
     SELECT
       c.ClassID,
+      new.ObjectID,
+      ctlo = c.ctloMask
 
-      ctlo = c.ctloMask,
-
-      A = (CASE WHEN p.[ColumnAssigned] = 'A'
-        THEN new.[Value]
-           ELSE A END),
-
-      B = (CASE WHEN p.[ColumnAssigned] = 'B'
-        THEN new.[Value]
-           ELSE B END),
-
-      C = (CASE WHEN p.[ColumnAssigned] = 'C'
-        THEN new.[Value]
-           ELSE C END),
-
-      D = (CASE WHEN p.[ColumnAssigned] = 'D'
-        THEN new.[Value]
-           ELSE D END),
-
-      E = (CASE WHEN p.[ColumnAssigned] = 'E'
-        THEN new.[Value]
-           ELSE E END),
-
-      F = (CASE WHEN p.[ColumnAssigned] = 'F'
-        THEN new.[Value]
-           ELSE F END),
-
-      G = (CASE WHEN p.[ColumnAssigned] = 'G'
-        THEN new.[Value]
-           ELSE G END),
-
-      H = (CASE WHEN p.[ColumnAssigned] = 'H'
-        THEN new.[Value]
-           ELSE H END),
-
-      I = (CASE WHEN p.[ColumnAssigned] = 'I'
-        THEN new.[Value]
-           ELSE I END),
-
-      J = (CASE WHEN p.[ColumnAssigned] = 'J'
-        THEN new.[Value]
-           ELSE J END)
-
-    FROM [.classes] c, [.vw_class_properties] p
-    WHERE c.[ClassID] = p.[ClassID] AND c.NameID = new.NameID AND p.PropertyName = new.PropertyName
+    FROM [.classes] c, [.class_properties] p
+    WHERE new.ObjectID is not null and c.[ClassID] = p.[ClassID] AND c.NameID = new.NameID AND p.Name = new.PropertyName
           AND (p.[ctlv] & 14) = 0 AND p.ColumnAssigned IS NOT NULL AND new.PropertyIndex = 0;
 
   INSERT OR REPLACE INTO [.ref-values] (ObjectID, PropertyID, PropIndex, [Value], ctlv, RefValueID)
@@ -1342,54 +837,6 @@ BEGIN
     FROM [.classes] c, [.vw_class_properties] p
     WHERE c.[ClassID] = p.[ClassID] AND c.NameID = new.NameID AND p.PropertyName = new.PropertyName AND
           p.ColumnAssigned IS NULL;
-END;
-
---------------------------------------------------------------------------------------------
--- .values_view - wraps access to .values table by providing separate ObjectID columns
---------------------------------------------------------------------------------------------
-CREATE VIEW IF NOT EXISTS [.ref-values_view] AS
-  SELECT
-    [ObjectID],
-    ctlv,
-    PropertyID,
-    PropIndex,
-    [Value],
-    ExtData
-  FROM [.ref-values];
-
-CREATE TRIGGER IF NOT EXISTS values_view_Insert
-INSTEAD OF INSERT ON [.ref-values_view]
-FOR EACH ROW
-BEGIN
-  INSERT INTO [.ref-values]
-  (
-    [ObjectID], ctlv, PropertyID, PropIndex, [Value], ExtData
-  )
-  VALUES (
-    new.[ObjectID], new.ctlv,
-    new.PropertyID, new.PropIndex, new.[Value], new.ExtData);
-END;
-
-CREATE TRIGGER IF NOT EXISTS values_view_Update
-INSTEAD OF UPDATE ON [.ref-values_view]
-FOR EACH ROW
-BEGIN
-  UPDATE [.ref-values]
-  SET
-    [ObjectID] = new.[ObjectID],
-    ctlv       = new.ctlv,
-    PropertyID = new.PropertyID, PropIndex = new.PropIndex, [Value] = new.[Value],
-    ExtData    = new.ExtData
-  WHERE [ObjectID] = old.[ObjectID] AND [PropertyID] = old.[PropertyID] AND [PropIndex] = old.[PropIndex];
-END;
-
-CREATE TRIGGER IF NOT EXISTS values_view_Delete
-INSTEAD OF DELETE ON [.ref-values_view]
-FOR EACH ROW
-BEGIN
-  DELETE FROM [.ref-values]
-  WHERE [ObjectID] = old.[ObjectID]
-        AND [PropertyID] = old.[PropertyID] AND [PropIndex] = old.[PropIndex];
 END;
 
 -- END --
