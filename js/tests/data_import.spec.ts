@@ -10,19 +10,19 @@ import faker = require('faker');
 import chai = require('chai');
 import path = require('path');
 let shortid = require('shortid');
-import {SQLiteDataRefactor} from '../lib/drivers/SQLite/SQLiteDataRefactor';
+// import {SQLiteDataRefactor} from '../lib/drivers/SQLite/SQLiteDataRefactor';
 
 var expect = chai.expect;
 
 describe('SQLite extensions: Flexilite EAV', () => {
     let db: sqlite3.Database;
-    let refactor: SQLiteDataRefactor;
+    // let refactor: SQLiteDataRefactor;
 
     before((done) => {
         helper.openDB('test_ttc.db')
             .then(database => {
                 db = database;
-                refactor = new SQLiteDataRefactor(db);
+                // refactor = new SQLiteDataRefactor(db);
                 done();
             });
     });
@@ -48,7 +48,7 @@ describe('SQLite extensions: Flexilite EAV', () => {
 
                 importOptions.targetTable = tableName;
 
-                return refactor.importFromDatabase(importOptions);
+                // return refactor.importFromDatabase(importOptions);
             })
             .then(() => {
 
@@ -110,7 +110,7 @@ describe('SQLite extensions: Flexilite EAV', () => {
 // });
 
     it('get trip count', (done) => {
-        db.allAsync(db, `select count(*) as cnt from [trips];`)
+        db.allAsync(`select count(*) as cnt from [trips];`)
             .then(cnt => {
                 console.log(`\nget trip count: ${cnt[0].cnt}`);
                 done();

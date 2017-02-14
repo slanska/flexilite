@@ -82,3 +82,5 @@ node_modules
 /js/tests/moreRefactoring.spec.js.map
 /js/tests/data_import.spec.js.map
 /js/tests/data_import.spec.js
+/js/lib/drivers/SQLite/SQLiteDataRefactor.js.map
+/js/lib/drivers/SQLite/SQLiteDataRefactor.js
