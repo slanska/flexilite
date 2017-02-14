@@ -8,15 +8,13 @@
 
 'use strict';
 
-import sqlite = require('sqlite3');
 import _ = require('lodash');
 import Promise = require('bluebird');
 import Dictionary = _.Dictionary;
 let Pluralize = require('pluralize');
+import sqlite = require('../dbhelper');
 
-sqlite.Database.prototype['allAsync'] = Promise.promisify(sqlite.Database.prototype.all) as any;
-sqlite.Database.prototype['execAsync'] = Promise.promisify(sqlite.Database.prototype.exec) as any;
-sqlite.Database.prototype['runAsync'] = Promise.promisify(sqlite.Database.prototype.run)as any;
+import path = require('path');
 
 /*
  Row structure as returned by 'select * from sqlite_master'
@@ -863,7 +861,11 @@ export class SQLiteSchemaParser {
                 return Promise.each(deferredTables,
                     (tblInfo: ITableInfo) => self.processFlexiliteClassDef(tblInfo));
             })
-            .then(() => self.outSchema);
+
+            .then(() => self.outSchema)
+            .catch(err => {
+                console.error(err);
+            });
     }
 }
 

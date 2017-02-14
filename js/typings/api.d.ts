@@ -27,9 +27,14 @@ declare module "sqlite3" {
         eachAsync(sql: string, callback?: (err: Error, row: any) => void): Promise<number>;
         eachAsync(sql: string, ...params: any[]): Promise<any>;
 
-        exeAsync(sql: string): Promise<any>;
+        execAsync(sql: string): Promise<any>;
 
         prepareAsync(sql: string): Promise<Statement>;
         prepare(sql: string, ...params: any[]): Statement;
+
+        loadExtension(extPath: string, callback: (err, result: Database) => void);
+        loadExtensionAsync(extPath: string): Promise<Database>;
+
+        closeAsync():Promise<Database>;
     }
 }

@@ -1,15 +1,12 @@
 /**
  * Created by slanska on 2016-03-06.
  */
-/// <reference path="../typings/mocha/mocha.d.ts"/>
-/// <reference path="../typings/node/node.d.ts"/>
-/// <reference path="../typings/chai/chai.d.ts" />
-/// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
-/// <reference path="../typings/tsd.d.ts" />
+/// <reference path="../../typings/mocha/mocha.d.ts"/>
+/// <reference path="../../typings/node/node.d.ts"/>
+/// <reference path="../../typings/chai/chai.d.ts" />
+/// <reference path="../../typings/tsd.d.ts" />
 'use strict';
-var Flexilite = require('../flexish/reverseEng');
 require('../lib/drivers/SQLite');
-var Sync = require('syncho');
 describe('Advanced cases of data refactoring', function () {
     it('1. Merge objects', function (done) {
         done();

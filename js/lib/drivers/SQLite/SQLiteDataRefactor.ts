@@ -18,7 +18,7 @@ export class SQLiteDataRefactor implements IDBRefactory
      */
     importFromDatabase(options:IImportDatabaseOptions):void
     {
-        var self = this;
+        let self = this;
 
         let srcDB = self.DB;
         let srcTbl = options.sourceTable || options.targetTable;

@@ -28,4 +28,8 @@ update rtree data when class def changes (rtree mapping changes)
 
 update full text data when class def changes (rtree mapping changes)
 
+different modes for relations: delete, cascade, restrict, weak
+
+change object' class ID
+
  */

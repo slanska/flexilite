@@ -70,3 +70,15 @@ node_modules
 /js/flexish/getStat.js
 /js/tests/sqliteSchemaParser.spec.js.map
 /js/tests/sqliteSchemaParser.spec.js
+/js/tests/advancedRefactoring.spec.js.map
+/js/tests/advancedRefactoring.spec.js
+/js/tests/dbschema.js.map
+/js/tests/dbschema.js
+/js/tests/flexi_eav.js
+/js/tests/flexi_eav.js.map
+/js/tests/helper.js
+/js/tests/helper.js.map
+/js/tests/moreRefactoring.spec.js
+/js/tests/moreRefactoring.spec.js.map
+/js/tests/data_import.spec.js.map
+/js/tests/data_import.spec.js

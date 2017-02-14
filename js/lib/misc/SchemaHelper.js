@@ -27,21 +27,21 @@ var SchemaHelper = (function () {
         switch (ormType.toLowerCase()) {
             case 'serial':
             case 'integer':
-                return PROPERTY_TYPE.PROP_TYPE_INTEGER;
+                return 15 /* PROP_TYPE_INTEGER */;
             case 'number':
-                return PROPERTY_TYPE.PROP_TYPE_NUMBER;
+                return 20 /* PROP_TYPE_NUMBER */;
             case 'binary':
-                return PROPERTY_TYPE.PROP_TYPE_BINARY;
+                return 23 /* PROP_TYPE_BINARY */;
             case 'text':
-                return PROPERTY_TYPE.PROP_TYPE_TEXT;
+                return 25 /* PROP_TYPE_TEXT */;
             case 'boolean':
-                return PROPERTY_TYPE.PROP_TYPE_BOOLEAN;
+                return 19 /* PROP_TYPE_BOOLEAN */;
             case 'object':
-                return PROPERTY_TYPE.PROP_TYPE_JSON;
+                return 26 /* PROP_TYPE_JSON */;
             case 'date':
-                return PROPERTY_TYPE.PROP_TYPE_DATETIME;
+                return 21 /* PROP_TYPE_DATETIME */;
             case 'enum':
-                return PROPERTY_TYPE.PROP_TYPE_ENUM;
+                return 16 /* PROP_TYPE_ENUM */;
             default:
                 throw new Error("Not supported property type: " + ormType);
         }
@@ -71,7 +71,7 @@ var SchemaHelper = (function () {
                     cProp.indexed = true;
                 }
                 switch (cProp.rules.type) {
-                    case PROPERTY_TYPE.PROP_TYPE_DATETIME:
+                    case 21 /* PROP_TYPE_DATETIME */:
                         if (item.time === false) {
                             cProp.dateTime = 'dateOnly';
                         }
@@ -79,7 +79,7 @@ var SchemaHelper = (function () {
                             cProp.dateTime = 'dateTime';
                         }
                         break;
-                    case PROPERTY_TYPE.PROP_TYPE_ENUM:
+                    case 16 /* PROP_TYPE_ENUM */:
                         cProp.enumDef = { items: [] };
                         _.forEach(item.items, function (enumItem) {
                             var name = self.getNameID(enumItem);
@@ -90,7 +90,7 @@ var SchemaHelper = (function () {
                 break;
             case 'hasOne':
                 // Generate relation
-                cProp.rules.type = PROPERTY_TYPE.PROP_TYPE_OBJECT;
+                cProp.rules.type = 4 /* PROP_TYPE_OBJECT */;
                 var oneRel = self.sourceSchema.one_associations[propName];
                 cProp.reference = {};
                 cProp.reference.autoFetch = oneRel.autoFetch;
@@ -100,7 +100,7 @@ var SchemaHelper = (function () {
                 break;
             case 'hasMany':
                 // Generate relation
-                cProp.rules.type = PROPERTY_TYPE.PROP_TYPE_OBJECT;
+                cProp.rules.type = 4 /* PROP_TYPE_OBJECT */;
                 var manyRel = self.sourceSchema.many_associations[propName];
                 cProp.reference = {};
                 cProp.reference.autoFetch = manyRel.autoFetch;

@@ -26,7 +26,7 @@
 
 let cli = require('cli');
 import Promise = require('bluebird');
-import sqlite = require('sqlite3');
+import sqlite = require('../dbhelper');
 import path = require('path');
 var jsBeautify = require('js-beautify');
 

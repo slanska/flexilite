@@ -2,155 +2,119 @@
  * Created by slanska on 2016-05-01.
  */
 
-/// <reference path="../typings/tests.d.ts"/>
+/// <reference path="../../typings/tests.d.ts"/>
 
-var Sync = require('syncho');
 import helper = require('./helper');
-import sqlite3 = require('sqlite3');
+import sqlite3 = require('../dbhelper');
 import faker = require('faker');
 import chai = require('chai');
 import path = require('path');
-var shortid = require('shortid');
+let shortid = require('shortid');
 import {SQLiteDataRefactor} from '../lib/drivers/SQLite/SQLiteDataRefactor';
 
 var expect = chai.expect;
 
-describe('SQLite extensions: Flexilite EAV', ()=>
-{
-    var db:sqlite3.Database;
-    var refactor:SQLiteDataRefactor;
+describe('SQLite extensions: Flexilite EAV', () => {
+    let db: sqlite3.Database;
+    let refactor: SQLiteDataRefactor;
 
-    before((done)=>
-    {
-        Sync(()=>
-        {
-            db = helper.openDB('test_ttc.db');
-            // db = helper.openMemoryDB();
-            refactor = new SQLiteDataRefactor(db);
-            done();
-        });
+    before((done) => {
+        helper.openDB('test_ttc.db')
+            .then(database => {
+                db = database;
+                refactor = new SQLiteDataRefactor(db);
+                done();
+            });
     });
 
-    after((done)=>
-    {
-        Sync(()=>
-        {
-            if (db)
-                db.close.sync(db);
-            done();
-        });
+    after((done) => {
+        if (db)
+            db.closeAsync()
+                .then(() => done());
+        else done();
     });
 
-    it('import Northwind to memory', (done)=>
-    {
-        Sync(()=>
-        {
-            done();
-        });
+    it('import Northwind to memory', (done) => {
+        done();
     });
 
-    function importTable(tableName:string)
-    {
-        try
-        {
-            db.run.sync(db, `delete from [${tableName}];`);
+    function importTable(tableName: string) {
+        return db.runAsync(`delete from [${tableName}];`)
+            .then(() => {
 
-            let importOptions = {} as IImportDatabaseOptions;
-            importOptions.sourceTable = tableName;
-            importOptions.sourceConnectionString = path.join(__dirname, "data", "ttc.db");
+                let importOptions = {} as any; //IImportDatabaseOptions;
+                importOptions.sourceTable = tableName;
+                importOptions.sourceConnectionString = path.join(__dirname, "data", "ttc.db");
 
-            importOptions.targetTable = tableName;
+                importOptions.targetTable = tableName;
 
-            refactor.importFromDatabase(importOptions);
+                return refactor.importFromDatabase(importOptions);
+            })
+            .then(() => {
 
-            var cnt = db.all.sync(db, `select count(*) as cnt from [${tableName}];`);
-            console.log(`\nget ${tableName} count: ${cnt[0].cnt}`);
-        }
-        catch (err)
-        {
-            console.error(err);
-        }
+                return db.allAsync(`select count(*) as cnt from [${tableName}];`);
+            })
+            .then((cnt) => {
+
+                console.log(`\nget ${tableName} count: ${cnt[0].cnt}`);
+            });
     }
 
-    it('import TTC.trips', (done)=>
-    {
-        Sync(()=>
-        {
-            importTable('trips');
-            done();
-        });
+    it('import TTC.trips', (done) => {
+        importTable('trips')
+            .then(() => done());
     });
 
-    it('import TTC.agency', (done)=>
-    {
-        Sync(()=>
-        {
-            importTable('agency');
-            done();
-        });
+    it('import TTC.agency', (done) => {
+        importTable('agency')
+            .then(() => done());
     });
 
-    it('import TTC.calendar', (done)=>
-    {
-        Sync(()=>
-        {
-            importTable('calendar');
-            done();
-        });
+    it('import TTC.calendar', (done) => {
+        importTable('calendar')
+            .then(() => done());
+
     });
 
-    it('import TTC.calendar_dates', (done)=>
-    {
-        Sync(()=>
-        {
-            importTable('calendar_dates');
-            done();
-        });
+    it('import TTC.calendar_dates', (done) => {
+        importTable('calendar_dates')
+            .then(() => done());
+
     });
 
-    it('import TTC.routes', (done)=>
-    {
-        Sync(()=>
-        {
-            importTable('routes');
-            done();
-        });
+    it('import TTC.routes', (done) => {
+        importTable('routes')
+            .then(() => done());
+
     });
 
-    it('import TTC.shapes', (done)=>
-    {
-        Sync(()=>
-        {
-            importTable('shapes');
-            done();
-        });
+    it('import TTC.shapes', (done) => {
+        importTable('shapes')
+            .then(() => done());
+
     });
 
-    it('import TTC.stop_times', (done)=>
-    {
-        Sync(()=>
-        {
-            importTable('stop_times');
-            done();
-        });
+    it('import TTC.stop_times', (done) => {
+        importTable('stop_times')
+            .then(() => done());
+
     });
 
-    // it('import TTC.stops', (done)=>
-    // {
-    //     Sync(()=>
-    //     {
-    //         importTable('stops');
-    //         done();
-    //     });
-    // });
+// it('import TTC.stops', (done)=>
+// {
+//     Sync(()=>
+//     {
+//         importTable('stops');
+//         done();
+//     });
+// });
 
-    it('get trip count', (done)=>
-    {
-        Sync(()=>
-        {
-            var cnt = db.all.sync(db, `select count(*) as cnt from [trips];`);
-            console.log(`\nget trip count: ${cnt[0].cnt}`);
-            done();
-        });
+    it('get trip count', (done) => {
+        db.allAsync(db, `select count(*) as cnt from [trips];`)
+            .then(cnt => {
+                console.log(`\nget trip count: ${cnt[0].cnt}`);
+                done();
+            });
     });
 });
+

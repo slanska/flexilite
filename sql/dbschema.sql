@@ -13,7 +13,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
 -- Class type. 0 for .names
   ClassID,
 
-  -- Mapped columns
+  -- Mapped columns. Mapping is different for different classes
   [X1], [X2], [X3], [X4]
 
   -- to allow case insensitive search for different languages
@@ -166,29 +166,6 @@ CREATE VIEW IF NOT EXISTS [.class_properties] AS
      FROM [.names] n
      WHERE n.ID = PropNameID
      LIMIT 1)                                               AS Name,
-    CASE
-    WHEN c.A = ID
-      THEN 'A'
-    WHEN c.B = ID
-      THEN 'B'
-    WHEN c.C = ID
-      THEN 'C'
-    WHEN c.D = ID
-      THEN 'D'
-    WHEN c.E = ID
-      THEN 'E'
-    WHEN c.F = ID
-      THEN 'F'
-    WHEN c.G = ID
-      THEN 'G'
-    WHEN c.H = ID
-      THEN 'H'
-    WHEN c.I = ID
-      THEN 'I'
-    WHEN c.J = ID
-      THEN 'J'
-    ELSE NULL
-    END                                                     AS [ColumnAssigned],
     cp.ctlv                                                 AS ctlv,
     cp.ctlvPlan                                             AS ctlvPlan,
     (json_extract(c.Data, printf('$.properties.%d', [ID]))) AS Data,
@@ -211,6 +188,11 @@ BEGIN
               WHERE Value = new.Name
               LIMIT 1),
           new.ClassID, new.ctlv, new.ctlvPlan, new.RefClassID, new.RefPropID);
+
+  -- TODO Fix unresolved references
+
+--   select * from [.classes] where json_extract(Data, '$.properties')
+--   update [.classes] set Data = json_set(Data, ) where json_extract(Data, '$.properties').
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Update]
@@ -369,6 +351,8 @@ AFTER INSERT
   ON [.classes]
 FOR EACH ROW
 BEGIN
+  -- TODO Fix unresolved names : mixins and reference properties
+
   INSERT INTO [.change_log] ([KEY], [Value]) VALUES (
     printf('@%s', new.ClassID),
     json_set('{}',
@@ -383,7 +367,6 @@ BEGIN
              ELSE "$.AccessRules" END, new.AccessRules
     )
   );
-
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigClassesAfterUpdate]

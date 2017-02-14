@@ -2,8 +2,7 @@
  * Created by slanska on 2016-05-01.
  */
 "use strict";
-/// <reference path="../typings/tests.d.ts"/>
-var Sync = require('syncho');
+/// <reference path="../../typings/tests.d.ts"/>
 var helper = require('./helper');
 var chai = require('chai');
 var path = require('path');
@@ -14,81 +13,66 @@ describe('SQLite extensions: Flexilite EAV', function () {
     var db;
     var refactor;
     before(function (done) {
-        Sync(function () {
-            db = helper.openDB('test_ttc.db');
-            // db = helper.openMemoryDB();
+        helper.openDB('test_ttc.db')
+            .then(function (database) {
+            db = database;
             refactor = new SQLiteDataRefactor_1.SQLiteDataRefactor(db);
             done();
         });
     });
     after(function (done) {
-        Sync(function () {
-            if (db)
-                db.close.sync(db);
+        if (db)
+            db.closeAsync()
+                .then(function () { return done(); });
+        else
             done();
-        });
     });
     it('import Northwind to memory', function (done) {
-        Sync(function () {
-            done();
-        });
+        done();
     });
     function importTable(tableName) {
-        try {
-            db.run.sync(db, "delete from [" + tableName + "];");
-            var importOptions = {};
+        return db.runAsync("delete from [" + tableName + "];")
+            .then(function () {
+            var importOptions = {}; //IImportDatabaseOptions;
             importOptions.sourceTable = tableName;
             importOptions.sourceConnectionString = path.join(__dirname, "data", "ttc.db");
             importOptions.targetTable = tableName;
-            refactor.importFromDatabase(importOptions);
-            var cnt = db.all.sync(db, "select count(*) as cnt from [" + tableName + "];");
+            return refactor.importFromDatabase(importOptions);
+        })
+            .then(function () {
+            return db.allAsync("select count(*) as cnt from [" + tableName + "];");
+        })
+            .then(function (cnt) {
             console.log("\nget " + tableName + " count: " + cnt[0].cnt);
-        }
-        catch (err) {
-            console.error(err);
-        }
+        });
     }
     it('import TTC.trips', function (done) {
-        Sync(function () {
-            importTable('trips');
-            done();
-        });
+        importTable('trips')
+            .then(function () { return done(); });
     });
     it('import TTC.agency', function (done) {
-        Sync(function () {
-            importTable('agency');
-            done();
-        });
+        importTable('agency')
+            .then(function () { return done(); });
     });
     it('import TTC.calendar', function (done) {
-        Sync(function () {
-            importTable('calendar');
-            done();
-        });
+        importTable('calendar')
+            .then(function () { return done(); });
     });
     it('import TTC.calendar_dates', function (done) {
-        Sync(function () {
-            importTable('calendar_dates');
-            done();
-        });
+        importTable('calendar_dates')
+            .then(function () { return done(); });
     });
     it('import TTC.routes', function (done) {
-        Sync(function () {
-            importTable('routes');
-            done();
-        });
+        importTable('routes')
+            .then(function () { return done(); });
     });
     it('import TTC.shapes', function (done) {
-        Sync(function () {
-            importTable('shapes');
-            done();
-        });
+        importTable('shapes')
+            .then(function () { return done(); });
     });
     it('import TTC.stop_times', function (done) {
-        Sync(function () {
-            importTable('stop_times');
-            done();
-        });
+        importTable('stop_times')
+            .then(function () { return done(); });
     });
     // it('import TTC.stops', (done)=>
     // {
@@ -99,8 +83,8 @@ describe('SQLite extensions: Flexilite EAV', function () {
     //     });
     // });
     it('get trip count', function (done) {
-        Sync(function () {
-            var cnt = db.all.sync(db, "select count(*) as cnt from [trips];");
+        db.allAsync(db, "select count(*) as cnt from [trips];")
+            .then(function (cnt) {
             console.log("\nget trip count: " + cnt[0].cnt);
             done();
         });

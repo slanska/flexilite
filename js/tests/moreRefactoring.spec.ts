@@ -2,20 +2,16 @@
  * Created by slanska on 2016-03-06.
  */
 
-/// <reference path="../typings/mocha/mocha.d.ts"/>
-/// <reference path="../typings/node/node.d.ts"/>
-/// <reference path="../typings/chai/chai.d.ts" />
-/// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
-/// <reference path="../typings/tsd.d.ts" />
+/// <reference path="../../typings/mocha/mocha.d.ts"/>
+/// <reference path="../../typings/node/node.d.ts"/>
+/// <reference path="../../typings/chai/chai.d.ts" />
+/// <reference path="../../typings/tsd.d.ts" />
 
 'use strict';
 
-var Flexilite = require('../flexish/reverseEng');
 import mocha = require('mocha');
 require('../lib/drivers/SQLite');
 import path = require('path');
-import orm = require("orm");
-var Sync = require('syncho');
 import _ = require('lodash');
 
 describe('More data refactoring', () =>
