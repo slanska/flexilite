@@ -29,7 +29,7 @@ set(TEST_FILES
         util/db_init.h
         definitions.h
         util/file_helper.c
-        util/file_helper.h )
+        util/file_helper.h class.c)
 
 add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_RTREE

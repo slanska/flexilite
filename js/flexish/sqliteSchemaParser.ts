@@ -319,7 +319,7 @@ export class SQLiteSchemaParser {
                 case 'varbinary':
                 case 'image':
                     p.rules.type = 'binary';
-                    // TODO Process subtype
+                    p.rules.subType = 'image';
                     break;
 
                 case 'ntext':
@@ -618,14 +618,14 @@ export class SQLiteSchemaParser {
         if (many2many) {
             classDef.storage = 'flexi-rel';
             classDef.storageFlexiRel.master = {
-                ownProperty: {$propertyName: tblInfo.outFKeys[0].from},
-                refClass: {$className: tblInfo.outFKeys[0].table},
-                refProperty: {$propertyName: tblInfo.outFKeys[0].to}
+                ownProperty: {$name: tblInfo.outFKeys[0].from},
+                refClass: {$name: tblInfo.outFKeys[0].table},
+                refProperty: {$name: tblInfo.outFKeys[0].to}
             };
             classDef.storageFlexiRel.master = {
-                ownProperty: {$propertyName: tblInfo.outFKeys[1].from},
-                refClass: {$className: tblInfo.outFKeys[1].table},
-                refProperty: {$propertyName: tblInfo.outFKeys[1].to}
+                ownProperty: {$name: tblInfo.outFKeys[1].from},
+                refClass: {$name: tblInfo.outFKeys[1].table},
+                refProperty: {$name: tblInfo.outFKeys[1].to}
             };
 
             // No need to process indexing as this class will be used as a virtual table with no data
@@ -640,7 +640,7 @@ export class SQLiteSchemaParser {
 
         if (extCol) {
             // set mixin class
-            classDef.mixin = [{$className: extCol.table}];
+            classDef.mixin = {classRef: {$name: extCol.table}};
             extCol.processed = true;
             _.remove(tblInfo.outFKeys, extCol);
         }
@@ -675,10 +675,7 @@ export class SQLiteSchemaParser {
                     propName += `_${fk.from}`;
 
                 pp.refDef = {
-                    $className: fk.table,
-                    // TODO
-                    $reverseMinOccurences: 0,
-                    $reverseMaxOccurences: 1
+                    classRef: {$name: fk.table},
                 };
                 classDef.properties[propName] = pp;
                 // TODO on_update, on_delete

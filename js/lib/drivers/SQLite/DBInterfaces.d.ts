@@ -2,7 +2,8 @@
  * Created by slanska on 2016-03-26.
  */
 
-///<reference path="../../../../typings/lib.d.ts"/>
+///<reference path="../../../../src/typings/DBDefinitions.ts"/>
+///<reference path="../../../typings/definitions.d.ts"/>
 
 /*
  Set of interfaces and constants to Flexilite's driver for SQLite database tables
@@ -17,7 +18,7 @@
  */
 interface IFlexiName
 {
-    NameID:NameID;
+    NameID:number;
     Value:string;
     Data:any; // TODO Finalize structure. Multi language support?
     PluralOf?:number;
@@ -58,7 +59,7 @@ interface IFlexiClass
     /*
      ID of collection name
      */
-    NameID:NameID;
+    NameID:number;
 
     /*
      Class name, by NameID
@@ -71,20 +72,6 @@ interface IFlexiClass
     SystemClass?:boolean;
 
     ctloMask?:OBJECT_CONTROL_FLAGS;
-
-    /*
-     Optional property IDs for mapped columns
-     */
-    A?:number;
-    B?:number;
-    C?:number;
-    D?:number;
-    E?:number;
-    F?:number;
-    G?:number;
-    H?:number;
-    I?:number;
-    J?:number;
 
     // [Data] signature for the fast lookup
     Hash?:string;
@@ -103,7 +90,7 @@ interface IFlexiClassProperty
 {
     PropertyID?:number;
     ClassID:number;
-    NameID:NameID;
+    NameID:number;
 
     /*
      Computed property. Taken from [.names] based on NameID
@@ -159,13 +146,12 @@ interface IFlexiObject
 {
     ObjectID:number;
     ClassID:number;
-    SchemaID:number;
     ctlo:OBJECT_CONTROL_FLAGS;
 
     /*
      Arbitrary JSON text
      */
-    Data?:any;
+    ExtData?:any;
 
     /*
      Field shortcuts (values extracted from Data)
@@ -180,6 +166,12 @@ interface IFlexiObject
     H?:any;
     I?:any;
     J?:any;
+    K?:any;
+    L?:any;
+    M?:any;
+    N?:any;
+    O?:any;
+    P?:any;
 }
 
 declare type IFlexiClassPropDictionaryByName = {[propName:string]:IFlexiClassProperty};

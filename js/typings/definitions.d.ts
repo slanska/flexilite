@@ -10,7 +10,21 @@
  Property types
  */
 declare type PropertyType =
+    /*
+     Text type
+     */
     'text' |
+
+        /*
+         Property is stored as integer value pointing to row in .names table.
+         This type is compatible with 'text' type and gives the following advantages:
+         a) more compact storage
+         b) automatic full text indexing
+         c) i18n support. Queries will return text data translated based on cultural context.
+
+         Regular indexing is also available, though only unique indexing is what really makes sense for 'name' type (as values are full-text indexed anyway)
+         */
+        'name' |
 
         /*
          Up to 64 bit integer
@@ -21,6 +35,10 @@ declare type PropertyType =
          Double precision float
          */
         'number' |
+
+        /*
+         true or false, obviously
+         */
         'boolean' |
 
         /*
@@ -67,7 +85,7 @@ declare type PropertyType =
         /*
          Stored as integer with 4 decimal places.
          For example, $100.39 will be stored as 1003900
-         (the same storage format used by Basic script)
+         (the same storage format used by Visual Basic script - 4 decimal point accuracy)
          */
         'money' |
 
@@ -96,7 +114,7 @@ declare type PropertyIndexMode =
 
         /*
          This property is part of range definition (together with another property), either as low bound or high bound.
-         SQLite RTree is used for range index and up to 5 pairs of properties can be indexed.
+         SQLite RTree is used for range index and up to 4 pairs of properties can be indexed.
          Only numeric, integer or date properties can be indexed using RTRee.
          Actual mapping between properties and RTRee columns is done in IClassDefinition.rangeIndexing
          Attempt to apply range index for other property types will result in an error.
@@ -104,7 +122,8 @@ declare type PropertyIndexMode =
         | 'range'
 
         /*
-         Content will be indexed for full text search. Applicable to text values only
+         Content will be indexed for full text search. Applicable to text values only.
+         Name type will be indexed by default
          */
         | 'fulltext';
 
@@ -114,46 +133,62 @@ declare type PropertyIndexMode =
 declare type RelationRule =
     /*
      Referenced object(s) are details (dependents).
-     They will be deleted when master is deleted
+     They will be deleted when master is deleted. Equivalent of DELETE CASCADE
      */
-    'cascade' |
-
-        'no_action' |
+    'master' |
 
         /*
-         Referenced objects are treated as part of master object, but accessed via additional
-         object property
+         Loose association between 2 objects. When object gets deleted, references are deleted too.
+         Equivalent of DELETE SET NULL
+         */
+        'link' |
+
+        /*
+         Similar to master but referenced objects are treated as part of master object
          */
         'nested' |
 
         /*
-         When marked object gets deleted, corresponding relation entry to linked object is deleted too.
+         Object cannot be deleted if there are references. Equivalent of DELETE RESTRICT
          */
-        'set-null' ;
+        'dependent' ;
 
-declare interface IReferencePropertyDef {
-    classID?: number;
+/*
+ User-friendly and internal way to specify class, property or name
+ */
+interface IMetadataRef {
+    /*
+     User supplied value. During save will be converted to $id which will be used thereafter
+     */
+    $name?: string;
     /*
      or
      */
-    $className?: string;
+    $id?: number;
+}
 
+declare interface TMixinClassDef {
+    classRef?: IMetadataRef | IMetadataRef[],
+    dynamic?: {
+        selectorProp: IMetadataRef;
+        rules: {
+            exactValue?: string|number,
+            regex: string | RegExp,
+            classRef: IMetadataRef
+        }[];
+    }
+}
+
+declare interface IReferencePropertyDef extends TMixinClassDef {
     /*
-     Property name ID (in `referenceTo` class) used as reversed reference property for this one. Optional. If set,
+     Property name ID (in `classRef` class) used as reversed reference property for this one. Optional. If set,
      Flexilite will ensure that referenced class does have this property (by creating if needed).
      'reversed property' is treated as slave of master definition. It means the following:
      1) reversed object ID is stored in [Value] field (master's object ID in [ObjectID] field)
      2) when master property gets modified (switches to different class or reverse property) or deleted,
      reverse property definition also gets deleted
      */
-    reversePropertyID?: number;
-    /*
-     or
-     */
-    $reversePropertyName?: string;
-
-    $reverseMinOccurences?: number;
-    $reverseMaxOccurences?: number;
+    reverseProperty?: IMetadataRef;
 
     /*
      Defines number of items fetched as a part of master object load. Applicable only > 0
@@ -161,34 +196,40 @@ declare interface IReferencePropertyDef {
     autoFetchLimit?: number;
 
     /*
-
+     Optional relation rule when object gets deleted. If not specified, 'link' is assumed
      */
-    relationRule?: RelationRule;
+    rule?: RelationRule;
 }
 
-declare interface IEnumPropertyDef {
-    enumId: number;
-    /*
-     or
-     */
-    $enumName?: string;
-    /*
-     or
-     */
+/*
+ Enum definition: either $id or $name or items
+ */
+declare interface IEnumPropertyDef extends IMetadataRef {
     items?: IEnumItem[];
 }
 
-declare type NameId = number;
+declare type PropertySubType =
+    'text'
+        | 'email'
+        | 'ip'
+        | 'password'
+        | 'ip6v'
+        | 'url'
+        | 'image'
+        | 'html';
 
+/*
+ Contract for standard property validation rules and constraints
+ */
 declare interface IPropertyRulesSettings {
     type: PropertyType;
 
-    // TODO subType?: PropertySubType;
+    subType?: PropertySubType;
 
     /*
      Number of occurences for the single object.
-     For normal required properties both minOccurences and maxOccurences are 1
-     For normal optional properties, 0 and 1 respectively
+     For regular required properties both minOccurences and maxOccurences are 1
+     For regular optional properties, 0 and 1 respectively
      For arrays, minOccurences must be non negative value and maxOccurences must be not smaller than minOccurences
      */
     minOccurences?: number; // default: 0
@@ -221,12 +262,7 @@ declare interface IEnumItem {
      */
     id: string | number,
 
-    /*
-     Either $Text or TextID should be specified. $Text has priority over TextID.
-     Internally TextID is stored, $Text is removed after obtaining name ID
-     */
-    $text?: string,
-    textID?: NameId
+    text: IMetadataRef;
 }
 
 interface IEnumPropertyDefinition {
@@ -234,72 +270,6 @@ interface IEnumPropertyDefinition {
      Hard coded list of items to select from. Either Text or TextID are required to serve
      */
     items: [IEnumItem]
-}
-
-/*
- 'Object' property settings
-
- TODO Needed?
- */
-interface IObjectPropertyDefinition {
-    classID?: number;
-    /*
-     or
-     */
-    $className?: string;
-
-    /*
-     if prop.rules.type = 'object', this attribute helps to determine actual class ID of boxed/nested object.
-     This feature allows to dynamically extend objects with different classes. If this attribute is set,
-     classID attribute is not used. Also, this attribute is used to prepare list of class IDs available
-     for selection when initializing new master object.
-     */
-    resolve?: {
-        /*
-         ID of property in the same object that is used as a source value to determine actual class type of boxed object
-         */
-        selectorPropID?: number;
-
-        /*
-         List of values: exactValue, class ID and optional regex. If value from selector property is equal to exactValue or
-         matches regex, corresponding class ID is selected. Matching is applied lineary, starting from 1st item in rules array.
-         Also, list of class IDs is used to build list of available classes when user creates a new object and needs
-         to select specific class. In this case, 'exactValue' attribute is used to populate selectorPropID if specified.
-         If it is not specified, selector value will be set to selected class ID
-         */
-        rules?: [{classID: number, exactValue?: string|number, regex?: string|RegExp}];
-
-        /*
-         Alternative option to determine actual class type. This attribute has priority over 'rules' attribute.
-         It defines filter to select list of classes available by class name. ID of selected class will be stored
-         in selector property
-         */
-        classNameRegex?: string;
-    }
-
-    /*
-     Property name ID (in `referenceTo` class) used as reversed reference property for this one. Optional. If set,
-     Flexilite will ensure that referenced class does have this property (by creating if needed).
-     'reversed property' is treated as slave of master definition. It means the following:
-     1) reversed object ID is stored in [Value] field (master's object ID in [ObjectID] field)
-     2) when master property gets modified (switches to different class or reverse property) or deleted,
-     reverse property definition also gets deleted
-     */
-    reversePropertyID?: number;
-    /*
-     or
-     */
-    $reversePropertyName?: string;
-
-    /*
-     If true, linked item(s) will be loaded together with master object and injected into its payload
-     */
-    autoFetch?: boolean;
-
-    /*
-     Defines number of items fetched as a part of master object load. Applicable only if autoFetch === true
-     */
-    autoFetchLimit?: number;
 }
 
 /*
@@ -323,29 +293,22 @@ interface IClassPropertyDef {
     noTrackChanges?: boolean;
 
     /*
-
-     */
-    // /*
-    //  Extended data for REFERENCE and OBJECT types
-    //  */
-    // reference?: IObjectPropertyDefinition;
-
-    /*
      Required if rules.type == 'reference'
      */
     refDef?: IReferencePropertyDef;
 
     dateTime?: 'dateOnly' | 'timeOnly' | 'dateTime';
 
-    // TODO
-    subType?: string;
-
-    enumDef?: IEnumPropertyDefinition;
+    enumDef?: IEnumPropertyDef;
 
     defaultValue?: any;
 
     /*
      List of command, non-stored attributes, which are used as instructions for property alteration
+     */
+
+    /*
+     Instruction to rename property
      */
     $renameTo?: string;
 
@@ -384,7 +347,9 @@ declare interface IQuerySelectDef {
 /*
  Structure to define query
  Mimics SQL SELECT
- 'where' can be used standalone
+ 'where' can be used standalone.
+ Query is evaluated for presence of 'where' or 'orderBy' attribute. If not any of those attributes are found, query body is treated as 'where' clause.
+ Example: {Prop1: 123, Prop2: "abc"} is treated as {where: {Prop1: 123, Prop2: "abc"}}
  */
 declare interface IQueryDef {
     select?: IQuerySelectDef;
@@ -393,9 +358,17 @@ declare interface IQueryDef {
     orderBy?: IQueryOrderByDef;
     limit?: number;
     skip?: number;
-    userId?: string;
-    culture?: string;
     bookmark?: string;
+    user?: IUserContext;
+}
+
+/*
+ Current user context
+ */
+declare interface IUserContext {
+    id: string,
+    roles?: string[],
+    culture?: string
 }
 
 /*
@@ -412,39 +385,30 @@ declare interface IQueryDef {
  */
 declare type QueryWhereOperator = '$eq' | '$ne' | '$lt' | '$gt' | '$le' | '$ge' | '$in'
     | '$between' | '$exists' | '$like' | '$match' | '$not'
-    | '=' | '==' | '!=' | '<>' | '<' | '>' | '<=' | '>=';
+    | '=' | '==' | '!=' | '<>' | '<' | '>' | '<=' | '>=' |
+
+    /* Set operations */
+
+    /* A B is the set that contains all the elements in either A or B or both:
+     Example 1: If A = {1, 2, 3} and B = {4, 5} ,  then A  B = {1, 2, 3, 4, 5} .
+     Example 2: If A = {1, 2, 3} and B = {1, 2, 4, 5} ,  then A  B = {1, 2, 3, 4, 5} .
+     */
+    '$union' |
+
+    /* A B is the set that contains all the elements that are in both A and B:
+     Example 3: If A = {1, 2, 3} and B = {1, 2, 4, 5} ,  then A  B = {1, 2} .
+     Example 4: If A = {1, 2, 3} and B = {4, 5} ,  then A  B =  .
+     */
+    '$intersect' |
+
+    /* Example 5: If A = {1, 2, 3} and B = {1, 2, 4, 5} ,  then A - B = {3} .
+     Example 6: If A = {1, 2, 3} and B = {4, 5} ,  then A - B = {1, 2, 3} .
+     */
+    '$difference';
 
 type IClassPropertyDictionary = {[propID: string]: IClassPropertyDef};
 
 /*
- User friendly and internal way to specify a property
- */
-interface IPropertyIdentifier {
-    /*
-     User supplied value. During save will be converted to propertyID which will be used thereafter
-     */
-    $propertyName?: string;
-    /*
-     or
-     */
-    propertyID?: number;
-}
-
-/*
- User-friendly and internal way to specify class
- */
-interface IClassIdentifier {
-    /*
-     User supplied value. During save will be converted to classID which will be used thereafter
-     */
-    $className?: string;
-    /*
-     or
-     */
-    classID?: number;
-
-}
-
 /*
  Structure of .classes.Data
  */
@@ -457,14 +421,8 @@ interface IClassDefinition {
             view?: string;
         };
 
-        /*
-         NameID
-         */
-        title?: NameId;
-        /*
-         or
-         */
-        $title?: string;
+        /* Name text or ID */
+        name?: IMetadataRef;
     };
 
     /*
@@ -476,30 +434,37 @@ interface IClassDefinition {
      If true, any non defined properties are allowed. Any properties in payload, that are not
      in the "properties" attribute, will be processed as names, and their name IDs will be used instead
      of property IDs. Such properties :
-     a) cannot be indexed
+     a) indexed based on .names ctlv definition
      b) are not validated
      c) can be included into select or where clause
-     d) will be included into query result, if '*' is specified for property name in "select" clause
+     d) will be included into query result, if their names are specified explicitly in "select" clause
 
      Default value: false
      */
-    allowNotDefinedProps?: boolean;
+    allowAnyProps?: boolean;
 
     /*
      Reserved for future use.
-     Mapping properties to fixed columns in [.objects] table
+     Mapping for locked properties to fixed columns in [.objects] table
+     Locked properties are used for more efficient access and provide limited refactoring capabilities.
      */
     columnMapping?: {
-        A?: IPropertyIdentifier;
-        B?: IPropertyIdentifier;
-        C?: IPropertyIdentifier;
-        D?: IPropertyIdentifier;
-        E?: IPropertyIdentifier;
-        F?: IPropertyIdentifier;
-        G?: IPropertyIdentifier;
-        H?: IPropertyIdentifier;
-        I?: IPropertyIdentifier;
-        J?: IPropertyIdentifier;
+        A?: IMetadataRef;
+        B?: IMetadataRef;
+        C?: IMetadataRef;
+        D?: IMetadataRef;
+        E?: IMetadataRef;
+        F?: IMetadataRef;
+        G?: IMetadataRef;
+        H?: IMetadataRef;
+        I?: IMetadataRef;
+        J?: IMetadataRef;
+        K?: IMetadataRef;
+        L?: IMetadataRef;
+        M?: IMetadataRef;
+        N?: IMetadataRef;
+        O?: IMetadataRef;
+        P?: IMetadataRef;
     }
 
     /*
@@ -510,47 +475,47 @@ interface IClassDefinition {
          User defined unique object ID.
          Once set, cannot be changed
          */
-        uid?: IPropertyIdentifier;
+        uid?: IMetadataRef;
 
         /*
          Object Name
          */
-        name?: IPropertyIdentifier;
+        name?: IMetadataRef;
 
         /*
          Object description
          */
-        description?: IPropertyIdentifier;
+        description?: IMetadataRef;
 
         /*
          Another alternative ID. Unlike ID, can be changed
          */
-        code?: IPropertyIdentifier;
+        code?: IMetadataRef;
 
         /*
          Alternative ID that allows duplicates
          */
-        nonUniqueId?: IPropertyIdentifier;
+        nonUniqueId?: IMetadataRef;
 
         /*
          Timestamp on when object was created
          */
-        createTime?: IPropertyIdentifier;
+        createTime?: IMetadataRef;
 
         /*
          Timestamp on when object was last updated
          */
-        updateTime?: IPropertyIdentifier;
+        updateTime?: IMetadataRef;
 
         /*
          Auto generated UUID (16 byte blob)
          */
-        autoUuid?: IPropertyIdentifier;
+        autoUuid?: IMetadataRef;
 
         /*
          Auto generated short ID (7-16 characters)
          */
-        autoShortId?: IPropertyIdentifier;
+        autoShortId?: IMetadataRef;
     }
 
     /*
@@ -566,16 +531,16 @@ interface IClassDefinition {
      Date/time are stored as logarithmic values (4 byte, single value)
      */
     rangeIndexing?: {
-        A0: IPropertyIdentifier;
-        A1?: IPropertyIdentifier;
-        B0?: IPropertyIdentifier;
-        B1?: IPropertyIdentifier;
-        C0?: IPropertyIdentifier;
-        C1?: IPropertyIdentifier;
-        D0?: IPropertyIdentifier;
-        D1?: IPropertyIdentifier;
-        E0?: IPropertyIdentifier;
-        E1?: IPropertyIdentifier;
+        A0: IMetadataRef;
+        A1?: IMetadataRef;
+        B0?: IMetadataRef;
+        B1?: IMetadataRef;
+        C0?: IMetadataRef;
+        C1?: IMetadataRef;
+        D0?: IMetadataRef;
+        D1?: IMetadataRef;
+        E0?: IMetadataRef;
+        E1?: IMetadataRef;
     }
 
     /*
@@ -583,17 +548,17 @@ interface IClassDefinition {
      These properties are mapped to X1-X4 columns in [.full_text_data] table
      */
     fullTextIndexing?: {
-        X1?: IPropertyIdentifier;
-        X2?: IPropertyIdentifier;
-        X3?: IPropertyIdentifier;
-        X4?: IPropertyIdentifier;
+        X1?: IMetadataRef;
+        X2?: IMetadataRef;
+        X3?: IMetadataRef;
+        X4?: IMetadataRef;
     }
 
     /*
      (Optional) list of base classes. Defines classes that given class can 'extend', i.e. use their
      properties
      */
-    mixin?: IClassIdentifier[];
+    mixin?: TMixinClassDef;
 
     /*
      Optional storage mode. By default - 'flexi-data', which means that data will be stored in Flexilite
@@ -613,9 +578,9 @@ interface IClassDefinition {
 }
 
 interface IStorageFlexiRelProperty {
-    ownProperty: IPropertyIdentifier;
-    refClass: IClassIdentifier;
-    refProperty: IPropertyIdentifier;
+    ownProperty: IMetadataRef;
+    refClass: IMetadataRef;
+    refProperty: IMetadataRef;
 }
 
 type IClassPropertyDictionaryByName = {[propName: string]: IClassPropertyDef};

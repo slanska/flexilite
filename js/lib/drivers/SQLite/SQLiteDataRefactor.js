@@ -189,7 +189,7 @@ var SQLiteDataRefactor = (function () {
      Note: property renaming is not supported here. alterClassProperty should be used for that.
      */
     SQLiteDataRefactor.prototype.alterClass = function (className, newClassDef, newName, invalidDataBehavior) {
-        if (invalidDataBehavior === void 0) { invalidDataBehavior = 0 /* INV_DT_BEH_MARKCLASS */; }
+        if (invalidDataBehavior === void 0) { invalidDataBehavior = InvalidDataBehavior.INV_DT_BEH_MARKCLASS; }
         var self = this;
         var clsDef = self.getClassDefByName(name);
         if (clsDef) {
@@ -303,37 +303,37 @@ var SQLiteDataRefactor = (function () {
             throw new Error("Reference definition is missing in " + clsDef.Name + "." + propertyName);
         }
         var refClsDef = null;
-        if (propDef.reference.$className) {
-            refClsDef = self.getClassDefByName(propDef.reference.$className);
+        if (propDef.reference.$name) {
+            refClsDef = self.getClassDefByName(propDef.reference.$name);
             if (!refClsDef)
-                throw new Error("Referenced class (Name=" + propDef.reference.$className + ") not found");
+                throw new Error("Referenced class (Name=" + propDef.reference.$name + ") not found");
             propDef.reference.classID = refClsDef.ClassID;
-            delete propDef.reference.$className;
+            delete propDef.reference.$name;
         }
         else {
-            refClsDef = self.getClassDefByID(propDef.reference.classID);
+            refClsDef = self.getClassDefByID(propDef.reference.$id);
             if (!refClsDef)
-                throw new Error("Referenced class (ID=" + propDef.reference.classID + ") not found");
+                throw new Error("Referenced class (ID=" + propDef.reference.$id + ") not found");
         }
         var revPropDef = null;
         if (propDef.reference.reversePropertyID || propDef.reference.$reversePropertyName) {
             if (propDef.reference.reversePropertyID)
                 revPropDef = self.getClassPropertyByID(propDef.reference.reversePropertyID);
             else if (propDef.reference.$reversePropertyName) {
-                revPropDef = self.getClassProperty(propDef.reference.classID, propDef.reference.$reversePropertyName);
+                revPropDef = self.getClassProperty(propDef.reference.$id, propDef.reference.$reversePropertyName);
                 delete propDef.reference.$reversePropertyName;
             }
             if (!revPropDef) 
             // Not found
             {
-                var revPropDef_1 = { reference: {}, rules: { type: 2 /* PROP_TYPE_LINK */ } };
+                var revPropDef_1 = { reference: {}, rules: { type: PROPERTY_TYPE.PROP_TYPE_LINK } };
                 revPropDef_1.reference.classID = clsDef.ClassID;
-                var refClsDef_1 = self.getClassDefByID(propDef.reference.classID);
+                var refClsDef_1 = self.getClassDefByID(propDef.reference.$id);
                 self.doCreateClassProperty(refClsDef_1, propDef.reference.$reversePropertyName, revPropDef_1);
             }
             else {
-                var revClsDef = self.getClassDefByID(propDef.reference.classID);
-                revPropDef.Data.rules.type = 2 /* PROP_TYPE_LINK */;
+                var revClsDef = self.getClassDefByID(propDef.reference.$id);
+                revPropDef.Data.rules.type = PROPERTY_TYPE.PROP_TYPE_LINK;
                 self.alterClassProperty(revClsDef.Name, propDef.reference.$reversePropertyName, revPropDef.Data);
             }
             propDef.reference.reversePropertyID = self.getNameByValue(propDef.reference.$reversePropertyName).NameID;
@@ -360,7 +360,7 @@ var SQLiteDataRefactor = (function () {
      */
     SQLiteDataRefactor.prototype.doAlterEnumProp = function (clsDef, propertyId, propertyName, curPropDef, propDef) {
         var self = this;
-        if (curPropDef.rules.type === 16 /* PROP_TYPE_ENUM */ && propDef.rules.type === 16 /* PROP_TYPE_ENUM */) {
+        if (curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_ENUM && propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_ENUM) {
             if (!propDef.enumDef)
                 throw new Error("Enum property " + propertyName + " must have enum items");
             var removedItems = _.differenceWith(curPropDef.enumDef.items, propDef.enumDef.items, function (A, B) {
@@ -404,10 +404,10 @@ var SQLiteDataRefactor = (function () {
         var newRef = false;
         var curRef = false;
         // Determining scope of changes
-        if (propDef.rules.type === 2 /* PROP_TYPE_LINK */ || propDef.rules.type === 4 /* PROP_TYPE_OBJECT */) {
+        if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT) {
             newRef = true;
         }
-        if (curPropDef.rules.type === 2 /* PROP_TYPE_LINK */ || curPropDef.rules.type === 4 /* PROP_TYPE_OBJECT */) {
+        if (curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT) {
             curRef = true;
         }
         if (!curRef && !newRef)
@@ -417,13 +417,13 @@ var SQLiteDataRefactor = (function () {
         {
             var refClsDef = self.initPropReference(clsDef, propertyName, propDef);
             // Determine ctlv flags
-            var ctlv = 0 /* CTLV_NONE */;
-            if (propDef.rules.type === 4 /* PROP_TYPE_OBJECT */)
-                ctlv |= 4 /* CTLV_REFERENCE_OWN */ | 12 /* CTLV_REFERENCE_DEPENDENT_LINK */;
+            var ctlv = Value_Control_Flags.CTLV_NONE;
+            if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
+                ctlv |= Value_Control_Flags.CTLV_REFERENCE_OWN | Value_Control_Flags.CTLV_REFERENCE_DEPENDENT_LINK;
             else
-                ctlv |= 2 /* CTLV_REFERENCE */;
-            ctlv |= 1 /* CTLV_INDEX */;
-            var cltvMask = !15 /* CTLV_REFERENCE_MASK */;
+                ctlv |= Value_Control_Flags.CTLV_REFERENCE;
+            ctlv |= Value_Control_Flags.CTLV_INDEX;
+            var cltvMask = !Value_Control_Flags.CTLV_REFERENCE_MASK;
             var idPropID = self.findIdOrCodeProperty(refClsDef);
             var pn = idPropID ? self.getNameByID(idPropID).Value : 'rowid';
             var sql = "insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value], ExtData) \n                select rv.ObjectID, rv.PropertyID, rv.PropIndex, \n                (rv.ctlv & $ctlvMask) | $ctlv, \n                rf.rowid, \n                rv.ExtData from [.ref-values] rv\n                join [.objects] o on o.ObjectID = rv.ObjectID and o.Class = $ClassID\n                join [" + refClsDef.Name + "] rf on rf.[" + pn + "] = rv.[Value]\n                where rv.PropertyID = $PropertyID;";
@@ -443,9 +443,9 @@ var SQLiteDataRefactor = (function () {
                 var sql_1 = "delete from [.class_properties] where PropertyID = $PropertyID;";
                 self.DB.run(sql_1, { $PropertyID: curPropDef.reference.reversePropertyID });
             }
-            var ctlv = 0 /* CTLV_NONE */;
-            var cltvMask = !15 /* CTLV_REFERENCE_MASK */;
-            var refClsDef = self.getClassDefByID(curPropDef.reference.classID);
+            var ctlv = Value_Control_Flags.CTLV_NONE;
+            var cltvMask = !Value_Control_Flags.CTLV_REFERENCE_MASK;
+            var refClsDef = self.getClassDefByID(curPropDef.reference.$id);
             var idPropID_1 = self.findIdOrCodeProperty(refClsDef);
             var pn = idPropID_1 ? self.getNameByID(idPropID_1).Value : 'rowid';
             var sql = "insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value], ExtData) \n                select rv.ObjectID, rv.PropertyID, rv.PropIndex, \n                (rv.ctlv & $ctlvMask) | $ctlv, \n                rf.rowid, \n                rv.ExtData from [.ref-values] rv\n                join [.objects] o on o.ObjectID = rv.ObjectID and o.Class = $ClassID\n                join [" + refClsDef.Name + "] rf on rf.[" + pn + "] = rv.[Value]\n                where rv.PropertyID = $PropertyID;";
@@ -464,7 +464,7 @@ var SQLiteDataRefactor = (function () {
         var idPropID;
         // Check if it has property with role ID or Code
         var idProp = _.find(refClsDef.Data.properties, function (pd, pID) {
-            if ((pd.role & 4 /* PROP_ROLE_ID */) != 0) {
+            if ((pd.role & PROPERTY_ROLE.PROP_ROLE_ID) != 0) {
                 idPropID = pID;
                 return true;
             }
@@ -472,7 +472,7 @@ var SQLiteDataRefactor = (function () {
         });
         if (!idProp) {
             idProp = _.find(refClsDef.Data.properties, function (pd, pID) {
-                if ((pd.role & 8 /* PROP_ROLE_CODE */) != 0) {
+                if ((pd.role & PROPERTY_ROLE.PROP_ROLE_CODE) != 0) {
                     idPropID = pID;
                     return true;
                 }
@@ -517,10 +517,10 @@ var SQLiteDataRefactor = (function () {
         var newRef = false;
         var curRef = false;
         // Determining scope of changes
-        if (propDef.rules.type === 2 /* PROP_TYPE_LINK */ || propDef.rules.type === 4 /* PROP_TYPE_OBJECT */) {
+        if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT) {
             newRef = true;
         }
-        if (curPropDef.rules.type === 2 /* PROP_TYPE_LINK */ || curPropDef.rules.type === 4 /* PROP_TYPE_OBJECT */) {
+        if (curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT) {
             curRef = true;
         }
         if (newRef && curRef) {
@@ -643,18 +643,18 @@ var SQLiteDataRefactor = (function () {
 
      */
     SQLiteDataRefactor.getCtlvFromPropertyDef = function (propDef, oldCtlv) {
-        var result = { ctlv: 0 /* CTLV_NONE */, updateRequired: false };
+        var result = { ctlv: Value_Control_Flags.CTLV_NONE, updateRequired: false };
         // Initial value for ctlv is new type
         result.ctlv = propDef.rules.type;
-        if ((propDef.role && ((propDef.role & 8 /* PROP_ROLE_CODE */) != 0
-            || (propDef.role & 4 /* PROP_ROLE_ID */) != 0)) || propDef.unique)
-            result.ctlv |= 64 /* CTLV_UNIQUE_INDEX */;
+        if ((propDef.role && ((propDef.role & PROPERTY_ROLE.PROP_ROLE_CODE) != 0
+            || (propDef.role & PROPERTY_ROLE.PROP_ROLE_ID) != 0)) || propDef.unique)
+            result.ctlv |= Value_Control_Flags.CTLV_UNIQUE_INDEX;
         if (propDef.indexed)
-            result.ctlv |= 1 /* CTLV_INDEX */;
+            result.ctlv |= Value_Control_Flags.CTLV_INDEX;
         if (propDef.fastTextSearch)
-            result.ctlv |= 256 /* CTLV_FULL_TEXT_INDEX */;
+            result.ctlv |= Value_Control_Flags.CTLV_FULL_TEXT_INDEX;
         if (propDef.noTrackChanges)
-            result.ctlv |= 128 /* CTLV_NO_TRACK_CHANGES */;
+            result.ctlv |= Value_Control_Flags.CTLV_NO_TRACK_CHANGES;
         if ((result.ctlv & oldCtlv) !== result.ctlv)
             result.updateRequired = true;
         return result;
@@ -668,7 +668,7 @@ var SQLiteDataRefactor = (function () {
         var self = this;
         // Get name ID
         var pnID = self.getNameByValue(propertyName).NameID;
-        var ctlvArgs = SQLiteDataRefactor.getCtlvFromPropertyDef(propDef, 0 /* CTLV_NONE */);
+        var ctlvArgs = SQLiteDataRefactor.getCtlvFromPropertyDef(propDef, Value_Control_Flags.CTLV_NONE);
         self.DB.serialize(function () {
             self.DB.run("insert into [.class_properties] (ClassID, NameID, ctlv) values ($ClassID, $NameID, $ctlv);", { $ClassID: clsDef.ClassID, $NameID: pnID, $ctlv: ctlvArgs.ctlv });
             var rows = self.DB.all("select last_insert_rowid();");
@@ -677,7 +677,7 @@ var SQLiteDataRefactor = (function () {
             delete propDef.$rangeDef;
             delete propDef.$renameTo;
             if (propDef.reference) {
-                delete propDef.reference.$className;
+                delete propDef.reference.$name;
                 delete propDef.reference.$reversePropertyName;
             }
             clsDef.Data.properties[propID] = propDef;
@@ -755,7 +755,7 @@ var SQLiteDataRefactor = (function () {
             var nameID = self.getNameByValue(n).NameID;
             var np = {};
             np.NameID = nameID;
-            np.ctlv = 0 /* CTLV_NONE */;
+            np.ctlv = Value_Control_Flags.CTLV_NONE;
             np.Data = p;
             vars.newProps[n] = np;
         });
@@ -776,7 +776,7 @@ var SQLiteDataRefactor = (function () {
         // Now vars.newProps are saved and have property IDs assigned
         // Set class properties
         // ctloMask
-        vars.classDef.ctloMask = 0 /* CTLO_NONE */;
+        vars.classDef.ctloMask = OBJECT_CONTROL_FLAGS.CTLO_NONE;
     };
     SQLiteDataRefactor.prototype.initAndSaveProperties = function (self, vars) {
         // Fill updated properties
@@ -788,13 +788,13 @@ var SQLiteDataRefactor = (function () {
             np.NameID = self.getNameByValue(propName).NameID;
             np.ctlv = 0;
             if (p.unique) {
-                np.ctlv |= 64 /* CTLV_UNIQUE_INDEX */;
+                np.ctlv |= Value_Control_Flags.CTLV_UNIQUE_INDEX;
             }
             else if (p.indexed) {
-                np.ctlv |= 1 /* CTLV_INDEX */;
+                np.ctlv |= Value_Control_Flags.CTLV_INDEX;
             }
             if (p.fastTextSearch) {
-                np.ctlv |= 256 /* CTLV_FULL_TEXT_INDEX */;
+                np.ctlv |= Value_Control_Flags.CTLV_FULL_TEXT_INDEX;
             }
             vars.newProps[propName] = np;
             updPropStmt.run.sync(updPropStmt, {

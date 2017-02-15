@@ -4,7 +4,7 @@
 
 /// <reference path="../../typings/tests.d.ts" />
 
-import sqlite = require('sqlite3');
+import sqlite = require('../dbhelper');
 import {SQLiteSchemaParser} from '../flexish/sqliteSchemaParser';
 import path = require('path');
 import Promise =require( 'bluebird');
@@ -23,7 +23,6 @@ describe('Parse SQLite schema and generate Flexilite model', () => {
         parser.parseSchema().then(model => {
             let out = jsBeautify(JSON.stringify(model));
             fs.writeFileSync(path.join(__dirname, '../../data/Northwind.db3.schema.json'), out);
-            // console.log(out);
             done();
         });
     });

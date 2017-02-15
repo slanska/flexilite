@@ -27,9 +27,5 @@ static void init_db(void **state) {
 }
 
 int main() {
-    const struct CMUnitTest tests[] = {
-            cmocka_unit_test(init_memory_db),
-            cmocka_unit_test(init_db),
-    };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    class_tests();
 }

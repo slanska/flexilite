@@ -29,14 +29,15 @@ import Promise = require('bluebird');
 import sqlite = require('../dbhelper');
 import path = require('path');
 var jsBeautify = require('js-beautify');
+import fs = require('fs');
 
 import {SQLiteSchemaParser} from './sqliteSchemaParser';
 import {runFlexiliteQuery} from './runQuery';
 import {initFlexiliteDatabase} from './initDb';
 
-Promise.promisify(sqlite.Database.prototype.all);
-Promise.promisify(sqlite.Database.prototype.exec);
-Promise.promisify(sqlite.Database.prototype.run);
+// Promise.promisify(sqlite.Database.prototype.all);
+// Promise.promisify(sqlite.Database.prototype.exec);
+// Promise.promisify(sqlite.Database.prototype.run);
 
 const usage = "command <param> -options" +
     "";
@@ -64,6 +65,9 @@ function generateSchema(args, options) {
     return parser.parseSchema()
         .then((schema) => {
             let out = jsBeautify(schema);
+
+            // let fileName = path.join(path.dirname(options.database), path.);
+            // fs.writeFileSync(fileName, out);
             return 0;
         });
 }

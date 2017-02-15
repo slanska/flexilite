@@ -14,5 +14,9 @@
 #include <sqlite3.h>
 
 #include "../src/common/common.h"
+#include "util/db_init.h"
+#include "util/file_helper.h"
+
+int class_tests();
 
 #endif //FLEXILITE_DEFINITIONS_H

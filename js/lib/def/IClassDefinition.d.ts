@@ -93,7 +93,7 @@ interface IObjectPropertyDefinition
     /*
      if prop.rules.type = PROP_TYPE_OBJECT, this attribute helps to determine actual class ID of boxed/nested object.
      This feature allows to dynamically extend objects with different classes. If this attribute is set,
-     classID attribute is not used. Also, this attribute is used to prepare list of class IDs available
+     $id attribute is not used. Also, this attribute is used to prepare list of class IDs available
      for selection when initializing new master object.
      */
     resolve?:{

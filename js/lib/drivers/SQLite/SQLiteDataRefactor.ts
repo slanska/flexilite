@@ -430,19 +430,19 @@ export class SQLiteDataRefactor implements IDBRefactory
         }
 
         let refClsDef:IFlexiClass = null;
-        if (propDef.reference.$className)
+        if (propDef.reference.$name)
         {
-            refClsDef = self.getClassDefByName(propDef.reference.$className);
+            refClsDef = self.getClassDefByName(propDef.reference.$name);
             if (!refClsDef)
-                throw new Error(`Referenced class (Name=${propDef.reference.$className}) not found`);
+                throw new Error(`Referenced class (Name=${propDef.reference.$name}) not found`);
             propDef.reference.classID = refClsDef.ClassID;
-            delete propDef.reference.$className;
+            delete propDef.reference.$name;
         }
         else
         {
-            refClsDef = self.getClassDefByID(propDef.reference.classID);
+            refClsDef = self.getClassDefByID(propDef.reference.$id);
             if (!refClsDef)
-                throw new Error(`Referenced class (ID=${propDef.reference.classID}) not found`);
+                throw new Error(`Referenced class (ID=${propDef.reference.$id}) not found`);
         }
         let revPropDef:IFlexiClassProperty = null;
         if (propDef.reference.reversePropertyID || propDef.reference.$reversePropertyName)
@@ -453,7 +453,7 @@ export class SQLiteDataRefactor implements IDBRefactory
             else
                 if (propDef.reference.$reversePropertyName)
                 {
-                    revPropDef = self.getClassProperty(propDef.reference.classID, propDef.reference.$reversePropertyName);
+                    revPropDef = self.getClassProperty(propDef.reference.$id, propDef.reference.$reversePropertyName);
                     delete propDef.reference.$reversePropertyName;
                 }
 
@@ -463,13 +463,13 @@ export class SQLiteDataRefactor implements IDBRefactory
                 let revPropDef = {reference: {}, rules: {type: PROPERTY_TYPE.PROP_TYPE_LINK}} as IClassPropertyDef;
                 revPropDef.reference.classID = clsDef.ClassID;
 
-                let refClsDef = self.getClassDefByID(propDef.reference.classID);
+                let refClsDef = self.getClassDefByID(propDef.reference.$id);
                 self.doCreateClassProperty(refClsDef, propDef.reference.$reversePropertyName,
                     revPropDef);
             }
             else
             {
-                let revClsDef = self.getClassDefByID(propDef.reference.classID);
+                let revClsDef = self.getClassDefByID(propDef.reference.$id);
                 revPropDef.Data.rules.type = PROPERTY_TYPE.PROP_TYPE_LINK;
                 self.alterClassProperty(revClsDef.Name, propDef.reference.$reversePropertyName, revPropDef.Data);
             }
@@ -625,7 +625,7 @@ export class SQLiteDataRefactor implements IDBRefactory
 
             let cltvMask = !Value_Control_Flags.CTLV_REFERENCE_MASK;
 
-            let refClsDef = self.getClassDefByID(curPropDef.reference.classID);
+            let refClsDef = self.getClassDefByID(curPropDef.reference.$id);
             let idPropID = self.findIdOrCodeProperty(refClsDef);
             let pn = idPropID ? self.getNameByID(idPropID).Value : 'rowid';
             let sql = `insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value], ExtData) 
@@ -928,7 +928,7 @@ Its definition has to be converted to scalar first, and then to new reference de
             delete propDef.$renameTo;
             if (propDef.reference)
             {
-                delete propDef.reference.$className;
+                delete propDef.reference.$name;
                 delete propDef.reference.$reversePropertyName;
             }
 
