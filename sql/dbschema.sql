@@ -14,14 +14,14 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
   ClassID,
 
   -- Mapped columns. Mapping is different for different classes
-  [X1], [X2], [X3], [X4]
+  [X1], [X2], [X3], [X4],
 
   -- to allow case insensitive search for different languages
   tokenize=unicode61
 );
 
 ------------------------------------------------------------------------------------------
--- .names
+-- .names_props
 ------------------------------------------------------------------------------------------
 
 /*
@@ -45,13 +45,24 @@ CREATE TABLE IF NOT EXISTS [.names_props]
   0 - name
   1 - class property
    */
-  Type         SMALLINT            NOT NULL CHECK (Type IN [0, 1]),
+  Type         SMALLINT            NOT NULL CHECK (Type IN (0, 1)),
 
   /*
   Flag indicating that record was deleted. Records from .names table are never deleted to avoid problems with possible references
   Instead soft deleting is used. Such records are considered as source of NULL string during search. They are also deleted from
    */
   Deleted      BOOLEAN             NOT NULL                           DEFAULT 0,
+
+    /*
+  Actual control flags (already applied).
+  These flags define indexing, logging and other property attributes
+  */
+  [ctlv]       INTEGER             NOT NULL                           DEFAULT 0,
+
+  /*
+  Planned/desired control flags which are not yet applied
+  */
+  [ctlvPlan]   INTEGER             NOT NULL                           DEFAULT 0,
 
   /*
   Name specific columns
@@ -85,45 +96,23 @@ CREATE TABLE IF NOT EXISTS [.names_props]
   ID of property name
   */
   [PropNameID] INTEGER             NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.names_props] ([NameID])
-  ON DELETE RESTRICT ON UPDATE RESTRICT,
-
-  /*
-  Actual control flags (already applied).
-  These flags define indexing, logging and other property attributes
-  */
-  [ctlv]       INTEGER             NOT NULL                           DEFAULT 0,
-
-  /*
-  Planned/desired control flags which are not yet applied
-  */
-  [ctlvPlan]   INTEGER             NOT NULL                           DEFAULT 0,
-
-  /*
-
-   */
-  Data         JSON1               NULL,
-
-  RefClassID   INTEGER             NULL CONSTRAINT [fkClassPropertiesToRefClass] REFERENCES [.classes] (ClassID)
-  ON DELETE RESTRICT ON UPDATE RESTRICT,
-
-  RefPropID    INTEGER             NULL CONSTRAINT (fkClassPropertiesToRefProp) REFERENCES [.names_props] (ID)
   ON DELETE RESTRICT ON UPDATE RESTRICT
 );
 
 CREATE TRIGGER IF NOT EXISTS [namesAfterInsert]
 AFTER INSERT
-  ON [.names]
-  WHEN new.Value IS NOT NULL
+  ON [.names_props]
 FOR EACH ROW
+  WHEN new.Value IS NOT NULL
 BEGIN
 INSERT INTO [.full_text_data] (id, ClassID, X1) VALUES (-new.ID, 0, new.Value);
 END;
 
 CREATE TRIGGER IF NOT EXISTS [namesAfterUpdate]
 AFTER UPDATE
-  ON [.names]
-  WHEN new.Value IS NOT NULL
+  ON [.names_props]
 FOR EACH ROW
+  WHEN new.Value IS NOT NULL
 BEGIN
 UPDATE [.full_text_data]
 SET X1 = new.Value
@@ -132,9 +121,9 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS [namesAfterDelete]
 AFTER DELETE
-  ON [.names]
-  WHEN old.Value IS NOT NULL
+  ON [.names_props]
 FOR EACH ROW
+  WHEN old.Value IS NOT NULL
 BEGIN
 DELETE FROM [.full_text_data]
 WHERE id = -old.ID;
@@ -145,83 +134,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS [namesByValue]
   ON [.names_props] ([Value])
   WHERE [Value] IS NOT NULL;
 CREATE INDEX IF NOT EXISTS [namesByAliasOf]
-  ON [.names] ([AliasOf])
+  ON [.names_props] ([AliasOf])
   WHERE AliasOf IS NOT NULL;
 CREATE INDEX IF NOT EXISTS [namesByPluralOf]
-  ON [.names] ([PluralOf])
+  ON [.names_props] ([PluralOf])
   WHERE PluralOf IS NOT NULL;
 
 -- .class_properties specific indexes
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByClassAndName]
-  ON [.class_properties]
-  (ClassID, ID)
+  ON [.names_props]
+  (ClassID, PropNameID)
   WHERE ClassID IS NOT NULL;
-
-CREATE VIEW IF NOT EXISTS [.class_properties] AS
-  SELECT
-    [ID]                                                    AS PropertyID,
-    cp.[ClassID],
-    cp.[PropNameID]                                         AS NameID,
-    (SELECT [Value]
-     FROM [.names] n
-     WHERE n.ID = PropNameID
-     LIMIT 1)                                               AS Name,
-    cp.ctlv                                                 AS ctlv,
-    cp.ctlvPlan                                             AS ctlvPlan,
-    (json_extract(c.Data, printf('$.properties.%d', [ID]))) AS Data,
-    cp.RefClassID                                           AS RefClassID,
-    cp.RefPropID                                            AS RefPropID
-
-  FROM [.names] cp
-    JOIN [.classes] c ON cp.ClassID = c.ClassID
-  WHERE Type = 1 AND Deleted = 0;
-
-CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Insert]
-INSTEAD OF INSERT
-  ON [.class_properties]
-FOR EACH ROW
-BEGIN
-  INSERT OR IGNORE INTO [.names_props] (Value, Type) VALUES (new.Name, 0);
-  INSERT INTO [.names_props] (Type, PropNameID, ClassID, ctlv, ctlvPlan, RefClassID, RefPropID)
-  VALUES (1, (SELECT ID
-              FROM [.names_props]
-              WHERE Value = new.Name
-              LIMIT 1),
-          new.ClassID, new.ctlv, new.ctlvPlan, new.RefClassID, new.RefPropID);
-
-  -- TODO Fix unresolved references
-
---   select * from [.classes] where json_extract(Data, '$.properties')
---   update [.classes] set Data = json_set(Data, ) where json_extract(Data, '$.properties').
-END;
-
-CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Update]
-INSTEAD OF UPDATE
-  ON [.class_properties]
-FOR EACH ROW
-BEGIN
-  INSERT OR IGNORE INTO [.names_props] (Value, Type, RefClassID, RefPropID)
-  VALUES (new.Name, 0, new.RefClassID, new.RefPropID);
-  UPDATE [.names_props]
-  SET PropNameID = (SELECT ID
-                    FROM [.names_props]
-                    WHERE Value = new.Name
-                    LIMIT 1),
-    ClassID      = new.ClassID, ctlv = new.ctlv, ctlvPlan = new.ctlvPlan
-  WHERE ID = old.PropertyID;
-END;
-
-CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Delete]
-INSTEAD OF DELETE
-  ON [.class_properties]
-FOR EACH ROW
-BEGIN
-  DELETE FROM [.names_props]
-  WHERE ID = old.PropertyID;
-
-  DELETE FROM [.ref-values]
-  WHERE [PropertyID] = old.PropertyID;
-END;
 
 /*
 .names view
@@ -248,7 +171,7 @@ INSTEAD OF UPDATE
   ON [.names]
 FOR EACH ROW
 BEGIN
-UPDATE [.names_props] Value = new.Value, AliasOf = new.Value, PluralOf = new.PluralOf WHERE ID = old.NameID;
+UPDATE [.names_props] set Value = new.Value, AliasOf = new.Value, PluralOf = new.PluralOf WHERE ID = old.NameID;
 END;
 
 CREATE TRIGGER IF NOT EXISTS [names_Delete]
@@ -437,6 +360,76 @@ BEGIN
     )
   );
 END;
+
+------------------------------------------------------------------------------------------
+-- [.class_properties] view
+------------------------------------------------------------------------------------------
+CREATE VIEW IF NOT EXISTS [.class_properties] AS
+  SELECT
+    cp.[ID]                                                    AS PropertyID,
+    cp.[ClassID],
+    cp.[PropNameID]                                         AS NameID,
+    (SELECT [Value]
+     FROM [.names_props] n
+     WHERE n.ID = PropNameID
+     LIMIT 1)                                               AS Name,
+    cp.ctlv                                                 AS ctlv,
+    cp.ctlvPlan                                             AS ctlvPlan,
+    (json_extract(c.Data, printf('$.properties.%d', cp.[ID]))) AS Data,
+    cp.RefClassID                                           AS RefClassID,
+    cp.RefPropID                                            AS RefPropID
+
+  FROM [.names_props] cp
+    JOIN [.classes] c ON cp.ClassID = c.ClassID
+  WHERE cp.Type = 1 AND cp.Deleted = 0;
+
+CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Insert]
+INSTEAD OF INSERT
+  ON [.class_properties]
+FOR EACH ROW
+BEGIN
+  INSERT OR IGNORE INTO [.names_props] (Value, Type) VALUES (new.Name, 0);
+  INSERT INTO [.names_props] (Type, PropNameID, ClassID, ctlv, ctlvPlan, RefClassID, RefPropID)
+  VALUES (1, (SELECT ID
+              FROM [.names_props]
+              WHERE Value = new.Name
+              LIMIT 1),
+          new.ClassID, new.ctlv, new.ctlvPlan, new.RefClassID, new.RefPropID);
+
+  -- TODO Fix unresolved references
+
+--   select * from [.classes] where json_extract(Data, '$.properties')
+--   update [.classes] set Data = json_set(Data, ) where json_extract(Data, '$.properties').
+END;
+
+CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Update]
+INSTEAD OF UPDATE
+  ON [.class_properties]
+FOR EACH ROW
+BEGIN
+  INSERT OR IGNORE INTO [.names_props] (Value, Type, RefClassID, RefPropID)
+  VALUES (new.Name, 0, new.RefClassID, new.RefPropID);
+  UPDATE [.names_props]
+  SET PropNameID = (SELECT ID
+                    FROM [.names_props]
+                    WHERE Value = new.Name
+                    LIMIT 1),
+    ClassID      = new.ClassID, ctlv = new.ctlv, ctlvPlan = new.ctlvPlan
+  WHERE ID = old.PropertyID;
+END;
+
+CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Delete]
+INSTEAD OF DELETE
+  ON [.class_properties]
+FOR EACH ROW
+BEGIN
+  DELETE FROM [.names_props]
+  WHERE ID = old.PropertyID;
+
+  DELETE FROM [.ref-values]
+  WHERE [PropertyID] = old.PropertyID;
+END;
+
 
 ------------------------------------------------------------------------------------------
 -- [.objects]

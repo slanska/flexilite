@@ -9,6 +9,7 @@
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <cmocka.h>
 #include <sqlite3.h>
@@ -18,5 +19,9 @@
 #include "util/file_helper.h"
 
 int class_tests();
+
+/*
+ * prop_tests();
+ */
 
 #endif //FLEXILITE_DEFINITIONS_H
