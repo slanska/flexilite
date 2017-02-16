@@ -96,7 +96,6 @@ set(EXT_FILES
         lib/duktape/duktape.h
 
         src/flexi/flexi_class.c
-        src/flexi/flexi_prop.c
         src/flexi/flexi_class_alter.c
         src/flexi/flexi_props_to_object.c
 
@@ -106,7 +105,6 @@ set(EXT_FILES
         #        src/fts/fts3_tokenizer.h
         src/fts/fts3_hash.c
         #        src/fts/fts3_hash.h
-        src/flexi/flexi_import_data.c
         src/flexi/flexi_prop_create.c
         src/flexi/flexi_prop_merge.c
         src/flexi/flexi_data_vtable.c
@@ -115,7 +113,7 @@ set(EXT_FILES
         src/util/json_proc.c
         src/common/common.h
         src/resources/dbschema.res.h
-        src/flexi/flexi_init.c src/util/buffer.c src/util/buffer.h src/flexi/flexi_class.h)
+        src/util/buffer.c src/util/buffer.h src/flexi/flexi_class.h src/flexi/flexi_func.c)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")

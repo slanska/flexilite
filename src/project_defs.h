@@ -6,19 +6,23 @@
  * Project internal definitions
  */
 
-
 #ifndef SQLITE_EXTENSIONS_PROJECT_DEFS_H
 #define SQLITE_EXTENSIONS_PROJECT_DEFS_H
 
-#include "../lib/sqlite/sqlite3ext.h"
-
-SQLITE_EXTENSION_INIT3
 
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
 #include <alloca.h>
 #include <stdio.h>
+
+#ifdef  SQLITE_CORE
+    #undef SQLITE_CORE
+#endif
+
+#include "../lib/sqlite/sqlite3ext.h"
+
+//SQLITE_EXTENSION_INIT3
 
 #include "common/common.h"
 

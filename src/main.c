@@ -59,12 +59,8 @@ int sqlite3_extension_init(
     }
 
     result = flexi_class_init(db, pzErrMsg, pApi);
-
-    // flexi_query
-
-    // flexi_prop_create
-
-    //
+    if (result == 0)
+        result = flexi_init(db, pzErrMsg, pApi);
 
     return result;
 }

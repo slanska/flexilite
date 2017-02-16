@@ -9,6 +9,8 @@
 
 #include "json_proc.h"
 
+SQLITE_EXTENSION_INIT3
+
 static void _free_value(void *elem) {
     void **p = (void **)elem;
     sqlite3_free(*p);

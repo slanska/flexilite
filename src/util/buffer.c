@@ -4,6 +4,8 @@
 
 #include "buffer.h"
 
+SQLITE_EXTENSION_INIT3
+
 void buffer_init(Buffer *pBuf, size_t elemSize, void (*disposeElem)(void *pElem)) {
     memset(pBuf, 0, sizeof(*pBuf));
 

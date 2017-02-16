@@ -8,6 +8,8 @@
 
 #include "../project_defs.h"
 
+SQLITE_EXTENSION_INIT3
+
 ///
 /// \param context
 /// \param zClassName

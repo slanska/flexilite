@@ -11,4 +11,6 @@ int db_open_in_memory(sqlite3 **pDb);
 
 int db_create_or_open(const char *zFile, sqlite3 **pDb);
 
+void process_sqlite_error(sqlite3 *db);
+
 #endif //FLEXILITE_DB_INIT_H

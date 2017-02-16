@@ -24,12 +24,16 @@ set(TEST_FILES
         fts.c
         main.c
         fts.c
-        vtable.c
         util/db_init.c
         util/db_init.h
         definitions.h
+#        ../src/util/buffer.c
+
         util/file_helper.c
-        util/file_helper.h class.c)
+        util/file_helper.h
+        class.c
+        sql_test_runner.c
+        )
 
 add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_RTREE

@@ -5,7 +5,7 @@
 #ifndef FLEXILITE_BUFFER_H
 #define FLEXILITE_BUFFER_H
 
-#include "../project_defs.h"
+//#include "../project_defs.h"
 #include "../misc/json1.h"
 
 /*

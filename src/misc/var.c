@@ -4,14 +4,6 @@
 
 #include "../project_defs.h"
 
-#include <string.h>
-#include <assert.h>
-#include <ctype.h>
-
-#include "../../lib/sqlite/sqlite3ext.h"
-
-SQLITE_EXTENSION_INIT3
-
 #include "../util/hash.h"
 
 static void sqlVarFunc(

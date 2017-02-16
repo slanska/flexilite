@@ -1,0 +1,14 @@
+[
+  {
+    "describe": "Schema init",
+    "it": "Create entire Northwind schema",
+    "inSql": "select flexi_schema_init('%s');",
+    "inArgs": [
+      "Northwind.db3.schema.json"
+    ],
+    "inFileArgs": [
+      0
+    ],
+    "chkResult": null
+  }
+]

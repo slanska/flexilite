@@ -2,9 +2,9 @@
 // Created by slanska on 2017-01-22.
 //
 
-#include "db_init.h"
-#include "file_helper.h"
 #include "../definitions.h"
+
+//SQLITE_EXTENSION_INIT3
 
 int db_open_in_memory(sqlite3 **pDb) {
     return db_create_or_open(":memory:", pDb);
@@ -51,4 +51,9 @@ int db_create_or_open(const char *zFile, sqlite3 **pDb) {
     sqlite3_free(zSql);
 
     return result;
+}
+
+void process_sqlite_error(sqlite3 *db) {
+    const char *zError = sqlite3_errmsg(db);
+
 }

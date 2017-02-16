@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include "file_helper.h"
 
+//SQLITE_EXTENSION_INIT3
+
 int file_load_utf8(const char *zFileName, char **ppBuf) {
     int result = SQLITE_OK;
     *ppBuf = NULL;

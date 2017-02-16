@@ -373,7 +373,7 @@ int flexi_load_class_def(
             "where NameID = :1;";
     CHECK_CALL(sqlite3_prepare_v2(db, zGetClassSQL, -1, &pGetClassStmt, NULL));
     sqlite3_bind_int64(pGetClassStmt, 1, lClassNameID);
-    result = (sqlite3_step(pGetClassStmt));
+    result = sqlite3_step(pGetClassStmt);
     if (result == SQLITE_DONE)
         // No class found. Return error
     {

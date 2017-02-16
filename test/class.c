@@ -4,6 +4,8 @@
 
 #include "definitions.h"
 
+//SQLITE_EXTENSION_INIT3
+
 static void create_class_Employee(void **state) {
 
 }

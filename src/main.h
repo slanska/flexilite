@@ -69,4 +69,8 @@ int flexi_class_init(
         char **pzErrMsg,
         const sqlite3_api_routines *pApi);
 
+int flexi_init(sqlite3 *db,
+               char **pzErrMsg,
+               const sqlite3_api_routines *pApi);
+
 #endif //SQLITE_EXTENSIONS_MAIN_H

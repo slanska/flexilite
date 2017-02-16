@@ -16,7 +16,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
   -- Mapped columns. Mapping is different for different classes
   [X1], [X2], [X3], [X4],
 
-  -- to allow case insensitive search for different languages
+-- to allow case insensitive search for different languages
   tokenize=unicode61
 );
 
@@ -32,7 +32,7 @@ Objects may have attributes which are not defined in .classes.Data.properties
 (if .classes.Data.allowNotDefinedProps = 1). Such attributes will be stored as IDs to .names table,
 where ID will be for record with type = 0 (name). Normally, object properties defined in schema will be referencing
 rows with type = 1 (property). Having both types of entities in one table allows shared space for names. Both types are exposed as
-updatable views (.names and .class_properties), so their exposition will not be much different from real table
+updatable views (.names and flexi_prop), so their exposition will not be much different from real table
 
 When a new property is created, a new row gets inserted with Type = 1. Also, if needed row for Name (with Type = 0) gets inserted as well.
 
@@ -53,10 +53,10 @@ CREATE TABLE IF NOT EXISTS [.names_props]
    */
   Deleted      BOOLEAN             NOT NULL                           DEFAULT 0,
 
-    /*
-  Actual control flags (already applied).
-  These flags define indexing, logging and other property attributes
-  */
+  /*
+Actual control flags (already applied).
+These flags define indexing, logging and other property attributes
+*/
   [ctlv]       INTEGER             NOT NULL                           DEFAULT 0,
 
   /*
@@ -96,7 +96,12 @@ CREATE TABLE IF NOT EXISTS [.names_props]
   ID of property name
   */
   [PropNameID] INTEGER             NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.names_props] ([NameID])
-  ON DELETE RESTRICT ON UPDATE RESTRICT
+  ON DELETE RESTRICT ON UPDATE RESTRICT,
+
+  /*
+  Optional mapping for locked property (A-P)
+   */
+  [LockedCol]  CHAR                NULL CHECK ([LockedCol] IS NULL OR ([LockedCol] >= 'A' AND [LockedCol] <= 'P'))
 );
 
 CREATE TRIGGER IF NOT EXISTS [namesAfterInsert]
@@ -105,7 +110,7 @@ AFTER INSERT
 FOR EACH ROW
   WHEN new.Value IS NOT NULL
 BEGIN
-INSERT INTO [.full_text_data] (id, ClassID, X1) VALUES (-new.ID, 0, new.Value);
+  INSERT INTO [.full_text_data] (id, ClassID, X1) VALUES (-new.ID, 0, new.Value);
 END;
 
 CREATE TRIGGER IF NOT EXISTS [namesAfterUpdate]
@@ -114,9 +119,9 @@ AFTER UPDATE
 FOR EACH ROW
   WHEN new.Value IS NOT NULL
 BEGIN
-UPDATE [.full_text_data]
-SET X1 = new.Value
-WHERE id = -new.ID;
+  UPDATE [.full_text_data]
+  SET X1 = new.Value
+  WHERE id = -new.ID;
 END;
 
 CREATE TRIGGER IF NOT EXISTS [namesAfterDelete]
@@ -125,8 +130,8 @@ AFTER DELETE
 FOR EACH ROW
   WHEN old.Value IS NOT NULL
 BEGIN
-DELETE FROM [.full_text_data]
-WHERE id = -old.ID;
+  DELETE FROM [.full_text_data]
+  WHERE id = -old.ID;
 END;
 
 -- .names specific indexes
@@ -140,11 +145,16 @@ CREATE INDEX IF NOT EXISTS [namesByPluralOf]
   ON [.names_props] ([PluralOf])
   WHERE PluralOf IS NOT NULL;
 
--- .class_properties specific indexes
+-- flexi_prop specific indexes
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByClassAndName]
   ON [.names_props]
   (ClassID, PropNameID)
   WHERE ClassID IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByMap]
+  ON [.names_props]
+  (ClassID, LockedCol)
+  WHERE ClassID IS NOT NULL AND [LockedCol] IS NOT NULL;
 
 /*
 .names view
@@ -171,7 +181,9 @@ INSTEAD OF UPDATE
   ON [.names]
 FOR EACH ROW
 BEGIN
-UPDATE [.names_props] set Value = new.Value, AliasOf = new.Value, PluralOf = new.PluralOf WHERE ID = old.NameID;
+  UPDATE [.names_props]
+  SET Value = new.Value, AliasOf = new.Value, PluralOf = new.PluralOf
+  WHERE ID = old.NameID;
 END;
 
 CREATE TRIGGER IF NOT EXISTS [names_Delete]
@@ -263,7 +275,12 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   /*
   IClassDefinition. Can be set to null for a newly created class
   */
-  Data          JSON1   NULL
+  Data          JSON1   NULL,
+
+  /*
+  Whether to create corresponding virtual table or not
+   */
+  VirtualTable  BOOL    NOT NULL             DEFAULT 0
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClasses_byNameID]
@@ -284,6 +301,7 @@ BEGIN
              "$.ViewOutdated", new.ViewOutdated,
              "$.ctloMask", new.ctloMask,
              "$.Data", new.Data,
+             "$.VirtualTable", new.VirtualTable,
 
              CASE WHEN new.AccessRules IS NULL
                THEN NULL
@@ -313,6 +331,7 @@ BEGIN
                  "$.ViewOutdated", old.ViewOutdated,
                  "$.ctloMask", old.ctloMask,
                  "$.Data", old.Data,
+                 "$.VirtualTable", old.VirtualTable,
 
                  CASE WHEN old.AccessRules IS NULL
                    THEN NULL
@@ -326,6 +345,7 @@ BEGIN
                  "$.ViewOutdated", new.ViewOutdated,
                  "$.ctloMask", new.ctloMask,
                  "$.Data", new.Data,
+                 "$.VirtualTable", new.VirtualTable,
 
                  CASE WHEN new.AccessRules IS NULL
                    THEN NULL
@@ -341,9 +361,6 @@ AFTER DELETE
   ON [.classes]
 FOR EACH ROW
 BEGIN
-  DELETE FROM [.schemas]
-  WHERE NameID = old.NameID;
-
   INSERT INTO [.change_log] ([OldKey], [OldValue]) VALUES (
     printf('@%s', old.ClassID),
 
@@ -353,6 +370,7 @@ BEGIN
              "$.ViewOutdated", old.ViewOutdated,
              "$.ctloMask", old.ctloMask,
              "$.Data", old.Data,
+             "$.VirtualTable", old.VirtualTable,
 
              CASE WHEN old.AccessRules IS NULL
                THEN NULL
@@ -362,32 +380,78 @@ BEGIN
 END;
 
 ------------------------------------------------------------------------------------------
--- [.class_properties] view
+-- [flexi_class] view
 ------------------------------------------------------------------------------------------
-CREATE VIEW IF NOT EXISTS [.class_properties] AS
+CREATE VIEW IF NOT EXISTS [flexi_class] AS
   SELECT
-    cp.[ID]                                                    AS PropertyID,
-    cp.[ClassID],
-    cp.[PropNameID]                                         AS NameID,
+    ClassID,
+    (SELECT [Value]
+     FROM [.names_props]
+     WHERE ID = [.classes].NameID
+     LIMIT 1)    AS Class,
+    Data         AS Definition,
+    VirtualTable AS AsTable
+  FROM [.classes];
+
+CREATE TRIGGER IF NOT EXISTS [trig_Flexi_Class_Insert]
+INSTEAD OF INSERT
+  ON [flexi_class]
+FOR EACH ROW
+BEGIN
+  SELECT flexi('create class', new.Class, new.Definition, new.AsTable);
+END;
+
+CREATE TRIGGER IF NOT EXISTS [trig_Flexi_Class_Update]
+INSTEAD OF UPDATE
+  ON [flexi_class]
+
+FOR EACH ROW
+BEGIN
+  SELECT flexi('rename class', old.Class, new.Class);
+  SELECT flexi('alter class', new.Class, new.Definition, new.AsTable);
+END;
+
+CREATE TRIGGER IF NOT EXISTS [trig_Flexi_Class_Delete]
+INSTEAD OF DELETE
+  ON [flexi_class]
+FOR EACH ROW
+BEGIN
+  SELECT flexi('drop class', old.Class);
+END;
+
+------------------------------------------------------------------------------------------
+-- [flexi_prop] view
+------------------------------------------------------------------------------------------
+CREATE VIEW IF NOT EXISTS [flexi_prop] AS
+  SELECT
+    cp.[ID]                                                          AS PropertyID,
+    c.ClassID                                                        AS ClassID,
+    c.Class                                                          AS Class,
+    cp.[PropNameID]                                                  AS NameID,
     (SELECT [Value]
      FROM [.names_props] n
      WHERE n.ID = PropNameID
-     LIMIT 1)                                               AS Name,
-    cp.ctlv                                                 AS ctlv,
-    cp.ctlvPlan                                             AS ctlvPlan,
-    (json_extract(c.Data, printf('$.properties.%d', cp.[ID]))) AS Data,
-    cp.RefClassID                                           AS RefClassID,
-    cp.RefPropID                                            AS RefPropID
+     LIMIT 1)                                                        AS Property,
+    cp.ctlv                                                          AS ctlv,
+    -- TODO Needed
+    cp.ctlvPlan                                                      AS ctlvPlan,
+    -- TODO Needed
+    (json_extract(c.Definition, printf('$.properties.%d', cp.[ID]))) AS Definition,
+    cp.RefClassID                                                    AS RefClassID,
+    -- TODO Needed
+    cp.RefPropID                                                     AS RefPropID -- TODO Needed
 
   FROM [.names_props] cp
-    JOIN [.classes] c ON cp.ClassID = c.ClassID
+    JOIN [flexi_class] c ON cp.ClassID = c.ClassID
   WHERE cp.Type = 1 AND cp.Deleted = 0;
 
-CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Insert]
+CREATE TRIGGER IF NOT EXISTS trigFlexi_Prop_Insert
 INSTEAD OF INSERT
-  ON [.class_properties]
+  ON [flexi_prop]
 FOR EACH ROW
 BEGIN
+  SELECT flexi('create property', new.Class, new.Property, new.Definition);
+
   INSERT OR IGNORE INTO [.names_props] (Value, Type) VALUES (new.Name, 0);
   INSERT INTO [.names_props] (Type, PropNameID, ClassID, ctlv, ctlvPlan, RefClassID, RefPropID)
   VALUES (1, (SELECT ID
@@ -398,15 +462,18 @@ BEGIN
 
   -- TODO Fix unresolved references
 
---   select * from [.classes] where json_extract(Data, '$.properties')
---   update [.classes] set Data = json_set(Data, ) where json_extract(Data, '$.properties').
+  --   select * from [.classes] where json_extract(Data, '$.properties')
+  --   update [.classes] set Data = json_set(Data, ) where json_extract(Data, '$.properties').
 END;
 
-CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Update]
+CREATE TRIGGER IF NOT EXISTS trigFlexi_Prop_Update
 INSTEAD OF UPDATE
-  ON [.class_properties]
+  ON [flexi_prop]
 FOR EACH ROW
 BEGIN
+  SELECT flexi('rename property', new.Class, old.Property, new.Property);
+  SELECT flexi('alter property', new.Class, new.Property, new.Definition);
+
   INSERT OR IGNORE INTO [.names_props] (Value, Type, RefClassID, RefPropID)
   VALUES (new.Name, 0, new.RefClassID, new.RefPropID);
   UPDATE [.names_props]
@@ -418,18 +485,19 @@ BEGIN
   WHERE ID = old.PropertyID;
 END;
 
-CREATE TRIGGER IF NOT EXISTS [trigClassProperties_Delete]
+CREATE TRIGGER IF NOT EXISTS trigFlexi_Prop_Delete
 INSTEAD OF DELETE
-  ON [.class_properties]
+  ON [flexi_prop]
 FOR EACH ROW
 BEGIN
+  SELECT flexi('drop property', old.Class, old.Property);
+
   DELETE FROM [.names_props]
   WHERE ID = old.PropertyID;
 
   DELETE FROM [.ref-values]
   WHERE [PropertyID] = old.PropertyID;
 END;
-
 
 ------------------------------------------------------------------------------------------
 -- [.objects]
@@ -798,7 +866,7 @@ BEGIN
       new.ObjectID,
       ctlo = c.ctloMask
 
-    FROM [.classes] c, [.class_properties] p
+    FROM [.classes] c, [flexi_prop] p
     WHERE new.ObjectID IS NOT NULL AND c.[ClassID] = p.[ClassID] AND c.NameID = new.NameID AND p.Name = new.PropertyName
           AND (p.[ctlv] & 14) = 0 AND p.ColumnAssigned IS NOT NULL AND new.PropertyIndex = 0;
 

@@ -21,24 +21,21 @@
 ** This implementation parses JSON text at 250 MB/s, so it is hard to see
 ** how JSONB might improve on that.)
 */
-#if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_JSON1)
-#if !defined(_SQLITEINT_H_)
 
-#include "../../lib/sqlite/sqlite3ext.h"
+//#if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_JSON1)
+//#if !defined(_SQLITEINT_H_)
+//
+//#include "../../lib/sqlite/sqlite3ext.h"
+//
+//#endif
 
-#endif
-SQLITE_EXTENSION_INIT3
-
-#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include "json1.h"
 
-/* Mark a function parameter as unused, to suppress nuisance compiler
-** warnings. */
-#ifndef UNUSED_PARAM
-# define UNUSED_PARAM(X)  (void)(X)
-#endif
+#include "../project_defs.h"
+
+SQLITE_EXTENSION_INIT3
 
 #ifndef LARGEST_INT64
 # define LARGEST_INT64  (0xffffffff|(((sqlite3_int64)0x7fffffff)<<32))
@@ -190,7 +187,7 @@ static void jsonPrintf(int N, JsonString *p, const char *zFormat, ...) {
     va_list ap;
     if ((p->nUsed + N >= p->nAlloc) && jsonGrow(p, N)) return;
     va_start(ap, zFormat);
-    sqlite3_vsnprintf(N, p->zBuf + p->nUsed, zFormat, ap);
+// TODO    sqlite3_vsnprintf(N, p->zBuf + p->nUsed, zFormat, ap);
     va_end(ap);
     p->nUsed += (int) strlen(p->zBuf + p->nUsed);
 }
@@ -2161,5 +2158,6 @@ int sqlite3_json_init(
     return sqlite3Json1Init(db);
 }
 
-#endif
+//#endif
+
 #endif /* !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_JSON1) */
