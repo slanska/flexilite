@@ -5,42 +5,41 @@
 #ifndef SQLITE_EXTENSIONS_MAIN_H
 #define SQLITE_EXTENSIONS_MAIN_H
 
-#include <string.h>
 #include "../lib/sqlite/sqlite3ext.h"
 
 SQLITE_EXTENSION_INIT1
 
-int sqlite3_eval_init(
+int eval_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
 );
 
-int sqlite3_fileio_init(
+int fileio_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
 );
 
-int sqlite3_regexp_init(
+int regexp_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
 );
 
-int sqlite3_totype_init(
+int totype_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
 );
 
-int sqlite3_var_init(
+int var_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
 );
 
-int sqlite3_hash_init(
+int hash_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
@@ -52,13 +51,13 @@ int sqlite3_flexi_get_init(
         const sqlite3_api_routines *pApi
 );
 
-int sqlite3_memstat_init(
+int memstat_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
 );
 
-int sqlite3_flexieav_vtable_init(
+int flexi_data_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi

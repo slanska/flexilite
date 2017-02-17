@@ -114,7 +114,7 @@ static void sqlEvalFunc(
 __declspec(dllexport)
 #endif
 
-int sqlite3_eval_init(
+int eval_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi

@@ -258,7 +258,7 @@ int flexi_class_create(sqlite3 *db,
 /// \param context
 /// \param argc
 /// \param argv
-static void flexi_class_create_func(
+void flexi_class_create_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
@@ -306,7 +306,7 @@ static void flexi_class_create_func(
 /// \param context
 /// \param argc
 /// \param argv
-static void flexi_class_alter_func(
+void flexi_class_alter_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
@@ -324,7 +324,7 @@ static void flexi_class_alter_func(
 /// \param context
 /// \param argc
 /// \param argv
-static void flexi_class_drop_func(
+void flexi_class_drop_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
@@ -344,7 +344,7 @@ static void flexi_class_drop_func(
 /// \param context
 /// \param argc
 /// \param argv
-static void flexi_class_rename_func(
+void flexi_class_rename_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
@@ -357,34 +357,6 @@ static void flexi_class_rename_func(
     char *zNewClassName = (char *) sqlite3_value_text(argv[1]);
 }
 
-int flexi_class_init(
-        sqlite3 *db,
-        char **pzErrMsg,
-        const sqlite3_api_routines *pApi) {
-    int result = SQLITE_OK;
-    CHECK_CALL(sqlite3_create_function_v2(db, "flexi_class_create",
-                                          2, SQLITE_UTF8, NULL,
-                                          flexi_class_create_func,
-                                          0, 0, NULL));
-    CHECK_CALL(sqlite3_create_function_v2(db, "flexi_class_create",
-                                          3, SQLITE_UTF8, NULL,
-                                          flexi_class_create_func,
-                                          0, 0, NULL));
-    CHECK_CALL(sqlite3_create_function_v2(db, "flexi_class_alter", 2,
-                                          SQLITE_UTF8, NULL,
-                                          flexi_class_alter_func, 0, 0, 0));
-    CHECK_CALL(sqlite3_create_function_v2(db, "flexi_class_drop", 1,
-                                          SQLITE_UTF8, NULL,
-                                          flexi_class_alter_func, 0, 0, 0));
-    CHECK_CALL(sqlite3_create_function_v2(db, "flexi_class_rename", 2,
-                                          SQLITE_UTF8, NULL,
-                                          flexi_class_alter_func, 0, 0, 0));
-    goto FINALLY;
-
-    CATCH:
-    FINALLY:
-    return result;
-}
 
 
 

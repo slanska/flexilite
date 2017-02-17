@@ -25,7 +25,7 @@ static void sqlHashFunc(
 }
 
 
-int sqlite3_hash_init(
+int hash_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi

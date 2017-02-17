@@ -67,7 +67,7 @@ static void sqlVarFunc_Destroy(void *userData)
     sqlite3_free(varHash);
 }
 
-int sqlite3_var_init(
+int var_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi

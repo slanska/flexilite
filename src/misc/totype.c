@@ -494,10 +494,10 @@ static void torealFunc(
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
-int sqlite3_totype_init(
-  sqlite3 *db,
-  char **pzErrMsg,
-  const sqlite3_api_routines *pApi
+int totype_func_init(
+        sqlite3 *db,
+        char **pzErrMsg,
+        const sqlite3_api_routines *pApi
 ){
   int rc = SQLITE_OK;
   SQLITE_EXTENSION_INIT2(pApi);

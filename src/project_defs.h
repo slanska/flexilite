@@ -23,8 +23,6 @@ SQLITE_EXTENSION_INIT3
 
 #include "typings/DBDefinitions.h"
 
-#include "flexi/flexi_class.h"
-
 /*
  * Macro to determine if property has range type
  */

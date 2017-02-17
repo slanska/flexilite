@@ -83,7 +83,7 @@ static void writefileFunc(
 __declspec(dllexport)
 #endif
 
-int sqlite3_fileio_init(
+int fileio_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi

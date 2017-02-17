@@ -32,7 +32,7 @@ static void sqlMemHighWaterFunc(
     sqlite3_result_int(context, memHW);
 }
 
-int sqlite3_memstat_init(
+int memstat_func_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi

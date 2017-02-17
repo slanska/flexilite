@@ -1,32 +1,32 @@
 //
-// Created by slanska on 2017-02-12.
+// Created by slanska on 2017-02-16.
 //
 
-#ifndef FLEXILITE_FLEXI_CLASS_H
-#define FLEXILITE_FLEXI_CLASS_H
+#ifndef FLEXILITE_FLEXI_PROP_C_H
+#define FLEXILITE_FLEXI_PROP_C_H
 
-void flexi_class_create_func(
+void flexi_prop_create_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_class_alter_func(
+void flexi_prop_alter_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_class_drop_func(
+void flexi_prop_drop_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_class_rename_func(
+void flexi_prop_rename_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-#endif //FLEXILITE_FLEXI_CLASS_H
+#endif //FLEXILITE_FLEXI_PROP_C_H

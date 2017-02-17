@@ -58,11 +58,9 @@ add_custom_target(Generate_Resources
 
 set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TRUE)
 
-#if (NOT XXD_SQL_RESULT EQUAL 0)
-#    message(FATAL_ERROR "Failed to generate resource file for SQL schema")
-#endif ()
-
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+
+add_definitions(-DRESOURCES_GENERATED )
 
 set(EXT_FILES
 #        lib/sqlite/sqlite3ext.h
@@ -87,7 +85,7 @@ set(EXT_FILES
         src/misc/hash.c
 
         src/misc/memstat.c
-        src/flexi/flexieav_vtable.c
+        src/flexi/flexi_data.c
         #        src/flexi/flexi_eav.h
 
         #        src/misc/regexp.h
@@ -105,11 +103,9 @@ set(EXT_FILES
         #        src/fts/fts3_tokenizer.h
         src/fts/fts3_hash.c
         #        src/fts/fts3_hash.h
-        src/flexi/flexi_prop_create.c
+        src/flexi/flexi_prop.c
         src/flexi/flexi_prop_merge.c
-        src/flexi/flexi_data_vtable.c
         src/flexi/flexi_query.c
-        src/functions.c
         src/util/json_proc.c
         src/common/common.h
 #        src/resources/dbschema.res.h
@@ -118,7 +114,7 @@ set(EXT_FILES
 #        src/flexi/flexi_class.h
         src/flexi/flexi_func.c
 
-        )
+        src/flexi/flexi_prop_merge.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")

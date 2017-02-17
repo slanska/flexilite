@@ -2,16 +2,10 @@
 // Created by slanska on 2016-04-08.
 //
 
-//#include <stddef.h>
-//#include <printf.h>
-//
-//#include "../../lib/sqlite/sqlite3ext.h"
-
 #include "../project_defs.h"
 
 SQLITE_EXTENSION_INIT3
 
-#include "../typings/DBDefinitions.h"
 #include "../misc/regexp.h"
 
 /*
@@ -605,7 +599,7 @@ static int flexiEavCreate(
         void *pAux,
         int argc,
 
-        // argv[0] - module name. Should be 'flexi'
+        // argv[0] - module name. Should be 'flexi_data'
         // argv[1] - database name ("main", "temp" etc.) Ignored as all changes will be stored in main database
         // argv[2] - name of new table (class)
         // argv[3] - class definition in JSON
@@ -621,8 +615,7 @@ static int flexiEavCreate(
 
     int result;
 
-    char *pzError;
-    result = flexi_class_create(db, pAux, zClassName, zClassDef, 1, &pzError);
+    CHECK_CALL(flexi_class_create(db, pAux, zClassName, zClassDef, 1, pzErr));
 
     CHECK_CALL(flexi_load_class_def(db, pAux, zClassName, ppVTab, pzErr));
 
@@ -631,8 +624,6 @@ static int flexiEavCreate(
     goto FINALLY;
 
     CATCH:
-    // Release resources because of errors (catch)
-    printf("%s", sqlite3_errmsg(db));
 
     FINALLY:
 
@@ -1639,7 +1630,7 @@ static int flexiEavRename(sqlite3_vtab *pVtab, const char *zNew) {
 
 
 /* The methods of the flexi virtual table */
-static sqlite3_module flexiEavModule = {
+static sqlite3_module flexi_data_module = {
         0,                         /* iVersion */
         flexiEavCreate,            /* xCreate */
         flexiEavConnect,           /* xConnect */
@@ -1658,7 +1649,7 @@ static sqlite3_module flexiEavModule = {
         0,                         /* xSync */
         0,                         /* xCommit */
         0,                         /* xRollback */
-        flexiFindMethod,         /* xFindMethod */
+        flexiFindMethod,           /* xFindMethod */
         flexiEavRename,            /* xRename */
         0,                         /* xSavepoint */
         0,                         /* xRelease */
@@ -1666,19 +1657,24 @@ static sqlite3_module flexiEavModule = {
 };
 
 
-int sqlite3_flexieav_vtable_init(
+/*
+ * Registers 'flexi_data' function and virtual table module
+ */
+int flexi_data_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
 ) {
-    int result = SQLITE_OK;
+    (void) pApi;
+
+    int result;
     struct flexi_db_env *data = NULL;
     // Init connection wide settings (prepared statements etc.)
     CHECK_MALLOC(data, sizeof(*data));
     memset(data, 0, sizeof(*data));
 
     // Init module
-    CHECK_CALL(sqlite3_create_module_v2(db, "flexi", &flexiEavModule, data, NULL));
+    CHECK_CALL(sqlite3_create_module_v2(db, "flexi_data", &flexi_data_module, data, NULL));
 
     /*
      * Register match_text function, used for searching on non-FTS indexed columns

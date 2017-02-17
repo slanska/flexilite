@@ -15,52 +15,23 @@ int sqlite3_extension_init(
 ) {
     SQLITE_EXTENSION_INIT2(pApi);
 
-    // eval
-    int result = sqlite3_eval_init(db, pzErrMsg, pApi);
+    int (*funcs[])(sqlite3 *, char **, const sqlite3_api_routines *) = {
+            eval_func_init,
+            fileio_func_init,
+            regexp_func_init,
+            totype_func_init,
+            var_func_init,
+            hash_func_init,
+            memstat_func_init,
+            flexi_data_init,
+            flexi_init
+    };
 
-    // fileio
-    if (result == 0) {
-        result = sqlite3_fileio_init(db, pzErrMsg, pApi);
+    for (int idx = 0; idx < sizeof(funcs) / sizeof(funcs[0]); idx++) {
+        int result = funcs[idx](db, pzErrMsg, pApi);
+        if (result != SQLITE_OK)
+            return result;
     }
 
-    // regexp
-    if (result == 0) {
-        result = sqlite3_regexp_init(db, pzErrMsg, pApi);
-    }
-
-    // totype
-    if (result == 0) {
-        result = sqlite3_totype_init(db, pzErrMsg, pApi);
-    }
-
-    // var
-    if (result == 0) {
-        result = sqlite3_var_init(db, pzErrMsg, pApi);
-    }
-
-    // flexi_get
-    if (result == 0) {
-        result = sqlite3_flexi_get_init(db, pzErrMsg, pApi);
-    }
-
-    // hash
-    if (result == 0) {
-        result = sqlite3_hash_init(db, pzErrMsg, pApi);
-    }
-
-    // mem_used & mem_high_water
-    if (result == 0) {
-        result = sqlite3_memstat_init(db, pzErrMsg, pApi);
-    }
-
-    // _old_flexilite EAV module
-    if (result == 0) {
-        result = sqlite3_flexieav_vtable_init(db, pzErrMsg, pApi);
-    }
-
-    result = flexi_class_init(db, pzErrMsg, pApi);
-    if (result == 0)
-        result = flexi_init(db, pzErrMsg, pApi);
-
-    return result;
+    return SQLITE_OK;
 }
