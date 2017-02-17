@@ -2,15 +2,15 @@
 // Created by slanska on 2016-04-08.
 //
 
-#include <stddef.h>
-#include <assert.h>
-#include <printf.h>
+//#include <stddef.h>
+//#include <printf.h>
+//
+//#include "../../lib/sqlite/sqlite3ext.h"
 
-#include "../../lib/sqlite/sqlite3ext.h"
+#include "../project_defs.h"
 
 SQLITE_EXTENSION_INIT3
 
-#include "../project_defs.h"
 #include "../typings/DBDefinitions.h"
 #include "../misc/regexp.h"
 

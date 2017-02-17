@@ -65,8 +65,9 @@ set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TR
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 set(EXT_FILES
-        lib/sqlite/sqlite3ext.h
+#        lib/sqlite/sqlite3ext.h
 
+        src/misc/json1.c
         src/typings/DBDefinitions.h
         src/main.c
 
@@ -79,7 +80,6 @@ set(EXT_FILES
         src/misc/totype.c
         src/_old_flexilite/flexi_get.c
         src/misc/var.c
-        src/misc/json1.c
 
         src/util/hash.c
         #        src/util/hash.h
@@ -93,7 +93,7 @@ set(EXT_FILES
         #        src/misc/regexp.h
 
         lib/duktape/duktape.c
-        lib/duktape/duktape.h
+#        lib/duktape/duktape.h
 
         src/flexi/flexi_class.c
         src/flexi/flexi_class_alter.c
@@ -112,8 +112,13 @@ set(EXT_FILES
         src/functions.c
         src/util/json_proc.c
         src/common/common.h
-        src/resources/dbschema.res.h
-        src/util/buffer.c src/util/buffer.h src/flexi/flexi_class.h src/flexi/flexi_func.c)
+#        src/resources/dbschema.res.h
+        src/util/buffer.c
+        src/util/buffer.h
+#        src/flexi/flexi_class.h
+        src/flexi/flexi_func.c
+
+        )
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")

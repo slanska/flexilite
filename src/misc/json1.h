@@ -5,15 +5,8 @@
 #ifndef SQLITE_EXTENSIONS_JSON1_H
 #define SQLITE_EXTENSIONS_JSON1_H
 
-#include "../project_defs.h"
-
-#ifndef SQLITE_AMALGAMATION
-/* Unsigned integer types.  These are already defined in the sqliteInt.h,
-** but the definitions need to be repeated for separate compilation. */
-typedef sqlite3_uint64 u64;
-typedef unsigned int u32;
-typedef unsigned char u8;
-#endif
+//#include "../project_defs.h"
+#include "../common/common.h"
 
 /* Bit values for the JsonNode.jnFlag field
 */

@@ -22,20 +22,13 @@
 ** how JSONB might improve on that.)
 */
 
-//#if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_JSON1)
-//#if !defined(_SQLITEINT_H_)
-//
-//#include "../../lib/sqlite/sqlite3ext.h"
-//
-//#endif
-
-#include <string.h>
-#include <stdlib.h>
-#include "json1.h"
-
-#include "../project_defs.h"
+#include "../../lib/sqlite/sqlite3ext.h"
 
 SQLITE_EXTENSION_INIT3
+
+#include <stdlib.h>
+#include <string.h>
+#include "json1.h"
 
 #ifndef LARGEST_INT64
 # define LARGEST_INT64  (0xffffffff|(((sqlite3_int64)0x7fffffff)<<32))
@@ -54,6 +47,7 @@ SQLITE_EXTENSION_INIT3
 #else
 /* Use the standard library for separate compilation */
 #include <ctype.h>  /* amalgamator: keep */
+#include <assert.h>
 
 #  define safe_isdigit(x) isdigit((unsigned char)(x))
 #  define safe_isalnum(x) isalnum((unsigned char)(x))
@@ -187,7 +181,7 @@ static void jsonPrintf(int N, JsonString *p, const char *zFormat, ...) {
     va_list ap;
     if ((p->nUsed + N >= p->nAlloc) && jsonGrow(p, N)) return;
     va_start(ap, zFormat);
-// TODO    sqlite3_vsnprintf(N, p->zBuf + p->nUsed, zFormat, ap);
+    sqlite3_vsnprintf(N, p->zBuf + p->nUsed, zFormat, ap);
     va_end(ap);
     p->nUsed += (int) strlen(p->zBuf + p->nUsed);
 }

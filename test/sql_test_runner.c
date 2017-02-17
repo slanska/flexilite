@@ -92,8 +92,6 @@ void run_sql_tests(const char *zJsonFile) {
     pt->setup_func = _setup_sql_test;
     pt->teardown_func = _teardown_sql_test;
 
-
-
     // Execute JSON
 
     // Iterate over items in JSON file and prepare tests

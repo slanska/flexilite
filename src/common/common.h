@@ -40,4 +40,12 @@
 # define UNUSED_PARAM(X)  (void)(X)
 #endif
 
+#ifndef SQLITE_AMALGAMATION
+/* Unsigned integer types.  These are already defined in the sqliteInt.h,
+** but the definitions need to be repeated for separate compilation. */
+typedef sqlite3_uint64 u64;
+typedef unsigned int u32;
+typedef unsigned char u8;
+#endif
+
 #endif //FLEXILITE_COMMON_H

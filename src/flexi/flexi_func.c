@@ -14,7 +14,7 @@ static void flexi_func(sqlite3_context *context,
                        int argc,
                        sqlite3_value **argv) {
 
-    const char const *zMethods[] =
+    const char * const zMethods[] =
             {
                     "create class",
                     "alter class",

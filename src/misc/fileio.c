@@ -15,11 +15,7 @@
 */
 #include "../project_defs.h"
 
-#include "../../lib/sqlite/sqlite3ext.h"
-
 SQLITE_EXTENSION_INIT3
-
-#include <stdio.h>
 
 /*
 ** Implementation of the "readfile(X)" SQL function.  The entire content

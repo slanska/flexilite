@@ -32,7 +32,7 @@
 /* If not building as part of the core, include sqlite3ext.h. */
 #ifndef SQLITE_CORE
 
-# include "../project_defs.h"
+//# include "../project_defs.h"
 
 #include "../../lib/sqlite/sqlite3ext.h"
 
