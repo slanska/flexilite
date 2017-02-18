@@ -28,6 +28,11 @@
  */
 #define CHECK_CALL(call)       result = (call); \
         if (result != SQLITE_OK) goto CATCH;
+
+/*
+ * Checks result of sqlite3_step. SQLITE_DONE and SQLITE_ROW are ok.
+ * Other codes are treated as error
+ */
 #define CHECK_STMT(call)       result = (call); \
         if (result != SQLITE_DONE && result != SQLITE_ROW) goto CATCH;
 

@@ -7,7 +7,7 @@
 
 int flexi_class_create(sqlite3 *db,
         // User data
-                       void *pAux,
+                       struct flexi_db_context *pCtx,
                        const char *zClassName,
                        const char *zClassDef,
                        int bCreateVTable,

@@ -10,8 +10,6 @@
 
 SQLITE_EXTENSION_INIT3
 
-#include "flexi_db_ctx.h"
-
 ///
 /// \param context
 /// \param zClassName
@@ -21,12 +19,12 @@ SQLITE_EXTENSION_INIT3
 /// \return
 int flexi_class_create(sqlite3 *db,
         // User data
-                       void *pAux,
+                       struct flexi_db_context *pCtx,
                        const char *zClassName,
                        const char *zClassDef,
                        int bCreateVTable,
                        char **pzError) {
-    int result = SQLITE_OK;
+    int result;
 
     // Disposable resources
     sqlite3_stmt *pExtractProps = NULL;
@@ -36,13 +34,11 @@ int flexi_class_create(sqlite3 *db,
     unsigned char *zPropDefJSON = NULL;
     char *sbClassDefJSON = sqlite3_mprintf("{\"properties\":{");
 
-    struct flexi_db_context *pDBEnv = pAux;
-
     struct flexi_prop_metadata dProp;
     memset(&dProp, 0, sizeof(dProp));
 
     sqlite3_int64 lClassNameID;
-    CHECK_CALL(db_insert_name(pDBEnv, zClassName, &lClassNameID));
+    CHECK_CALL(db_insert_name(pCtx, zClassName, &lClassNameID));
 
     // insert into .classes
     {
@@ -59,7 +55,7 @@ int flexi_class_create(sqlite3 *db,
 
     sqlite3_int64 iClassID;
     {
-        sqlite3_stmt *p = pDBEnv->pStmts[STMT_SEL_CLS_BY_NAME];
+        sqlite3_stmt *p = pCtx->pStmts[STMT_SEL_CLS_BY_NAME];
         assert(p);
         sqlite3_reset(p);
         sqlite3_bind_text(p, 1, zClassName, -1, NULL);
@@ -78,18 +74,59 @@ int flexi_class_create(sqlite3 *db,
             " values (:1, :2, :3, :4);";
     CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, -1, &pInsPropStmt, NULL));
 
-    // We expect 1st argument passed (at argv[3]) to be valid JSON which describes class
-    // (should follow IClassDefinition specification)
-
+    // Prepare JSON processing
     const char *zExtractPropSQL = "select "
-            "coalesce(json_extract(value, '$.indexed'), 0) as indexed," // 0
-            "coalesce(json_extract(value, '$.unique'), 0) as [unique]," // 1
-            "coalesce(json_extract(value, '$.fastTextSearch'), 0) as fastTextSearch," // 2
-            "coalesce(json_extract(value, '$.role'), 0) as role," // 3
-            "coalesce(json_extract(value, '$.rules.type'), 0) as type," // 4
+            "coalesce(json_extract(value, '$.index'), 'none') as indexed," // 0
+//    subType // 1
+//    minOccurences // 2
+//    maxOccurences // 3
+            "coalesce(json_extract(value, '$.rules.type'), 'text') as type," // 4
             "key as prop_name," // 5
-            "value as prop_def" // 6 - Original property definition JSON
+            "value as prop_def," // 6 - Original property definition JSON
+            "coalesce(json_extract(value, '$.noTrackChanges'), 0) as indexed," // 7
+//    enumDef
+//    refDef
+//    $renameTo
+//    $drop
+//    rules.maxLength
+//    rules.minValue
+//    rules.maxValue
+//    rules.regex
             " from json_each(:1, '$.properties');";
+
+    const char *zSpecialProps = "select "
+            "json_extract(:1, '$.specialProperties.uid') as uid,"; // 0
+            "json_extract(:1, '$.specialProperties.name') as name,"; // 1
+            "json_extract(:1, '$.specialProperties.description') as description,"; // 2
+            "json_extract(:1, '$.specialProperties.code') as code,"; // 3
+            "json_extract(:1, '$.specialProperties.nonUniqueId') as nonUniqueId,"; // 4
+            "json_extract(:1, '$.specialProperties.createTime') as createTime,"; // 5
+            "json_extract(:1, '$.specialProperties.updateTime') as updateTime,"; // 6
+            "json_extract(:1, '$.specialProperties.autoUuid') as autoUuid,"; // 7
+            "json_extract(:1, '$.specialProperties.autoShortId') as autoShortId " // 8
+                    ;
+
+    // Range indexing
+    // $.rangeIndexing
+    const char *zRangeProps = "select "
+            "json_extract(:1, '$.rangeIndexing.A0') as A0,"; // 0
+            "json_extract(:1, '$.rangeIndexing.A1') as A1,"; // 0
+            "json_extract(:1, '$.rangeIndexing.B0') as B0,"; // 0
+            "json_extract(:1, '$.rangeIndexing.B1') as B1,"; // 0
+            "json_extract(:1, '$.rangeIndexing.C0') as C0,"; // 0
+            "json_extract(:1, '$.rangeIndexing.C1') as C1,"; // 0
+            "json_extract(:1, '$.rangeIndexing.D0') as D0,"; // 0
+            "json_extract(:1, '$.rangeIndexing.D1') as D1,"; // 0
+            "json_extract(:1, '$.rangeIndexing.E0') as E0,"; // 0
+            "json_extract(:1, '$.rangeIndexing.E1') as E1"; // 0
+
+    // Full text indexing
+    const char *zFtsProps = "select "
+            "json_extract(:1, '$.fullTextIndexing.X1') as X1,"; // 0
+            "json_extract(:1, '$.fullTextIndexing.X2') as X2,"; // 0
+            "json_extract(:1, '$.fullTextIndexing.X3') as X3,"; // 0
+            "json_extract(:1, '$.fullTextIndexing.X4') as X4,"; // 0
+            "json_extract(:1, '$.fullTextIndexing.X5') as X5"; // 0
 
     // Need to remove leading and trailing quotes
     int iJSONLen = (int) strlen(zClassDef);
@@ -165,7 +202,7 @@ int flexi_class_create(sqlite3 *db,
         }
 
         sqlite3_int64 lPropNameID;
-        CHECK_CALL(db_insert_name(pDBEnv, dProp.zName, &lPropNameID));
+        CHECK_CALL(db_insert_name(pCtx, dProp.zName, &lPropNameID));
 
         {
             sqlite3_reset(pInsPropStmt);
@@ -182,7 +219,7 @@ int flexi_class_create(sqlite3 *db,
 
         // Get new property ID
         sqlite3_int64 iPropID;
-        CHECK_CALL(db_get_prop_id_by_class_and_name(pDBEnv, iClassID, lPropNameID, &iPropID));
+        CHECK_CALL(db_get_prop_id_by_class_and_name(pCtx, iClassID, lPropNameID, &iPropID));
         if (iPropCnt != 0) {
             void *pTmp = sbClassDefJSON;
             sbClassDefJSON = sqlite3_mprintf("%s,", pTmp);

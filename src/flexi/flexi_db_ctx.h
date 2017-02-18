@@ -53,12 +53,16 @@ struct flexi_user_info {
      * Number of roles
      */
     int nRoles;
+
+    /*
+     * Current culture
+     */
+    char *zCulture;
 };
 
 void flexi_free_user_info(struct flexi_user_info *p);
 
 /*
- * Shared flexilite environment
  * Handle for opened flexilite virtual table
  */
 struct flexi_vtab {
@@ -133,7 +137,7 @@ struct flexi_db_context {
     // TODO Opened classes
 };
 
-void flexi_db_context_free(struct flexi_db_context *pDBEnv);
+void flexi_db_context_deinit(struct flexi_db_context *pDBEnv);
 
 void flexi_vtab_free(struct flexi_vtab *vtab);
 

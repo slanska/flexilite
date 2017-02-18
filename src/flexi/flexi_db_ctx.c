@@ -21,6 +21,7 @@ static void flexi_vtab_prop_free(struct flexi_prop_metadata const *prop) {
 void flexi_free_user_info(struct flexi_user_info *p) {
     if (p) {
         sqlite3_free(p->zUserID);
+        sqlite3_free(p->zCulture);
         for (int ii = 0; ii < p->nRoles; ii++) {
             sqlite3_free(p->zRoles[ii]);
         }
@@ -136,7 +137,7 @@ int db_insert_name(struct flexi_db_context *pDBEnv, const char *zName, sqlite3_i
 /*
  * Cleans up Flexilite module environment (prepared SQL statements etc.)
  */
- void flexi_db_context_free(struct flexi_db_context *pDBEnv) {
+ void flexi_db_context_deinit(struct flexi_db_context *pDBEnv) {
     // Release prepared SQL statements
     for (int ii = 0; ii <= STMT_DEL_FTS; ii++) {
         if (pDBEnv->pStmts[ii])

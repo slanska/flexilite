@@ -195,6 +195,8 @@ declare interface IReferencePropertyDef extends TMixinClassDef {
      */
     autoFetchLimit?: number;
 
+    autoFetchDepth?: number;
+
     /*
      Optional relation rule when object gets deleted. If not specified, 'link' is assumed
      */
@@ -217,6 +219,7 @@ declare type PropertySubType =
         | 'url'
         | 'image'
         | 'html';
+// TODO To be extended
 
 /*
  Contract for standard property validation rules and constraints
@@ -289,7 +292,6 @@ interface IClassPropertyDef {
      Regulates whether this property is excluded from change log records. By default, all changes
      for all objects and properties are logged. If set to true, it will be excluded from change log records
      */
-    // TODO Needed?
     noTrackChanges?: boolean;
 
     /*
@@ -297,7 +299,7 @@ interface IClassPropertyDef {
      */
     refDef?: IReferencePropertyDef;
 
-    dateTime?: 'dateOnly' | 'timeOnly' | 'dateTime';
+    dateTime?: 'dateOnly' | 'timeOnly' | 'dateTime' | 'timeSpan';
 
     enumDef?: IEnumPropertyDef;
 
@@ -354,12 +356,13 @@ declare interface IQuerySelectDef {
 declare interface IQueryDef {
     select?: IQuerySelectDef;
     from?: string;
-    where?: IQueryWhereDef;
+    filter?: IQueryWhereDef;
     orderBy?: IQueryOrderByDef;
     limit?: number;
     skip?: number;
     bookmark?: string;
     user?: IUserContext;
+    fetchDepth?:number;
 }
 
 /*
@@ -409,7 +412,7 @@ declare type QueryWhereOperator = '$eq' | '$ne' | '$lt' | '$gt' | '$le' | '$ge' 
 type IClassPropertyDictionary = {[propID: string]: IClassPropertyDef};
 
 /*
-/*
+ /*
  Structure of .classes.Data
  */
 interface IClassDefinition {
@@ -552,6 +555,7 @@ interface IClassDefinition {
         X2?: IMetadataRef;
         X3?: IMetadataRef;
         X4?: IMetadataRef;
+        X5?: IMetadataRef;
     }
 
     /*

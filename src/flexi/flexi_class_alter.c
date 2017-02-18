@@ -8,6 +8,10 @@
 
 #include "../project_defs.h"
 
+/*
+ * Generic function to alter class definition
+ * Performs all validations and necessary data updates
+ */
 void flexi_class_alter(
         const char *zClassName,
         const char *zNewClassDefJson
@@ -15,9 +19,15 @@ void flexi_class_alter(
 
 }
 
-void flexi_class_create_internal(
+/*
+ * Internal function to create new or alter existing class
+ */
+void flexi_class_create_or_alter(
+        struct flexi_db_context *pCtx,
         const char *zClassName,
-        const char *zNewClassDefJson
+        const char *zNewClassDefJson,
+        int bCreate,
+        int bAsTable
 ) {
 
 }
