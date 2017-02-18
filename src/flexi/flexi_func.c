@@ -30,7 +30,8 @@ static void flexi_help_func(sqlite3_context *context,
             "   create property: class_name TEXT, property_name TEXT, definition JSON1"
             "   alter property: class_name TEXT, property_name TEXT, definition JSON1"
             "   drop property: class_name TEXT, property_name TEXT"
-            "   rename property: old_property_name TEXT, new_property_name TEXT";
+            "   rename property: old_property_name TEXT, new_property_name TEXT"
+            "   init";
 
     sqlite3_result_text(context, zHelp, -1, NULL);
 }
@@ -68,7 +69,7 @@ static void flexi_func(sqlite3_context *context,
                        sqlite3_value **argv) {
 
     if (argc == 0) {
-        flexi_help_func(context, argc - 1, &argv[1]);
+        flexi_help_func(context, 0, NULL);
         return;
     }
 
@@ -98,7 +99,7 @@ static void flexi_func(sqlite3_context *context,
     char *zError = NULL;
     int result;
     for (int ii = 0; ii < sizeof(methods) / sizeof(methods[0]); ii++) {
-        if (strcmp(methods[ii].zMethod, zMethodName) == 0) {
+        if (sqlite3_stricmp(methods[ii].zMethod, zMethodName) == 0) {
             sqlite3 *db = NULL;
             if (methods[ii].trn) {
                 db = sqlite3_context_db_handle(context);
@@ -124,23 +125,37 @@ static void flexi_func(sqlite3_context *context,
     sqlite3_result_error(context, zError, -1);
 }
 
-struct flexi_context {
-// duktape context
-// list of loaded classes
-// current user
-};
+int flexi_data_init(
+        sqlite3 *db,
+        char **pzErrMsg,
+        const sqlite3_api_routines *pApi,
+        struct flexi_db_context *pEnv
+);
 
-static void flexi_destroy(void *p) {
-    struct flexi_context *pCtx = p;
+static void flexiEavModuleDestroy(void *data) {
+    flexi_db_context_free(data);
+    sqlite3_free(data);
 }
 
 int flexi_init(sqlite3 *db,
                char **pzErrMsg,
                const sqlite3_api_routines *pApi) {
-    struct flexi_context *pCtx = NULL;
-    pCtx = sqlite3_malloc(sizeof(*pCtx));
-    memset(pCtx, 0, sizeof(*pCtx));
-    int rc = sqlite3_create_function_v2(db, "flexi", 0, SQLITE_UTF8, pCtx,
-                                        flexi_func, 0, 0, flexi_destroy);
-    return rc;
+    struct flexi_db_context *pCtx;
+    pCtx = sqlite3_malloc(sizeof(struct flexi_db_context));
+    memset(pCtx, 0, sizeof(struct flexi_db_context));
+    pCtx->db = db;
+
+    int result;
+    CHECK_CALL(sqlite3_create_function_v2(db, "flexi", 0, SQLITE_UTF8, pCtx,
+                                          flexi_func, 0, 0, flexiEavModuleDestroy));
+
+    CHECK_CALL(flexi_data_init(db, pzErrMsg, pApi, pCtx));
+    goto FINALLY;
+
+    CATCH:
+    flexiEavModuleDestroy(pCtx);
+
+    FINALLY:
+
+    return result;
 }

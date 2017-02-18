@@ -2,6 +2,7 @@
 // Created by slanska on 2016-03-12.
 //
 
+#include <stddef.h>
 #include "main.h"
 
 #ifdef _WIN32
@@ -23,7 +24,6 @@ int sqlite3_extension_init(
             var_func_init,
             hash_func_init,
             memstat_func_init,
-            flexi_data_init,
             flexi_init
     };
 

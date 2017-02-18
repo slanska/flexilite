@@ -114,7 +114,7 @@ set(EXT_FILES
 #        src/flexi/flexi_class.h
         src/flexi/flexi_func.c
 
-        src/flexi/flexi_prop_merge.h)
+        src/flexi/flexi_prop_merge.h src/flexi/flexi_db_ctx.c src/flexi/flexi_db_ctx.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")

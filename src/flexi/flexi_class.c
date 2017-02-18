@@ -10,6 +10,8 @@
 
 SQLITE_EXTENSION_INIT3
 
+#include "flexi_db_ctx.h"
+
 ///
 /// \param context
 /// \param zClassName
@@ -34,7 +36,7 @@ int flexi_class_create(sqlite3 *db,
     unsigned char *zPropDefJSON = NULL;
     char *sbClassDefJSON = sqlite3_mprintf("{\"properties\":{");
 
-    struct flexi_db_env *pDBEnv = pAux;
+    struct flexi_db_context *pDBEnv = pAux;
 
     struct flexi_prop_metadata dProp;
     memset(&dProp, 0, sizeof(dProp));
@@ -340,6 +342,33 @@ void flexi_class_drop_func(
 
 }
 
+int flexi_class_rename(struct flexi_db_context *pCtx, sqlite3_int64 iOldClassID, const char *zNewName) {
+    assert(pCtx && pCtx->db);
+
+    int result;
+
+    sqlite3_int64 lNewNameID;
+    CHECK_CALL(db_insert_name(pCtx, zNewName, &lNewNameID));
+
+    // TODO Move to prepared statements
+    const char *zSql = "update [.classes] set NameID = :1 "
+            "where ClassID = :2;";
+
+    const char *zErrMsg;
+    sqlite3_stmt *pStmt;
+    CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zSql, -1, &pStmt, &zErrMsg));
+    sqlite3_bind_int64(pStmt, 1, lNewNameID);
+    sqlite3_bind_int64(pStmt, 2, iOldClassID);
+    CHECK_CALL(sqlite3_step(pStmt));
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+
+    return result;
+}
+
 ///
 /// \param context
 /// \param argc
@@ -350,11 +379,30 @@ void flexi_class_rename_func(
         sqlite3_value **argv
 ) {
     assert(argc == 2);
+
+    char *zErr = NULL;
+
     // 1st arg: existing class name
     char *zOldClassName = (char *) sqlite3_value_text(argv[0]);
 
     // 2nd arg: new class name
     char *zNewClassName = (char *) sqlite3_value_text(argv[1]);
+
+    sqlite3 *db = sqlite3_context_db_handle(context);
+    struct flexi_db_context *pCtx = sqlite3_user_data(context);
+
+    sqlite3_int64 iOldID;
+    int result;
+    CHECK_CALL(db_get_name_id(pCtx, zOldClassName, &iOldID));
+    CHECK_CALL(flexi_class_rename(pCtx, iOldID, zNewClassName));
+    goto FINALLY;
+
+    CATCH:
+    zErr = (char *) sqlite3_errstr(result);
+    sqlite3_result_error(context, zErr, -1);
+
+    FINALLY:
+    {};
 }
 
 
