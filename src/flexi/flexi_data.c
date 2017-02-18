@@ -50,9 +50,9 @@ struct flexi_vtab_cursor {
  * @pRngProp - pointer to base range property
  * @iBound - bound shift, 1 for low bound, 2 - for high bound
  */
-static void init_range_column(struct flexi_prop_metadata *pRngProp, unsigned char cBound) {
+static void init_range_column(struct flexi_prop_def *pRngProp, unsigned char cBound) {
     assert(cBound == 1 || cBound == 2);
-    struct flexi_prop_metadata *pBound = pRngProp + cBound;
+    struct flexi_prop_def *pBound = pRngProp + cBound;
 
     // We do not need all attributes from original property. Just key ones
     pBound->cRngBound = cBound;
@@ -177,7 +177,7 @@ static const FlexiTypesToSqliteTypeMap *findSqliteTypeByFlexiType(const char *t)
 
 /*
  * Loads class definition from [.classes] and [.class_properties] tables
- * into ppVTab (casted to flexi_vtab).
+ * into ppVTab (casted to flexi_class_def).
  * Used by Create and Connect methods
  */
 int flexi_load_class_def(
@@ -190,27 +190,27 @@ int flexi_load_class_def(
     int result;
 
     // Initialize variables
-    struct flexi_vtab *vtab = NULL;
+    struct flexi_class_def *vtab = NULL;
     sqlite3_stmt *pGetClsPropStmt = NULL;
     sqlite3_stmt *pGetClassStmt = NULL;
     char *sbClassDef = sqlite3_mprintf("create table [%s] (", zClassName);
 
-    CHECK_MALLOC(vtab, sizeof(struct flexi_vtab));
+    CHECK_MALLOC(vtab, sizeof(struct flexi_class_def));
     memset(vtab, 0, sizeof(*vtab));
 
-    vtab->pDBEnv = pAux;
+    vtab->pCtx = pAux;
 
-    if (vtab->pDBEnv->nRefCount == 0) {
-        CHECK_CALL(flexi_prepare_db_statements(db, vtab->pDBEnv));
+    if (vtab->pCtx->nRefCount == 0) {
+        CHECK_CALL(flexi_prepare_db_statements(db, vtab->pCtx));
     }
 
-    vtab->pDBEnv->nRefCount++;
+    vtab->pCtx->nRefCount++;
     vtab->db = db;
 
     *ppVTab = (void *) vtab;
 
     sqlite3_int64 lClassNameID;
-    CHECK_CALL(db_get_name_id(vtab->pDBEnv, zClassName, &lClassNameID));
+    CHECK_CALL(db_get_name_id(vtab->pCtx, zClassName, &lClassNameID));
 
     // Init property metadata
     const char *zGetClassSQL = "select "
@@ -301,7 +301,7 @@ int flexi_load_class_def(
             vtab->pProps = tmpProps;
         }
 
-        struct flexi_prop_metadata *p = &vtab->pProps[nPropIdx];
+        struct flexi_prop_def *p = &vtab->pProps[nPropIdx];
         p->iNameID = sqlite3_column_int64(pGetClsPropStmt, 0);
         p->iPropID = sqlite3_column_int64(pGetClsPropStmt, 1);
         p->bIndexed = (char) sqlite3_column_int(pGetClsPropStmt, 2);
@@ -427,7 +427,7 @@ static int flexi_data_create(
 
     int result;
 
-    CHECK_CALL(flexi_class_create(db, pAux, zClassName, zClassDef, 1, pzErr));
+    CHECK_CALL(flexi_class_create(pAux, zClassName, zClassDef, 1, pzErr));
 
     CHECK_CALL(flexi_load_class_def(db, pAux, zClassName, ppVTab, pzErr));
 
@@ -459,7 +459,7 @@ static int flexi_data_connect(
  *
  */
 static int flexi_data_disconnect(sqlite3_vtab *pVTab) {
-    struct flexi_vtab *vtab = (void *) pVTab;
+    struct flexi_class_def *vtab = (void *) pVTab;
 
     flexi_vtab_free(vtab);
     return SQLITE_OK;
@@ -553,7 +553,7 @@ static int flexi_data_destroy(sqlite3_vtab *pVTab) {
 static int flexi_data_open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
     int result = SQLITE_OK;
 
-    struct flexi_vtab *vtab = (struct flexi_vtab *) pVTab;
+    struct flexi_class_def *vtab = (struct flexi_class_def *) pVTab;
     // Cursor will have 2 prepared sqlite statements: 1) find object IDs by property values (either with index or not), 2) to iterate through found objects' properties
     struct flexi_vtab_cursor *cur = NULL;
     CHECK_MALLOC(cur, sizeof(struct flexi_vtab_cursor));
@@ -585,7 +585,7 @@ static int flexi_data_open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) 
  */
 static int flexi_free_cursor_values(struct flexi_vtab_cursor *cur) {
     if (cur->pCols != NULL) {
-        struct flexi_vtab *vtab = (void *) cur->base.pVtab;
+        struct flexi_class_def *vtab = (void *) cur->base.pVtab;
         for (int ii = 0; ii < vtab->nCols; ii++) {
             if (cur->pCols[ii] != NULL) {
                 sqlite3_value_free(cur->pCols[ii]);
@@ -623,7 +623,7 @@ static int flexi_data_close(sqlite3_vtab_cursor *pCursor) {
 static int flexi_data_next(sqlite3_vtab_cursor *pCursor) {
     int result = SQLITE_OK;
     struct flexi_vtab_cursor *cur = (void *) pCursor;
-    struct flexi_vtab *vtab = (struct flexi_vtab *) cur->base.pVtab;
+    struct flexi_class_def *vtab = (struct flexi_class_def *) cur->base.pVtab;
 
     cur->iReadCol = -1;
     result = sqlite3_step(cur->pObjectIterator);
@@ -677,7 +677,7 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
 
     int result;
     struct flexi_vtab_cursor *cur = (void *) pCursor;
-    struct flexi_vtab *vtab = (struct flexi_vtab *) cur->base.pVtab;
+    struct flexi_class_def *vtab = (struct flexi_class_def *) cur->base.pVtab;
     char *zSQL = NULL;
 
     // Subquery for [.range_data]
@@ -741,7 +741,7 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
                         pTmp, zOp, i + 1);
                 sqlite3_free(pTmp);
             } else {
-                struct flexi_prop_metadata *prop = &vtab->pProps[colIdx];
+                struct flexi_prop_def *prop = &vtab->pProps[colIdx];
                 if (IS_RANGE_PROPERTY(prop->type))
                     // Special case: range data request
                 {
@@ -964,7 +964,7 @@ static int flexi_data_column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pCon
         goto FINALLY;
     }
 
-    struct flexi_vtab *vtab = (void *) cur->base.pVtab;
+    struct flexi_class_def *vtab = (void *) cur->base.pVtab;
 
     // First, check if column has been already loaded
     while (cur->iReadCol < iCol) {
@@ -1033,12 +1033,12 @@ static int get_utf8_len(const unsigned char *s) {
  * Validates data for the property by iCol index. Returns SQLITE_OK if validation was successfull, or error code
  * otherwise
  */
-static int flexi_validate_prop_data(struct flexi_vtab *pVTab, int iCol, sqlite3_value *v) {
+static int flexi_validate_prop_data(struct flexi_class_def *pVTab, int iCol, sqlite3_value *v) {
     // Assume error
     int result = SQLITE_ERROR;
 
     assert(iCol >= 0 && iCol < pVTab->nCols);
-    struct flexi_prop_metadata *pProp = &pVTab->pProps[iCol];
+    struct flexi_prop_def *pProp = &pVTab->pProps[iCol];
 
     // Required
     if (pProp->minOccurences > 0 && sqlite3_value_type(v) == SQLITE_NULL) {
@@ -1140,7 +1140,7 @@ static int flexi_validate_prop_data(struct flexi_vtab *pVTab, int iCol, sqlite3_
  * Returns SQLITE_OK if validation passed, or error code otherwise.
  * In case of error pVTab->base.zErrMsg will be set to the exact error message
  */
-static int flexi_validate(struct flexi_vtab *pVTab, int argc, sqlite3_value **argv) {
+static int flexi_validate(struct flexi_class_def *pVTab, int argc, sqlite3_value **argv) {
     int result = SQLITE_OK;
 
     for (int ii = 2; ii < argc; ii++) {
@@ -1158,7 +1158,7 @@ static int flexi_validate(struct flexi_vtab *pVTab, int argc, sqlite3_value **ar
 /*
  * Saves property values for the given object ID
  */
-static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
+static int flexi_upsert_props(struct flexi_class_def *pVTab, sqlite3_int64 lObjectID,
                               sqlite3_stmt *pStmt, int bDeleteNulls, int argc, sqlite3_value **argv) {
     int result = SQLITE_OK;
 
@@ -1166,7 +1166,7 @@ static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
 
     // Values are coming from index 2 (0 and 1 used for object IDs)
     for (int ii = 2; ii < argc; ii++) {
-        struct flexi_prop_metadata *pProp = &pVTab->pProps[ii - 2];
+        struct flexi_prop_def *pProp = &pVTab->pProps[ii - 2];
         sqlite3_value *pVal = argv[ii];
 
         /*
@@ -1242,7 +1242,7 @@ static int flexi_upsert_props(struct flexi_vtab *pVTab, sqlite3_int64 lObjectID,
 
             // TODO Check if this is a mapped column
             if (bDeleteNulls && pProp->cRngBound == 0) {
-                sqlite3_stmt *pDelProp = pVTab->pDBEnv->pStmts[STMT_DEL_PROP];
+                sqlite3_stmt *pDelProp = pVTab->pCtx->pStmts[STMT_DEL_PROP];
                 CHECK_CALL(sqlite3_reset(pDelProp));
                 sqlite3_bind_int64(pDelProp, 1, lObjectID);
                 sqlite3_bind_int64(pDelProp, 2, pProp->iPropID);
@@ -1293,7 +1293,7 @@ UPDATE table SET rowid=rowid+1 WHERE ...;
  */
 static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid) {
     int result = SQLITE_OK;
-    struct flexi_vtab *vtab = (struct flexi_vtab *) pVTab;
+    struct flexi_class_def *vtab = (struct flexi_class_def *) pVTab;
 
     if (argc == 1)
         // Delete
@@ -1305,13 +1305,13 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
         }
 
         sqlite3_int64 lOldID = sqlite3_value_int64(argv[0]);
-        sqlite3_stmt *pDel = vtab->pDBEnv->pStmts[STMT_DEL_OBJ];
+        sqlite3_stmt *pDel = vtab->pCtx->pStmts[STMT_DEL_OBJ];
         assert(pDel);
         CHECK_CALL(sqlite3_reset(pDel));
         sqlite3_bind_int64(pDel, 1, lOldID);
         CHECK_STMT(sqlite3_step(pDel));
 
-        sqlite3_stmt *pDelRtree = vtab->pDBEnv->pStmts[STMT_DEL_RTREE];
+        sqlite3_stmt *pDelRtree = vtab->pCtx->pStmts[STMT_DEL_RTREE];
         assert(pDelRtree);
         CHECK_CALL(sqlite3_reset(pDelRtree));
         sqlite3_bind_int64(pDelRtree, 1, lOldID);
@@ -1320,7 +1320,7 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
         if (sqlite3_value_type(argv[0]) == SQLITE_NULL)
             // Insert new row
         {
-            sqlite3_stmt *pInsObj = vtab->pDBEnv->pStmts[STMT_INS_OBJ];
+            sqlite3_stmt *pInsObj = vtab->pCtx->pStmts[STMT_INS_OBJ];
             assert(pInsObj);
 
             CHECK_CALL(sqlite3_reset(pInsObj));
@@ -1334,7 +1334,7 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
                 *pRowid = sqlite3_last_insert_rowid(vtab->db);
             } else *pRowid = sqlite3_value_int64(argv[1]);
 
-            sqlite3_stmt *pInsProp = vtab->pDBEnv->pStmts[STMT_INS_PROP];
+            sqlite3_stmt *pInsProp = vtab->pCtx->pStmts[STMT_INS_PROP];
             CHECK_CALL(flexi_upsert_props(vtab, *pRowid, pInsProp, 0, argc, argv));
         } else {
             sqlite3_int64 lNewID = sqlite3_value_int64(argv[1]);
@@ -1344,7 +1344,7 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
             {
                 sqlite3_int64 lOldID = sqlite3_value_int64(argv[0]);
 
-                sqlite3_stmt *pUpdObjID = vtab->pDBEnv->pStmts[STMT_UPD_OBJ_ID];
+                sqlite3_stmt *pUpdObjID = vtab->pCtx->pStmts[STMT_UPD_OBJ_ID];
                 CHECK_CALL(sqlite3_reset(pUpdObjID));
                 sqlite3_bind_int64(pUpdObjID, 1, lNewID);
                 sqlite3_bind_int64(pUpdObjID, 2, vtab->iClassID);
@@ -1352,7 +1352,7 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
                 CHECK_STMT(sqlite3_step(pUpdObjID));
             }
 
-            sqlite3_stmt *pUpdProp = vtab->pDBEnv->pStmts[STMT_UPD_PROP];
+            sqlite3_stmt *pUpdProp = vtab->pCtx->pStmts[STMT_UPD_PROP];
             CHECK_CALL(flexi_upsert_props(vtab, *pRowid, pUpdProp, 1, argc, argv));
         }
     }
@@ -1373,10 +1373,10 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
  * TODO use flexi_class_rename
  */
 static int flexi_data_rename(sqlite3_vtab *pVtab, const char *zNew) {
-    struct flexi_vtab *pTab = (void *) pVtab;
+    struct flexi_class_def *pTab = (void *) pVtab;
     assert(pTab->iClassID != 0);
 
-    return flexi_class_rename(pTab->pDBEnv, pTab->iClassID, zNew);
+    return flexi_class_rename(pTab->pCtx, pTab->iClassID, zNew);
 }
 
 

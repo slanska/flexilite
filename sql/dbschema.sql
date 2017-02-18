@@ -14,7 +14,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
   ClassID,
 
   -- Mapped columns. Mapping is different for different classes
-  [X1], [X2], [X3], [X4],
+  [X1], [X2], [X3], [X4], [X5],
 
 -- to allow case insensitive search for different languages
   tokenize=unicode61

@@ -81,7 +81,7 @@ static void flexi_func(sqlite3_context *context,
         int trn;
     } methods[] = {
             {"create class",    flexi_class_create_func, 1},
-            {"alter class",     flexi_class_alter_func,  1},
+            {"alter class",         flexi_class_alter_func,  1},
             {"drop class",      flexi_class_drop_func,   1},
             {"rename class",    flexi_class_rename_func, 1},
             {"create property", flexi_prop_create_func,  1},
@@ -90,6 +90,12 @@ static void flexi_func(sqlite3_context *context,
             {"rename property", flexi_prop_rename_func,  1},
             {"merge property",  flexi_prop_merge_func,   1},
             {"split property",  flexi_prop_split_func,   1},
+
+            {"properties to object",  flexi_prop_to_obj_func,              1},
+            {"object to properties",  flexi_obj_to_props_func,              1},
+            {"property to reference", flexi_prop_to_ref_func,              1},
+            {"reference to property", flexi_ref_to_prop_func,              1},
+            {"change object class",   flexi_change_object_class,              1},
 
             {"init",            flexi_init_func,         1},
             {"help",            flexi_help_func,         0},

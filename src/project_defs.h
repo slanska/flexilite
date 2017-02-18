@@ -31,47 +31,6 @@ SQLITE_EXTENSION_INIT3
 // TODO temporary implementation
 #define IS_RANGE_PROPERTY(propType) 0
 
-/*
- * Internally used structures, sub-classed from SQLite structs
- */
-
-struct flexi_prop_metadata {
-    sqlite3_int64 iPropID;
-    sqlite3_int64 iNameID;
-    struct ReCompiled *pRegexCompiled;
-    int type;
-    char *regex;
-    double maxValue;
-    double minValue;
-    int maxLength;
-    int minOccurences;
-    int maxOccurences;
-    sqlite3_value *defaultValue;
-    char *zName;
-    short int xRole;
-    char bIndexed;
-    char bUnique;
-    char bFullTextIndex;
-    int xCtlv;
-
-    /*
-     * 1-10: column is mapped to .range_data columns (1 = A0, 2 = A1, 3 = B0 and so on)
-     * 0: not mapped
-     */
-    unsigned char cRangeColumn;
-
-    /*
-     * if not 0x00, mapped to a fixed column in [.objects] table (A-P)
-     */
-    unsigned char cColMapped;
-
-    /*
-     * 0 - no range column
-     * 1 - low range bound
-     * 2 - high range bound
-     */
-    unsigned char cRngBound;
-};
 
 /*
  * Loads class definition from [.classes] and [.class_properties] tables

@@ -7,8 +7,38 @@
  */
 
 #include "../project_defs.h"
+#include "flexi_class.h"
 
 SQLITE_EXTENSION_INIT3
+
+/*
+ * Create new class record in the database
+ */
+static int _create_class_record(struct flexi_db_context *pCtx, const char *zClassName, sqlite3_int64 *lClassID) {
+    int result;
+    if (!pCtx->pStmts[STMT_INS_CLS]) {
+        CHECK_CALL(sqlite3_prepare_v2(pCtx->db,
+                                      "insert into [.classes] (NameID) values (:1);",
+                                      -1, &pCtx->pStmts[STMT_INS_CLS],
+                                      NULL));
+    }
+    CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_INS_CLS]));
+    sqlite3_int64 lClassNameID;
+    CHECK_CALL(db_insert_name(pCtx, zClassName, &lClassNameID));
+    CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_INS_CLS], 0, lClassNameID));
+    CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_INS_CLS]));
+    if (result != SQLITE_DONE)
+        goto CATCH;
+
+    CHECK_CALL(db_get_class_id_by_name(pCtx, zClassName, lClassID));
+
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
+}
 
 ///
 /// \param context
@@ -17,12 +47,7 @@ SQLITE_EXTENSION_INIT3
 /// \param bCreateVTable
 /// \param pzError
 /// \return
-int flexi_class_create(sqlite3 *db,
-        // User data
-                       struct flexi_db_context *pCtx,
-                       const char *zClassName,
-                       const char *zClassDef,
-                       int bCreateVTable,
+int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName, const char *zClassDef, int bCreateVTable,
                        char **pzError) {
     int result;
 
@@ -32,9 +57,23 @@ int flexi_class_create(sqlite3 *db,
     sqlite3_stmt *pInsPropStmt = NULL;
     sqlite3_stmt *pUpdClsStmt = NULL;
     unsigned char *zPropDefJSON = NULL;
+
+    // Check if class does not exist yet
+    sqlite3_int64 lClassID;
+    CHECK_CALL(db_get_class_id_by_name(pCtx, zClassName, &lClassID));
+    if (lClassID > 0) {
+        result = SQLITE_ERROR;
+        *pzError = sqlite3_mprintf("Class [%s] already exists", zClassName);
+        goto CATCH;
+    }
+
+    CHECK_CALL(_create_class_record(pCtx, zClassName, &lClassID));
+
+    CHECK_CALL(flexi_alter_class_wo_data(pCtx, lClassID, zClassDef, pzError));
+
     char *sbClassDefJSON = sqlite3_mprintf("{\"properties\":{");
 
-    struct flexi_prop_metadata dProp;
+    struct flexi_prop_def dProp;
     memset(&dProp, 0, sizeof(dProp));
 
     sqlite3_int64 lClassNameID;
@@ -44,7 +83,7 @@ int flexi_class_create(sqlite3 *db,
     {
         const char *zInsClsSQL = "insert into [.classes] (NameID) values (:1);";
 
-        CHECK_CALL(sqlite3_prepare_v2(db, zInsClsSQL, -1, &pInsClsStmt, NULL));
+        CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zInsClsSQL, -1, &pInsClsStmt, NULL));
         sqlite3_bind_int64(pInsClsStmt, 1, lClassNameID);
         int stepResult = sqlite3_step(pInsClsStmt);
         if (stepResult != SQLITE_DONE) {
@@ -72,7 +111,7 @@ int flexi_class_create(sqlite3 *db,
 
     const char *zInsPropSQL = "insert into [.class_properties] (NameID, ClassID, ctlv, ctlvPlan)"
             " values (:1, :2, :3, :4);";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, -1, &pInsPropStmt, NULL));
+    CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zInsPropSQL, -1, &pInsPropStmt, NULL));
 
     // Prepare JSON processing
     const char *zExtractPropSQL = "select "
@@ -96,41 +135,42 @@ int flexi_class_create(sqlite3 *db,
 
     const char *zSpecialProps = "select "
             "json_extract(:1, '$.specialProperties.uid') as uid,"; // 0
-            "json_extract(:1, '$.specialProperties.name') as name,"; // 1
-            "json_extract(:1, '$.specialProperties.description') as description,"; // 2
-            "json_extract(:1, '$.specialProperties.code') as code,"; // 3
-            "json_extract(:1, '$.specialProperties.nonUniqueId') as nonUniqueId,"; // 4
-            "json_extract(:1, '$.specialProperties.createTime') as createTime,"; // 5
-            "json_extract(:1, '$.specialProperties.updateTime') as updateTime,"; // 6
-            "json_extract(:1, '$.specialProperties.autoUuid') as autoUuid,"; // 7
-            "json_extract(:1, '$.specialProperties.autoShortId') as autoShortId " // 8
-                    ;
+    "json_extract(:1, '$.specialProperties.name') as name,"; // 1
+    "json_extract(:1, '$.specialProperties.description') as description,"; // 2
+    "json_extract(:1, '$.specialProperties.code') as code,"; // 3
+    "json_extract(:1, '$.specialProperties.nonUniqueId') as nonUniqueId,"; // 4
+    "json_extract(:1, '$.specialProperties.createTime') as createTime,"; // 5
+    "json_extract(:1, '$.specialProperties.updateTime') as updateTime,"; // 6
+    "json_extract(:1, '$.specialProperties.autoUuid') as autoUuid,"; // 7
+    "json_extract(:1, '$.specialProperties.autoShortId') as autoShortId " // 8
+            ;
+
 
     // Range indexing
     // $.rangeIndexing
     const char *zRangeProps = "select "
             "json_extract(:1, '$.rangeIndexing.A0') as A0,"; // 0
-            "json_extract(:1, '$.rangeIndexing.A1') as A1,"; // 0
-            "json_extract(:1, '$.rangeIndexing.B0') as B0,"; // 0
-            "json_extract(:1, '$.rangeIndexing.B1') as B1,"; // 0
-            "json_extract(:1, '$.rangeIndexing.C0') as C0,"; // 0
-            "json_extract(:1, '$.rangeIndexing.C1') as C1,"; // 0
-            "json_extract(:1, '$.rangeIndexing.D0') as D0,"; // 0
-            "json_extract(:1, '$.rangeIndexing.D1') as D1,"; // 0
-            "json_extract(:1, '$.rangeIndexing.E0') as E0,"; // 0
-            "json_extract(:1, '$.rangeIndexing.E1') as E1"; // 0
+    "json_extract(:1, '$.rangeIndexing.A1') as A1,"; // 0
+    "json_extract(:1, '$.rangeIndexing.B0') as B0,"; // 0
+    "json_extract(:1, '$.rangeIndexing.B1') as B1,"; // 0
+    "json_extract(:1, '$.rangeIndexing.C0') as C0,"; // 0
+    "json_extract(:1, '$.rangeIndexing.C1') as C1,"; // 0
+    "json_extract(:1, '$.rangeIndexing.D0') as D0,"; // 0
+    "json_extract(:1, '$.rangeIndexing.D1') as D1,"; // 0
+    "json_extract(:1, '$.rangeIndexing.E0') as E0,"; // 0
+    "json_extract(:1, '$.rangeIndexing.E1') as E1"; // 0
 
     // Full text indexing
     const char *zFtsProps = "select "
             "json_extract(:1, '$.fullTextIndexing.X1') as X1,"; // 0
-            "json_extract(:1, '$.fullTextIndexing.X2') as X2,"; // 0
-            "json_extract(:1, '$.fullTextIndexing.X3') as X3,"; // 0
-            "json_extract(:1, '$.fullTextIndexing.X4') as X4,"; // 0
-            "json_extract(:1, '$.fullTextIndexing.X5') as X5"; // 0
+    "json_extract(:1, '$.fullTextIndexing.X2') as X2,"; // 0
+    "json_extract(:1, '$.fullTextIndexing.X3') as X3,"; // 0
+    "json_extract(:1, '$.fullTextIndexing.X4') as X4,"; // 0
+    "json_extract(:1, '$.fullTextIndexing.X5') as X5"; // 0
 
     // Need to remove leading and trailing quotes
     int iJSONLen = (int) strlen(zClassDef);
-    CHECK_CALL(sqlite3_prepare_v2(db, zExtractPropSQL, -1, &pExtractProps, NULL));
+    CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zExtractPropSQL, -1, &pExtractProps, NULL));
     CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, zClassDef + sizeof(char), iJSONLen - 2, NULL));
 
     int iPropCnt = 0;
@@ -243,7 +283,7 @@ int flexi_class_create(sqlite3 *db,
 
     // Update class with new JSON data
     const char *zUpdClsSQL = "update [.classes] set Data = :1, ctloMask= :2 where ClassID = :3";
-    CHECK_CALL(sqlite3_prepare_v2(db, zUpdClsSQL, -1, &pUpdClsStmt, NULL));
+    CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zUpdClsSQL, -1, &pUpdClsStmt, NULL));
     sqlite3_bind_text(pUpdClsStmt, 1, sbClassDefJSON, (int) strlen(sbClassDefJSON), NULL);
     sqlite3_bind_int(pUpdClsStmt, 2, xCtloMask);
     sqlite3_bind_int64(pUpdClsStmt, 3, iClassID);
@@ -262,7 +302,7 @@ int flexi_class_create(sqlite3 *db,
 
     CATCH:
     // Release resources because of errors (catch)
-    printf("%s", sqlite3_errmsg(db));
+    printf("%s", sqlite3_errmsg(pCtx->db));
 
     FINALLY:
 
@@ -325,8 +365,8 @@ void flexi_class_create_func(
         zSQL = sqlite3_mprintf("create virtual table using 'flexi' [%s] ('%s')", zClassName, zClassDef);
         CHECK_CALL(sqlite3_exec(db, zSQL, NULL, NULL, &zError));
     } else {
-        void *pAux = sqlite3_user_data(context);
-        CHECK_CALL(flexi_class_create(db, pAux, zClassName, zClassDef, bCreateVTable, &zError));
+        void *pCtx = sqlite3_user_data(context);
+        CHECK_CALL(flexi_class_create(pCtx, zClassName, zClassDef, bCreateVTable, &zError));
     }
 
     goto FINALLY;
@@ -351,12 +391,54 @@ void flexi_class_alter_func(
         sqlite3_value **argv
 ) {
     assert(argc == 2);
+
+    int result;
     // 1st arg: class name
     char *zClassName = (char *) sqlite3_value_text(argv[0]);
 
     // 2nd arg: new class definition
     char *zNewClassDef = (char *) sqlite3_value_text(argv[1]);
 
+    // 3rd optional argument - create virtual table for class
+    int bCreateVTable = 0;
+    if (argc == 3)
+        bCreateVTable = sqlite3_value_int(argv[2]);
+
+    const char *zError = NULL;
+
+    struct flexi_db_context *pCtx = sqlite3_user_data(context);
+    CHECK_CALL(flexi_class_alter(pCtx, zClassName, zNewClassDef, bCreateVTable, &zError));
+
+    goto FINALLY;
+
+    CATCH:
+    if (zError)
+        sqlite3_result_error(context, zError, -1);
+
+    FINALLY:
+    {};
+}
+
+int flexi_class_drop(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, int softDelete,
+                     const char **pzError) {
+    // TODO
+
+    /*
+     * When softDelete, data in .objects and .ref-values are preserved but moved to the system Object class
+     * indexes, full text data and range data will be deleted
+     */
+
+    // .objects
+
+    // .full_text_data
+
+    // .range_data
+
+    // .ref-values
+
+    // .class_props
+
+    // .classes
 }
 
 ///
@@ -369,6 +451,10 @@ void flexi_class_drop_func(
         sqlite3_value **argv
 ) {
     assert(argc == 2 || argc == 1);
+
+    int result;
+    const char *zError = NULL;
+
     // 1st arg: class name
     char *zClassName = (char *) sqlite3_value_text(argv[0]);
 
@@ -377,6 +463,21 @@ void flexi_class_drop_func(
     if (argc == 2)
         softDel = sqlite3_value_int(argv[1]);
 
+    sqlite3_int64 lClassID;
+    struct flexi_db_context *pCtx = sqlite3_user_data(context);
+    CHECK_CALL(db_get_class_id_by_name(pCtx, zClassName, &lClassID));
+
+    CHECK_CALL(flexi_class_drop(pCtx, lClassID, softDel, &zError));
+    goto FINALLY;
+
+    CATCH:
+    if (!zError)
+        sqlite3_result_error(context, zError, -1);
+    else if (result != SQLITE_OK)
+        sqlite3_result_error(context, sqlite3_errstr(result), -1);
+
+    FINALLY:
+    {};
 }
 
 int flexi_class_rename(struct flexi_db_context *pCtx, sqlite3_int64 iOldClassID, const char *zNewName) {
@@ -441,6 +542,25 @@ void flexi_class_rename_func(
     FINALLY:
     {};
 }
+
+void flexi_change_object_class(
+        sqlite3_context *context,
+        int argc,
+        sqlite3_value **argv
+) {}
+
+void flexi_prop_to_obj_func(
+        sqlite3_context *context,
+        int argc,
+        sqlite3_value **argv
+) {}
+
+void flexi_obj_to_props_func(
+        sqlite3_context *context,
+        int argc,
+        sqlite3_value **argv
+) {}
+
 
 
 
