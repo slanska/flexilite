@@ -58,346 +58,9 @@ static void init_range_column(struct flexi_prop_def *pRngProp, unsigned char cBo
     pBound->cRngBound = cBound;
     pBound->iPropID = pRngProp->iPropID;
     pBound->type = pRngProp->type;
-    pBound->zName = sqlite3_mprintf("%s_%d", pRngProp->zName, cBound - 1);
+    pBound->name.name = sqlite3_mprintf("%s_%d", pRngProp->name.name, cBound - 1);
 
     // Rest of attributes can be retrieved from base range property by using cRngBound as shift
-}
-
-/*
- * Initializes database connection wide SQL statements
- */
-static int flexi_prepare_db_statements(sqlite3 *db, void *aux_data) {
-    int result;
-
-    struct flexi_db_context *data = aux_data;
-
-    const char *zDelObjSQL = "delete from [.objects] where ObjectID = :1;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zDelObjSQL, -1, &data->pStmts[STMT_DEL_OBJ], NULL));
-
-    const char *zInsObjSQL = "insert into [.objects] (ObjectID, ClassID, ctlo) values (:1, :2, :3); "
-            "select last_insert_rowid();";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsObjSQL, -1, &data->pStmts[STMT_INS_OBJ], NULL));
-
-    const char *zInsPropSQL = "insert into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
-            " values (:1, :2, :3, :4, :5);";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, -1, &data->pStmts[STMT_INS_PROP], NULL));
-
-    const char *zUpdPropSQL = "insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
-            " values (:1, :2, :3, :4, :5);";
-    CHECK_CALL(sqlite3_prepare_v2(db, zUpdPropSQL, -1, &data->pStmts[STMT_UPD_PROP], NULL));
-
-    const char *zDelPropSQL = "delete from [.ref-values] where ObjectID = :1 and PropertyID = :2 and PropIndex = :3;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zDelPropSQL, -1, &data->pStmts[STMT_DEL_PROP], NULL));
-
-    const char *zInsNameSQL = "insert or replace into [.names] ([Value], NameID)"
-            " values (:1, (select NameID from [.names] where Value = :1 limit 1));";
-    CHECK_CALL(sqlite3_prepare_v2(db, zInsNameSQL, -1, &data->pStmts[STMT_INS_NAME], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db,
-            "select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);",
-            -1, &data->pStmts[STMT_SEL_CLS_BY_NAME], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db,
-            "select NameID from [.names] where [Value] = :1;",
-            -1, &data->pStmts[STMT_SEL_NAME_ID], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db,
-            "select PropertyID from [.class_properties] where ClassID = :1 and NameID = :2;",
-            -1, &data->pStmts[STMT_SEL_PROP_ID], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db,
-            "insert into [.range_data] ([ObjectID], [ClassID], [ClassID_1], "
-                    "[A0], [_1], [B0], [B1], [C0], [C1], [D0], [D1]) values "
-                    "(:1, :2, :2, :3, :4, :5, :6, :7, :8, :9, :10);",
-            -1, &data->pStmts[STMT_INS_RTREE], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db,
-            "update [.range_data] set [ClassID] = :2, [ClassID_1] = :2, "
-                    "[A0] = :3, [A1] = :4, [B0] = :5, [B1] = :6, "
-                    "[C0] = :7, [C1] = :8, [D0] = :9, [D1] = :10 where ObjectID = :1;",
-            -1, &data->pStmts[STMT_UPD_RTREE], NULL));
-
-    CHECK_CALL(sqlite3_prepare_v2(
-            db, "delete from [.range_data] where ObjectID = :1;",
-            -1, &data->pStmts[STMT_DEL_RTREE], NULL));
-
-    goto FINALLY;
-    CATCH:
-    FINALLY:
-    return result;
-}
-
-/*
- * Global mapping of type names between Flexilite and SQLite
- */
-typedef struct {
-    const char *zFlexi_t;
-    const char *zSqlite_t;
-    int propType;
-} FlexiTypesToSqliteTypeMap;
-
-const static FlexiTypesToSqliteTypeMap g_FlexiTypesToSqliteTypes[] = {
-        {"text",     "TEXT",    PROP_TYPE_TEXT},
-        {"integer",  "INTEGER", PROP_TYPE_INTEGER},
-        {"boolean",  "INTEGER", PROP_TYPE_BOOLEAN},
-        {"enum",     "INTEGER", PROP_TYPE_ENUM},
-        {"number",   "FLOAT",   PROP_TYPE_NUMBER},
-        {"datetime", "FLOAT",   PROP_TYPE_DATETIME},
-        {"uuid",     "BLOB",    PROP_TYPE_UUID},
-        {"binary",   "BLOB",    PROP_TYPE_BINARY},
-        {"name",     "TEXT",    PROP_TYPE_NAME},
-        {"decimal",  "FLOAT",   PROP_TYPE_DECIMAL},
-        {"json",     "JSON1",   PROP_TYPE_JSON},
-        {"date",     "FLOAT",   PROP_TYPE_DATE},
-        {"time",     "FLOAT",   PROP_TYPE_TIMESPAN},
-        {NULL,       "TEXT",    PROP_TYPE_TEXT}
-        /* TODO
-         * NVARCHAR
-         * NCHAR
-         * MONEY
-         * IMAGE
-         * VARCHAR
-         */
-};
-
-static const FlexiTypesToSqliteTypeMap *findSqliteTypeByFlexiType(const char *t) {
-    int ii = 0;
-    for (; ii < sizeof(g_FlexiTypesToSqliteTypes) / sizeof(g_FlexiTypesToSqliteTypes[0]); ii++) {
-        if (g_FlexiTypesToSqliteTypes[ii].zFlexi_t && strcmp(g_FlexiTypesToSqliteTypes[ii].zFlexi_t, t) == 0)
-            return &g_FlexiTypesToSqliteTypes[ii];
-    }
-
-    return &g_FlexiTypesToSqliteTypes[sizeof(g_FlexiTypesToSqliteTypes) / sizeof(g_FlexiTypesToSqliteTypes[0]) - 1];
-}
-
-/*
- * Loads class definition from [.classes] and [.class_properties] tables
- * into ppVTab (casted to flexi_class_def).
- * Used by Create and Connect methods
- */
-int flexi_load_class_def(
-        sqlite3 *db,
-        // User data
-        void *pAux,
-        const char *zClassName,
-        sqlite3_vtab **ppVTab,
-        char **pzErr) {
-    int result;
-
-    // Initialize variables
-    struct flexi_class_def *vtab = NULL;
-    sqlite3_stmt *pGetClsPropStmt = NULL;
-    sqlite3_stmt *pGetClassStmt = NULL;
-    char *sbClassDef = sqlite3_mprintf("create table [%s] (", zClassName);
-
-    CHECK_MALLOC(vtab, sizeof(struct flexi_class_def));
-    memset(vtab, 0, sizeof(*vtab));
-
-    vtab->pCtx = pAux;
-
-    if (vtab->pCtx->nRefCount == 0) {
-        CHECK_CALL(flexi_prepare_db_statements(db, vtab->pCtx));
-    }
-
-    vtab->pCtx->nRefCount++;
-
-    *ppVTab = (void *) vtab;
-
-    sqlite3_int64 lClassNameID;
-    CHECK_CALL(db_get_name_id(vtab->pCtx, zClassName, &lClassNameID));
-
-    // Init property metadata
-    const char *zGetClassSQL = "select "
-            "ClassID, " // 0
-            "NameID, " // 1
-            "SystemClass, " // 2
-            "ctloMask, " // 3
-            "Hash " // 4
-            "from [.classes] "
-            "where NameID = :1;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zGetClassSQL, -1, &pGetClassStmt, NULL));
-    sqlite3_bind_int64(pGetClassStmt, 1, lClassNameID);
-    result = sqlite3_step(pGetClassStmt);
-    if (result == SQLITE_DONE)
-        // No class found. Return error
-    {
-        result = SQLITE_NOTFOUND;
-        *pzErr = sqlite3_mprintf("Cannot find Flexilite class [%s]", zClassName);
-        goto CATCH;
-    }
-
-    if (result != SQLITE_ROW)
-        goto CATCH;
-
-    vtab->iClassID = sqlite3_column_int64(pGetClassStmt, 0);
-    vtab->iNameID = sqlite3_column_int64(pGetClassStmt, 1);
-    vtab->bSystemClass = (short int) sqlite3_column_int(pGetClassStmt, 2);
-    vtab->xCtloMask = sqlite3_column_int(pGetClassStmt, 3);
-
-    {
-        int iHashLen = sqlite3_column_bytes(pGetClassStmt, 4);
-        if (iHashLen > 0) {
-            vtab->zHash = sqlite3_malloc(iHashLen + 1);
-            strcpy(vtab->zHash, (char *) sqlite3_column_text(pGetClassStmt, 4));
-        }
-    }
-
-    const char *zGetClsPropSQL = "select "
-            "cp.NameID, " // 0
-            "cp.PropertyID, " // 1
-            "coalesce(json_extract(c.Data, printf('$.properties.%d.indexed', cp.PropertyID)), 0) as indexed," // 2
-            "coalesce(json_extract(c.Data, printf('$.properties.%d.unique', cp.PropertyID)), 0) as [unique]," // 3
-            "coalesce(json_extract(c.Data, printf('$.properties.%d.fastTextSearch', cp.PropertyID)), 0) as fastTextSearch," // 4
-            "coalesce(json_extract(c.Data, printf('$.properties.%d.role', cp.PropertyID)), 0) as role," // 5
-            "coalesce(json_extract(c.Data, printf('$.properties.%d.rules.type', cp.PropertyID)), 0) as [type]," // 6
-            "json_extract(c.Data, printf('$.properties.%d.rules.regex', cp.PropertyID)) as regex," // 7
-            "coalesce(json_extract(c.Data, printf('$.properties.%d.rules.minOccurences', cp.PropertyID)), 0) as minOccurences," // 8
-            "coalesce(json_extract(c.Data, printf('$.properties.%d.rules.maxOccurences', cp.PropertyID)), 1) as maxOccurences," // 9
-            "coalesce(json_extract(c.Data, printf('$.properties.%d.rules.maxLength', cp.PropertyID)), 0) as maxLength," // 10
-            "json_extract(c.Data, printf('$.properties.%d.rules.minValue', cp.PropertyID)) as minValue, " // 11
-            "json_extract(c.Data, printf('$.properties.%d.rules.maxValue', cp.PropertyID)) as maxValue, " // 12
-            "json_extract(c.Data, printf('$.properties.%d.defaultValue', cp.PropertyID)) as defaultValue, " // 13
-            "(select [Value] from [.names] n where n.NameID = cp.NameID limit 1) as Name," // 14
-            "cp.ctlv as ctlv " // 15
-            "from [.class_properties] cp "
-            "join [.classes] c on cp.ClassID = c.ClassID "
-            "where cp.ClassID = :1 order by PropertyID;";
-    CHECK_CALL(sqlite3_prepare_v2(db, zGetClsPropSQL, -1, &pGetClsPropStmt, NULL));
-    sqlite3_bind_int64(pGetClsPropStmt, 1, vtab->iClassID);
-
-    int nPropIdx = 0;
-    do {
-        int stepResult = sqlite3_step(pGetClsPropStmt);
-        if (stepResult == SQLITE_DONE)
-            break;
-        if (stepResult != SQLITE_ROW) {
-            result = stepResult;
-            goto CATCH;
-        }
-
-        // TODO Use string value
-        char *zFlexiType = (char *) sqlite3_column_text(pGetClsPropStmt, 6);
-
-        int iNewColCnt = nPropIdx;
-
-        if (iNewColCnt >= vtab->nPropColsAllocated) {
-            vtab->nPropColsAllocated = iNewColCnt + 4;
-
-            int newLen = vtab->nPropColsAllocated * sizeof(*vtab->pProps);
-            void *tmpProps = sqlite3_realloc(vtab->pProps, newLen);
-            if (tmpProps == NULL) {
-                result = SQLITE_NOMEM;
-                goto CATCH;
-            }
-
-            memset(tmpProps + (nPropIdx * sizeof(*vtab->pProps)), 0,
-                   sizeof(*vtab->pProps) * (vtab->nPropColsAllocated - nPropIdx));
-            vtab->pProps = tmpProps;
-        }
-
-        struct flexi_prop_def *p = &vtab->pProps[nPropIdx];
-        p->iNameID = sqlite3_column_int64(pGetClsPropStmt, 0);
-        p->iPropID = sqlite3_column_int64(pGetClsPropStmt, 1);
-        p->bIndexed = (char) sqlite3_column_int(pGetClsPropStmt, 2);
-        p->bUnique = (char) sqlite3_column_int(pGetClsPropStmt, 3);
-        p->bFullTextIndex = (char) sqlite3_column_int(pGetClsPropStmt, 4);
-        p->xRole = (short int) sqlite3_column_int(pGetClsPropStmt, 5);
-
-        const FlexiTypesToSqliteTypeMap *pPropType = findSqliteTypeByFlexiType(zFlexiType);
-        p->type = pPropType->propType;
-
-        int iRxLen = sqlite3_column_bytes(pGetClsPropStmt, 7);
-        if (iRxLen > 0) {
-            p->regex = sqlite3_malloc(iRxLen + 1);
-            strcpy(p->regex, (char *) sqlite3_column_text(pGetClsPropStmt, 7));
-            // Pre-compile regexp expression, if needed
-
-            const char *zRegexErr = re_compile(&p->pRegexCompiled, p->regex, 0);
-            if (zRegexErr) {
-                *pzErr = (char *) zRegexErr;
-                result = SQLITE_ERROR;
-                goto CATCH;
-            }
-        }
-
-        // minOccurences
-        {
-            p->minOccurences = sqlite3_column_int(pGetClsPropStmt, 8);
-        }
-
-        // maxOccurences
-        {
-            p->maxOccurences = sqlite3_column_int(pGetClsPropStmt, 9);
-        }
-
-        // maxLength
-        {
-            p->maxLength = sqlite3_column_int(pGetClsPropStmt, 10);
-        }
-
-        // minValue
-        {
-            p->minValue = sqlite3_column_double(pGetClsPropStmt, 11);
-        }
-
-        //  maxValue
-        {
-            p->maxValue = sqlite3_column_double(pGetClsPropStmt, 12);
-        }
-
-        p->defaultValue = sqlite3_value_dup(sqlite3_column_value(pGetClsPropStmt, 13));
-
-        p->zName = sqlite3_malloc(sqlite3_column_bytes(pGetClsPropStmt, 14) + 1);
-        strcpy(p->zName, (char *) sqlite3_column_text(pGetClsPropStmt, 14));
-
-        p->xCtlv = sqlite3_column_int(pGetClsPropStmt, 15);
-
-        if (nPropIdx != 0) {
-            void *pTmp = sbClassDef;
-            sbClassDef = sqlite3_mprintf("%s,", pTmp);
-            sqlite3_free(pTmp);
-        }
-
-        {
-            void *pTmp = sbClassDef;
-            sbClassDef = sqlite3_mprintf("%s[%s] %s", pTmp, vtab->pProps[nPropIdx].zName, pPropType);
-            sqlite3_free(pTmp);
-        }
-
-        nPropIdx++;
-
-    } while (1);
-
-    vtab->nCols = nPropIdx;
-
-    {
-        void *pTmp = sbClassDef;
-        sbClassDef = sqlite3_mprintf("%s);", pTmp);
-        sqlite3_free(pTmp);
-    }
-
-    // Fix strange issue with misplaced terminating zero
-    CHECK_CALL(sqlite3_declare_vtab(db, sbClassDef));
-
-    result = SQLITE_OK;
-    goto FINALLY;
-
-    CATCH:
-    flexi_class_def_free(vtab);
-
-    FINALLY:
-    sqlite3_free(sbClassDef);
-    if (pGetClassStmt)
-        sqlite3_finalize(pGetClassStmt);
-    if (pGetClsPropStmt)
-        sqlite3_finalize(pGetClsPropStmt);
-
-    return result;
 }
 
 /*
@@ -428,7 +91,7 @@ static int flexi_data_create(
 
     CHECK_CALL(flexi_class_create(pAux, zClassName, zClassDef, 1, pzErr));
 
-    CHECK_CALL(flexi_load_class_def(db, pAux, zClassName, ppVTab, pzErr));
+    CHECK_CALL(flexi_class_def_load(db, zClassName, ppVTab, pzErr));
 
     result = SQLITE_OK;
 
@@ -445,13 +108,24 @@ static int flexi_data_create(
 static int flexi_data_connect(
         sqlite3 *db,
 
-        // User data
+        // Should be instance of flexi_db_context
         void *pAux,
+
         int argc, const char *const *argv,
+
+        /*
+         * Should be instance of flexi_class_def
+         */
         sqlite3_vtab **ppVtab,
         char **pzErr
 ) {
-    return flexi_load_class_def(db, pAux, argv[2], ppVtab, pzErr);
+    sqlite3_int64 lClassID;
+    assert(argc >= 3);
+    int result = db_get_class_id_by_name(db, argv[2], &lClassID);
+    if (result != SQLITE_OK)
+        return result;
+
+    return flexi_class_def_load((struct flexi_db_context*)pAux, lClassID, ppVtab, pzErr);
 }
 
 /*

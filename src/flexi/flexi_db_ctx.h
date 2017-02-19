@@ -89,11 +89,18 @@ struct flexi_db_context
     Hash classDefs;
 };
 
-void flexi_db_context_deinit(struct flexi_db_context *pCtx);
+/*
+ * Global mapping of type names between Flexilite and SQLite
+ */
+typedef struct {
+    const char *zFlexi_t;
+    const char *zSqlite_t;
+    int propType;
+} FlexiTypesToSqliteTypeMap;
 
 struct flexi_db_context *flexi_db_context_new(sqlite3 *db);
-// TODO struct flexi_db_context* flexi_db_context_init();
 
+void flexi_db_context_free(struct flexi_db_context *data);
 /*
  * Finds class by its name. Returns found ID in pClassID. If class not found, sets pClassID to -1;
  * Returns SQLITE_OK if operation was executed successfully, or SQLITE error code

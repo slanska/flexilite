@@ -7,24 +7,28 @@
  */
 
 #include "../project_defs.h"
-#include "../util/hash.h"
+#include "flexi_class.h"
 
 static int _merge_class_schemas(struct flexi_db_context *pCtx,
                                 sqlite3_int64 lClassID, const char *zNewClassDef,
                                 const char **pzMergedSchema,
-                                const char **pzError) {
+                                const char **pzError)
+{
     int result;
 
     return result;
 }
 
-static int _parse_special_props_json() {
+static int _parse_special_props_json()
+{
 
 }
 
-static int _parse_fts_props_json() {}
+static int _parse_fts_props_json()
+{}
 
-static int _parse_rtree_props_json() {}
+static int _parse_rtree_props_json()
+{}
 
 //static int _load_class_schema(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, const char **zSchema) {
 //    int result;
@@ -51,7 +55,8 @@ static int _parse_rtree_props_json() {}
 
 static int _alter_class_with_data(struct flexi_db_context *pCtx,
                                   sqlite3_int64 lClassID, const char *zNewClassDef,
-                                  const char **pzError) {
+                                  const char **pzError)
+{
     int result;
 
     // load existing schema
@@ -84,21 +89,24 @@ int flexi_class_alter(struct flexi_db_context *pCtx,
                       const char *zNewClassDefJson,
                       int bCreateVTable,
                       const char **pzError
-) {
+)
+{
     int result;
 
     // Check if class exists. If no - error
     // Check if class does not exist yet
     sqlite3_int64 lClassID;
     CHECK_CALL(db_get_class_id_by_name(pCtx, zClassName, &lClassID));
-    if (lClassID <= 0) {
+    if (lClassID <= 0)
+    {
         result = SQLITE_ERROR;
         *pzError = sqlite3_mprintf("Class [%s] is not found", zClassName);
         goto CATCH;
     }
 
     // Check if class has any objects created. If no - treat as create
-    if (!pCtx->pStmts[STMT_CLS_HAS_DATA]) {
+    if (!pCtx->pStmts[STMT_CLS_HAS_DATA])
+    {
         CHECK_CALL(sqlite3_prepare_v2(pCtx->db,
                                       "select 1 from [.objects] where ClassID = :1 and ObjectID > 0 limit 1;",
                                       -1, &pCtx->pStmts[STMT_CLS_HAS_DATA], NULL));
@@ -106,9 +114,12 @@ int flexi_class_alter(struct flexi_db_context *pCtx,
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_HAS_DATA]));
     CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_HAS_DATA], 0, lClassID));
     CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_CLS_HAS_DATA]));
-    if (result == SQLITE_DONE) {
-        CHECK_CALL(flexi_alter_class_wo_data(pCtx, lClassID, zNewClassDefJson, pzError));
-    } else {
+    if (result == SQLITE_DONE)
+    {
+        CHECK_CALL(flexi_alter_new_class(pCtx, lClassID, zNewClassDefJson, pzError));
+    }
+    else
+    {
         CHECK_CALL(_alter_class_with_data(pCtx, lClassID, zNewClassDefJson, pzError));
     }
 
@@ -122,13 +133,33 @@ int flexi_class_alter(struct flexi_db_context *pCtx,
     return result;
 }
 
-int flexi_alter_class_wo_data(struct flexi_db_context *pCtx, sqlite3_int64 lClassID,
-                              const char *zNewClassDef, const char **pzErr) {
+/*
+ *
+ */
+int flexi_alter_new_class(struct flexi_db_context *pCtx, sqlite3_int64 lClassID,
+                          const char *zNewClassDef, char **pzErr)
+{
     int result;
+
+    assert(pCtx && pCtx->db);
+
+    result = SQLITE_OK;
+
+    // Load existing class def
+    struct flexi_class_def *pClassDef = NULL;
+    CHECK_CALL(flexi_class_def_load(pCtx, lClassID, &pClassDef, pzErr));
 
     // Merge existing definition with new one.
 
     // Validate definition
+
+    goto FINALLY;
+
+    CATCH:
+    if (pClassDef)
+        flexi_class_def_free(pClassDef);
+
+    FINALLY:
 
     return result;
 }

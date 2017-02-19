@@ -9,14 +9,13 @@
 #ifndef SQLITE_EXTENSIONS_PROJECT_DEFS_H
 #define SQLITE_EXTENSIONS_PROJECT_DEFS_H
 
-#include "../lib/sqlite/sqlite3ext.h"
+#include <sqlite3ext.h>
 
 SQLITE_EXTENSION_INIT3
 
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
-#include <alloca.h>
 #include <stdio.h>
 
 #include "common/common.h"
@@ -31,19 +30,6 @@ SQLITE_EXTENSION_INIT3
 // TODO temporary implementation
 #define IS_RANGE_PROPERTY(propType) 0
 
-
-/*
- * Loads class definition from [.classes] and [.class_properties] tables
- * into ppVTab (casted to flexi_vtab).
- * Used by Create and Connect methods
- */
-int flexi_load_class_def(
-        sqlite3 *db,
-        // User data
-        void *pAux,
-        const char *zClassName,
-        sqlite3_vtab **ppVTab,
-        char **pzErr);
 
 /*
  * Internal API

@@ -25,14 +25,18 @@ typedef enum CHANGE_STATUS CHANGE_STATUS;
  * Holder of this struct is responsible for freeing name
  */
 struct flexi_metadata_ref {
-    const char *name;
+    char *name;
     sqlite3_int64 id;
 
     CHANGE_STATUS eChngStatus;
 };
 
-
+/*
+ * Forward declarations
+ */
 typedef struct flexi_metadata_ref flexi_metadata_ref;
+typedef struct flexi_ref_def flexi_ref_def;
+typedef struct flexi_enum_def flexi_enum_def;
 
 /*
  * Property definition object
@@ -41,25 +45,39 @@ struct flexi_prop_def {
     struct flexi_db_context *pCtx;
     sqlite3_int64 lClassID;
     sqlite3_int64 iPropID;
-    sqlite3_int64 iNameID;
-    char *zName;
-    char *zIndex;
-    char *zSubType;
-    int bNoTrackChanges;
-    char *zEnumDef;
-    char *zRefDef;
-    char *zRenameTo;
-    int bDrop;
-    struct ReCompiled *pRegexCompiled;
+
+    // Attributes that need to be explicitly disposed
     int type;
     char *zType;
+
+    flexi_metadata_ref name;
+    char *zIndex;
+    char *zSubType;
+
+    /*
+     * For properties being altered/renamed - will have new property name
+     */
+    char *zRenameTo;
+
     char *regex;
+    struct ReCompiled *pRegexCompiled;
+
+    char *zEnumDef;
+    flexi_enum_def *pEnumDef;
+
+    char *zRefDef;
+    flexi_ref_def *pRefDef;
+
+    sqlite3_value *defaultValue;
+
+    int bNoTrackChanges;
+
     double maxValue;
     double minValue;
     int maxLength;
     int minOccurences;
     int maxOccurences;
-    sqlite3_value *defaultValue;
+
     short int xRole;
     char bIndexed;
     char bUnique;
@@ -88,7 +106,7 @@ struct flexi_prop_def {
      */
     unsigned char cRngBound;
 
-    CHANGE_STATUS eChngStatus;
+    CHANGE_STATUS eChangeStatus;
 };
 
 /// Parses JSON with property definition. pProp is expected to be zeroed and to have lClassID and pCtx initialized.
@@ -176,5 +194,15 @@ void flexi_ref_to_prop_func(
  */
 void flexi_prop_def_free(struct flexi_prop_def const *prop);
 
+
+struct flexi_ref_def
+{};
+
+void flexi_ref_def_free(flexi_ref_def*);
+
+struct flexi_enum_def
+{};
+
+void flexi_enum_def_free(flexi_enum_def *);
 
 #endif //FLEXILITE_FLEXI_PROP_C_H

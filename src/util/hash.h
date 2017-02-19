@@ -55,10 +55,13 @@ typedef void (*freeElem)(void *pElem);
 struct Hash
 {
     unsigned int htsize;
+
     /* Number of buckets in the hash table */
     unsigned int count;
+
     /* Number of entries in this table */
     HashElem *first;
+
     /* The first element of the array */
     struct _ht
     {

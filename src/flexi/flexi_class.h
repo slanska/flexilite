@@ -7,6 +7,7 @@
 
 #include "flexi_prop.h"
 #include "../util/hash.h"
+#include "flexi_db_ctx.h"
 
 /*
  * Column numbers and array indexes for class' special properties
@@ -85,19 +86,56 @@ struct flexi_class_def
     // Array of property metadata, by column index
     struct flexi_prop_def *pProps;
 
+    /*
+     * Class definition hash
+     *
+     * TODO Needed?
+     */
     char *zHash;
-    sqlite3_int64 iNameID;
+
+    /*
+     * Class name definition
+     */
+    flexi_metadata_ref name;
+
+    /*
+     * This class is a system one, so that it cannot be removed
+     */
     short int bSystemClass;
+
+    /*
+     * Class should have corresponding virtual table named after class. E.g. 'create virtual table Orders using flexi_data ();'
+     */
     short int bAsTable;
+
+    /*
+     * Bitmask for various aspects of class storage (indexing etc.)
+     */
     int xCtloMask;
+
+    /*
+     * Shortcut to Flexilite connection wide context
+     */
     struct flexi_db_context *pCtx;
 
+    /*
+     * Special property definitions
+     */
     flexi_metadata_ref aSpecProps[SPCL_PROP_COUNT];
 
+    /*
+     * Full text index property mapping
+     */
     flexi_metadata_ref aFtsProps[FTS_PROP_COUNT];
 
+    /*
+     * Rtree index property mapping
+     */
     flexi_metadata_ref aRangeProps[RTREE_PROP_COUNT];
 
+    /*
+     * Dictionary of properties by their names
+     */
     Hash propMap;
 };
 
@@ -147,8 +185,8 @@ void flexi_prop_to_obj_func(
  * Internally used function to apply schema changes to the class that does not
  * have any data (so no data refactoring would be required)
  */
-int flexi_alter_class_wo_data(struct flexi_db_context *pCtx, sqlite3_int64 lClassID,
-                              const char *zNewClassDef, char **pzErr);
+int flexi_alter_new_class(struct flexi_db_context *pCtx, sqlite3_int64 lClassID,
+                          const char *zNewClassDef, char **pzErr);
 
 ///
 /// \param pCtx
@@ -184,5 +222,13 @@ void flexi_obj_to_props_func(
 );
 
 void flexi_class_def_free(struct flexi_class_def *pClsDef);
+
+/*
+ * Loads class definition from [.classes] and [.class_properties] tables
+ * into ppVTab (casted to flexi_vtab).
+ * Used by Create and Connect methods
+ */
+int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, struct flexi_class_def **pClassDef,
+                         char **pzErr);
 
 #endif //FLEXILITE_FLEXI_CLASS_H

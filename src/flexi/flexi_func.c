@@ -9,7 +9,6 @@
 #include "../project_defs.h"
 
 #include "flexi_class.h"
-#include "flexi_prop.h"
 #include "flexi_prop_merge.h"
 
 SQLITE_EXTENSION_INIT3
@@ -150,12 +149,6 @@ int flexi_data_init(
         struct flexi_db_context *pEnv
 );
 
-void flexi_db_context_destroy(void *data)
-{
-    flexi_db_context_deinit(data);
-    sqlite3_free(data);
-}
-
 int flexi_init(sqlite3 *db,
                char **pzErrMsg,
                const sqlite3_api_routines *pApi)
@@ -169,13 +162,13 @@ int flexi_init(sqlite3 *db,
     }
 
     CHECK_CALL(sqlite3_create_function_v2(db, "flexi", 0, SQLITE_UTF8, pCtx,
-                                          flexi_func, 0, 0, flexi_db_context_destroy));
+                                          flexi_func, 0, 0, (void *)flexi_db_context_free));
 
     CHECK_CALL(flexi_data_init(db, pzErrMsg, pApi, pCtx));
     goto FINALLY;
 
     CATCH:
-    flexi_db_context_destroy(pCtx);
+    flexi_db_context_free(pCtx);
 
     FINALLY:
 

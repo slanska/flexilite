@@ -6,6 +6,11 @@
 #include "flexi_db_ctx.h"
 #include "flexi_class.h"
 
+/*
+ * Forward declarations
+ */
+static int flexi_prepare_db_statements(struct flexi_db_context *pCtx);
+
 struct flexi_db_context *flexi_db_context_new(sqlite3 *db)
 {
     struct flexi_db_context *result = sqlite3_malloc(sizeof(struct flexi_db_context));
@@ -14,6 +19,7 @@ struct flexi_db_context *flexi_db_context_new(sqlite3 *db)
     memset(result, 0, sizeof(struct flexi_db_context));
     result->db = db;
     HashTable_init(&result->classDefs, (void *) flexi_class_def_free);
+    flexi_prepare_db_statements(result);
     return result;
 }
 
@@ -84,10 +90,7 @@ int db_insert_name(struct flexi_db_context *pCtx, const char *zName, sqlite3_int
     return result;
 }
 
-/*
- * Cleans up Flexilite module environment (prepared SQL statements etc.)
- */
-void flexi_db_context_deinit(struct flexi_db_context *pCtx)
+void flexi_db_context_free(struct flexi_db_context *pCtx)
 {
     // Release prepared SQL statements
     for (int ii = 0; ii <= STMT_DEL_FTS; ii++)
@@ -124,7 +127,7 @@ void flexi_db_context_deinit(struct flexi_db_context *pCtx)
     if (pCtx->pDuk)
         duk_free(pCtx->pDuk, NULL);
 
-    memset(pCtx, 0, sizeof(*pCtx));
+    sqlite3_free(pCtx);
 }
 
 int db_get_class_id_by_name(struct flexi_db_context *pCtx,
@@ -155,6 +158,74 @@ int db_get_class_id_by_name(struct flexi_db_context *pCtx,
 
     CATCH:
 
+    FINALLY:
+    return result;
+}
+
+/*
+ * Initializes database connection wide SQL statements
+ */
+static int flexi_prepare_db_statements(struct flexi_db_context *pCtx)
+{
+    int result;
+    sqlite3 *db = pCtx->db;
+    const char *zDelObjSQL = "delete from [.objects] where ObjectID = :1;";
+    CHECK_CALL(sqlite3_prepare_v2(db, zDelObjSQL, -1, &pCtx->pStmts[STMT_DEL_OBJ], NULL));
+
+    const char *zInsObjSQL = "insert into [.objects] (ObjectID, ClassID, ctlo) values (:1, :2, :3); "
+            "select last_insert_rowid();";
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsObjSQL, -1, &pCtx->pStmts[STMT_INS_OBJ], NULL));
+
+    const char *zInsPropSQL = "insert into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
+            " values (:1, :2, :3, :4, :5);";
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, -1, &pCtx->pStmts[STMT_INS_PROP], NULL));
+
+    const char *zUpdPropSQL = "insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
+            " values (:1, :2, :3, :4, :5);";
+    CHECK_CALL(sqlite3_prepare_v2(db, zUpdPropSQL, -1, &pCtx->pStmts[STMT_UPD_PROP], NULL));
+
+    const char *zDelPropSQL = "delete from [.ref-values] where ObjectID = :1 and PropertyID = :2 and PropIndex = :3;";
+    CHECK_CALL(sqlite3_prepare_v2(db, zDelPropSQL, -1, &pCtx->pStmts[STMT_DEL_PROP], NULL));
+
+    const char *zInsNameSQL = "insert or replace into [.names] ([Value], NameID)"
+            " values (:1, (select NameID from [.names] where Value = :1 limit 1));";
+    CHECK_CALL(sqlite3_prepare_v2(db, zInsNameSQL, -1, &pCtx->pStmts[STMT_INS_NAME], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);",
+            -1, &pCtx->pStmts[STMT_SEL_CLS_BY_NAME], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "select NameID from [.names] where [Value] = :1;",
+            -1, &pCtx->pStmts[STMT_SEL_NAME_ID], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "select PropertyID from [.class_properties] where ClassID = :1 and NameID = :2;",
+            -1, &pCtx->pStmts[STMT_SEL_PROP_ID], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "insert into [.range_data] ([ObjectID], [ClassID], [ClassID_1], "
+                    "[A0], [_1], [B0], [B1], [C0], [C1], [D0], [D1]) values "
+                    "(:1, :2, :2, :3, :4, :5, :6, :7, :8, :9, :10);",
+            -1, &pCtx->pStmts[STMT_INS_RTREE], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db,
+            "update [.range_data] set [ClassID] = :2, [ClassID_1] = :2, "
+                    "[A0] = :3, [A1] = :4, [B0] = :5, [B1] = :6, "
+                    "[C0] = :7, [C1] = :8, [D0] = :9, [D1] = :10 where ObjectID = :1;",
+            -1, &pCtx->pStmts[STMT_UPD_RTREE], NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(
+            db, "delete from [.range_data] where ObjectID = :1;",
+            -1, &pCtx->pStmts[STMT_DEL_RTREE], NULL));
+
+    goto FINALLY;
+    CATCH:
     FINALLY:
     return result;
 }

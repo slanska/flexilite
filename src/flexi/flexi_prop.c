@@ -13,27 +13,32 @@ void flexi_prop_create_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
-) {}
+)
+{}
 
 void flexi_prop_alter_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
-) {}
+)
+{}
 
 void flexi_prop_drop_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
-) {}
+)
+{}
 
 void flexi_prop_rename_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
-) {}
+)
+{}
 
-int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, const char *zPropDefJson) {
+int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, const char *zPropDefJson)
+{
     assert(pProp && pProp->lClassID && pProp->pCtx);
 
     const char *zPropParseSQL = "select "
@@ -58,7 +63,8 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
 
     pProp->zSrcJson = zPropDefJson;
     struct flexi_db_context *pCtx = pProp->pCtx;
-    if (!pCtx->pStmts[STMT_PROP_PARSE]) {
+    if (!pCtx->pStmts[STMT_PROP_PARSE])
+    {
         CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zPropParseSQL, -1, &pCtx->pStmts[STMT_PROP_PARSE], NULL));
     }
 
@@ -67,7 +73,8 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
     CHECK_CALL(sqlite3_reset(st));
     CHECK_CALL(sqlite3_bind_text(st, 0, zPropParseSQL, -1, NULL));
     CHECK_STMT(sqlite3_step(st));
-    if (result == SQLITE_DONE) {
+    if (result == SQLITE_DONE)
+    {
         pProp->zIndex = (char *) sqlite3_column_text(st, 0);
         pProp->zSubType = (char *) sqlite3_column_text(st, 1);
         pProp->minOccurences = sqlite3_column_int(st, 2);
@@ -78,14 +85,15 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
         pProp->zRefDef = (char *) sqlite3_column_text(st, 7);
         pProp->zRenameTo = (char *) sqlite3_column_text(st, 8);
         if (sqlite3_column_int(st, 9) == 1)
-            pProp->eChngStatus = CHNG_STATUS_DELETED;
+            pProp->eChangeStatus = CHNG_STATUS_DELETED;
         pProp->maxLength = sqlite3_column_int(st, 10);
         pProp->minValue = sqlite3_column_int(st, 11);
         pProp->maxValue = sqlite3_column_int(st, 12);
         pProp->regex = (char *) sqlite3_column_text(st, 13);
 
         // Check enumDef
-        if (pProp->zEnumDef) {
+        if (pProp->zEnumDef)
+        {
             flexi_metadata_ref enumName;
             enumName.id = sqlite3_column_int64(st, 14);
             enumName.name = (char *) sqlite3_column_text(st, 15);
@@ -94,8 +102,9 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
         }
 
         // Check refDef
-        if (pProp->zRefDef) {
-// classRef
+        if (pProp->zRefDef)
+        {
+            // classRef
             // dynamic
             // rules
             // reverseProperty
@@ -111,23 +120,27 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
     return result;
 }
 
-int flexi_prop_def_stringify(struct flexi_prop_def *pProp, char **pzPropDefJson) {}
+int flexi_prop_def_stringify(struct flexi_prop_def *pProp, char **pzPropDefJson)
+{}
 
 int flexi_prop_def_get_changes_needed(struct flexi_prop_def *pOldDef,
                                       struct flexi_prop_def *pNewDef, int *piResult,
-                                      const char **pzError) {}
+                                      const char **pzError)
+{}
 
 void flexi_prop_to_ref_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
-) {}
+)
+{}
 
 void flexi_ref_to_prop_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
-) {}
+)
+{}
 
 /*
  *
@@ -135,11 +148,39 @@ void flexi_ref_to_prop_func(
 void flexi_prop_def_free(struct flexi_prop_def const *prop)
 {
     sqlite3_value_free(prop->defaultValue);
-    sqlite3_free(prop->zName);
+    sqlite3_free(prop->name.name);
+
     sqlite3_free(prop->regex);
     if (prop->pRegexCompiled)
         re_free(prop->pRegexCompiled);
+
+    flexi_ref_def_free(prop->pRefDef);
+    flexi_enum_def_free(prop->pEnumDef);
+
+    sqlite3_free(prop->zIndex);
+    sqlite3_free(prop->zSubType);
+    sqlite3_free(prop->zRenameTo);
 }
+
+void flexi_ref_def_free(flexi_ref_def *p)
+{
+    if (p)
+    {
+        // TODO
+        sqlite3_free(p);
+    }
+}
+
+void flexi_enum_def_free(flexi_enum_def *p)
+{
+    if (p)
+    {
+        // TODO
+        sqlite3_free(p);
+    }
+
+}
+
 
 
 
