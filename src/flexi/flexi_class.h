@@ -57,6 +57,21 @@ enum RTREE_PROP_IDX
     RTREE_PROP_COUNT = RTREE_PROP_E1 + 1,
 };
 
+struct flexi_class_mixin_def
+{
+    flexi_metadata_ref classRef;
+    flexi_metadata_ref dynSelectorProp;
+    int ruleCount;
+    struct
+    {
+        char *zExactValue;
+        char *regex;
+        flexi_metadata_ref classRef;
+    } *rules;
+    CHANGE_STATUS eChangeStatus;
+};
+
+void flexi_class_mixin_def_free(struct flexi_class_mixin_def *p);
 
 /*
  * Handle for Flexilite class definition
@@ -137,10 +152,13 @@ struct flexi_class_def
      * Dictionary of properties by their names
      */
     Hash propMap;
+
+    int mixinCount;
+    struct flexi_class_mixin_def *mixins;
 };
 
 int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName, const char *zClassDef, int bCreateVTable,
-                       char **pzError);
+                       const char **pzError);
 
 void flexi_class_create_func(
         sqlite3_context *context,
@@ -186,7 +204,7 @@ void flexi_prop_to_obj_func(
  * have any data (so no data refactoring would be required)
  */
 int flexi_alter_new_class(struct flexi_db_context *pCtx, sqlite3_int64 lClassID,
-                          const char *zNewClassDef, char **pzErr);
+                          const char *zNewClassDef, const char **pzErr);
 
 ///
 /// \param pCtx
@@ -229,6 +247,11 @@ void flexi_class_def_free(struct flexi_class_def *pClsDef);
  * Used by Create and Connect methods
  */
 int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, struct flexi_class_def **pClassDef,
-                         char **pzErr);
+                         const char **pzErr);
+
+/*
+ * Generates SQL to create Flexilite virtual table from class definition
+ */
+int flexi_class_def_generate_vtable_sql(struct flexi_class_def *pClassDef, char **zSQL);
 
 #endif //FLEXILITE_FLEXI_CLASS_H

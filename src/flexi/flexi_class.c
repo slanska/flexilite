@@ -50,8 +50,14 @@ static int _create_class_record(struct flexi_db_context *pCtx, const char *zClas
  */
 struct flexi_class_def *flexi_class_def_new(struct flexi_db_context *pCtx)
 {
-    // TODO
-    return 0;
+    struct flexi_class_def *result = sqlite3_malloc(sizeof(struct flexi_class_def));
+    if (!result)
+        return result;
+    memset(result, 0, sizeof(*result));
+
+    result->pCtx = pCtx;
+    HashTable_init(&result->propMap, (void *) flexi_prop_def_free);
+    return result;
 }
 
 ///
@@ -62,7 +68,7 @@ struct flexi_class_def *flexi_class_def_new(struct flexi_db_context *pCtx)
 /// \param pzError
 /// \return
 int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName, const char *zClassDef, int bCreateVTable,
-                       char **pzError)
+                       const char **pzError)
 {
     int result;
 
@@ -381,7 +387,7 @@ void flexi_class_create_func(
     if (argc == 3)
         bCreateVTable = sqlite3_value_int(argv[2]);
 
-    char *zError = NULL;
+    const char *zError = NULL;
 
     sqlite3 *db = sqlite3_context_db_handle(context);
 
@@ -404,7 +410,7 @@ void flexi_class_create_func(
     if (zError)
     {
         sqlite3_result_error(context, zError, result);
-        sqlite3_free(zError);
+        sqlite3_free((void *) zError);
     }
 
     FINALLY:
@@ -660,6 +666,13 @@ static const FlexiTypesToSqliteTypeMap *findSqliteTypeByFlexiType(const char *t)
     return &g_FlexiTypesToSqliteTypes[sizeof(g_FlexiTypesToSqliteTypes) / sizeof(g_FlexiTypesToSqliteTypes[0]) - 1];
 }
 
+/*
+ * Generates SQL to create Flexilite virtual table from class definition
+ */
+int flexi_class_def_generate_vtable_sql(struct flexi_class_def *pClassDef, char **zSQL)
+{
+    return 0;
+}
 
 /*
  * Loads class definition from [.classes] and [.class_properties] tables
@@ -667,26 +680,26 @@ static const FlexiTypesToSqliteTypeMap *findSqliteTypeByFlexiType(const char *t)
  * Used by Create and Connect methods
  */
 int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, struct flexi_class_def **pClassDef,
-                         char **pzErr)
+                         const char **pzErr)
 {
     int result;
 
-    *pClassDef = NULL;
+    *pClassDef = flexi_class_def_new(pCtx);
+    if (!*pClassDef)
+    {
+        result = SQLITE_NOMEM;
+        goto CATCH;
+    }
 
     // Initialize variables
-    struct flexi_class_def *vtab = NULL;
     sqlite3_stmt *pGetClsPropStmt = NULL;
     sqlite3_stmt *pGetClassStmt = NULL;
     char *sbClassDef = sqlite3_mprintf("create table [%s] (", lClassID);
-
-    CHECK_MALLOC(vtab, sizeof(struct flexi_class_def));
-    memset(vtab, 0, sizeof(*vtab));
-
-    vtab->pCtx = pCtx;
-
-    vtab->pCtx->nRefCount++;
-
-    *pClassDef = (void *) vtab;
+    if (!sbClassDef)
+    {
+        result = SQLITE_NOMEM;
+        goto CATCH;
+    }
 
     // Init property metadata
     const char *zGetClassSQL = "select "
@@ -694,9 +707,10 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
             "NameID, " // 1
             "SystemClass, " // 2
             "ctloMask, " // 3
-            "Hash " // 4
+            "Hash, " // 4
+            "AsTable " // 5
             "from [.classes] "
-            "where NameID = :1;";
+            "where ClassID = :1;";
     CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zGetClassSQL, -1, &pGetClassStmt, NULL));
     sqlite3_bind_int64(pGetClassStmt, 1, lClassID);
     result = sqlite3_step(pGetClassStmt);
@@ -704,26 +718,38 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
         // No class found. Return error
     {
         result = SQLITE_NOTFOUND;
-        *pzErr = sqlite3_mprintf("Cannot find Flexilite class [%s]", lClassID);
+        if (pzErr)
+            *pzErr = sqlite3_mprintf("Cannot find Flexilite class with ID [%ld]", lClassID);
         goto CATCH;
     }
 
     if (result != SQLITE_ROW)
         goto CATCH;
 
-    vtab->iClassID = sqlite3_column_int64(pGetClassStmt, 0);
-    vtab->name.id = sqlite3_column_int64(pGetClassStmt, 1);
-    vtab->bSystemClass = (short int) sqlite3_column_int(pGetClassStmt, 2);
-    vtab->xCtloMask = sqlite3_column_int(pGetClassStmt, 3);
+    (*pClassDef)->iClassID = sqlite3_column_int64(pGetClassStmt, 0);
+    (*pClassDef)->name.id = sqlite3_column_int64(pGetClassStmt, 1);
+    (*pClassDef)->bSystemClass = (short int) sqlite3_column_int(pGetClassStmt, 2);
+    (*pClassDef)->xCtloMask = sqlite3_column_int(pGetClassStmt, 3);
 
     {
         int iHashLen = sqlite3_column_bytes(pGetClassStmt, 4);
         if (iHashLen > 0)
         {
-            vtab->zHash = sqlite3_malloc(iHashLen + 1);
-            strcpy(vtab->zHash, (char *) sqlite3_column_text(pGetClassStmt, 4));
+            (*pClassDef)->zHash = sqlite3_malloc(iHashLen + 1);
+            strcpy((*pClassDef)->zHash, (char *) sqlite3_column_text(pGetClassStmt, 4));
         }
     }
+
+    // Load properties from .class_properties
+    "select from [.class_properties] where ClassID=:1";
+
+    // Iterate over all properties
+
+    // Add property def to props
+
+
+
+
 
     const char *zGetClsPropSQL = "select "
             "cp.NameID, " // 0
@@ -746,7 +772,7 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
             "join [.classes] c on cp.ClassID = c.ClassID "
             "where cp.ClassID = :1 order by PropertyID;";
     CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zGetClsPropSQL, -1, &pGetClsPropStmt, NULL));
-    sqlite3_bind_int64(pGetClsPropStmt, 1, vtab->iClassID);
+    sqlite3_bind_int64(pGetClsPropStmt, 1, (*pClassDef)->iClassID);
 
     int nPropIdx = 0;
     do
@@ -765,24 +791,24 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
 
         int iNewColCnt = nPropIdx;
 
-        if (iNewColCnt >= vtab->nPropColsAllocated)
+        if (iNewColCnt >= (*pClassDef)->nPropColsAllocated)
         {
-            vtab->nPropColsAllocated = iNewColCnt + 4;
+            (*pClassDef)->nPropColsAllocated = iNewColCnt + 4;
 
-            int newLen = vtab->nPropColsAllocated * sizeof(*vtab->pProps);
-            void *tmpProps = sqlite3_realloc(vtab->pProps, newLen);
+            int newLen = (*pClassDef)->nPropColsAllocated * sizeof(*(*pClassDef)->pProps);
+            void *tmpProps = sqlite3_realloc((*pClassDef)->pProps, newLen);
             if (tmpProps == NULL)
             {
                 result = SQLITE_NOMEM;
                 goto CATCH;
             }
 
-            memset(tmpProps + (nPropIdx * sizeof(*vtab->pProps)), 0,
-                   sizeof(*vtab->pProps) * (vtab->nPropColsAllocated - nPropIdx));
-            vtab->pProps = tmpProps;
+            memset(tmpProps + (nPropIdx * sizeof(*(*pClassDef)->pProps)), 0,
+                   sizeof(*(*pClassDef)->pProps) * ((*pClassDef)->nPropColsAllocated - nPropIdx));
+            (*pClassDef)->pProps = tmpProps;
         }
 
-        struct flexi_prop_def *p = &vtab->pProps[nPropIdx];
+        struct flexi_prop_def *p = &(*pClassDef)->pProps[nPropIdx];
         p->name.id = sqlite3_column_int64(pGetClsPropStmt, 0);
         p->iPropID = sqlite3_column_int64(pGetClsPropStmt, 1);
         p->bIndexed = (char) sqlite3_column_int(pGetClsPropStmt, 2);
@@ -850,7 +876,7 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
 
         {
             void *pTmp = sbClassDef;
-            sbClassDef = sqlite3_mprintf("%s[%s] %s", pTmp, vtab->pProps[nPropIdx].name.name, pPropType);
+            sbClassDef = sqlite3_mprintf("%s[%s] %s", pTmp, (*pClassDef)->pProps[nPropIdx].name.name, pPropType);
             sqlite3_free(pTmp);
         }
 
@@ -858,7 +884,7 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
 
     } while (1);
 
-    vtab->nCols = nPropIdx;
+    (*pClassDef)->nCols = nPropIdx;
 
     {
         void *pTmp = sbClassDef;
@@ -873,7 +899,13 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
     goto FINALLY;
 
     CATCH:
-    flexi_class_def_free(vtab);
+    if (*pClassDef)
+    {
+        flexi_class_def_free(*pClassDef);
+        *pClassDef = NULL;
+    }
+    if (pzErr && !*pzErr)
+        *pzErr = sqlite3_errstr(result);
 
     FINALLY:
     sqlite3_free(sbClassDef);
@@ -883,4 +915,12 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
         sqlite3_finalize(pGetClsPropStmt);
 
     return result;
+}
+
+void flexi_class_mixin_def_free(struct flexi_class_mixin_def *p)
+{
+    if (p)
+    {
+        // TODO
+    }
 }

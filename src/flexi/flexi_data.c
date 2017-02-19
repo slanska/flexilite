@@ -126,6 +126,9 @@ static int flexi_data_connect(
         return result;
 
     return flexi_class_def_load((struct flexi_db_context*)pAux, lClassID, ppVtab, pzErr);
+
+    // TODO flexi_class_def_generate_vtable_sql();
+    // TODO Apply generated sql
 }
 
 /*

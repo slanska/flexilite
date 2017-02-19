@@ -137,7 +137,7 @@ int flexi_class_alter(struct flexi_db_context *pCtx,
  *
  */
 int flexi_alter_new_class(struct flexi_db_context *pCtx, sqlite3_int64 lClassID,
-                          const char *zNewClassDef, char **pzErr)
+                          const char *zNewClassDef, const char **pzErr)
 {
     int result;
 
