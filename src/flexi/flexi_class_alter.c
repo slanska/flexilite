@@ -25,28 +25,28 @@ static int _parse_fts_props_json() {}
 
 static int _parse_rtree_props_json() {}
 
-static int _load_class_schema(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, const char **zSchema) {
-    int result;
-
-
-    if (!pCtx->pStmts[STMT_CLS_HAS_DATA]) {
-        CHECK_CALL(sqlite3_prepare_v2(pCtx->db,
-                                      "select 1 from [.objects] where ClassID = :1 and ObjectID > 0 limit 1;",
-                                      -1, &pCtx->pStmts[STMT_CLS_HAS_DATA], NULL));
-    }
-    CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_HAS_DATA]));
-    CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_HAS_DATA], 0, lClassID));
-    CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_CLS_HAS_DATA]));
-    if (result == SQLITE_DONE) {
-
-    }
-    goto FINALLY;
-
-    CATCH:
-
-    FINALLY:
-    return result;
-}
+//static int _load_class_schema(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, const char **zSchema) {
+//    int result;
+//
+//
+//    if (!pCtx->pStmts[STMT_CLS_HAS_DATA]) {
+//        CHECK_CALL(sqlite3_prepare_v2(pCtx->db,
+//                                      "select 1 from [.objects] where ClassID = :1 and ObjectID > 0 limit 1;",
+//                                      -1, &pCtx->pStmts[STMT_CLS_HAS_DATA], NULL));
+//    }
+//    CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_HAS_DATA]));
+//    CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_HAS_DATA], 0, lClassID));
+//    CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_CLS_HAS_DATA]));
+//    if (result == SQLITE_DONE) {
+//
+//    }
+//    goto FINALLY;
+//
+//    CATCH:
+//
+//    FINALLY:
+//    return result;
+//}
 
 static int _alter_class_with_data(struct flexi_db_context *pCtx,
                                   sqlite3_int64 lClassID, const char *zNewClassDef,

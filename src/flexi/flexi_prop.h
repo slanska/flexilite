@@ -7,11 +7,11 @@
 
 /*
  * Holds entity name and corresponding ID
- * Used for user-friendly way of specifying classes, properties, enums, names
+ * Used for user-friendly way of specifying classes, properties, enums, names.
+ * Holder of this struct is responsible for freeing name
  */
-struct flexi_metadata_ref
-{
-    const char * name;
+struct flexi_metadata_ref {
+    const char *name;
     sqlite3_int64 id;
 };
 
@@ -26,8 +26,16 @@ struct flexi_prop_def {
     sqlite3_int64 iPropID;
     sqlite3_int64 iNameID;
     char *zName;
+    char *zIndex;
+    char *zSubType;
+    int bNoTrackChanges;
+    char *zEnumDef;
+    char *zRefDef;
+    char *zRenameTo;
+    int bDrop;
     struct ReCompiled *pRegexCompiled;
     int type;
+    char *zType;
     char *regex;
     double maxValue;
     double minValue;

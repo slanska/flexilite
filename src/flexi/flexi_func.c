@@ -48,6 +48,7 @@ static void flexi_init_func(sqlite3_context *context,
 
     char *zSQL = sqlite3_malloc(sql_dbschema_sql_len + 1);
     memcpy(zSQL, sql_dbschema_sql, sql_dbschema_sql_len);
+    zSQL[sql_dbschema_sql_len] = 0;
     sqlite3 *db = sqlite3_context_db_handle(context);
     char *zError = NULL;
     int result;

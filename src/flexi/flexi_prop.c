@@ -37,20 +37,21 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
 
     const char *zPropParseSQL = "select "
             "coalesce(json_extract(:1, '$.index'), 'none') as index," // 0
-            "coalesce(json_extract(:1, '$.subType'), 'none') as index," // 1
-            "coalesce(json_extract(:1, '$.minOccurences'), 'none') as index," // 2
-            "coalesce(json_extract(:1, '$.maxOccurences'), 'none') as index," // 3
+            "coalesce(json_extract(:1, '$.subType'), NULL) as subType," // 1
+            "coalesce(json_extract(:1, '$.minOccurences'), 0) as minOccurrences," // 2
+            "coalesce(json_extract(:1, '$.maxOccurences'), 1) as maxOccurrences," // 3
             "coalesce(json_extract(:1, '$.rules.type'), 'text') as type," // 4
-            "coalesce(json_extract(:1, '$.noTrackChanges'), 0) as indexed," // 5
-            "coalesce(json_extract(:1, '$.enumDef'), 0) as indexed," // 6
-//    enumDef
-//    refDef
-//    $renameTo
-//    $drop
-//    rules.maxLength
-//    rules.minValue
-//    rules.maxValue
-//    rules.regex
+            "coalesce(json_extract(:1, '$.noTrackChanges'), 0) as noTrackChanges," // 5
+            "coalesce(json_extract(:1, '$.enumDef'), NULL) as enumDef," // 6
+            "coalesce(json_extract(:1, '$.refDef'), NULL) as refDef," // 7
+            "coalesce(json_extract(:1, '$.$renameTo'), NULL) as renameTo," // 8
+            "coalesce(json_extract(:1, '$.$drop'), 0) as drop," // 9
+            "coalesce(json_extract(:1, '$.rules.maxLength'), 0) as maxLength," // 10
+            "coalesce(json_extract(:1, '$.rules.minValue'), 0) as minValue," // 11
+            "coalesce(json_extract(:1, '$.rules.maxValue'), 0) as maxValue," // 12
+            "coalesce(json_extract(:1, '$.rules.regex'), 0) as regex" // 13
+            "coalesce(json_extract(:1, '$.enumDef.$id'), 0) as enumDef_id," // 14
+            "coalesce(json_extract(:1, '$.enumDef.$name'), NULL) as enumDef_name," // 15
     ;
     int result;
 
@@ -60,12 +61,58 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
         CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zPropParseSQL, -1, &pCtx->pStmts[STMT_PROP_PARSE], NULL));
     }
 
+    sqlite3_stmt *st = pCtx->pStmts[STMT_PROP_PARSE];
+
+    CHECK_CALL(sqlite3_reset(st));
+    CHECK_CALL(sqlite3_bind_text(st, 0, zPropParseSQL, -1, NULL));
+    CHECK_STMT(sqlite3_step(st));
+    if (result == SQLITE_DONE) {
+        pProp->zIndex = (char *) sqlite3_column_text(st, 0);
+        pProp->zSubType = (char *) sqlite3_column_text(st, 1);
+        pProp->minOccurences = sqlite3_column_int(st, 2);
+        pProp->maxOccurences = sqlite3_column_int(st, 3);
+        pProp->zType = (char *) sqlite3_column_text(st, 4);
+        pProp->bNoTrackChanges = sqlite3_column_int(st, 5);
+        pProp->zEnumDef = (char *) sqlite3_column_text(st, 6);
+        pProp->zRefDef = (char *) sqlite3_column_text(st, 7);
+        pProp->zRenameTo = (char *) sqlite3_column_text(st, 8);
+        pProp->maxLength = sqlite3_column_int(st, 10);
+        pProp->minValue = sqlite3_column_int(st, 11);
+        pProp->maxValue = sqlite3_column_int(st, 12);
+        pProp->regex = (char *) sqlite3_column_text(st, 13);
+
+        // Check enumDef
+        if (pProp->zEnumDef) {
+            flexi_metadata_ref enumName;
+            enumName.id = sqlite3_column_int64(st, 14);
+            enumName.name = (char *) sqlite3_column_text(st, 15);
+
+            // Get items
+        }
+
+        // Check refDef
+        if (pProp->zRefDef) {
+// classRef
+            // dynamic
+            // rules
+            // reverseProperty
+            // autoFetchLimit
+            // autoFetchDepth
+            // rule
+        }
+    }
+
     goto FINALLY;
     CATCH:
     FINALLY:
     return result;
 }
 
+int flexi_prop_def_stringify(struct flexi_prop_def *pProp, char **pzPropDefJson) {}
+
+int flexi_prop_def_get_changes_needed(struct flexi_prop_def *pOldDef,
+                                      struct flexi_prop_def *pNewDef, int *piResult,
+                                      const char **pzError) {}
 
 void flexi_prop_to_ref_func(
         sqlite3_context *context,
