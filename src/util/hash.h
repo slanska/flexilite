@@ -15,18 +15,21 @@
 #ifndef _SQLITE_HASH_H_
 #define _SQLITE_HASH_H_
 
-#include "../project_defs.h"
+//#include "../project_defs.h"
 
-#include "../../lib/sqlite/sqlite3ext.h"
+#include <sqlite3ext.h>
 
 SQLITE_EXTENSION_INIT3
 
 #include <assert.h>
 #include <memory.h>
+#include "../common/common.h"
 
 /* Forward declarations of structures. */
 typedef struct Hash Hash;
 typedef struct HashElem HashElem;
+
+typedef void (*freeElem)(void *pElem);
 
 /* A complete hash table is an instance of the following structure.
 ** The internals of this structure are intended to be opaque -- client
@@ -64,6 +67,11 @@ struct Hash
         /* Number of entries with this hash */
         HashElem *chain;           /* Pointer to first entry with this hash */
     } *ht;
+
+    /*
+     * Custom callback to free element data
+     */
+    freeElem freeElemFunc;
 };
 
 /* Each element in the hash table is an instance of the following
@@ -74,24 +82,41 @@ struct Hash
 */
 struct HashElem
 {
-    HashElem *next, *prev;
     /* Next and previous elements in the table */
-    sqlite3_value *data;
+    HashElem *next, *prev;
+
     /* Data associated with this element */
-    const char *pKey;            /* Key associated with this element */
+    var data;
+
+    /* Key associated with this element */
+    const char *pKey;
 };
 
 /*
 ** Access routines.  To delete, insert a NULL pointer.
 */
-void sqlite3HashInit(Hash *);
 
-void sqlite3HashInsert(Hash *, const char *pKey, sqlite3_value *pData);
+/*
+ * Initializes hash table. If freeElemFunc is NULL, hash table is assumed to hold sqlite3_value
+ * and sqlite3_value_free will be used for disposing elements' data
+ */
+void HashTable_init(Hash *, freeElem freeElemFunc);
 
-sqlite3_value *sqlite3HashFind(const Hash *, const char *pKey);
+/*
+ * Sets new value for key pKey
+ */
+void HashTable_set_v(Hash *, const char *pKey, sqlite3_value *pData);
 
-void sqlite3HashClear(Hash *);
+void HashTable_set(Hash *, const char *pKey, void *pData);
 
-unsigned int sqlite3StrHashValue(const char *z);
+sqlite3_value *HashTable_get_v(const Hash *, const char *pKey);
+
+void *HashTable_get(const Hash *, const char *pKey);
+
+void *HashTable_each(const Hash *pH, iterateeFunc iteratee);
+
+void HashTable_clear(Hash *);
+
+unsigned int HashTable_getHash(const char *z);
 
 #endif /* _SQLITE_HASH_H_ */

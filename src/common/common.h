@@ -26,6 +26,8 @@
  * if one of the following macros is used
  *
  */
+#include <stdbool.h>
+
 #define CHECK_CALL(call)       result = (call); \
         if (result != SQLITE_OK) goto CATCH;
 
@@ -52,5 +54,18 @@ typedef sqlite3_uint64 u64;
 typedef unsigned int u32;
 typedef unsigned char u8;
 #endif
+
+typedef void *var;
+
+/*
+ * @brief: Function callback for generic collection iteration (hash tables, arrays etc.)
+ * @param zKey - (applicable to hash tables)
+ * @param index - (index in array or sequential iteration number for non-array collections)
+ * @param pData - item data
+ * @param collection - collection instance (hash table or array)
+ * @param bStop - should be set to true by iterateeFunc to stop iteration and return last processed item
+ */
+typedef void iterateeFunc(const char *zKey, int index, void *pData,
+                      var collection, bool *bStop);
 
 #endif //FLEXILITE_COMMON_H

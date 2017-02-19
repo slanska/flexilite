@@ -205,7 +205,6 @@ int flexi_load_class_def(
     }
 
     vtab->pCtx->nRefCount++;
-    vtab->db = db;
 
     *ppVTab = (void *) vtab;
 
@@ -389,7 +388,7 @@ int flexi_load_class_def(
     goto FINALLY;
 
     CATCH:
-    flexi_vtab_free(vtab);
+    flexi_class_def_free(vtab);
 
     FINALLY:
     sqlite3_free(sbClassDef);
@@ -461,7 +460,7 @@ static int flexi_data_connect(
 static int flexi_data_disconnect(sqlite3_vtab *pVTab) {
     struct flexi_class_def *vtab = (void *) pVTab;
 
-    flexi_vtab_free(vtab);
+    flexi_class_def_free(vtab);
     return SQLITE_OK;
 }
 
@@ -566,13 +565,13 @@ static int flexi_data_open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) 
 
     const char *zPropSql = "select ObjectID, PropertyID, PropIndex, ctlv, [Value] from [.ref-values] "
             "where ObjectID = :1 order by ObjectID, PropertyID, PropIndex;";
-    CHECK_CALL(sqlite3_prepare_v2(vtab->db, zPropSql, -1, &cur->pPropertyIterator, NULL));
+    CHECK_CALL(sqlite3_prepare_v2(vtab->pCtx->db, zPropSql, -1, &cur->pPropertyIterator, NULL));
 
     result = SQLITE_OK;
     goto FINALLY;
 
     CATCH:
-    printf("%s", sqlite3_errmsg(vtab->db));
+    printf("%s", sqlite3_errmsg(vtab->pCtx->db));
 
     FINALLY:
     return result;
@@ -647,7 +646,7 @@ static int flexi_data_next(sqlite3_vtab_cursor *pCursor) {
     CATCH:
     {
         // Release resources because of errors (catch)
-        printf("%s", sqlite3_errmsg(vtab->db));
+        printf("%s", sqlite3_errmsg(vtab->pCtx->db));
     }
     FINALLY:
     return result;
@@ -687,7 +686,7 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
         // No special index used. Apply linear scan
     {
         CHECK_CALL(sqlite3_prepare_v2(
-                vtab->db, "select ObjectID from [.objects] where ClassID = :1;",
+                vtab->pCtx->db, "select ObjectID from [.objects] where ClassID = :1;",
                 -1, &cur->pObjectIterator, NULL));
         sqlite3_bind_int64(cur->pObjectIterator, 1, vtab->iClassID);
     } else {
@@ -807,7 +806,7 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
             sqlite3_free(pTmp);
         }
 
-        CHECK_CALL(sqlite3_prepare_v2(vtab->db, zSQL, -1, &cur->pObjectIterator, NULL));
+        CHECK_CALL(sqlite3_prepare_v2(vtab->pCtx->db, zSQL, -1, &cur->pObjectIterator, NULL));
         // Bind arguments
         for (int ii = 0; ii < argc; ii++) {
             sqlite3_bind_value(cur->pObjectIterator, ii + 1, argv[ii]);
@@ -1331,7 +1330,7 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
             CHECK_STMT(sqlite3_step(pInsObj));
 
             if (sqlite3_value_type(argv[1]) == SQLITE_NULL) {
-                *pRowid = sqlite3_last_insert_rowid(vtab->db);
+                *pRowid = sqlite3_last_insert_rowid(vtab->pCtx->db);
             } else *pRowid = sqlite3_value_int64(argv[1]);
 
             sqlite3_stmt *pInsProp = vtab->pCtx->pStmts[STMT_INS_PROP];
@@ -1361,7 +1360,7 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
     goto FINALLY;
 
     CATCH:
-    printf("%s", sqlite3_errmsg(vtab->db));
+    printf("%s", sqlite3_errmsg(vtab->pCtx->db));
 
     FINALLY:
 

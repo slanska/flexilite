@@ -7,6 +7,7 @@
  */
 
 #include "../project_defs.h"
+#include "../util/hash.h"
 
 static int _merge_class_schemas(struct flexi_db_context *pCtx,
                                 sqlite3_int64 lClassID, const char *zNewClassDef,

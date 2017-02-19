@@ -7,6 +7,7 @@
 #include "flexi_prop.h"
 #include "flexi_db_ctx.h"
 #include "../common/common.h"
+#include "../misc/regexp.h"
 
 void flexi_prop_create_func(
         sqlite3_context *context,
@@ -76,6 +77,8 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
         pProp->zEnumDef = (char *) sqlite3_column_text(st, 6);
         pProp->zRefDef = (char *) sqlite3_column_text(st, 7);
         pProp->zRenameTo = (char *) sqlite3_column_text(st, 8);
+        if (sqlite3_column_int(st, 9) == 1)
+            pProp->eChngStatus = CHNG_STATUS_DELETED;
         pProp->maxLength = sqlite3_column_int(st, 10);
         pProp->minValue = sqlite3_column_int(st, 11);
         pProp->maxValue = sqlite3_column_int(st, 12);
@@ -125,4 +128,18 @@ void flexi_ref_to_prop_func(
         int argc,
         sqlite3_value **argv
 ) {}
+
+/*
+ *
+ */
+void flexi_prop_def_free(struct flexi_prop_def const *prop)
+{
+    sqlite3_value_free(prop->defaultValue);
+    sqlite3_free(prop->zName);
+    sqlite3_free(prop->regex);
+    if (prop->pRegexCompiled)
+        re_free(prop->pRegexCompiled);
+}
+
+
 

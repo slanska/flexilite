@@ -6,10 +6,12 @@
  * flexi_class implementation of Flexilite class API
  */
 
-#include "../project_defs.h"
+//#include "../project_defs.h"
 #include "flexi_class.h"
+#include "flexi_db_ctx.h"
+#include "../typings/DBDefinitions.h"
 
-SQLITE_EXTENSION_INIT3
+//SQLITE_EXTENSION_INIT3
 
 /*
  * Create new class record in the database
@@ -560,6 +562,30 @@ void flexi_obj_to_props_func(
         int argc,
         sqlite3_value **argv
 ) {}
+
+void flexi_class_def_free(struct flexi_class_def *pClsDef)
+{
+    if (pClsDef != NULL)
+    {
+        if (pClsDef->pProps != NULL)
+        {
+            for (int idx = 0; idx < pClsDef->nCols; idx++)
+            {
+                flexi_prop_def_free(&pClsDef->pProps[idx]);
+            }
+        }
+
+        //        sqlite3_free(pClsDef->pSortedProps);
+        sqlite3_free(pClsDef->pProps);
+        sqlite3_free((void *) pClsDef->zHash);
+
+        HashTable_clear(&pClsDef->propMap);
+
+        sqlite3_free(pClsDef);
+    }
+}
+
+
 
 
 

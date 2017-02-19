@@ -26,7 +26,7 @@ static void sqlVarFunc(
         *dst_c++ = (char) toupper(*src_c++);
     }
 
-    sqlite3_value *value = sqlite3HashFind(varHash, varName);
+    sqlite3_value *value = HashTable_get_v(varHash, varName);
     if (value)
     {
         sqlite3_result_value(context, value);
@@ -42,12 +42,12 @@ static void sqlVarFunc(
 
         if (valueType == SQLITE_NULL)
         {
-            sqlite3HashInsert(varHash, varName, NULL);
+            HashTable_set_v(varHash, varName, NULL);
         }
         else
         {
             sqlite3_value *newValue = sqlite3_value_dup(argv[1]);
-            sqlite3HashInsert(varHash, varName, newValue);
+            HashTable_set_v(varHash, varName, newValue);
         }
     }
     else
@@ -63,7 +63,7 @@ static void sqlVarFunc_Destroy(void *userData)
 {
     struct Hash *varHash = userData;
     if (varHash)
-        sqlite3HashClear(varHash);
+        HashTable_clear(varHash);
     sqlite3_free(varHash);
 }
 
@@ -74,7 +74,7 @@ int var_func_init(
 )
 {
     struct Hash *varHash = sqlite3_malloc(sizeof(struct Hash));
-    sqlite3HashInit(varHash);
+    HashTable_init(varHash, NULL);
 
     int rc = sqlite3_create_function_v2(db, "var", 1, SQLITE_UTF8, varHash,
                                     sqlVarFunc, 0, 0, sqlVarFunc_Destroy);

@@ -20,7 +20,7 @@ static void sqlHashFunc(
 {
     assert(argc == 1);
     const char *localVarName = (const char *) sqlite3_value_text(argv[0]);
-    unsigned int result = sqlite3StrHashValue(localVarName);
+    unsigned int result = HashTable_getHash(localVarName);
     sqlite3_result_int(context, result);
 }
 

@@ -41,6 +41,11 @@ add_executable(sqlite_shell ${SHELL_FILES})
 # libFlexilite library
 project(Flexilite)
 
+include_directories(
+        lib/duktape
+        lib/sqlite
+)
+
 #add_custom_command(
 #        OUTPUT src/resources/dbschema.res
 #        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -114,7 +119,7 @@ set(EXT_FILES
 #        src/flexi/flexi_class.h
         src/flexi/flexi_func.c
 
-        src/flexi/flexi_prop_merge.h src/flexi/flexi_db_ctx.c src/flexi/flexi_db_ctx.h)
+        src/flexi/flexi_prop_merge.h src/flexi/flexi_db_ctx.c src/flexi/flexi_db_ctx.h src/flexi/flexi_user_info.c src/flexi/flexi_user_info.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")

@@ -11,28 +11,37 @@
 *************************************************************************
 ** This is the implementation of generic hash-tables
 ** used in SQLite.
+ *
+ * [slanska] This code has been modified to be used as a generic hash table (with arbitrary value type,
+ * not only sqlite3_value)
 */
 #include "hash.h"
+
+
 
 /* Turn bulk memory into a hash table object by initializing the
 ** fields of the Hash structure.
 **
 ** "pNew" is a pointer to the hash table that is to be initialized.
 */
-void sqlite3HashInit(Hash *pNew)
+void HashTable_init(Hash *pNew, freeElem freeElemFunc)
 {
     assert(pNew != 0);
     pNew->first = 0;
     pNew->count = 0;
     pNew->htsize = 0;
     pNew->ht = 0;
+    if (freeElemFunc)
+        pNew->freeElemFunc = freeElemFunc;
+    else pNew->freeElemFunc = (void *) sqlite3_value_free;
 }
+
 
 /* Remove all entries from a hash table.  Reclaim all memory.
 ** Call this routine to delete a hash table or to reset a hash table
 ** to the empty state.
 */
-void sqlite3HashClear(Hash *pH)
+void HashTable_clear(Hash *pH)
 {
     HashElem *elem;         /* For looping over all elements of the table */
 
@@ -45,7 +54,8 @@ void sqlite3HashClear(Hash *pH)
     while (elem)
     {
         HashElem *next_elem = elem->next;
-        sqlite3_value_free(elem->data);
+        // TODO       sqlite3_value_free(elem->data);
+        pH->freeElemFunc(elem->data);
         sqlite3_free((void *) elem->pKey);
         sqlite3_free(elem);
         elem = next_elem;
@@ -57,7 +67,7 @@ void sqlite3HashClear(Hash *pH)
 /*
 ** The hashing function.
 */
-unsigned int sqlite3StrHashValue(const char *z)
+unsigned int HashTable_getHash(const char *z)
 {
     unsigned int h = 0;
     unsigned char c;
@@ -72,7 +82,7 @@ unsigned int sqlite3StrHashValue(const char *z)
 /* Link pNew element into the hash table pH.  If pEntry!=0 then also
 ** insert pNew into the pEntry hash bucket.
 */
-static void insertElement(
+static void _insertElement(
         Hash *pH,              /* The complete hash table */
         struct _ht *pEntry,    /* The entry into which pNew is inserted */
         HashElem *pNew         /* The element to be inserted */
@@ -109,13 +119,13 @@ static void insertElement(
     }
 }
 
-/* Resize the hash table so that it cantains "new_size" buckets.
+/* Resize the hash table so that it contains "new_size" buckets.
 **
 ** The hash table might fail to resize if sqlite3_malloc() fails or
 ** if the new size is the same as the prior size.
 ** Return TRUE if the resize occurs and false if not.
 */
-static int rehash(Hash *pH, unsigned int new_size)
+static int _rehash(Hash *pH, unsigned int new_size)
 {
     struct _ht *new_ht;            /* The new hash table */
     HashElem *elem, *next_elem;    /* For looping over existing elements */
@@ -146,9 +156,9 @@ static int rehash(Hash *pH, unsigned int new_size)
     memset(new_ht, 0, new_size * sizeof(struct _ht));
     for (elem = pH->first, pH->first = 0; elem; elem = next_elem)
     {
-        unsigned int h = sqlite3StrHashValue(elem->pKey) % new_size;
+        unsigned int h = HashTable_getHash(elem->pKey) % new_size;
         next_elem = elem->next;
-        insertElement(pH, &new_ht[h], elem);
+        _insertElement(pH, &new_ht[h], elem);
     }
     return 1;
 }
@@ -157,7 +167,7 @@ static int rehash(Hash *pH, unsigned int new_size)
 ** hash table that matches the given key.  The hash for this key is
 ** also computed and returned in the *pH parameter.
 */
-static HashElem *findElementWithHash(
+static HashElem *_findElementWithHash(
         const Hash *pH,     /* The pH to be searched */
         const char *pKey,   /* The key we are searching for */
         unsigned int *pHash /* Write the hash value here */
@@ -170,7 +180,7 @@ static HashElem *findElementWithHash(
     if (pH->ht)
     {
         struct _ht *pEntry;
-        h = sqlite3StrHashValue(pKey) % pH->htsize;
+        h = HashTable_getHash(pKey) % pH->htsize;
         pEntry = (void *) &pH->ht[h];
         elem = pEntry->chain;
         count = pEntry->count;
@@ -185,6 +195,8 @@ static HashElem *findElementWithHash(
     while (count--)
     {
         assert(elem != 0);
+
+//        TODO sqlite3_stricmp()
         if (strcmp(elem->pKey, pKey) == 0)
         {
             return elem;
@@ -197,7 +209,7 @@ static HashElem *findElementWithHash(
 /* Remove a single entry from the hash table given a pointer to that
 ** element and a hash on the element's key.
 */
-static void removeElementGivenHash(
+static void _removeElementGivenHash(
         Hash *pH,         /* The pH containing "elem" */
         HashElem *elem,   /* The element to be removed from the pH */
         unsigned int h    /* Hash value for the element */
@@ -227,7 +239,8 @@ static void removeElementGivenHash(
         assert(pEntry->count >= 0);
     }
 
-    sqlite3_value_free(elem->data);
+    // TODO   sqlite3_value_free(elem->data);
+    pH->freeElemFunc(elem->data);
     sqlite3_free((void *) elem->pKey);
     sqlite3_free(elem);
 
@@ -236,7 +249,7 @@ static void removeElementGivenHash(
     {
         assert(pH->first == 0);
         assert(pH->count == 0);
-        sqlite3HashClear(pH);
+        HashTable_clear(pH);
     }
 }
 
@@ -244,15 +257,25 @@ static void removeElementGivenHash(
 ** that matches pKey.  Return the data for this element if it is
 ** found, or NULL if there is no match.
 */
-sqlite3_value *sqlite3HashFind(const Hash *pH, const char *pKey)
+void *HashTable_get(const Hash *pH, const char *pKey)
 {
     HashElem *elem;    /* The element that matches key */
     unsigned int h;    /* A hash on key */
 
     assert(pH != 0);
     assert(pKey != 0);
-    elem = findElementWithHash(pH, pKey, &h);
+    elem = _findElementWithHash(pH, pKey, &h);
     return elem ? elem->data : 0;
+}
+
+inline void HashTable_set_v(Hash *pH, const char *pKey, sqlite3_value *pData)
+{
+    HashTable_set(pH, pKey, pData);
+}
+
+inline sqlite3_value *HashTable_get_v(const Hash *pH, const char *pKey)
+{
+    return (sqlite3_value *) HashTable_get(pH, pKey);
 }
 
 /* Insert an element into the hash table pH.  The key is pKey
@@ -269,26 +292,27 @@ sqlite3_value *sqlite3HashFind(const Hash *pH, const char *pKey)
 ** If the "data" parameter to this function is NULL, then the
 ** element corresponding to "key" is removed from the hash table.
 */
-void sqlite3HashInsert(Hash *pH, const char *pKey, sqlite3_value *data)
+void HashTable_set(Hash *pH, const char *pKey, void *data)
 {
     unsigned int h;       /* the hash of the key modulo hash table size */
     HashElem *elem;       /* Used to loop thru the element list */
 
     assert(pH != 0);
     assert(pKey != 0);
-    elem = findElementWithHash(pH, pKey, &h);
+    elem = _findElementWithHash(pH, pKey, &h);
     if (elem)
     {
         // If new data is null, delete existing entry
         if (data == NULL)
         {
-            removeElementGivenHash(pH, elem, h);
+            _removeElementGivenHash(pH, elem, h);
         }
         else
         {
             if (elem->data != data)
             {
-                sqlite3_value_free(elem->data);
+                //  TODO              sqlite3_value_free(elem->data);
+                pH->freeElemFunc(elem->data);
                 elem->data = data;
             }
 
@@ -312,12 +336,35 @@ void sqlite3HashInsert(Hash *pH, const char *pKey, sqlite3_value *data)
     pH->count++;
     if (pH->count >= 10 && pH->count > 2 * pH->htsize)
     {
-        if (rehash(pH, pH->count * 2))
+        if (_rehash(pH, pH->count * 2))
         {
             assert(pH->htsize > 0);
-            h = sqlite3StrHashValue(pKey) % pH->htsize;
+            h = HashTable_getHash(pKey) % pH->htsize;
         }
     }
-    insertElement(pH, (void *) (pH->ht ? &pH->ht[h] : 0), new_elem);
+    _insertElement(pH, (void *) (pH->ht ? &pH->ht[h] : 0), new_elem);
     return;
+}
+
+void *HashTable_each(const Hash *pH, iterateeFunc iteratee)
+{
+    HashElem *elem;         /* For looping over all elements of the table */
+
+    assert(pH != 0);
+    assert(iteratee);
+    int index = 0;
+
+    bool bStop = false;
+    elem = pH->first;
+    while (elem)
+    {
+        iteratee(elem->pKey, index, elem->data, (var)pH, &bStop);
+        if (bStop)
+            return elem->data;
+
+        elem = elem->next;
+        index++;
+    }
+
+    return NULL;
 }

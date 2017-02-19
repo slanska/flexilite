@@ -16,7 +16,8 @@ SQLITE_EXTENSION_INIT3
 
 static void flexi_help_func(sqlite3_context *context,
                             int argc,
-                            sqlite3_value **argv) {
+                            sqlite3_value **argv)
+{
     (void) argc;
     (void) argv;
 
@@ -38,7 +39,8 @@ static void flexi_help_func(sqlite3_context *context,
 
 static void flexi_init_func(sqlite3_context *context,
                             int argc,
-                            sqlite3_value **argv) {
+                            sqlite3_value **argv)
+{
     (void) argc;
     (void) argv;
 
@@ -67,60 +69,69 @@ static void flexi_init_func(sqlite3_context *context,
 
 static void flexi_func(sqlite3_context *context,
                        int argc,
-                       sqlite3_value **argv) {
+                       sqlite3_value **argv)
+{
 
-    if (argc == 0) {
+    if (argc == 0)
+    {
         flexi_help_func(context, 0, NULL);
         return;
     }
 
-    struct {
+    struct
+    {
         const char *zMethod;
 
         void (*func)(sqlite3_context *, int, sqlite3_value **);
 
         int trn;
     } methods[] = {
-            {"create class",    flexi_class_create_func, 1},
-            {"alter class",         flexi_class_alter_func,  1},
-            {"drop class",      flexi_class_drop_func,   1},
-            {"rename class",    flexi_class_rename_func, 1},
-            {"create property", flexi_prop_create_func,  1},
-            {"alter property",  flexi_prop_alter_func,   1},
-            {"drop property",   flexi_prop_drop_func,    1},
-            {"rename property", flexi_prop_rename_func,  1},
-            {"merge property",  flexi_prop_merge_func,   1},
-            {"split property",  flexi_prop_split_func,   1},
+            {"create class",          flexi_class_create_func,   1},
+            {"alter class",           flexi_class_alter_func,    1},
+            {"drop class",            flexi_class_drop_func,     1},
+            {"rename class",          flexi_class_rename_func,   1},
+            {"create property",       flexi_prop_create_func,    1},
+            {"alter property",        flexi_prop_alter_func,     1},
+            {"drop property",         flexi_prop_drop_func,      1},
+            {"rename property",       flexi_prop_rename_func,    1},
+            {"merge property",        flexi_prop_merge_func,     1},
+            {"split property",        flexi_prop_split_func,     1},
 
-            {"properties to object",  flexi_prop_to_obj_func,              1},
-            {"object to properties",  flexi_obj_to_props_func,              1},
-            {"property to reference", flexi_prop_to_ref_func,              1},
-            {"reference to property", flexi_ref_to_prop_func,              1},
-            {"change object class",   flexi_change_object_class,              1},
+            {"properties to object",  flexi_prop_to_obj_func,    1},
+            {"object to properties",  flexi_obj_to_props_func,   1},
+            {"property to reference", flexi_prop_to_ref_func,    1},
+            {"reference to property", flexi_ref_to_prop_func,    1},
+            {"change object class",   flexi_change_object_class, 1},
 
-            {"init",            flexi_init_func,         1},
-            {"help",            flexi_help_func,         0},
+            {"init",                  flexi_init_func,           1},
+            {"help",                  flexi_help_func,           0},
     };
 
     char *zMethodName = (char *) sqlite3_value_text(argv[0]);
     char *zError = NULL;
     int result;
-    for (int ii = 0; ii < sizeof(methods) / sizeof(methods[0]); ii++) {
-        if (sqlite3_stricmp(methods[ii].zMethod, zMethodName) == 0) {
+    for (int ii = 0; ii < sizeof(methods) / sizeof(methods[0]); ii++)
+    {
+        if (sqlite3_stricmp(methods[ii].zMethod, zMethodName) == 0)
+        {
             sqlite3 *db = NULL;
-            if (methods[ii].trn) {
+            if (methods[ii].trn)
+            {
                 db = sqlite3_context_db_handle(context);
                 result = sqlite3_exec(db, "savepoint flexi1;", NULL, NULL, &zError);
-                if (result) {
+                if (result)
+                {
                     sqlite3_result_error(context, zError, -1);
                     return;
                 }
             }
             methods[ii].func(context, argc - 1, &argv[1]);
 
-            if (methods[ii].trn) {
+            if (methods[ii].trn)
+            {
                 result = sqlite3_exec(db, "release flexi1;", NULL, NULL, &zError);
-                if (result) {
+                if (result)
+                {
                     sqlite3_result_error(context, zError, -1);
                 }
             }
@@ -139,20 +150,24 @@ int flexi_data_init(
         struct flexi_db_context *pEnv
 );
 
-void flexi_db_context_destroy(void *data) {
+void flexi_db_context_destroy(void *data)
+{
     flexi_db_context_deinit(data);
     sqlite3_free(data);
 }
 
 int flexi_init(sqlite3 *db,
                char **pzErrMsg,
-               const sqlite3_api_routines *pApi) {
-    struct flexi_db_context *pCtx;
-    pCtx = sqlite3_malloc(sizeof(struct flexi_db_context));
-    memset(pCtx, 0, sizeof(struct flexi_db_context));
-    pCtx->db = db;
-
+               const sqlite3_api_routines *pApi)
+{
     int result;
+    struct flexi_db_context *pCtx = flexi_db_context_new(db);
+    if (!pCtx)
+    {
+        result = SQLITE_NOMEM;
+        goto CATCH;
+    }
+
     CHECK_CALL(sqlite3_create_function_v2(db, "flexi", 0, SQLITE_UTF8, pCtx,
                                           flexi_func, 0, 0, flexi_db_context_destroy));
 

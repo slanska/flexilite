@@ -5,6 +5,20 @@
 #ifndef FLEXILITE_FLEXI_PROP_C_H
 #define FLEXILITE_FLEXI_PROP_C_H
 
+#include <stdbool.h>
+#include <sqlite3ext.h>
+
+SQLITE_EXTENSION_INIT3
+
+enum CHANGE_STATUS {
+    CHNG_STATUS_NOT_MODIFIED = 0,
+    CHNG_STATUS_ADDED = 1,
+    CHNG_STATUS_MODIFIED = 2,
+    CHNG_STATUS_DELETED = 3
+};
+
+typedef enum CHANGE_STATUS CHANGE_STATUS;
+
 /*
  * Holds entity name and corresponding ID
  * Used for user-friendly way of specifying classes, properties, enums, names.
@@ -13,7 +27,10 @@
 struct flexi_metadata_ref {
     const char *name;
     sqlite3_int64 id;
+
+    CHANGE_STATUS eChngStatus;
 };
+
 
 typedef struct flexi_metadata_ref flexi_metadata_ref;
 
@@ -70,6 +87,8 @@ struct flexi_prop_def {
      * 2 - high range bound
      */
     unsigned char cRngBound;
+
+    CHANGE_STATUS eChngStatus;
 };
 
 /// Parses JSON with property definition. pProp is expected to be zeroed and to have lClassID and pCtx initialized.
@@ -151,5 +170,11 @@ void flexi_ref_to_prop_func(
         int argc,
         sqlite3_value **argv
 );
+
+/*
+ *
+ */
+void flexi_prop_def_free(struct flexi_prop_def const *prop);
+
 
 #endif //FLEXILITE_FLEXI_PROP_C_H

@@ -4,54 +4,27 @@
 
 #include <stddef.h>
 #include "flexi_db_ctx.h"
-#include "../misc/regexp.h"
-#include "../project_defs.h"
+#include "flexi_class.h"
 
-/*
- *
- */
-static void flexi_vtab_prop_free(struct flexi_prop_def const *prop) {
-    sqlite3_value_free(prop->defaultValue);
-    sqlite3_free(prop->zName);
-    sqlite3_free(prop->regex);
-    if (prop->pRegexCompiled)
-        re_free(prop->pRegexCompiled);
-}
-
-void flexi_free_user_info(struct flexi_user_info *p) {
-    if (p) {
-        sqlite3_free(p->zUserID);
-        sqlite3_free(p->zCulture);
-        for (int ii = 0; ii < p->nRoles; ii++) {
-            sqlite3_free(p->zRoles[ii]);
-        }
-        sqlite3_free(p->zRoles);
-        sqlite3_free(p);
-    }
-}
-
-void flexi_vtab_free(struct flexi_class_def *pClsDef) {
-    if (pClsDef != NULL) {
-        if (pClsDef->pProps != NULL) {
-            for (int idx = 0; idx < pClsDef->nCols; idx++) {
-                flexi_vtab_prop_free(&pClsDef->pProps[idx]);
-            }
-        }
-
-//        sqlite3_free(pClsDef->pSortedProps);
-        sqlite3_free(pClsDef->pProps);
-        sqlite3_free((void *) pClsDef->zHash);
-
-        sqlite3_free(pClsDef);
-    }
+struct flexi_db_context *flexi_db_context_new(sqlite3 *db)
+{
+    struct flexi_db_context *result = sqlite3_malloc(sizeof(struct flexi_db_context));
+    if (!result)
+        return NULL;
+    memset(result, 0, sizeof(struct flexi_db_context));
+    result->db = db;
+    HashTable_init(&result->classDefs, (void *) flexi_class_def_free);
+    return result;
 }
 
 /*
  * Gets name ID by value. Name is expected to exist
  */
 int db_get_name_id(struct flexi_db_context *pCtx,
-                   const char *zName, sqlite3_int64 *pNameID) {
-    if (pNameID) {
+                   const char *zName, sqlite3_int64 *pNameID)
+{
+    if (pNameID)
+    {
         sqlite3_stmt *p = pCtx->pStmts[STMT_SEL_NAME_ID];
         assert(p);
         sqlite3_reset(p);
@@ -71,7 +44,8 @@ int db_get_name_id(struct flexi_db_context *pCtx,
  */
 int db_get_prop_id_by_class_and_name
         (struct flexi_db_context *pCtx,
-         sqlite3_int64 lClassID, sqlite3_int64 lPropNameID, sqlite3_int64 *plPropID) {
+         sqlite3_int64 lClassID, sqlite3_int64 lPropNameID, sqlite3_int64 *plPropID)
+{
     assert(plPropID);
 
     sqlite3_stmt *p = pCtx->pStmts[STMT_SEL_PROP_ID];
@@ -92,7 +66,8 @@ int db_get_prop_id_by_class_and_name
  * Ensures that there is given Name in [.names] table.
  * Returns name id in pNameID (if not null)
  */
-int db_insert_name(struct flexi_db_context *pCtx, const char *zName, sqlite3_int64 *pNameID) {
+int db_insert_name(struct flexi_db_context *pCtx, const char *zName, sqlite3_int64 *pNameID)
+{
     assert(zName);
     {
         sqlite3_stmt *p = pCtx->pStmts[STMT_INS_NAME];
@@ -112,44 +87,54 @@ int db_insert_name(struct flexi_db_context *pCtx, const char *zName, sqlite3_int
 /*
  * Cleans up Flexilite module environment (prepared SQL statements etc.)
  */
-void flexi_db_context_deinit(struct flexi_db_context *pCtx) {
+void flexi_db_context_deinit(struct flexi_db_context *pCtx)
+{
     // Release prepared SQL statements
-    for (int ii = 0; ii <= STMT_DEL_FTS; ii++) {
+    for (int ii = 0; ii <= STMT_DEL_FTS; ii++)
+    {
         if (pCtx->pStmts[ii])
             sqlite3_finalize(pCtx->pStmts[ii]);
     }
 
-    if (pCtx->pMatchFuncSelStmt != NULL) {
+    if (pCtx->pMatchFuncSelStmt != NULL)
+    {
         sqlite3_finalize(pCtx->pMatchFuncSelStmt);
         pCtx->pMatchFuncSelStmt = NULL;
     }
 
-    if (pCtx->pMatchFuncInsStmt != NULL) {
+    if (pCtx->pMatchFuncInsStmt != NULL)
+    {
         sqlite3_finalize(pCtx->pMatchFuncInsStmt);
         pCtx->pMatchFuncInsStmt = NULL;
     }
 
-    if (pCtx->pMemDB != NULL) {
+    if (pCtx->pMemDB != NULL)
+    {
         sqlite3_close(pCtx->pMemDB);
         pCtx->pMemDB = NULL;
     }
 
     flexi_free_user_info(pCtx->pCurrentUser);
 
+    HashTable_clear(&pCtx->classDefs);
+
     /*
      *TODO Check 2nd param
      */
-    duk_free(pCtx->pDuk, NULL);
+    if (pCtx->pDuk)
+        duk_free(pCtx->pDuk, NULL);
 
     memset(pCtx, 0, sizeof(*pCtx));
 }
 
 int db_get_class_id_by_name(struct flexi_db_context *pCtx,
-                            const char *zClassName, sqlite3_int64 *pClassID) {
+                            const char *zClassName, sqlite3_int64 *pClassID)
+{
     assert(pCtx);
 
     int result;
-    if (!pCtx->pStmts[STMT_CLS_ID_BY_NAME]) {
+    if (!pCtx->pStmts[STMT_CLS_ID_BY_NAME])
+    {
         CHECK_CALL(sqlite3_prepare_v2(pCtx->db,
                                       "select ClassID from [.classes] "
                                               "where NameID = (select ID from [.names_props] where Value = :1 limit 1);",
@@ -158,9 +143,12 @@ int db_get_class_id_by_name(struct flexi_db_context *pCtx,
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_ID_BY_NAME]));
     CHECK_CALL(sqlite3_bind_text(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 0, zClassName, -1, NULL));
     CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_CLS_ID_BY_NAME]));
-    if (result == SQLITE_ROW) {
+    if (result == SQLITE_ROW)
+    {
         *pClassID = sqlite3_column_int64(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 0);
-    } else { *pClassID = -1; }
+    }
+    else
+    { *pClassID = -1; }
     result = SQLITE_OK;
 
     goto CATCH;
@@ -170,50 +158,4 @@ int db_get_class_id_by_name(struct flexi_db_context *pCtx,
     FINALLY:
     return result;
 }
-
-
-/*
- * Sorts flexi_class_def->pSortedProps, using bubble sort (should be good enough for this case as we expect only 2-3 dozens of items, at most).
- */
-//static void flexi_sort_cols_by_prop_id(struct flexi_class_def *vtab)
-//{
-//    for (int i = 0; i < vtab->nCols; i++)
-//    {
-//        for (int j = 0; j < (vtab->nCols - i - 1); j++)
-//        {
-//            if (vtab->pSortedProps[j].iPropID > vtab->pSortedProps[j + 1].iPropID)
-//            {
-//                struct flexi_prop_col_map temp = vtab->pSortedProps[j];
-//                vtab->pSortedProps[j] = vtab->pSortedProps[j + 1];
-//                vtab->pSortedProps[j + 1] = temp;
-//            }
-//        }
-//    }
-//}
-
-/*
- * Performs binary search on sorted array of propertyID-column index map.
- * Returns index in vtab->pCols array or -1 if not found
- */
-//static int flex_get_col_idx_by_prop_id(struct flexi_class_def *vtab, sqlite3_int64 iPropID)
-//{
-//    int low = 1;
-//    int mid;
-//    int high = vtab->nCols;
-//    do
-//    {
-//        mid = (low + high) / 2;
-//        if (iPropID < vtab->pSortedProps[mid].iPropID)
-//            high = mid - 1;
-//        else
-//            if (iPropID > vtab->pSortedProps[mid].iPropID)
-//                low = mid + 1;
-//    } while (iPropID != vtab->pSortedProps[mid].iPropID && low <= high);
-//    if (iPropID == vtab->pSortedProps[mid].iPropID)
-//    {
-//        return mid;
-//    }
-//
-//    return -1;
-//}
 
