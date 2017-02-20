@@ -116,7 +116,12 @@ sqlite3_value *HashTable_get_v(const Hash *, const char *pKey);
 
 void *HashTable_get(const Hash *, const char *pKey);
 
-void *HashTable_each(const Hash *pH, iterateeFunc iteratee);
+/// @brief
+/// @param pH
+/// @param iteratee
+/// @param param
+/// @return
+void *HashTable_each(const Hash *pH, iterateeFunc iteratee, var param);
 
 void HashTable_clear(Hash *);
 

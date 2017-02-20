@@ -22,7 +22,7 @@
 ** how JSONB might improve on that.)
 */
 
-#include "../../lib/sqlite/sqlite3ext.h"
+#include <sqlite3ext.h>
 
 SQLITE_EXTENSION_INIT3
 

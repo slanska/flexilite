@@ -346,7 +346,7 @@ void HashTable_set(Hash *pH, const char *pKey, void *data)
     return;
 }
 
-void *HashTable_each(const Hash *pH, iterateeFunc iteratee)
+void *HashTable_each(const Hash *pH, iterateeFunc iteratee, var param)
 {
     HashElem *elem;         /* For looping over all elements of the table */
 
@@ -358,7 +358,7 @@ void *HashTable_each(const Hash *pH, iterateeFunc iteratee)
     elem = pH->first;
     while (elem)
     {
-        iteratee(elem->pKey, index, elem->data, (var)pH, &bStop);
+        iteratee(elem->pKey, index, elem->data, (var)pH, param, &bStop);
         if (bStop)
             return elem->data;
 

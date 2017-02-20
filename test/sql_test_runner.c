@@ -83,9 +83,9 @@ void run_sql_tests(const char *zJsonFile) {
 
 //    Buffer pBuf;
 
-//    buffer_init(&pBuf, sizeof(struct CMUnitTest), NULL);
+//    Buffer_init(&pBuf, sizeof(struct CMUnitTest), NULL);
     struct CMUnitTest *pt = sqlite3_malloc(sizeof(struct CMUnitTest *));
-//    buffer_append(&pBuf, &pt);
+//    Buffer_append(&pBuf, &pt);
     memset(pt, 0, sizeof(*pt));
     pt->name = "";
     pt->test_func = _run_sql_test;

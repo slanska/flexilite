@@ -6,13 +6,9 @@
  * flexi_class implementation of Flexilite class API
  */
 
-//#include "../project_defs.h"
 #include "flexi_class.h"
-#include "flexi_db_ctx.h"
 #include "../typings/DBDefinitions.h"
 #include "../misc/regexp.h"
-
-//SQLITE_EXTENSION_INIT3
 
 /*
  * Create new class record in the database
@@ -387,11 +383,11 @@ void flexi_class_create_func(
     if (argc == 3)
         bCreateVTable = sqlite3_value_int(argv[2]);
 
-    const char *zError = NULL;
+    char *zError = NULL;
 
     sqlite3 *db = sqlite3_context_db_handle(context);
 
-    int result = SQLITE_OK;
+    int result;
     char *zSQL = NULL;
     if (bCreateVTable)
     {
@@ -694,6 +690,7 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
     // Initialize variables
     sqlite3_stmt *pGetClsPropStmt = NULL;
     sqlite3_stmt *pGetClassStmt = NULL;
+
     char *sbClassDef = sqlite3_mprintf("create table [%s] (", lClassID);
     if (!sbClassDef)
     {
@@ -701,6 +698,7 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
         goto CATCH;
     }
 
+    // TODO Use context statements
     // Init property metadata
     const char *zGetClassSQL = "select "
             "ClassID, " // 0
@@ -917,10 +915,25 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
     return result;
 }
 
+static void _disposeMixinRuleItem(struct flexi_mixin_rule *rr)
+{
+    sqlite3_free(rr->classRef.name);
+    sqlite3_free(rr->regex);
+    sqlite3_free(rr->zExactValue);
+}
+
+void flexi_class_mixin_init(struct flexi_class_mixin_def *p)
+{
+    memset(p, 0, sizeof(*p));
+    Buffer_init(&p->rules, sizeof(struct flexi_mixin_rule), (void *) _disposeMixinRuleItem);
+}
+
 void flexi_class_mixin_def_free(struct flexi_class_mixin_def *p)
 {
     if (p)
     {
-        // TODO
+        Buffer_done(&p->rules);
+        sqlite3_free(p->classRef.name);
+        sqlite3_free(p->dynSelectorProp.name);
     }
 }

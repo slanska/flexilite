@@ -5,8 +5,8 @@
 #ifndef FLEXILITE_BUFFER_H
 #define FLEXILITE_BUFFER_H
 
-#include "../project_defs.h"
-#include "../misc/json1.h"
+#include <stddef.h>
+#include "../common/common.h"
 
 /*
  * Implementation of generic buffer with items of fixed size
@@ -40,14 +40,18 @@ struct Buffer {
 
 typedef struct Buffer Buffer;
 
-void buffer_init(Buffer *pBuf, size_t elemSize, void (*disposeElem)(void *pElem));
+extern void Buffer_init(Buffer *pBuf, size_t elemSize, void (*disposeElem)(void *pElem));
 
-void buffer_done(Buffer *pBuf);
+extern void Buffer_done(Buffer *pBuf);
 
-void *buffer_get(Buffer *pBuf, u32 index);
+extern void *Buffer_get(Buffer *pBuf, u32 index);
 
-void buffer_set(Buffer *pBuf, u32 index, void *pElem);
+extern void Buffer_set(Buffer *pBuf, u32 index, void *pElem);
 
-int buffer_append(Buffer *pBuf, void *pElem);
+extern int Buffer_append(Buffer *pBuf, void *pElem);
+
+extern var Buffer_each(Buffer *pBuf, iterateeFunc iteratee, var param);
+
+extern void Buffer_remove(Buffer *pBuf, u32 index);
 
 #endif //FLEXILITE_BUFFER_H

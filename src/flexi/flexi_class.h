@@ -8,6 +8,7 @@
 #include "flexi_prop.h"
 #include "../util/hash.h"
 #include "flexi_db_ctx.h"
+#include "../util/buffer.h"
 
 /*
  * Column numbers and array indexes for class' special properties
@@ -57,20 +58,22 @@ enum RTREE_PROP_IDX
     RTREE_PROP_COUNT = RTREE_PROP_E1 + 1,
 };
 
+struct flexi_mixin_rule
+{
+    char *zExactValue;
+    char *regex;
+    flexi_metadata_ref classRef;
+};
+
 struct flexi_class_mixin_def
 {
     flexi_metadata_ref classRef;
     flexi_metadata_ref dynSelectorProp;
-    int ruleCount;
-    struct
-    {
-        char *zExactValue;
-        char *regex;
-        flexi_metadata_ref classRef;
-    } *rules;
+    Buffer rules;
     CHANGE_STATUS eChangeStatus;
 };
 
+void flexi_class_mixin_init(struct flexi_class_mixin_def *p);
 void flexi_class_mixin_def_free(struct flexi_class_mixin_def *p);
 
 /*

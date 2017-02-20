@@ -5,8 +5,11 @@
 #ifndef SQLITE_EXTENSIONS_JSON1_H
 #define SQLITE_EXTENSIONS_JSON1_H
 
-//#include "../project_defs.h"
 #include "../common/common.h"
+
+#include <sqlite3ext.h>
+
+typedef sqlite3_uint64 u64;
 
 /* Bit values for the JsonNode.jnFlag field
 */

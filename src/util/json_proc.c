@@ -22,7 +22,7 @@ int json_parse(JSON_Processor *json, sqlite3_context *pCtx, const char *zJSON) {
     memset(json, 0, sizeof(*json));
     jsonParse(&json->parser, pCtx, zJSON);
     jsonInit(&json->out, pCtx);
-    buffer_init(&json->nodeValues, sizeof(sqlite3_value *), _free_value);
+    Buffer_init(&json->nodeValues, sizeof(sqlite3_value *), _free_value);
 
     return result;
 }

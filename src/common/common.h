@@ -50,7 +50,7 @@
 #ifndef SQLITE_AMALGAMATION
 /* Unsigned integer types.  These are already defined in the sqliteInt.h,
 ** but the definitions need to be repeated for separate compilation. */
-typedef sqlite3_uint64 u64;
+
 typedef unsigned int u32;
 typedef unsigned char u8;
 #endif
@@ -66,6 +66,6 @@ typedef void *var;
  * @param bStop - should be set to true by iterateeFunc to stop iteration and return last processed item
  */
 typedef void iterateeFunc(const char *zKey, int index, void *pData,
-                      var collection, bool *bStop);
+                      var collection, var param, bool *bStop);
 
 #endif //FLEXILITE_COMMON_H
