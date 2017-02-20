@@ -109,6 +109,12 @@ struct flexi_prop_def {
     CHANGE_STATUS eChangeStatus;
 };
 
+/// @brief Allocates new class property structure and initializes it with class ID.
+/// Other attributes need to be set in code or via flexi_prop_def_parse
+/// @param lClassID
+/// @return
+struct flexi_prop_def* flexi_prop_def_new(sqlite3_int64 lClassID);
+
 /// Parses JSON with property definition. pProp is expected to be zeroed and to have lClassID and pCtx initialized.
 /// \param pProp
 /// \param zPropDefJson

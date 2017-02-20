@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include "flexi_db_ctx.h"
 #include "flexi_class.h"
+#include "../misc/regexp.h"
 
 /*
  * Forward declarations
@@ -203,7 +204,7 @@ static int flexi_prepare_db_statements(struct flexi_db_context *pCtx)
 
     CHECK_CALL(sqlite3_prepare_v2(
             db,
-            "select PropertyID from [.class_properties] where ClassID = :1 and NameID = :2;",
+            "select PropertyID from [flexi_prop] where ClassID = :1 and NameID = :2;",
             -1, &pCtx->pStmts[STMT_SEL_PROP_ID], NULL));
 
     CHECK_CALL(sqlite3_prepare_v2(
@@ -230,3 +231,24 @@ static int flexi_prepare_db_statements(struct flexi_db_context *pCtx)
     return result;
 }
 
+static ReCompiled *pNameRegex = NULL;
+
+static void NameRegex_free()
+{
+    re_free(pNameRegex);
+}
+
+bool db_validate_name(const unsigned char *zName)
+{
+    if (!zName)
+        return false;
+
+    const char *zNameRegex = "[_a-zA-Z][\-_a-zA-Z0-9]{1,128}";
+    if (!pNameRegex)
+    {
+        re_compile(&pNameRegex, zNameRegex, 1);
+        atexit(NameRegex_free);
+    }
+    int result = re_match(pNameRegex, zName, -1);
+    return result != 0;
+}

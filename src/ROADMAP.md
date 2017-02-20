@@ -12,7 +12,7 @@
 *Done* TODO Test
 
 ### Update SQL script
-* *.names* and *.class_properties* as updatable views
+* *.names* and *flexi_prop* as updatable views
 * .classes.UnresolvedNames
 * Finalize refDef and enumDef structures
 

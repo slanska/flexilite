@@ -245,7 +245,7 @@ void flexi_obj_to_props_func(
 void flexi_class_def_free(struct flexi_class_def *pClsDef);
 
 /*
- * Loads class definition from [.classes] and [.class_properties] tables
+ * Loads class definition from [.classes] and [flexi_prop] tables
  * into ppVTab (casted to flexi_vtab).
  * Used by Create and Connect methods
  */

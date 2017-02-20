@@ -199,7 +199,7 @@ END;
 -- .access_rules
 ------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [.access_rules] (
-  [UserRoleID] GUID NOT NULL,
+  [UserRoleID] TEXT(32) NOT NULL,
 
   /*
   C - Class

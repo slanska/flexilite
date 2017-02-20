@@ -40,9 +40,10 @@ enum FLEXI_CTX_STMT
     STMT_INS_CLS = 17,
     STMT_CLS_HAS_DATA = 18,
     STMT_PROP_PARSE = 19,
+    STMT_CLS_RENAME = 20,
 
     // Should be last one in the list
-    STMT_DEL_FTS = 30
+            STMT_DEL_FTS = 30
 };
 
 /*
@@ -92,7 +93,8 @@ struct flexi_db_context
 /*
  * Global mapping of type names between Flexilite and SQLite
  */
-typedef struct {
+typedef struct
+{
     const char *zFlexi_t;
     const char *zSqlite_t;
     int propType;
@@ -101,6 +103,7 @@ typedef struct {
 struct flexi_db_context *flexi_db_context_new(sqlite3 *db);
 
 void flexi_db_context_free(struct flexi_db_context *data);
+
 /*
  * Finds class by its name. Returns found ID in pClassID. If class not found, sets pClassID to -1;
  * Returns SQLITE_OK if operation was executed successfully, or SQLITE error code
@@ -129,5 +132,12 @@ int db_get_prop_id_by_class_and_name
  */
 int db_insert_name(struct flexi_db_context *pCtx, const char *zName,
                    sqlite3_int64 *pNameID);
+
+/*
+ * Checks if name does not have invalid characters and its length is within supported range (1-128)
+ * Valid identifier should start from _ or letter, following by digits, dashes, underscores and letters
+ * @return SQLITE_OK is name is good. Error code, otherwise.
+ */
+bool db_validate_name(const unsigned char *zName);
 
 #endif //FLEXILITE_FLEXI_ENV_H
