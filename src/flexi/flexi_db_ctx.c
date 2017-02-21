@@ -252,3 +252,33 @@ bool db_validate_name(const unsigned char *zName)
     int result = re_match(pNameRegex, zName, -1);
     return result != 0;
 }
+
+void flexi_metadata_ref_free(flexi_metadata_ref *pp)
+{
+    if (pp && pp->bOwnName)
+        sqlite3_free(pp->name);
+}
+
+void flexi_class_mixin_def_free(struct flexi_class_mixin_def *p)
+{
+    if (p)
+    {
+        Buffer_done(&p->rules);
+        sqlite3_free(p->classRef.name);
+        sqlite3_free(p->dynSelectorProp.name);
+    }
+}
+
+static void _disposeMixinRuleItem(struct flexi_mixin_rule *rr)
+{
+    sqlite3_free(rr->classRef.name);
+    sqlite3_free(rr->regex);
+    sqlite3_free(rr->zExactValue);
+}
+
+void flexi_class_mixin_init(struct flexi_class_mixin_def *p)
+{
+    memset(p, 0, sizeof(*p));
+    Buffer_init(&p->rules, sizeof(struct flexi_mixin_rule), (void *) _disposeMixinRuleItem);
+}
+

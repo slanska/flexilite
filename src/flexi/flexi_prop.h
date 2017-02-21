@@ -7,41 +7,22 @@
 
 #include <stdbool.h>
 #include <sqlite3ext.h>
+#include "flexi_db_ctx.h"
+#include "flexi_class.h"
 
 SQLITE_EXTENSION_INIT3
-
-enum CHANGE_STATUS {
-    CHNG_STATUS_NOT_MODIFIED = 0,
-    CHNG_STATUS_ADDED = 1,
-    CHNG_STATUS_MODIFIED = 2,
-    CHNG_STATUS_DELETED = 3
-};
-
-typedef enum CHANGE_STATUS CHANGE_STATUS;
-
-/*
- * Holds entity name and corresponding ID
- * Used for user-friendly way of specifying classes, properties, enums, names.
- * Holder of this struct is responsible for freeing name
- */
-struct flexi_metadata_ref {
-    char *name;
-    sqlite3_int64 id;
-
-    CHANGE_STATUS eChngStatus;
-};
 
 /*
  * Forward declarations
  */
-typedef struct flexi_metadata_ref flexi_metadata_ref;
 typedef struct flexi_ref_def flexi_ref_def;
 typedef struct flexi_enum_def flexi_enum_def;
 
 /*
  * Property definition object
  */
-struct flexi_prop_def {
+struct flexi_prop_def
+{
     struct flexi_db_context *pCtx;
     sqlite3_int64 lClassID;
     sqlite3_int64 iPropID;
@@ -83,6 +64,7 @@ struct flexi_prop_def {
     char bUnique;
     char bFullTextIndex;
     int xCtlv;
+    int xCtlvPlan;
 
     flexi_metadata_ref enumDef;
 
@@ -113,7 +95,7 @@ struct flexi_prop_def {
 /// Other attributes need to be set in code or via flexi_prop_def_parse
 /// @param lClassID
 /// @return
-struct flexi_prop_def* flexi_prop_def_new(sqlite3_int64 lClassID);
+struct flexi_prop_def *flexi_prop_def_new(sqlite3_int64 lClassID);
 
 /// Parses JSON with property definition. pProp is expected to be zeroed and to have lClassID and pCtx initialized.
 /// \param pProp
@@ -200,14 +182,20 @@ void flexi_ref_to_prop_func(
  */
 void flexi_prop_def_free(struct flexi_prop_def const *prop);
 
-
 struct flexi_ref_def
-{};
+{
+    struct flexi_class_mixin_def base;
+    flexi_metadata_ref reverseProperty;
+    int autoFetchLimit;
+    int autoFetchDepth;
+    enum REF_PROP_ROLE rule;
+};
 
-void flexi_ref_def_free(flexi_ref_def*);
+void flexi_ref_def_free(flexi_ref_def *);
 
 struct flexi_enum_def
-{};
+{
+};
 
 void flexi_enum_def_free(flexi_enum_def *);
 

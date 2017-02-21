@@ -7,9 +7,10 @@
 
 #include <sqlite3ext.h>
 #include <duktape.h>
-#include "flexi_prop.h"
+//#include "flexi_prop.h"
 #include "../util/hash.h"
 #include "flexi_user_info.h"
+#include "../util/buffer.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -45,6 +46,55 @@ enum FLEXI_CTX_STMT
     // Should be last one in the list
             STMT_DEL_FTS = 30
 };
+
+enum CHANGE_STATUS
+{
+    CHNG_STATUS_NOT_MODIFIED = 0,
+    CHNG_STATUS_ADDED = 1,
+    CHNG_STATUS_MODIFIED = 2,
+    CHNG_STATUS_DELETED = 3
+};
+
+typedef enum CHANGE_STATUS CHANGE_STATUS;
+
+enum REF_PROP_ROLE
+{
+    REF_PROP_ROLE_MASTER = 0,
+    REF_PROP_ROLE_LINK = 0,
+    REF_PROP_ROLE_NESTED = 0,
+    REF_PROP_ROLE_DEPENDENT = 0
+};
+
+/*
+ * Holds entity name and corresponding ID
+ * Used for user-friendly way of specifying classes, properties, enums, names.
+ * Holder of this struct is responsible for freeing name
+ */
+struct flexi_metadata_ref
+{
+    char *name;
+    sqlite3_int64 id;
+
+    enum CHANGE_STATUS eChngStatus;
+    bool bOwnName;
+};
+
+typedef struct flexi_metadata_ref flexi_metadata_ref;
+
+void flexi_metadata_ref_free(flexi_metadata_ref *);
+
+struct flexi_class_mixin_def
+{
+    flexi_metadata_ref classRef;
+    flexi_metadata_ref dynSelectorProp;
+    Buffer rules;
+    CHANGE_STATUS eChangeStatus;
+};
+
+void flexi_class_mixin_init(struct flexi_class_mixin_def *p);
+void flexi_class_mixin_def_free(struct flexi_class_mixin_def *p);
+
+
 
 /*
  * Connection wide data and settings

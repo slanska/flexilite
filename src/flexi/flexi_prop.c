@@ -37,9 +37,9 @@ void flexi_prop_rename_func(
 )
 {}
 
-struct flexi_prop_def* flexi_prop_def_new(sqlite3_int64 lClassID)
+struct flexi_prop_def *flexi_prop_def_new(sqlite3_int64 lClassID)
 {
-    struct flexi_prop_def* result = sqlite3_malloc(sizeof(struct flexi_prop_def));
+    struct flexi_prop_def *result = sqlite3_malloc(sizeof(struct flexi_prop_def));
     if (result)
     {
         memset(result, 0, sizeof(struct flexi_prop_def));

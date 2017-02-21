@@ -41,6 +41,8 @@
 #define CHECK_MALLOC(v, s) v = sqlite3_malloc(s); \
         if (v == NULL) { result = SQLITE_NOMEM; goto CATCH;}
 
+#define ARRAY_LEN(arr)   (sizeof(arr) / sizeof(arr[0]))
+
 /* Mark a function parameter as unused, to suppress nuisance compiler
 ** warnings. */
 #ifndef UNUSED_PARAM
@@ -66,6 +68,6 @@ typedef void *var;
  * @param bStop - should be set to true by iterateeFunc to stop iteration and return last processed item
  */
 typedef void iterateeFunc(const char *zKey, int index, void *pData,
-                      var collection, var param, bool *bStop);
+                          var collection, var param, bool *bStop);
 
 #endif //FLEXILITE_COMMON_H

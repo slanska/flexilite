@@ -365,7 +365,7 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
         CHECK_CALL(sqlite3_prepare_v2(
                 vtab->pCtx->db, "select ObjectID from [.objects] where ClassID = :1;",
                 -1, &cur->pObjectIterator, NULL));
-        sqlite3_bind_int64(cur->pObjectIterator, 1, vtab->iClassID);
+        sqlite3_bind_int64(cur->pObjectIterator, 1, vtab->lClassID);
     } else {
         assert(argc * 8 == strlen(idxStr));
 
@@ -426,7 +426,7 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
                     if (zRangeSQL == NULL) {
                         zRangeSQL = sqlite3_mprintf(
                                 "select id from [.range_data] where ClassID0 = %d and ClassID1 = %d ",
-                                vtab->iClassID, vtab->iClassID);
+                                vtab->lClassID, vtab->lClassID);
                     }
                     void *pTmp = zRangeSQL;
                     zRangeSQL = sqlite3_mprintf("%s and %s %s :%d", pTmp, range_columns[prop->cRangeColumn - 1],
@@ -1001,7 +1001,7 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
 
             CHECK_CALL(sqlite3_reset(pInsObj));
             sqlite3_bind_value(pInsObj, 1, argv[1]); // Object ID, normally null
-            sqlite3_bind_int64(pInsObj, 2, vtab->iClassID);
+            sqlite3_bind_int64(pInsObj, 2, vtab->lClassID);
             sqlite3_bind_int(pInsObj, 3, vtab->xCtloMask);
 
             CHECK_STMT(sqlite3_step(pInsObj));
@@ -1023,7 +1023,7 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
                 sqlite3_stmt *pUpdObjID = vtab->pCtx->pStmts[STMT_UPD_OBJ_ID];
                 CHECK_CALL(sqlite3_reset(pUpdObjID));
                 sqlite3_bind_int64(pUpdObjID, 1, lNewID);
-                sqlite3_bind_int64(pUpdObjID, 2, vtab->iClassID);
+                sqlite3_bind_int64(pUpdObjID, 2, vtab->lClassID);
                 sqlite3_bind_int64(pUpdObjID, 3, lOldID);
                 CHECK_STMT(sqlite3_step(pUpdObjID));
             }
@@ -1050,9 +1050,9 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
  */
 static int flexi_data_rename(sqlite3_vtab *pVtab, const char *zNew) {
     struct flexi_class_def *pTab = (void *) pVtab;
-    assert(pTab->iClassID != 0);
+    assert(pTab->lClassID != 0);
 
-    return flexi_class_rename(pTab->pCtx, pTab->iClassID, zNew);
+    return flexi_class_rename(pTab->pCtx, pTab->lClassID, zNew);
 }
 
 

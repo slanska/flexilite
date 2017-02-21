@@ -5,10 +5,10 @@
 #ifndef FLEXILITE_FLEXI_CLASS_H
 #define FLEXILITE_FLEXI_CLASS_H
 
-#include "flexi_prop.h"
 #include "../util/hash.h"
 #include "flexi_db_ctx.h"
 #include "../util/buffer.h"
+#include "flexi_prop.h"
 
 /*
  * Column numbers and array indexes for class' special properties
@@ -65,17 +65,6 @@ struct flexi_mixin_rule
     flexi_metadata_ref classRef;
 };
 
-struct flexi_class_mixin_def
-{
-    flexi_metadata_ref classRef;
-    flexi_metadata_ref dynSelectorProp;
-    Buffer rules;
-    CHANGE_STATUS eChangeStatus;
-};
-
-void flexi_class_mixin_init(struct flexi_class_mixin_def *p);
-void flexi_class_mixin_def_free(struct flexi_class_mixin_def *p);
-
 /*
  * Handle for Flexilite class definition
  */
@@ -86,7 +75,7 @@ struct flexi_class_def
      */
     sqlite3_vtab base;
 
-    sqlite3_int64 iClassID;
+    sqlite3_int64 lClassID;
 
     /*
      * Number of columns, i.e. items in property and column arrays
@@ -156,8 +145,7 @@ struct flexi_class_def
      */
     Hash propMap;
 
-    int mixinCount;
-    struct flexi_class_mixin_def *mixins;
+    Buffer aMixins;
 };
 
 int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName, const char *zClassDef, int bCreateVTable,
