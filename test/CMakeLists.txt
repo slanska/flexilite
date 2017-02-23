@@ -16,6 +16,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 include_directories(
         ../lib/cmocka/include
         ../lib/sqlite
+        ../src/util
 )
 
 set(TEST_FILES
@@ -27,12 +28,11 @@ set(TEST_FILES
         util/db_init.c
         util/db_init.h
         definitions.h
-#        ../src/util/buffer.c
-
         util/file_helper.c
         util/file_helper.h
         class.c
         sql_test_runner.c
+#        util/test_rbtree.c
         )
 
 add_definitions(-DSQLITE_ENABLE_FTS4

@@ -44,16 +44,7 @@ project(Flexilite)
 include_directories(
         lib/duktape
         lib/sqlite
-        lib/c-algoryithms/include
 )
-
-#add_custom_command(
-#        OUTPUT src/resources/dbschema.res
-#        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-#        COMMAND xxd -i sql/dbschema.sql > src/resources/dbschema.res.h
-#        COMMENT "Generating resource file for SQL schema."
-#        DEPENDS sql/dbschema.sql
-#)
 
 add_custom_target(Generate_Resources
         ALL
@@ -68,11 +59,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 add_definitions(-DRESOURCES_GENERATED )
 
-add_subdirectory(lib/c-algoryithms/src)
-
 set(EXT_FILES
-#        lib/sqlite/sqlite3ext.h
-
         src/misc/json1.c
         src/typings/DBDefinitions.h
         src/main.c
@@ -88,49 +75,43 @@ set(EXT_FILES
         src/misc/var.c
 
         src/util/hash.c
-        #        src/util/hash.h
 
         src/misc/hash.c
 
         src/misc/memstat.c
         src/flexi/flexi_data.c
-        #        src/flexi/flexi_eav.h
-
-        #        src/misc/regexp.h
 
         lib/duktape/duktape.c
-#        lib/duktape/duktape.h
 
         src/flexi/flexi_class.c
         src/flexi/flexi_class_alter.c
         src/flexi/flexi_props_to_object.c
 
         src/fts/fts3_expr.c
-        #        src/fts/fts3Int.h
         src/fts/fts3_tokenizer.c
-        #        src/fts/fts3_tokenizer.h
         src/fts/fts3_hash.c
-        #        src/fts/fts3_hash.h
         src/flexi/flexi_prop.c
         src/flexi/flexi_prop_merge.c
         src/flexi/flexi_query.c
         src/util/json_proc.c
         src/common/common.h
-#        src/resources/dbschema.res.h
         src/util/buffer.c
         src/util/buffer.h
-#        src/flexi/flexi_class.h
         src/flexi/flexi_func.c
 
-        src/flexi/flexi_prop_merge.h src/flexi/flexi_db_ctx.c src/flexi/flexi_db_ctx.h src/flexi/flexi_user_info.c src/flexi/flexi_user_info.h)
+        src/flexi/flexi_prop_merge.h
+        src/flexi/flexi_db_ctx.c
+        src/flexi/flexi_db_ctx.h
+        src/flexi/flexi_user_info.c
+        src/flexi/flexi_user_info.h
+        src/util/rbtree.c
+        )
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
 #set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
 
 add_library(Flexilite SHARED ${EXT_FILES})
-
-target_link_libraries(Flexilite CAlgorithms)
 
 add_custom_target(install_${PROJECT_NAME}
         make install

@@ -217,10 +217,10 @@ static int _parseMixins(struct flexi_class_def *pClassDef, const char *zClassDef
         mixin->dynSelectorProp.bOwnName = true;
 
         zRulesJson = (char *) sqlite3_column_text(pStmt, 4);
-        char *zRulesSql = "select json_extract(value, '$.exactValue') as exactValue,"
-                "json_extract(value, '$.regex') as regex,"
-                "json_extract(value, '$.classRef.$id') as classId,"
-                "json_extract(value, '$.classRef.$name') as className"
+        char *zRulesSql = "select json_extract(value, '$.exactValue') as exactValue," // 0
+                "json_extract(value, '$.regex') as regex," // 1
+                "json_extract(value, '$.classRef.$id') as classId," // 2
+                "json_extract(value, '$.classRef.$name') as className" // 3
                 "from json_each(:1);";
         CHECK_CALL(sqlite3_prepare_v2(pClassDef->pCtx->db, zRulesSql, -1, &pRulesStmt, NULL));
         CHECK_CALL(sqlite3_bind_text(pRulesStmt, 1, zRulesJson, -1, NULL));
@@ -230,9 +230,19 @@ static int _parseMixins(struct flexi_class_def *pClassDef, const char *zClassDef
             if (result != SQLITE_ROW)
                 break;
 
+            struct flexi_mixin_rule *rule = Buffer_append(&mixin->rules);
+            if (!rule)
+            {
+                result = SQLITE_NOMEM;
+                goto CATCH;
+            }
 
+            rule->zExactValue = (char *) sqlite3_column_text(pRulesStmt, 0);
+            rule->regex = (char *) sqlite3_column_text(pRulesStmt, 1);
+            rule->classRef.id = sqlite3_column_int64(pRulesStmt, 2);
+            rule->classRef.name = (char *) sqlite3_column_text(pRulesStmt, 3);
+            rule->classRef.bOwnName = true;
         }
-
     }
 
     result = SQLITE_OK;

@@ -2,6 +2,3 @@
 	path = lib/cmocka
 	url = git://git.cryptomilk.org/projects/cmocka.git
 
-[submodule "lib/c-algoryithms"]
-	path = lib/c-algoryithms
-	url = https://github.com/afiskon/c-algorithms.git
