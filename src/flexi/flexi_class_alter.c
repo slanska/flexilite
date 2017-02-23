@@ -22,7 +22,25 @@ static int _merge_class_schemas(struct flexi_db_context *pCtx,
 static int _createClassDefFromDefJSON(struct flexi_db_context *pCtx, const char *zClassDefJson,
                                       struct flexi_class_def **pClassDef)
 {
-    return 0; // TODo
+    int result;
+    const char *zErr = NULL;
+
+    *pClassDef = flexi_class_def_new(pCtx);
+    if (!*pClassDef)
+    {
+        result = SQLITE_NOMEM;
+        goto CATCH;
+    }
+
+    CHECK_CALL(flexi_class_def_parse(*pClassDef, zClassDefJson, &zErr));
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
 }
 
 static int _alter_class_with_data(struct flexi_db_context *pCtx,
@@ -126,11 +144,12 @@ int flexi_alter_new_class(struct flexi_db_context *pCtx, sqlite3_int64 lClassID,
     CHECK_CALL(_createClassDefFromDefJSON(pCtx, zNewClassDef, &pNewClassDef));
     pNewClassDef->lClassID = lClassID;
 
-    // Merge existing definition with new one.
-//    _merge_class_schemas(pCtx,)
-
-
     // Validate definition
+
+    // Merge existing definition with new one.
+    //    _merge_class_schemas(pCtx,)
+
+
 
     goto FINALLY;
 

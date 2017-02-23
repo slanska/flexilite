@@ -270,7 +270,7 @@ static int _parseMixins(struct flexi_class_def *pClassDef, const char *zClassDef
 static int _parseProperties(struct flexi_class_def *pClassDef, sqlite3_stmt *pStmt, int iPropNameCol,
                             int iPropDefCol, int iNameCol, int ctlvCol, int ictlvPlanCol)
 {
-    int result = SQLITE_OK;
+    int result;
 
     char *zPropDefJson = NULL;
 
@@ -321,6 +321,26 @@ static int _parseProperties(struct flexi_class_def *pClassDef, sqlite3_stmt *pSt
     FINALLY:
 
     return result;
+}
+
+static int _parseClassDefAux(struct flexi_class_def *pClassDef, const char *zClassDefJson)
+{
+
+    int (*funcs[])(struct flexi_class_def *, const char *)  =
+            {_parseFullTextProperties,
+             _parseMixins,
+             _parseRangeProperties,
+             _parseSpecialProperties
+            };
+    int ii;
+    int result;
+    for (ii = 0; ii < ARRAY_LEN(funcs); ii++)
+    {
+        result = funcs[ii](pClassDef, zClassDefJson);
+        if (result != SQLITE_OK)
+            return result;
+    }
+    return SQLITE_OK;
 }
 
 // TODO
@@ -996,6 +1016,28 @@ int flexi_class_def_generate_vtable_sql(struct flexi_class_def *pClassDef, char 
     return 0;
 }
 
+
+/*
+ * Parses class definition JSON into classDef structure (which is supposed to be already allocated and zeroed)
+ */
+int flexi_class_def_parse(struct flexi_class_def *pClassDef,
+                          const char *zClassDefJson, const char **pzErr)
+{
+
+    int result;
+
+    // Load properties
+
+    // Load other properties
+    CHECK_CALL(_parseClassDefAux(pClassDef, zClassDefJson));
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+    FINALLY:
+    return result;
+}
+
 /*
  * Loads class definition from [.classes] and [flexi_prop] tables
  * into ppVTab (casted to flexi_class_def).
@@ -1078,10 +1120,7 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
     CHECK_CALL(_parseProperties(*pClassDef, pCtx->pStmts[STMT_LOAD_CLS_PROP], 3, 6, 2, 4, 5));
 
     zClassDefJson = (char *) sqlite3_column_text(pGetClassStmt, 6);
-    _parseFullTextProperties(*pClassDef, zClassDefJson);
-    _parseMixins(*pClassDef, zClassDefJson);
-    _parseRangeProperties(*pClassDef, zClassDefJson);
-    _parseSpecialProperties(*pClassDef, zClassDefJson);
+    CHECK_CALL(_parseClassDefAux(*pClassDef, zClassDefJson));
 
     result = SQLITE_OK;
     goto FINALLY;

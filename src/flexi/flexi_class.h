@@ -245,4 +245,8 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
  */
 int flexi_class_def_generate_vtable_sql(struct flexi_class_def *pClassDef, char **zSQL);
 
+struct flexi_class_def *flexi_class_def_new(struct flexi_db_context *pCtx);
+
+int flexi_class_def_parse(struct flexi_class_def *pClassDef, const char *zClassDefJson, const char **pzErr);
+
 #endif //FLEXILITE_FLEXI_CLASS_H
