@@ -44,6 +44,7 @@ project(Flexilite)
 include_directories(
         lib/duktape
         lib/sqlite
+        lib/c-algoryithms/include
 )
 
 #add_custom_command(
@@ -66,6 +67,8 @@ set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TR
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 add_definitions(-DRESOURCES_GENERATED )
+
+add_subdirectory(lib/c-algoryithms/src)
 
 set(EXT_FILES
 #        lib/sqlite/sqlite3ext.h
@@ -126,6 +129,8 @@ set(CMAKE_FIND_LIBRARY_PREFIXES "")
 #set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
 
 add_library(Flexilite SHARED ${EXT_FILES})
+
+target_link_libraries(Flexilite CAlgorithms)
 
 add_custom_target(install_${PROJECT_NAME}
         make install

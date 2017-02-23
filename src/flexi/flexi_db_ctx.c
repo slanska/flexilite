@@ -259,11 +259,11 @@ void flexi_metadata_ref_free(flexi_metadata_ref *pp)
         sqlite3_free(pp->name);
 }
 
-void flexi_class_mixin_def_free(struct flexi_class_mixin_def *p)
+void flexi_class_mixin_def_dispose(struct flexi_class_mixin_def *p)
 {
     if (p)
     {
-        Buffer_done(&p->rules);
+        Buffer_clear(&p->rules);
         sqlite3_free(p->classRef.name);
         sqlite3_free(p->dynSelectorProp.name);
     }
@@ -276,9 +276,10 @@ static void _disposeMixinRuleItem(struct flexi_mixin_rule *rr)
     sqlite3_free(rr->zExactValue);
 }
 
-void flexi_class_mixin_init(struct flexi_class_mixin_def *p)
+void flexi_class_mixin_def_init(struct flexi_class_mixin_def *p)
 {
     memset(p, 0, sizeof(*p));
     Buffer_init(&p->rules, sizeof(struct flexi_mixin_rule), (void *) _disposeMixinRuleItem);
 }
+
 

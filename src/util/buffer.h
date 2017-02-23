@@ -11,7 +11,8 @@
 /*
  * Implementation of generic buffer with items of fixed size
  */
-struct Buffer {
+struct Buffer
+{
     /*
      * Array of items
      */
@@ -42,16 +43,17 @@ typedef struct Buffer Buffer;
 
 extern void Buffer_init(Buffer *pBuf, size_t elemSize, void (*disposeElem)(void *pElem));
 
-extern void Buffer_done(Buffer *pBuf);
+extern void Buffer_clear(Buffer *pBuf);
 
 extern void *Buffer_get(Buffer *pBuf, u32 index);
 
 extern void Buffer_set(Buffer *pBuf, u32 index, void *pElem);
 
-extern int Buffer_append(Buffer *pBuf, void *pElem);
+extern void *Buffer_append(Buffer *pBuf);
 
 extern var Buffer_each(Buffer *pBuf, iterateeFunc iteratee, var param);
 
 extern void Buffer_remove(Buffer *pBuf, u32 index);
+
 
 #endif //FLEXILITE_BUFFER_H

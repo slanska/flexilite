@@ -91,9 +91,9 @@ struct flexi_class_mixin_def
     CHANGE_STATUS eChangeStatus;
 };
 
-void flexi_class_mixin_init(struct flexi_class_mixin_def *p);
-void flexi_class_mixin_def_free(struct flexi_class_mixin_def *p);
+void flexi_class_mixin_def_init(struct flexi_class_mixin_def *p);
 
+void flexi_class_mixin_def_dispose(struct flexi_class_mixin_def *p);
 
 
 /*

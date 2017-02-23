@@ -182,6 +182,9 @@ static int _parseMixins(struct flexi_class_def *pClassDef, const char *zClassDef
     int result;
 
     sqlite3_stmt *pStmt = NULL;
+    sqlite3_stmt *pRulesStmt = NULL;
+    char *zRulesJson = NULL;
+
     char *zSql = "select json_extract(value, '$.classRef.$id')," // 0
             "json_extract(value, '$.classRef.$name'), " // 1
             "json_extract(value, '$.dynamic.selectorProp.$id'), " // 2
@@ -196,8 +199,39 @@ static int _parseMixins(struct flexi_class_def *pClassDef, const char *zClassDef
         if (result == SQLITE_DONE)
             break;
 
-//        pClassDef->mixins
-//        flexi_class_mixin_init()
+        struct flexi_class_mixin_def *mixin = Buffer_append(&pClassDef->aMixins);
+        if (!mixin)
+        {
+            result = SQLITE_NOMEM;
+            goto CATCH;
+        }
+
+        flexi_class_mixin_def_init(mixin);
+
+        mixin->classRef.name = (char *) sqlite3_column_text(pStmt, 1);
+        mixin->classRef.bOwnName = true;
+        mixin->classRef.id = sqlite3_column_int64(pStmt, 0);
+
+        mixin->dynSelectorProp.id = sqlite3_column_int64(pStmt, 2);
+        mixin->dynSelectorProp.name = (char *) sqlite3_column_text(pStmt, 3);
+        mixin->dynSelectorProp.bOwnName = true;
+
+        zRulesJson = (char *) sqlite3_column_text(pStmt, 4);
+        char *zRulesSql = "select json_extract(value, '$.exactValue') as exactValue,"
+                "json_extract(value, '$.regex') as regex,"
+                "json_extract(value, '$.classRef.$id') as classId,"
+                "json_extract(value, '$.classRef.$name') as className"
+                "from json_each(:1);";
+        CHECK_CALL(sqlite3_prepare_v2(pClassDef->pCtx->db, zRulesSql, -1, &pRulesStmt, NULL));
+        CHECK_CALL(sqlite3_bind_text(pRulesStmt, 1, zRulesJson, -1, NULL));
+        while (true)
+        {
+            CHECK_STMT(sqlite3_step(pRulesStmt));
+            if (result != SQLITE_ROW)
+                break;
+
+
+        }
 
     }
 
@@ -205,9 +239,12 @@ static int _parseMixins(struct flexi_class_def *pClassDef, const char *zClassDef
     goto FINALLY;
 
     CATCH:
+    Buffer_clear(&pClassDef->aMixins);
 
     FINALLY:
+    sqlite3_free(zRulesJson);
     sqlite3_finalize(pStmt);
+    sqlite3_finalize(pRulesStmt);
     return result;
 }
 
@@ -276,6 +313,10 @@ static int _parseProperties(struct flexi_class_def *pClassDef, sqlite3_stmt *pSt
     return result;
 }
 
+// TODO
+//static void flexi_class_mixin_def_dispose(struct flexi_class_mixin_def *p)
+//{}
+
 /*
  * Allocates and initializes new instance of class definition
  */
@@ -288,6 +329,7 @@ struct flexi_class_def *flexi_class_def_new(struct flexi_db_context *pCtx)
 
     result->pCtx = pCtx;
     HashTable_init(&result->propMap, (void *) flexi_prop_def_free);
+    Buffer_init(&result->aMixins, sizeof(struct flexi_class_mixin_def), (void *) flexi_class_mixin_def_dispose);
 
     return result;
 }
@@ -836,7 +878,22 @@ void flexi_class_def_free(struct flexi_class_def *pClsDef)
 
         HashTable_clear(&pClsDef->propMap);
 
-        // TODO free mixins, specialProps, rangeProps, fullTextProps
+        Buffer_clear(&pClsDef->aMixins);
+
+        for (int ii = 0; ii < ARRAY_LEN(pClsDef->aSpecProps); ii++)
+        {
+            flexi_metadata_ref_free(&pClsDef->aSpecProps[ii]);
+        }
+
+        for (int ii = 0; ii < ARRAY_LEN(pClsDef->aFtsProps); ii++)
+        {
+            flexi_metadata_ref_free(&pClsDef->aFtsProps[ii]);
+        }
+
+        for (int ii = 0; ii < ARRAY_LEN(pClsDef->aRangeProps); ii++)
+        {
+            flexi_metadata_ref_free(&pClsDef->aRangeProps[ii]);
+        }
 
         sqlite3_free(pClsDef);
     }

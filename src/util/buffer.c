@@ -18,7 +18,7 @@ void Buffer_init(Buffer *pBuf, size_t elemSize, void (*disposeElem)(void *pElem)
     pBuf->disposeElem = disposeElem;
 }
 
-void Buffer_done(Buffer *pBuf)
+void Buffer_clear(Buffer *pBuf)
 {
     if (pBuf->disposeElem)
     {
@@ -79,14 +79,13 @@ void Buffer_set(Buffer *pBuf, u32 index, void *pElem)
         pBuf->iCnt++;
 }
 
-int Buffer_append(Buffer *pBuf, void *pElem)
+void* Buffer_append(Buffer *pBuf)
 {
     int result = _buffer_ensure_capacity(pBuf, pBuf->iCnt + 1);
     if (result != SQLITE_OK)
-        return -1;
+        return NULL;
     void *pItem = Buffer_get(pBuf, pBuf->iCnt + 1);
-    memcpy(pItem, pElem, pBuf->iElemSize);
-    return pBuf->iCnt++;
+    return pItem;
 }
 
 var Buffer_each(Buffer *pBuf, iterateeFunc iteratee, var param)
