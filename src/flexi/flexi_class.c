@@ -199,6 +199,7 @@ static int _parseMixins(struct flexi_class_def *pClassDef, const char *zClassDef
         if (result == SQLITE_DONE)
             break;
 
+        pClassDef->mixinsLoaded = true;
         struct flexi_class_mixin_def *mixin = Buffer_append(&pClassDef->aMixins);
         if (!mixin)
         {
@@ -1023,10 +1024,15 @@ int flexi_class_def_generate_vtable_sql(struct flexi_class_def *pClassDef, char 
 int flexi_class_def_parse(struct flexi_class_def *pClassDef,
                           const char *zClassDefJson, const char **pzErr)
 {
-
     int result;
 
+    sqlite3_stmt*pStmt = NULL;
+
     // Load properties
+    char *zPropSql = "select key as Name, value as Definition from json_each(:1, '$.properties');";
+    CHECK_CALL(sqlite3_prepare_v2(pClassDef->pCtx->db, zPropSql, -1, &pStmt, NULL));
+    CHECK_CALL(sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
+    CHECK_CALL(_parseProperties(pClassDef, pStmt, 0, 1, -1, -1, -1));
 
     // Load other properties
     CHECK_CALL(_parseClassDefAux(pClassDef, zClassDefJson));
@@ -1034,7 +1040,9 @@ int flexi_class_def_parse(struct flexi_class_def *pClassDef,
     goto FINALLY;
 
     CATCH:
+
     FINALLY:
+    sqlite3_finalize(pStmt);
     return result;
 }
 

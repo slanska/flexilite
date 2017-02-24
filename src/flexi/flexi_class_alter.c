@@ -9,12 +9,98 @@
 #include "../project_defs.h"
 #include "flexi_class.h"
 
-static int _merge_class_schemas(struct flexi_db_context *pCtx,
-                                sqlite3_int64 lClassID, const char *zNewClassDef,
-                                const char **pzMergedSchema,
-                                const char **pzError)
+struct PropMergeParams_t
+{
+    struct flexi_class_def *pClassA;
+    struct flexi_class_def *pClassB;
+    char **pzErr;
+
+    /*
+     * Set by _processProp and _mergeClassSchemas to reflect type of alteration
+     * if true, class definition is going to be shrinked, i.e. data validation/processing would be required
+     */
+    bool shrinkSchema;
+};
+
+static void
+_processProp(const char *zPropName, int index, var pProp,
+             var pPropMap, var params, bool *bStop)
+{
+    struct PropMergeParams_t *pp = params;
+    struct flexi_prop_def *p = pProp;
+
+    if (p->eChangeStatus != CHNG_STATUS_DELETED)
+        // Validate
+    {
+        // type
+
+        // minValue & maxValue
+
+        // minOccurences & maxOccurences
+
+        // if ref, check refDef
+
+        // if enum, check enumDef
+    }
+
+    // Check if class2 has the same property
+    struct flexi_class_prop_def *pProp2 = HashTable_get(&pp->pClassA->propMap, zPropName);
+
+    if (pProp2)
+    {
+        if (p->eChangeStatus != CHNG_STATUS_DELETED)
+        {
+            p->eChangeStatus = CHNG_STATUS_MODIFIED;
+        }
+
+        // Check if change can be applied (ref -> scalar or scalar -> ref or ref -> different ref)
+
+        //p->enumDef.
+    }
+    else
+    {
+        if (p->eChangeStatus == CHNG_STATUS_DELETED)
+        {
+            *pp->pzErr = sqlite3_mprintf("Cannot drop non existing property '%s'", zPropName);
+            *bStop = true;
+            return;
+        }
+
+        if (p->zRenameTo)
+        {
+            *pp->pzErr = sqlite3_mprintf("Cannot rename non existing property '%s'", zPropName);
+            *bStop = true;
+            return;
+        }
+
+        p->eChangeStatus = CHNG_STATUS_ADDED;
+        HashTable_set(&pp->pClassA->propMap, zPropName, p);
+    }
+}
+
+static int
+_mergeClassSchemas(struct flexi_class_def *pClassA, struct flexi_class_def *pClassB,
+                   char **pzErr)
 {
     int result;
+    struct PropMergeParams_t propMergeParams = {
+            .pClassA = pClassA,
+            .pClassB = pClassB,
+            .pzErr = pzErr,
+            .shrinkSchema = false
+    };
+
+    void *pFunc = &_processProp;
+    // Iterate through properties. Find props: to be renamed, to be deleted, to be updated, to be added
+    HashTable_each(&pClassB->propMap, pFunc, &propMergeParams);
+
+    // Process mixins
+
+    // Process special props
+
+    // Process range props
+
+    // Process FTS props
 
     return result;
 }
@@ -123,6 +209,16 @@ int flexi_class_alter(struct flexi_db_context *pCtx,
     return result;
 }
 
+static int _classDef_validate(struct flexi_class_def *pClassDef)
+{
+    int result;
+
+    // TODO
+
+    return result;
+}
+
+
 /*
  *
  */
@@ -144,12 +240,9 @@ int flexi_alter_new_class(struct flexi_db_context *pCtx, sqlite3_int64 lClassID,
     CHECK_CALL(_createClassDefFromDefJSON(pCtx, zNewClassDef, &pNewClassDef));
     pNewClassDef->lClassID = lClassID;
 
-    // Validate definition
+    CHECK_CALL(_mergeClassSchemas(pClassDef, pNewClassDef, pzErr));
 
-    // Merge existing definition with new one.
-    //    _merge_class_schemas(pCtx,)
-
-
+    // applyClassSchema
 
     goto FINALLY;
 

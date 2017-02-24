@@ -28,10 +28,16 @@ struct flexi_prop_def
     sqlite3_int64 iPropID;
 
     // Attributes that need to be explicitly disposed
-    int type;
     char *zType;
 
     flexi_metadata_ref name;
+    short int type;
+    short int xRole;
+    char bIndexed;
+    char bUnique;
+    char bFullTextIndex;
+    bool bNoTrackChanges;
+
     char *zIndex;
     char *zSubType;
 
@@ -51,24 +57,18 @@ struct flexi_prop_def
 
     sqlite3_value *defaultValue;
 
-    int bNoTrackChanges;
-
     double maxValue;
     double minValue;
-    int maxLength;
-    int minOccurences;
-    int maxOccurences;
-
-    short int xRole;
-    char bIndexed;
-    char bUnique;
-    char bFullTextIndex;
-    int xCtlv;
-    int xCtlvPlan;
 
     flexi_metadata_ref enumDef;
 
-    const char *zSrcJson;
+    int maxLength;
+    int minOccurences;
+
+    int maxOccurences;
+    int xCtlv;
+
+    int xCtlvPlan;
 
     /*
      * 1-10: column is mapped to .range_data columns (1 = A0, 2 = A1, 3 = B0 and so on)

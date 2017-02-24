@@ -146,6 +146,7 @@ struct flexi_class_def
     Hash propMap;
 
     Buffer aMixins;
+    bool mixinsLoaded;
 };
 
 int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName, const char *zClassDef, int bCreateVTable,

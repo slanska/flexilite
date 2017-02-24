@@ -72,7 +72,6 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
     ;
     int result;
 
-    pProp->zSrcJson = zPropDefJson;
     struct flexi_db_context *pCtx = pProp->pCtx;
     if (!pCtx->pStmts[STMT_PROP_PARSE])
     {
