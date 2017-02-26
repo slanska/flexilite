@@ -51,7 +51,7 @@ extern void Buffer_set(Buffer *pBuf, u32 index, void *pElem);
 
 extern void *Buffer_append(Buffer *pBuf);
 
-extern var Buffer_each(Buffer *pBuf, iterateeFunc iteratee, var param);
+extern var Buffer_each(const Buffer *pBuf, iterateeFunc iteratee, var param);
 
 extern void Buffer_remove(Buffer *pBuf, u32 index);
 

@@ -28,6 +28,24 @@
  */
 #include <stdbool.h>
 
+enum CHANGE_STATUS
+{
+    CHNG_STATUS_NOT_MODIFIED = 0,
+    CHNG_STATUS_ADDED = 1,
+    CHNG_STATUS_MODIFIED = 2,
+    CHNG_STATUS_DELETED = 3
+};
+
+typedef enum CHANGE_STATUS CHANGE_STATUS;
+
+enum REF_PROP_ROLE
+{
+    REF_PROP_ROLE_MASTER = 0,
+    REF_PROP_ROLE_LINK = 0,
+    REF_PROP_ROLE_NESTED = 0,
+    REF_PROP_ROLE_DEPENDENT = 0
+};
+
 #define CHECK_CALL(call)       result = (call); \
         if (result != SQLITE_OK) goto CATCH;
 
@@ -67,7 +85,7 @@ typedef void *var;
  * @param collection - collection instance (hash table or array)
  * @param bStop - should be set to true by iterateeFunc to stop iteration and return last processed item
  */
-typedef void iterateeFunc(const char *zKey, int index, void *pData,
+typedef void iterateeFunc(const char *zKey, u32 index, void *pData,
                           var collection, var param, bool *bStop);
 
 #endif //FLEXILITE_COMMON_H

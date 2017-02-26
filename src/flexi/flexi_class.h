@@ -9,6 +9,7 @@
 #include "flexi_db_ctx.h"
 #include "../util/buffer.h"
 #include "flexi_prop.h"
+#include "class_ref_def.h"
 
 /*
  * Column numbers and array indexes for class' special properties
@@ -56,13 +57,6 @@ enum RTREE_PROP_IDX
     RTREE_PROP_E0 = 8,
     RTREE_PROP_E1 = 9,
     RTREE_PROP_COUNT = RTREE_PROP_E1 + 1,
-};
-
-struct flexi_mixin_rule
-{
-    char *zExactValue;
-    char *regex;
-    flexi_metadata_ref classRef;
 };
 
 /*
@@ -139,19 +133,19 @@ struct flexi_class_def
 int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName, const char *zClassDef, bool bCreateVTable,
                        const char **pzError);
 
-void flexi_class_create_func(
+int flexi_class_create_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_class_alter_func(
+int flexi_class_alter_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_class_drop_func(
+int flexi_class_drop_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
@@ -159,19 +153,19 @@ void flexi_class_drop_func(
 
 int flexi_class_rename(struct flexi_db_context *pCtx, sqlite3_int64 iOldClassID, const char *zNewName);
 
-void flexi_class_rename_func(
+int flexi_class_rename_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_change_object_class(
+int flexi_change_object_class(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_prop_to_obj_func(
+int flexi_prop_to_obj_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
@@ -212,7 +206,7 @@ void flexi_props_to_obj_func(
         sqlite3_value **argv
 );
 
-void flexi_obj_to_props_func(
+int flexi_obj_to_props_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv

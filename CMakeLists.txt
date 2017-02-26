@@ -105,7 +105,7 @@ set(EXT_FILES
         src/flexi/flexi_user_info.c
         src/flexi/flexi_user_info.h
         src/util/rbtree.c
-        )
+        src/flexi/class_ref_def.c src/flexi/class_ref_def.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")

@@ -8,6 +8,7 @@
 
 #include "../project_defs.h"
 #include "flexi_class.h"
+#include "class_ref_def.h"
 
 /*
  * Global mapping of type names between Flexilite and SQLite
@@ -43,7 +44,7 @@ const static FlexiTypesToSqliteTypeMap g_FlexiTypesToSqliteTypes[] = {
         {"decimal",   "MONEY",    PROP_TYPE_DECIMAL},
         {"binary",    "IMAGE",    PROP_TYPE_BINARY},
         {"text",      "VARCHAR",  PROP_TYPE_TEXT},
-        {"reference", "",         PROP_TYPE_LINK},
+        {"reference", "",         PROP_TYPE_REF},
         {"enum",      "",         PROP_TYPE_ENUM},
         {"name",      "",         PROP_TYPE_NAME},
         {NULL,        "TEXT",     PROP_TYPE_TEXT}
@@ -65,7 +66,7 @@ struct PropMergeParams_t
 {
     struct flexi_class_def *pExistingClass;
     struct flexi_class_def *pNewClass;
-    char **pzErr;
+    const char **pzErr;
 
     /*
      * Set by _processProp and _mergeClassSchemas to reflect type of alteration
@@ -97,7 +98,7 @@ _initEnumProp()
     // as uid/name/$id of enum item
 
     // Scan existing data, extract distinct values, find matching items in enum def.
-
+    return 0;
 }
 
 /*
@@ -112,13 +113,91 @@ _initRefProp()
     // Scan existing data and normalize it
 
     // Process reverse property
-
+    return 0;
 }
 
 static int
 _initNameProp()
-{}
+{
+    return 0;
+}
 
+/*
+ * Mapping of upgrade and downgrade property types
+ */
+struct PropTypeTransitRule_t
+{
+    /*
+     * Original property type
+     */
+    int type;
+
+    /*
+     * Can be upgraded without problem
+     */
+    int yes;
+
+    /*
+     * May be OK to downgrade, but validation of existing data is needed
+     */
+    int maybe;
+};
+
+static const struct PropTypeTransitRule_t g_propTypeTransitions[] =
+        {
+                {.type = PROP_TYPE_TEXT, .yes = PROP_TYPE_NAME | PROP_TYPE_REF | PROP_TYPE_BINARY | PROP_TYPE_JSON},
+                {.type = PROP_TYPE_BOOLEAN, .yes = PROP_TYPE_INTEGER | PROP_TYPE_DECIMAL | PROP_TYPE_NUMBER |
+                                                   PROP_TYPE_TEXT |
+                                                   PROP_TYPE_ENUM},
+                {.type = PROP_TYPE_INTEGER, .yes = PROP_TYPE_DECIMAL | PROP_TYPE_NUMBER | PROP_TYPE_TEXT |
+                                                   PROP_TYPE_REF},
+                {.type = PROP_TYPE_NUMBER, .yes = PROP_TYPE_TEXT, .maybe = PROP_TYPE_DECIMAL |
+                                                                           PROP_TYPE_INTEGER},
+                {.type = PROP_TYPE_ENUM, .yes = PROP_TYPE_TEXT | PROP_TYPE_NAME |
+                                                PROP_TYPE_REF, .maybe = PROP_TYPE_INTEGER},
+                {.type = PROP_TYPE_NAME, .yes = PROP_TYPE_TEXT | PROP_TYPE_REF, .maybe = PROP_TYPE_INTEGER |
+                                                                                         PROP_TYPE_ENUM |
+                                                                                         PROP_TYPE_NUMBER},
+                {.type = PROP_TYPE_DECIMAL, .yes = PROP_TYPE_NUMBER | PROP_TYPE_TEXT, .maybe = PROP_TYPE_INTEGER},
+                {.type = PROP_TYPE_DATE, .yes = PROP_TYPE_DATETIME | PROP_TYPE_TEXT},
+                {.type = PROP_TYPE_DATETIME, .yes =PROP_TYPE_TEXT | PROP_TYPE_NUMBER | PROP_TYPE_DECIMAL},
+                {.type = PROP_TYPE_BINARY, .yes = PROP_TYPE_TEXT, .maybe = PROP_TYPE_UUID},
+                {.type = PROP_TYPE_TIMESPAN, .yes = PROP_TYPE_TEXT | PROP_TYPE_NUMBER, .maybe = PROP_TYPE_DECIMAL},
+                {.type = PROP_TYPE_JSON, .yes = PROP_TYPE_TEXT | PROP_TYPE_REF, .maybe = PROP_TYPE_NUMBER},
+                {.type = PROP_TYPE_UUID, .yes = PROP_TYPE_TEXT | PROP_TYPE_BINARY},
+                {.type = PROP_TYPE_REF, .yes = PROP_TYPE_TEXT | PROP_TYPE_INTEGER | PROP_TYPE_DECIMAL},
+                {.type = PROP_TYPE_ENUM, .yes = PROP_TYPE_TEXT | PROP_TYPE_INTEGER | PROP_TYPE_DECIMAL}
+        };
+
+static inline const struct PropTypeTransitRule_t *
+_findPropTypeTransitRule(int propType)
+{
+    int i;
+    const struct PropTypeTransitRule_t *result;
+    result = &g_propTypeTransitions[0];
+    for (i = 0; i < ARRAY_LEN(g_propTypeTransitions); i++, result++)
+    {
+        if (result->type == propType)
+            return result;
+    }
+
+    return NULL;
+}
+
+/*
+ * Compares 2 ref definitions. Returns
+ */
+static int
+_compareRefDefs(struct flexi_ref_def *p1, struct flexi_ref_def *p2)
+{
+    return 0;
+}
+
+static int
+_compareEnumDefs(const struct flexi_enum_def *p1, const struct flexi_enum_def *p2)
+{
+    return 0;
+}
 
 /*
  * At beginning of this function property can be in the following states:
@@ -136,6 +215,9 @@ _processProp(const char *zPropName, int index, struct flexi_prop_def *p,
              var pPropMap, struct PropMergeParams_t *pp, bool *bStop)
 {
 
+    UNUSED_PARAM(pPropMap);
+    UNUSED_PARAM(index);
+
 #define CHECK_ERROR(condition, errorMessage) \
             if (condition) \
     { \
@@ -144,15 +226,83 @@ _processProp(const char *zPropName, int index, struct flexi_prop_def *p,
         return; \
     }
 
-    UNUSED_PARAM(pPropMap);
-    UNUSED_PARAM(index);
-
     // Skip existing properties
     if (p->eChangeStatus == CHNG_STATUS_NOT_MODIFIED)
         return;
 
+    // Check if class2 has the same property
+    struct flexi_prop_def *pProp2;
+    pProp2 = HashTable_get(&pp->pExistingClass->propMap, zPropName);
+
+    if (pProp2)
+    {
+        if (p->zRenameTo)
+        {
+            CHECK_ERROR (!db_validate_name(p->zRenameTo),
+                         sqlite3_mprintf("Invalid new property name [%s] in class [%s]",
+                                         p->zRenameTo, *pp->pExistingClass->name.name));
+        }
+
+        // Check if old and new types are compatible
+        if (p->type != pProp2->type && p->type != PROP_TYPE_ANY)
+        {
+            const struct PropTypeTransitRule_t *transitRule = _findPropTypeTransitRule(p->type);
+
+            if (transitRule)
+            {
+                if ((transitRule->yes & p->type) != 0)
+                {
+                    // Transition is OK
+                }
+                else
+                {
+                    if ((transitRule->maybe & p->type) != 0)
+                    {
+                        // Transition is possible but data validation would be needed
+                        pp->bValidateData = true;
+                    }
+                    else transitRule = NULL;
+                }
+            }
+
+            CHECK_ERROR (!transitRule,
+                         sqlite3_mprintf(
+                                 "Transition from type %s (%d) to type %s (%d) is not supported ([%s].[%s])",
+                                 pProp2->zType, pProp2->type, p->zType, p->type, pp->pNewClass->name.name,
+                                 zPropName));
+        }
+
+        // For REF and ENUM property, check if refDef and enumDef, respectively, did not change
+        if (p->type == pProp2->type)
+        {
+            switch (p->type)
+            {
+                case PROP_TYPE_REF:
+                    break;
+
+                case PROP_TYPE_ENUM:
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+    else
+    {
+        CHECK_ERROR (p->eChangeStatus == CHNG_STATUS_DELETED,
+                     sqlite3_mprintf("Cannot drop non existing property '%s'", zPropName));
+
+        CHECK_ERROR(p->zRenameTo,
+                    sqlite3_mprintf("Cannot rename non existing property '%s'", zPropName));
+
+        CHECK_ERROR(!db_validate_name(zPropName),
+                    sqlite3_mprintf("Invalid property name [%s] in class [%s]",
+                                    zPropName, *pp->pExistingClass->name.name));
+    }
+
+    // Validate property and initialize what's needed
     if (p->eChangeStatus != CHNG_STATUS_DELETED)
-        // Validate
     {
         // Check consistency
         // type
@@ -181,7 +331,7 @@ _processProp(const char *zPropName, int index, struct flexi_prop_def *p,
         // if ref, check refDef
         switch (typeMap->propType)
         {
-            case PROP_TYPE_LINK:
+            case PROP_TYPE_REF:
                 _initRefProp();
                 break;
 
@@ -198,38 +348,6 @@ _processProp(const char *zPropName, int index, struct flexi_prop_def *p,
 
         }
 
-    }
-
-    // Check if class2 has the same property
-    struct flexi_prop_def *pProp2;
-    pProp2 = HashTable_get(&pp->pExistingClass->propMap, zPropName);
-
-    if (pProp2)
-    {
-        if (p->zRenameTo)
-        {
-            CHECK_ERROR (!db_validate_name(p->zRenameTo),
-                         sqlite3_mprintf("Invalid new property name [%s] in class [%s]",
-                                         p->zRenameTo, *pp->pExistingClass->name.name));
-        }
-
-        //        _validateProp(zPropName, )
-
-        // Check if change can be applied (ref -> scalar or scalar -> ref or ref -> different ref)
-
-        //p->enumDef.
-    }
-    else
-    {
-        CHECK_ERROR (p->eChangeStatus == CHNG_STATUS_DELETED,
-                     sqlite3_mprintf("Cannot drop non existing property '%s'", zPropName));
-
-        CHECK_ERROR(p->zRenameTo,
-                    sqlite3_mprintf("Cannot rename non existing property '%s'", zPropName));
-
-        CHECK_ERROR(!db_validate_name(zPropName),
-                    sqlite3_mprintf("Invalid property name [%s] in class [%s]",
-                                    zPropName, *pp->pExistingClass->name.name));
     }
 
 #undef CHECK_ERROR
@@ -307,7 +425,7 @@ _copyExistingProp(const char *zPropName, int idx, struct flexi_prop_def *prop, v
  */
 static int
 _mergeClassSchemas(struct flexi_class_def *pExistingClass, struct flexi_class_def *pNewClass,
-                   char **pzErr)
+                   const char **pzErr)
 {
     int result;
     struct PropMergeParams_t propMergeParams = {

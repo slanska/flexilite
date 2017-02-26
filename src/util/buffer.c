@@ -88,7 +88,7 @@ void* Buffer_append(Buffer *pBuf)
     return pItem;
 }
 
-var Buffer_each(Buffer *pBuf, iterateeFunc iteratee, var param)
+var Buffer_each(const Buffer *pBuf, iterateeFunc iteratee, var param)
 {
     assert(pBuf);
     assert(iteratee);

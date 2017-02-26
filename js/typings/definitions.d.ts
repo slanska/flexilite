@@ -172,7 +172,6 @@ declare interface TMixinClassDef {
     dynamic?: {
         selectorProp: IMetadataRef;
         rules: {
-            exactValue?: string|number,
             regex: string | RegExp,
             classRef: IMetadataRef
         }[];

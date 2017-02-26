@@ -9,33 +9,76 @@
 #include "../common/common.h"
 #include "../misc/regexp.h"
 
-void flexi_prop_create_func(
+int flexi_prop_create_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 )
-{}
+{
+    int result;
 
-void flexi_prop_alter_func(
-        sqlite3_context *context,
-        int argc,
-        sqlite3_value **argv
-)
-{}
+    result = SQLITE_OK;
+    goto FINALLY;
 
-void flexi_prop_drop_func(
-        sqlite3_context *context,
-        int argc,
-        sqlite3_value **argv
-)
-{}
+    CATCH:
 
-void flexi_prop_rename_func(
+    FINALLY:
+    return result;
+}
+
+int flexi_prop_alter_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 )
-{}
+{
+    int result;
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
+
+}
+
+int flexi_prop_drop_func(
+        sqlite3_context *context,
+        int argc,
+        sqlite3_value **argv
+)
+{
+    int result;
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
+
+}
+
+int flexi_prop_rename_func(
+        sqlite3_context *context,
+        int argc,
+        sqlite3_value **argv
+)
+{
+    int result;
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
+
+}
 
 /*
  * Allocates new instance of class prop definition
@@ -137,26 +180,52 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
 }
 
 int flexi_prop_def_stringify(struct flexi_prop_def *pProp, char **pzPropDefJson)
-{}
+{
+    return 0;
+}
 
 int flexi_prop_def_get_changes_needed(struct flexi_prop_def *pOldDef,
                                       struct flexi_prop_def *pNewDef, int *piResult,
                                       const char **pzError)
-{}
+{
+    return 0;
+}
 
-void flexi_prop_to_ref_func(
+int flexi_prop_to_ref_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 )
-{}
+{
+    int result;
 
-void flexi_ref_to_prop_func(
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
+
+}
+
+int flexi_ref_to_prop_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 )
-{}
+{
+    int result;
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
+
+}
 
 /*
  *

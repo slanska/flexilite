@@ -11,7 +11,7 @@ import {SchemaHelper, IShemaHelper} from '../../misc/SchemaHelper';
 import {ReverseEngine} from '../../../flexish/reverseEng';
 import _ = require('lodash');
 
-export class SQLiteDataRefactor implements IDBRefactory
+export class SQLiteDataRefactor
 {
     /*
 
@@ -332,59 +332,8 @@ export class SQLiteDataRefactor implements IDBRefactory
         this.alterClass(name, classDef);
     }
 
-    /*
-     Drops class and all its data
-     */
-    dropClass(classID:number)
-    {
-        var self = this;
-        var clsDef = self.getClassDefByID(classID);
-        self.DB.serialize(()=>
-        {
-            self.DB.exec(`drop table [${clsDef.Name}]`);
-        });
-    }
 
-    /*
-     Converts set of properties into new object
-     */
-    propertiesToObject(filter:IObjectFilter, propIDs:PropertyIDs, newRefProp:IClassPropertyDef,
-                       targetClassID:number, sourceKeyPropID:PropertyIDs,
-                       targetKeyPropID:PropertyIDs)
-    {
 
-    }
-
-    objectToProperties(classID:number, refPropID:number, filter:IObjectFilter, propMap:IPropertyMap)
-    {
-    }
-
-    structuralMerge(sourceClassID:number, sourceFilter:IObjectFilter, sourceKeyPropID:PropertyIDs, targetClassID:number, targetKeyPropID:PropertyIDs, propMap:IPropertyMap)
-    {
-    }
-
-    structuralSplit(sourceClassID:number, filter:IObjectFilter, targetClassID:number, propMap:IPropertyMap, targetClassDef?:IClassDefinition)
-    {
-    }
-
-    moveToAnotherClass(sourceClassID:number, filter:IObjectFilter, targetClassID:number, propMap:IPropertyMap)
-    {
-    }
-
-    /*
-     Removes duplicated objects
-     */
-    removeDuplicatedObjects(filter:IObjectFilter, compareFunction:string, keyProps:PropertyIDs, replaceTargetNulls:boolean)
-    {
-    }
-
-    splitProperty(classID:number, sourcePropID:number, propRules:ISplitPropertyRules)
-    {
-    }
-
-    mergeProperties(classID:number, sourcePropIDs:number[], targetProp:IClassPropertyDef, expression:string)
-    {
-    }
 
     /*
      Returns class property definition by property ID
@@ -407,15 +356,6 @@ export class SQLiteDataRefactor implements IDBRefactory
         and NameID = (select NameID from [.names] where Value = $PropName) limit 1;`,
             {$ClassID: classID, $PropName: propertyName});
         return rows.length === 1 ? rows[0] as IFlexiClassProperty : null;
-    }
-
-    /*
-     Validates property alteration
-     */
-    checkAlterClassProperty(className:string, propertyName:string, propDef:IClassPropertyDef, newPropName?:string,
-                            limit?:number)
-    {
-
     }
 
     /*
@@ -460,7 +400,7 @@ export class SQLiteDataRefactor implements IDBRefactory
             if (!revPropDef)
             // Not found
             {
-                let revPropDef = {reference: {}, rules: {type: PROPERTY_TYPE.PROP_TYPE_LINK}} as IClassPropertyDef;
+                let revPropDef = {reference: {}, rules: {type: PROPERTY_TYPE.PROP_TYPE_REF}} as IClassPropertyDef;
                 revPropDef.reference.classID = clsDef.ClassID;
 
                 let refClsDef = self.getClassDefByID(propDef.reference.$id);
@@ -470,7 +410,7 @@ export class SQLiteDataRefactor implements IDBRefactory
             else
             {
                 let revClsDef = self.getClassDefByID(propDef.reference.$id);
-                revPropDef.Data.rules.type = PROPERTY_TYPE.PROP_TYPE_LINK;
+                revPropDef.Data.rules.type = PROPERTY_TYPE.PROP_TYPE_REF;
                 self.alterClassProperty(revClsDef.Name, propDef.reference.$reversePropertyName, revPropDef.Data);
             }
 
@@ -564,12 +504,12 @@ export class SQLiteDataRefactor implements IDBRefactory
         var curRef = false;
 
         // Determining scope of changes
-        if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
+        if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_REF || propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
         {
             newRef = true;
         }
 
-        if (curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
+        if (curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_REF || curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
         {
             curRef = true;
         }
@@ -724,12 +664,12 @@ export class SQLiteDataRefactor implements IDBRefactory
         var curRef = false;
 
         // Determining scope of changes
-        if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
+        if (propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_REF || propDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
         {
             newRef = true;
         }
 
-        if (curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_LINK || curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
+        if (curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_REF || curPropDef.rules.type === PROPERTY_TYPE.PROP_TYPE_OBJECT)
         {
             curRef = true;
         }

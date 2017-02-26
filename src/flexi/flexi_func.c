@@ -13,9 +13,9 @@
 
 SQLITE_EXTENSION_INIT3
 
-static void flexi_help_func(sqlite3_context *context,
-                            int argc,
-                            sqlite3_value **argv)
+static int flexi_help_func(sqlite3_context *context,
+                           int argc,
+                           sqlite3_value **argv)
 {
     (void) argc;
     (void) argv;
@@ -34,11 +34,12 @@ static void flexi_help_func(sqlite3_context *context,
             "   init";
 
     sqlite3_result_text(context, zHelp, -1, NULL);
+    return SQLITE_OK;
 }
 
-static void flexi_init_func(sqlite3_context *context,
-                            int argc,
-                            sqlite3_value **argv)
+static int flexi_init_func(sqlite3_context *context,
+                           int argc,
+                           sqlite3_value **argv)
 {
     (void) argc;
     (void) argv;
@@ -61,6 +62,7 @@ static void flexi_init_func(sqlite3_context *context,
 
     FINALLY:
     sqlite3_free(zSQL);
+    return result;
 
 #endif
 
@@ -81,7 +83,7 @@ static void flexi_func(sqlite3_context *context,
     {
         const char *zMethod;
 
-        void (*func)(sqlite3_context *, int, sqlite3_value **);
+        int (*func)(sqlite3_context *, int, sqlite3_value **);
 
         int trn;
     } methods[] = {
@@ -101,6 +103,13 @@ static void flexi_func(sqlite3_context *context,
             {"property to reference", flexi_prop_to_ref_func,    1},
             {"reference to property", flexi_ref_to_prop_func,    1},
             {"change object class",   flexi_change_object_class, 1},
+
+            /*
+             * "structural merge" -- join 2+ objects to 1 object
+             * "structural split" -- reverse operation to structural split
+             * "remove duplicates" -- finds and merges duplicates by uid, code or name
+             *
+             */
 
             {"init",                  flexi_init_func,           1},
             {"help",                  flexi_help_func,           0},
@@ -124,11 +133,20 @@ static void flexi_func(sqlite3_context *context,
                     return;
                 }
             }
-            methods[ii].func(context, argc - 1, &argv[1]);
+
+            result = methods[ii].func(context, argc - 1, &argv[1]);
 
             if (methods[ii].trn)
             {
-                result = sqlite3_exec(db, "release flexi1;", NULL, NULL, &zError);
+                // Check if call finished with error
+                if (result != SQLITE_OK)
+                {
+                    sqlite3_exec(db, "rollback flexi1;", NULL, NULL, &zError);
+                }
+                else
+                {
+                    result = sqlite3_exec(db, "release flexi1;", NULL, NULL, &zError);
+                }
                 if (result)
                 {
                     sqlite3_result_error(context, zError, -1);

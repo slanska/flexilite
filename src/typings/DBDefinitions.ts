@@ -85,7 +85,9 @@ declare const enum OBJECT_CONTROL_FLAGS
 }
 ;
 
-// Property types
+/*
+ Bitmask for supported property types
+ */
 declare const enum PROPERTY_TYPE
 {
     /*
@@ -98,89 +100,72 @@ declare const enum PROPERTY_TYPE
      */
     PROP_TYPE_AUTO = 0,
 
-    /*
-     'linked_object':
-     referenced object is stored in separate row has its own ID referenced via row in [.ref-values]
-     and can be accessed independently from master object.
-     This is most flexible option.
-     The same value as CTLV_REFERENCE
-     */
-    PROP_TYPE_LINK = 2,
+        /*
+         'linked_object':
+         referenced object is stored in separate row has its own ID referenced via row in [.ref-values]
+         and can be accessed independently from master object.
+         This is most flexible option.
+         The same value as CTLV_REFERENCE
+         */
+    PROP_TYPE_REF = 1 << 0,
 
-    /*
-     Boxed object or collection of boxed objects.
-     'boxed_object':
-     referenced object stored as a part of master object. It does not have its own ID and can be accessed
-     only via master object. Such object can have other boxed objects or boxed references but not LINKED_OBJECT references
-     (since it does not have its own ID).
-     The same value as CTLV_REFERENCE_OWN
-     */
-    PROP_TYPE_OBJECT = 4,
+    PROP_TYPE_INTEGER = 1 << 1,
 
-    PROP_TYPE_INTEGER = 15,
+        /*
+         Selectable from fixed list of items. Internally stored as INTEGER or TEXT
+         */
+    PROP_TYPE_ENUM = 1 << 2,
 
-    /*
-     Selectable from fixed list of items. Internally stored as INTEGER or TEXT
-     */
-    PROP_TYPE_ENUM = 16,
+        /*
+         Stored as integer * 10000. Corresponds to Decimal(19, 4). (The same format used by Visual Basic)
+         */
+    PROP_TYPE_DECIMAL = 1 << 3,
 
-    /*
-     Stored as integer * 10000. Corresponds to Decimal(19, 4). (The same format used by Visual Basic)
-     */
-    PROP_TYPE_DECIMAL = 17,
+        /*
+         Presented as text but internally stored as name ID (INTEGER). Provides localization
+         */
+    PROP_TYPE_NAME = 1 << 4,
 
-    /*
-     Presented as text but internally stored as name ID (INTEGER). Provides localization
-     */
-    PROP_TYPE_NAME = 18,
+        /*
+         True or False, 1 or 0. Stored as INTEGER
+         */
+    PROP_TYPE_BOOLEAN = 1 << 5,
 
-    /*
-     True or False, 1 or 0. Stored as INTEGER
-     */
-    PROP_TYPE_BOOLEAN = 19,
+        /*
+         8 byte float value. Stored as SQLite FLOAT
+         */
+    PROP_TYPE_NUMBER = 1 << 6,
 
-    /*
-     8 byte float value. Stored as SQLite FLOAT
-     */
-    PROP_TYPE_NUMBER = 20,
+        /*
+         8 byte double corresponds to Julian day in SQLite
+         */
+    PROP_TYPE_DATETIME = 1 << 7,
 
-    /*
-     8 byte double corresponds to Julian day in SQLite
-     */
-    PROP_TYPE_DATETIME = 21,
+        /*
+         8 byte double corresponds to Julian day in SQLite
+         */
+    PROP_TYPE_TIMESPAN = 1 << 8,
 
-    /*
-     8 byte double corresponds to Julian day in SQLite
-     */
-    PROP_TYPE_TIMESPAN = 22,
+        /*
+         Byte array (Buffer).
+         */
+    PROP_TYPE_BINARY = 1 << 9,
 
-    /*
-     Byte array (Buffer).
-     */
-    PROP_TYPE_BINARY = 23,
+        /*
+         16 byte buffer.
+         */
+    PROP_TYPE_UUID = 1 << 10,
 
-    /*
-     16 byte buffer.
-     */
-    PROP_TYPE_UUID = 24,
+    PROP_TYPE_TEXT = 1 << 11,
 
-    PROP_TYPE_TEXT = 25,
+        /*
+         Arbitrary JSON object not processed by Flexi
+         */
+    PROP_TYPE_JSON = 1 << 12,
 
-    /*
-     Arbitrary JSON object not processed by Flexi
-     */
-    PROP_TYPE_JSON = 26,
+    PROP_TYPE_ANY = 1 << 13,
 
-    /*
-     'Virtual' property which is has real, aliased, property. 
-     */
-    PROP_TYPE_ALIAS = 27,
-
-    PROP_TYPE_FORMULA = 28,
-
-    PROP_TYPE_ANY = 29,
-
-    PROP_TYPE_DATE = 30
+    PROP_TYPE_DATE = 0x7FFF
 }
 ;
 
@@ -200,14 +185,16 @@ declare const enum Range_Column_Mapping
     RNG_MAP_RANGE_C1 = (1 << 9) + 5,
     RNG_MAP_RANGE_D0 = (1 << 9) + 6,
     RNG_MAP_RANGE_D1 = (1 << 9) + 7
-};
+}
+;
 
 declare const enum InvalidDataBehavior
 {
     INV_DT_BEH_MARKCLASS,
     INV_DT_BEH_MARKOBJECTS,
     INV_DT_BEH_ERROR
-};
+}
+;
 
 /*
  ctlv is used for indexing and processing control. Possible values (the same as Values.ctlv):
@@ -237,14 +224,14 @@ declare const enum Value_Control_Flags
 
     CTLV_INDEX = 1,
 
-    /*
-     Property types. Bits 1-5, all set(
-     */
+        /*
+         Property types. Bits 1-5, all set(
+         */
     CTLV_PROP_TYPE_MASK = 31 << 1,
 
-    /*
-     References
-     */
+        /*
+         References
+         */
     CTLV_REFERENCE = 2,
     CTLV_REFERENCE_OWN = 4,
     CTLV_REFERENCE_OWN_REVERSE = 6,
@@ -257,21 +244,21 @@ declare const enum Value_Control_Flags
         CTLV_REFERENCE_OWN_MUTUAL | CTLV_REFERENCE_DEPENDENT_MASTER | CTLV_REFERENCE_DEPENDENT_LINK |
         CTLV_REFERENCE_DEPENDENT_BOTH,
 
-    /*
-     * Though there is no limits on number of unique indexes, typically class will have 0 or 1 (rarely 2) unique index
-     * in addition to object ID
-     */
+        /*
+         * Though there is no limits on number of unique indexes, typically class will have 0 or 1 (rarely 2) unique index
+         * in addition to object ID
+         */
     CTLV_UNIQUE_INDEX = 1 << 6,
 
     CTLV_FULL_TEXT_INDEX = 1 << 8,
 
     CTLV_NO_TRACK_CHANGES = 1 << 7,
 
-    /*
-     * If property is indexed in RTREE, one of those flags would be set
-     * X0 - means start value
-     * X1 - means end value
-     */
+        /*
+         * If property is indexed in RTREE, one of those flags would be set
+         * X0 - means start value
+         * X1 - means end value
+         */
     CTLV_RANGE_A0 = 1 << 9,
     CTLV_RANGE_A1 = (1 << 9) + 1,
     CTLV_RANGE_B0 = (1 << 9) + 2,
@@ -292,13 +279,6 @@ declare const enum Value_Control_Flags
 }
 ;
 
-declare const enum FLEXILITE_LIMITS
-{
-    MaxOccurences = 1 << 31,
-    MaxObjectID = 1 << 31
-}
-;
-
 
 /*
  subtype:
@@ -309,7 +289,7 @@ declare const enum FLEXILITE_LIMITS
  timeonly
  textdocument (html)
  image
- file
+ file name
  dateonly
  ip4 address
  ip6 address
@@ -318,82 +298,4 @@ declare const enum FLEXILITE_LIMITS
  link (url)
  */
 
-/*
- Bit flags of roles that property plays in its class
- */
-declare const enum PROPERTY_ROLE
-{
-    /*
-     No special role
-     */
-    PROP_ROLE_NONE = 0x00,
 
-    /*
-     Object Name
-     */
-    PROP_ROLE_NAME = 0x0001,
-
-    /*
-     Property has object description
-     */
-    PROP_ROLE_DESCRIPTION = 0x0002,
-
-    /*
-     Property is alternative unique object ID. Once set, shouldn't be changed
-     */
-    PROP_ROLE_ID = 0x0004,
-
-    /*
-     Another alternative ID. Unlike ID, can be changed
-     */
-    PROP_ROLE_CODE = 0x0008,
-
-    /*
-     Alternative ID that allows duplicates
-     */
-    PROP_ROLE_NONUNIQUEID = 0x0010,
-
-    /*
-     Timestamp on when object was created
-     */
-    PROP_ROLE_CREATETIME = 0x0020,
-
-    /*
-     Timestamp on when object was last updated
-     */
-    PROP_ROLE_UPDATETIME = 0x0040,
-
-    /*
-     Auto generated UUID (16 byte blob)
-     */
-    PROP_ROLE_AUTOUUID = 0x0008,
-
-    /*
-     Auto generated short ID (7-16 characters)
-     */
-    PROP_ROLE_AUTOSHORTID = 0x0010
-}
-;
-
-/*
- Level of priority for property to have fixed column assigned
- */
-// TODO remove
-declare const enum COLUMN_ASSIGN_PRIORITY
-{
-    /*
-     for indexed and ID/Code properties
-     */
-    COL_ASSIGN_REQUIRED = 2,
-
-    /*
-     For scalar properties
-     */
-    COL_ASSIGN_DESIRED = 1,
-
-    /*
-     Assignment is not set or not required
-     */
-    COL_ASSIGN_NOT_SET = 0
-}
-;

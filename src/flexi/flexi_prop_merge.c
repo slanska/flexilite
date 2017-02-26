@@ -4,17 +4,37 @@
 
 #include <sqlite3ext.h>
 
-void flexi_prop_merge_func(
+int flexi_prop_merge_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 ) {
+    int result;
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
 
 }
 
-void flexi_prop_split_func(
+int flexi_prop_split_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
-) {}
+) {
+    int result;
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
+
+}
 

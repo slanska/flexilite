@@ -9,6 +9,7 @@
 #include <sqlite3ext.h>
 #include "flexi_db_ctx.h"
 #include "flexi_class.h"
+#include "class_ref_def.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -155,37 +156,37 @@ int flexi_prop_def_get_changes_needed(struct flexi_prop_def *pOldDef, struct fle
 /*
  * 'flexi' commands on properties
  */
-void flexi_prop_create_func(
+int flexi_prop_create_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_prop_alter_func(
+int flexi_prop_alter_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_prop_drop_func(
+int flexi_prop_drop_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_prop_rename_func(
+int flexi_prop_rename_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_prop_to_ref_func(
+int flexi_prop_to_ref_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
 );
 
-void flexi_ref_to_prop_func(
+int flexi_ref_to_prop_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
@@ -198,7 +199,7 @@ void flexi_prop_def_free(struct flexi_prop_def *prop);
 
 struct flexi_ref_def
 {
-    struct flexi_class_mixin_def base;
+    struct flexi_class_ref_def base;
     flexi_metadata_ref reverseProperty;
     int autoFetchLimit;
     int autoFetchDepth;
