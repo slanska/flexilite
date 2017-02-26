@@ -238,7 +238,7 @@ static void NameRegex_free()
     re_free(pNameRegex);
 }
 
-bool db_validate_name(const unsigned char *zName)
+bool db_validate_name(const char *zName)
 {
     if (!zName)
         return false;

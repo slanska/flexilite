@@ -24,6 +24,7 @@ typedef struct flexi_enum_def flexi_enum_def;
 struct flexi_prop_def
 {
     struct flexi_db_context *pCtx;
+    int nRefCount;
     sqlite3_int64 lClassID;
     sqlite3_int64 iPropID;
 
@@ -37,6 +38,19 @@ struct flexi_prop_def
     char bUnique;
     char bFullTextIndex;
     bool bNoTrackChanges;
+
+    /*
+     * If true, marks this property as potentially having invalid existing data and
+     * a candidate to run validation process. Flag is cleared after validation scan is done and no
+     * invalid data was found.
+     * Invalid data = does not pass property rules (type, maxLength, regex etc.)
+     */
+    bool bValidate;
+
+    /*
+     * Existing property data need to be validated
+     */
+    bool bValidateDate;
 
     char *zIndex;
     char *zSubType;
@@ -180,7 +194,7 @@ void flexi_ref_to_prop_func(
 /*
  *
  */
-void flexi_prop_def_free(struct flexi_prop_def const *prop);
+void flexi_prop_def_free(struct flexi_prop_def *prop);
 
 struct flexi_ref_def
 {

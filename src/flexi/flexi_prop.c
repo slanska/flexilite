@@ -37,6 +37,10 @@ void flexi_prop_rename_func(
 )
 {}
 
+/*
+ * Allocates new instance of class prop definition
+ * Sets class ID, ref count to 1 and status 'ADDED'
+ */
 struct flexi_prop_def *flexi_prop_def_new(sqlite3_int64 lClassID)
 {
     struct flexi_prop_def *result = sqlite3_malloc(sizeof(struct flexi_prop_def));
@@ -44,6 +48,8 @@ struct flexi_prop_def *flexi_prop_def_new(sqlite3_int64 lClassID)
     {
         memset(result, 0, sizeof(struct flexi_prop_def));
         result->lClassID = lClassID;
+        result->nRefCount = 1;
+        result->eChangeStatus = CHNG_STATUS_ADDED;
     }
     return result;
 }
@@ -90,7 +96,7 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
         pProp->minOccurences = sqlite3_column_int(st, 2);
         pProp->maxOccurences = sqlite3_column_int(st, 3);
         pProp->zType = (char *) sqlite3_column_text(st, 4);
-        pProp->bNoTrackChanges = sqlite3_column_int(st, 5);
+        pProp->bNoTrackChanges = (bool) sqlite3_column_int(st, 5);
         pProp->zEnumDef = (char *) sqlite3_column_text(st, 6);
         pProp->zRefDef = (char *) sqlite3_column_text(st, 7);
         pProp->zRenameTo = (char *) sqlite3_column_text(st, 8);
@@ -155,21 +161,26 @@ void flexi_ref_to_prop_func(
 /*
  *
  */
-void flexi_prop_def_free(struct flexi_prop_def const *prop)
+void flexi_prop_def_free(struct flexi_prop_def *prop)
 {
-    sqlite3_value_free(prop->defaultValue);
-    sqlite3_free(prop->name.name);
+    assert(prop);
 
-    sqlite3_free(prop->regex);
-    if (prop->pRegexCompiled)
-        re_free(prop->pRegexCompiled);
+    if (--prop->nRefCount == 0)
+    {
+        sqlite3_value_free(prop->defaultValue);
+        sqlite3_free(prop->name.name);
 
-    flexi_ref_def_free(prop->pRefDef);
-    flexi_enum_def_free(prop->pEnumDef);
+        sqlite3_free(prop->regex);
+        if (prop->pRegexCompiled)
+            re_free(prop->pRegexCompiled);
 
-    sqlite3_free(prop->zIndex);
-    sqlite3_free(prop->zSubType);
-    sqlite3_free(prop->zRenameTo);
+        flexi_ref_def_free(prop->pRefDef);
+        flexi_enum_def_free(prop->pEnumDef);
+
+        sqlite3_free(prop->zIndex);
+        sqlite3_free(prop->zSubType);
+        sqlite3_free(prop->zRenameTo);
+    }
 }
 
 void flexi_ref_def_free(flexi_ref_def *p)
@@ -190,7 +201,3 @@ void flexi_enum_def_free(flexi_enum_def *p)
     }
 
 }
-
-
-
-

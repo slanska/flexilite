@@ -71,24 +71,11 @@ struct flexi_mixin_rule
 struct flexi_class_def
 {
     /*
-     * Should be first field
+     * Should be first field. Used for virtual table initialization
      */
     sqlite3_vtab base;
 
     sqlite3_int64 lClassID;
-
-    /*
-     * Number of columns, i.e. items in property and column arrays
-     */
-    int nCols;
-
-    /*
-     * Actual length of pProps array (>= nCols)
-     */
-    int nPropColsAllocated;
-
-    // Sorted array of mapping between property ID and column index
-    //struct flexi_prop_col_map *pSortedProps;
 
     // Array of property metadata, by column index
     struct flexi_prop_def *pProps;
@@ -108,12 +95,12 @@ struct flexi_class_def
     /*
      * This class is a system one, so that it cannot be removed
      */
-    short int bSystemClass;
+    bool bSystemClass;
 
     /*
      * Class should have corresponding virtual table named after class. E.g. 'create virtual table Orders using flexi_data ();'
      */
-    short int bAsTable;
+    bool bAsTable;
 
     /*
      * Bitmask for various aspects of class storage (indexing etc.)
@@ -149,7 +136,7 @@ struct flexi_class_def
     bool mixinsLoaded;
 };
 
-int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName, const char *zClassDef, int bCreateVTable,
+int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName, const char *zClassDef, bool bCreateVTable,
                        const char **pzError);
 
 void flexi_class_create_func(
@@ -195,8 +182,8 @@ void flexi_prop_to_obj_func(
  * Internally used function to apply schema changes to the class that does not
  * have any data (so no data refactoring would be required)
  */
-int flexi_alter_new_class(struct flexi_db_context *pCtx, sqlite3_int64 lClassID,
-                          const char *zNewClassDef, const char **pzErr);
+int flexi_alter_new_class(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
+                          bool bCreateVTable, const char *zValidateMode, const char **pzErr);
 
 ///
 /// \param pCtx
@@ -208,7 +195,7 @@ int flexi_alter_new_class(struct flexi_db_context *pCtx, sqlite3_int64 lClassID,
 int flexi_class_alter(struct flexi_db_context *pCtx,
                       const char *zClassName,
                       const char *zNewClassDefJson,
-                      int bCreateVTable,
+                      bool bCreateVTable,
                       const char **pzError
 );
 

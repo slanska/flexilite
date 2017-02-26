@@ -106,7 +106,6 @@ struct flexi_db_context
      */
     sqlite3 *db;
 
-    int nRefCount;
     sqlite3_stmt *pStmts[STMT_DEL_FTS + 1];
 
     /*
@@ -139,16 +138,6 @@ struct flexi_db_context
 
     Hash classDefs;
 };
-
-/*
- * Global mapping of type names between Flexilite and SQLite
- */
-typedef struct
-{
-    const char *zFlexi_t;
-    const char *zSqlite_t;
-    int propType;
-} FlexiTypesToSqliteTypeMap;
 
 struct flexi_db_context *flexi_db_context_new(sqlite3 *db);
 
@@ -188,6 +177,6 @@ int db_insert_name(struct flexi_db_context *pCtx, const char *zName,
  * Valid identifier should start from _ or letter, following by digits, dashes, underscores and letters
  * @return SQLITE_OK is name is good. Error code, otherwise.
  */
-bool db_validate_name(const unsigned char *zName);
+bool db_validate_name(const char *zName);
 
 #endif //FLEXILITE_FLEXI_ENV_H

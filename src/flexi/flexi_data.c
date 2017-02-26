@@ -262,7 +262,7 @@ static int flexi_data_open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) 
 static int flexi_free_cursor_values(struct flexi_vtab_cursor *cur) {
     if (cur->pCols != NULL) {
         struct flexi_class_def *vtab = (void *) cur->base.pVtab;
-        for (int ii = 0; ii < vtab->nCols; ii++) {
+        for (int ii = 0; ii < vtab->propMap.count; ii++) {
             if (cur->pCols[ii] != NULL) {
                 sqlite3_value_free(cur->pCols[ii]);
                 cur->pCols[ii] = NULL;
@@ -308,9 +308,9 @@ static int flexi_data_next(sqlite3_vtab_cursor *pCursor) {
     } else if (result == SQLITE_ROW) {
         // Cleanup after last record
         if (flexi_free_cursor_values(cur) == 0) {
-            CHECK_MALLOC(cur->pCols, vtab->nCols * sizeof(sqlite3_value *));
+            CHECK_MALLOC(cur->pCols, vtab->propMap.count * sizeof(sqlite3_value *));
         }
-        memset(cur->pCols, 0, vtab->nCols * sizeof(sqlite3_value *));
+        memset(cur->pCols, 0, vtab->propMap.count * sizeof(sqlite3_value *));
 
         cur->lObjectID = sqlite3_column_int64(cur->pObjectIterator, 0);
         cur->iEof = 0;
@@ -377,7 +377,7 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
             colIdx--;
             zIdxTuple += 8;
 
-            assert(colIdx >= -1 && colIdx < vtab->nCols);
+            assert(colIdx >= -1 && colIdx < vtab->propMap.count);
 
             if (zSQL != NULL) {
                 void *pTmp = zSQL;
@@ -713,7 +713,7 @@ static int flexi_validate_prop_data(struct flexi_class_def *pVTab, int iCol, sql
     // Assume error
     int result = SQLITE_ERROR;
 
-    assert(iCol >= 0 && iCol < pVTab->nCols);
+    assert(iCol >= 0 && iCol < pVTab->propMap.count);
     struct flexi_prop_def *pProp = &pVTab->pProps[iCol];
 
     // Required

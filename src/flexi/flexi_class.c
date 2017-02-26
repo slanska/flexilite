@@ -312,7 +312,6 @@ static int _parseProperties(struct flexi_class_def *pClassDef, sqlite3_stmt *pSt
         HashTable_set(&pClassDef->propMap, zPropName, pProp);
     }
 
-    pClassDef->nCols = pClassDef->propMap.count;
     result = SQLITE_OK;
     goto FINALLY;
 
@@ -344,10 +343,6 @@ static int _parseClassDefAux(struct flexi_class_def *pClassDef, const char *zCla
     return SQLITE_OK;
 }
 
-// TODO
-//static void flexi_class_mixin_def_dispose(struct flexi_class_mixin_def *p)
-//{}
-
 /*
  * Allocates and initializes new instance of class definition
  */
@@ -361,7 +356,6 @@ struct flexi_class_def *flexi_class_def_new(struct flexi_db_context *pCtx)
     result->pCtx = pCtx;
     HashTable_init(&result->propMap, (void *) flexi_prop_def_free);
     Buffer_init(&result->aMixins, sizeof(struct flexi_class_mixin_def), (void *) flexi_class_mixin_def_dispose);
-
     return result;
 }
 
@@ -373,7 +367,7 @@ struct flexi_class_def *flexi_class_def_new(struct flexi_db_context *pCtx)
 /// @param pzError
 /// @return
 int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName,
-                       const char *zClassDef, int bCreateVTable,
+                       const char *zClassDef, bool bCreateVTable,
                        const char **pzError)
 {
     int result;
@@ -398,13 +392,14 @@ int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName,
     if (!db_validate_name((const unsigned char *) zClassName))
     {
         result = SQLITE_ERROR;
-
+        *pzError = sqlite3_mprintf("Invalid class name [%s]", zClassName);
         goto CATCH;
     }
 
     CHECK_CALL(_create_class_record(pCtx, zClassName, &lClassID));
 
-    CHECK_CALL(flexi_alter_new_class(pCtx, lClassID, zClassDef, pzError));
+    CHECK_CALL(flexi_alter_new_class(pCtx, lClassID, zClassDef,
+                                     bCreateVTable, NULL, pzError));
 
 
     // TODO
@@ -896,15 +891,6 @@ void flexi_class_def_free(struct flexi_class_def *pClsDef)
 {
     if (pClsDef != NULL)
     {
-        if (pClsDef->pProps != NULL)
-        {
-            for (int idx = 0; idx < pClsDef->nCols; idx++)
-            {
-                flexi_prop_def_free(&pClsDef->pProps[idx]);
-            }
-        }
-
-        sqlite3_free(pClsDef->pProps);
         sqlite3_free((void *) pClsDef->zHash);
 
         HashTable_clear(&pClsDef->propMap);
@@ -928,42 +914,6 @@ void flexi_class_def_free(struct flexi_class_def *pClsDef)
 
         sqlite3_free(pClsDef);
     }
-}
-
-const static FlexiTypesToSqliteTypeMap g_FlexiTypesToSqliteTypes[] = {
-        {"text",     "TEXT",    PROP_TYPE_TEXT},
-        {"integer",  "INTEGER", PROP_TYPE_INTEGER},
-        {"boolean",  "INTEGER", PROP_TYPE_BOOLEAN},
-        {"enum",     "INTEGER", PROP_TYPE_ENUM},
-        {"number",   "FLOAT",   PROP_TYPE_NUMBER},
-        {"datetime", "FLOAT",   PROP_TYPE_DATETIME},
-        {"uuid",     "BLOB",    PROP_TYPE_UUID},
-        {"binary",   "BLOB",    PROP_TYPE_BINARY},
-        {"name",     "TEXT",    PROP_TYPE_NAME},
-        {"decimal",  "FLOAT",   PROP_TYPE_DECIMAL},
-        {"json",     "JSON1",   PROP_TYPE_JSON},
-        {"date",     "FLOAT",   PROP_TYPE_DATE},
-        {"time",     "FLOAT",   PROP_TYPE_TIMESPAN},
-        {NULL,       "TEXT",    PROP_TYPE_TEXT}
-        /* TODO
-         * NVARCHAR
-         * NCHAR
-         * MONEY
-         * IMAGE
-         * VARCHAR
-         */
-};
-
-static const FlexiTypesToSqliteTypeMap *findSqliteTypeByFlexiType(const char *t)
-{
-    int ii = 0;
-    for (; ii < sizeof(g_FlexiTypesToSqliteTypes) / sizeof(g_FlexiTypesToSqliteTypes[0]); ii++)
-    {
-        if (g_FlexiTypesToSqliteTypes[ii].zFlexi_t && strcmp(g_FlexiTypesToSqliteTypes[ii].zFlexi_t, t) == 0)
-            return &g_FlexiTypesToSqliteTypes[ii];
-    }
-
-    return &g_FlexiTypesToSqliteTypes[sizeof(g_FlexiTypesToSqliteTypes) / sizeof(g_FlexiTypesToSqliteTypes[0]) - 1];
 }
 
 /*
@@ -1026,7 +976,7 @@ int flexi_class_def_parse(struct flexi_class_def *pClassDef,
 {
     int result;
 
-    sqlite3_stmt*pStmt = NULL;
+    sqlite3_stmt *pStmt = NULL;
 
     // Load properties
     char *zPropSql = "select key as Name, value as Definition from json_each(:1, '$.properties');";
@@ -1096,7 +1046,7 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
 
     (*pClassDef)->lClassID = sqlite3_column_int64(pGetClassStmt, 0);
     (*pClassDef)->name.id = sqlite3_column_int64(pGetClassStmt, 1);
-    (*pClassDef)->bSystemClass = (short int) sqlite3_column_int(pGetClassStmt, 2);
+    (*pClassDef)->bSystemClass = (bool) sqlite3_column_int(pGetClassStmt, 2);
     (*pClassDef)->xCtloMask = sqlite3_column_int(pGetClassStmt, 3);
 
     {
