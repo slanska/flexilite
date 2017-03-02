@@ -8,7 +8,6 @@
 
 #include "../project_defs.h"
 #include "flexi_class.h"
-#include "class_ref_def.h"
 
 /*
  * Global mapping of type names between Flexilite and SQLite
@@ -278,9 +277,11 @@ _processProp(const char *zPropName, int index, struct flexi_prop_def *p,
             switch (p->type)
             {
                 case PROP_TYPE_REF:
+                    //_compareRefDefs();
                     break;
 
                 case PROP_TYPE_ENUM:
+                    //                    _compareEnumDefs();
                     break;
 
                 default:
@@ -417,6 +418,7 @@ _copyExistingProp(const char *zPropName, int idx, struct flexi_prop_def *prop, v
             pNewProp->eChangeStatus = CHNG_STATUS_MODIFIED;
 }
 
+
 /*
  * Merges properties and other attributes in existing and new class definitions.
  * Validates property definition and marks them for removal/add/update/rename, if needed
@@ -435,6 +437,8 @@ _mergeClassSchemas(struct flexi_class_def *pExistingClass, struct flexi_class_de
             .bValidateData = false
     };
 
+    // Copy existing properties if they are not defined in new schema
+    // These properties will get eChangeStatus NONMODIFIED
     HashTable_each(&pExistingClass->propMap, (void *) _copyExistingProp, &propMergeParams);
     if (*propMergeParams.pzErr)
         goto CATCH;
@@ -444,14 +448,31 @@ _mergeClassSchemas(struct flexi_class_def *pExistingClass, struct flexi_class_de
     if (*propMergeParams.pzErr)
         goto CATCH;
 
-    // Process mixins
+    /* Process mixins. If mixins are omitted in the new schema, existing definition of mixins will be used
+     * if mixins are defined in both old and new schema, they will be compared for equality.
+     * If not equal, data validation and processing needs to be performed
+     *
+     */
+    if (!pNewClass->aMixins)
+    {
+        pNewClass->aMixins = pExistingClass->aMixins;
+        pNewClass->aMixins->nRefCount++;
+    }
+    else
+    {
+        // Try to initialize classes
+
+    }
 
 
     // Process special props
+//    pNewClass->aSpecialProps
 
     // Process range props
+//    pNewClass->aRangeProps
 
     // Process FTS props
+//    pNewClass->aFtsProps
 
     result = SQLITE_OK;
     goto FINALLY;

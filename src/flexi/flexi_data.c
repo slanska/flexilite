@@ -117,7 +117,7 @@ static int flexi_data_connect(
          * Should be instance of flexi_class_def
          */
         sqlite3_vtab **ppVtab,
-        char **pzErr
+        const char **pzErr
 ) {
     sqlite3_int64 lClassID;
     assert(argc >= 3);

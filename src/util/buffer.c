@@ -10,6 +10,28 @@
 
 SQLITE_EXTENSION_INIT3
 
+Buffer *Buffer_new(size_t elemSize, void (*disposeElem)(void *pElem))
+{
+    Buffer *pBuf;
+    pBuf = sqlite3_malloc(sizeof(*pBuf));
+    if (!pBuf)
+    {
+        Buffer_init(pBuf, elemSize, disposeElem);
+        pBuf->nRefCount = 1;
+    }
+    return pBuf;
+}
+
+void Buffer_dispose(Buffer *pBuf)
+{
+    if (!pBuf)
+        return;
+
+    Buffer_unref(pBuf);
+    if (pBuf->nRefCount == 0)
+        sqlite3_free(pBuf);
+}
+
 void Buffer_init(Buffer *pBuf, size_t elemSize, void (*disposeElem)(void *pElem))
 {
     memset(pBuf, 0, sizeof(*pBuf));
@@ -36,7 +58,8 @@ void Buffer_clear(Buffer *pBuf)
     pBuf->iCnt = 0;
 }
 
-static int _buffer_ensure_capacity(Buffer *pBuf, u32 newCnt)
+static int
+_buffer_ensure_capacity(Buffer *pBuf, u32 newCnt)
 {
     if (newCnt > pBuf->iCapacity)
     {
@@ -79,7 +102,7 @@ void Buffer_set(Buffer *pBuf, u32 index, void *pElem)
         pBuf->iCnt++;
 }
 
-void* Buffer_append(Buffer *pBuf)
+void *Buffer_append(Buffer *pBuf)
 {
     int result = _buffer_ensure_capacity(pBuf, pBuf->iCnt + 1);
     if (result != SQLITE_OK)
@@ -125,4 +148,31 @@ void Buffer_remove(Buffer *pBuf, u32 index)
     pBuf->iCnt--;
 }
 
+/*
+ * Copies buffer
+ */
+void Buffer_ref(Buffer *pDestBuf, Buffer *pSrcBuf)
+{
+    assert(pSrcBuf);
+    if (pDestBuf != pSrcBuf)
+    {
+        memcpy(pDestBuf, pSrcBuf, sizeof(*pSrcBuf));
+    }
+    pDestBuf->nRefCount++;
+}
 
+/*
+ * Unreferences buffer by decrementing ref count
+ * If after decrement ref count becomes zero, buffer gets cleared
+ */
+void Buffer_unref(Buffer *pBuf)
+{
+    assert(pBuf);
+    if (pBuf->nRefCount > 0)
+        pBuf->nRefCount--;
+
+    if (pBuf->nRefCount == 0)
+    {
+        Buffer_clear(pBuf);
+    }
+}

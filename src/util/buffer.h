@@ -37,9 +37,18 @@ struct Buffer
      * Optional callback to dispose element
      */
     void (*disposeElem)(void *pElem);
+
+    /*
+     * Number of references to this buffer
+     */
+    int nRefCount;
 };
 
 typedef struct Buffer Buffer;
+
+extern Buffer *Buffer_new(size_t elemSize, void (*disposeElem)(void *pElem));
+
+extern void Buffer_dispose(Buffer *pBuf);
 
 extern void Buffer_init(Buffer *pBuf, size_t elemSize, void (*disposeElem)(void *pElem));
 
@@ -55,5 +64,8 @@ extern var Buffer_each(const Buffer *pBuf, iterateeFunc iteratee, var param);
 
 extern void Buffer_remove(Buffer *pBuf, u32 index);
 
+extern void Buffer_ref(Buffer *pDestBuf, Buffer *pSrcBuf);
+
+extern void Buffer_unref(Buffer *pBuf);
 
 #endif //FLEXILITE_BUFFER_H

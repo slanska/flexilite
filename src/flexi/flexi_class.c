@@ -199,8 +199,10 @@ static int _parseMixins(struct flexi_class_def *pClassDef, const char *zClassDef
         if (result == SQLITE_DONE)
             break;
 
-        pClassDef->mixinsLoaded = true;
-        struct flexi_class_ref_def *mixin = Buffer_append(&pClassDef->aMixins);
+        if (pClassDef->aMixins == NULL)
+            pClassDef->aMixins = Buffer_new(sizeof(struct flexi_class_ref_def), (void *) flexi_class_ref_def_dispose);
+
+        struct flexi_class_ref_def *mixin = Buffer_append(pClassDef->aMixins);
         if (!mixin)
         {
             result = SQLITE_NOMEM;
@@ -248,7 +250,11 @@ static int _parseMixins(struct flexi_class_def *pClassDef, const char *zClassDef
     goto FINALLY;
 
     CATCH:
-    Buffer_clear(&pClassDef->aMixins);
+    if (pClassDef->aMixins)
+    {
+        Buffer_dispose(pClassDef->aMixins);
+        pClassDef->aMixins = NULL;
+    }
 
     FINALLY:
     sqlite3_free(zRulesJson);
@@ -353,7 +359,6 @@ struct flexi_class_def *flexi_class_def_new(struct flexi_db_context *pCtx)
 
     result->pCtx = pCtx;
     HashTable_init(&result->propMap, (void *) flexi_prop_def_free);
-    Buffer_init(&result->aMixins, sizeof(struct flexi_class_ref_def), (void *) flexi_class_ref_def_dispose);
     return result;
 }
 
@@ -927,7 +932,7 @@ void flexi_class_def_free(struct flexi_class_def *pClsDef)
 
         HashTable_clear(&pClsDef->propMap);
 
-        Buffer_clear(&pClsDef->aMixins);
+        Buffer_dispose(pClsDef->aMixins);
 
         for (int ii = 0; ii < ARRAY_LEN(pClsDef->aSpecProps); ii++)
         {

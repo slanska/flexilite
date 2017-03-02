@@ -39,7 +39,7 @@ struct flexi_class_ref_rule
     flexi_metadata_ref classRef;
 };
 
-bool flexi_class_ref_rule_compare(const struct flexi_class_ref_rule* p1, const struct flexi_class_ref_rule* p2);
+bool flexi_class_ref_rule_compare(const struct flexi_class_ref_rule *p1, const struct flexi_class_ref_rule *p2);
 
 /*
  * Class ref definition type.
@@ -59,6 +59,7 @@ typedef struct flexi_class_ref_def
      */
     Buffer rules;
     CHANGE_STATUS eChangeStatus;
+    int nRefCount;
 } Flexi_ClassRefDef_t;
 
 void flexi_class_ref_def_init(struct flexi_class_ref_def *p);
