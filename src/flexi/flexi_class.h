@@ -175,8 +175,8 @@ int flexi_prop_to_obj_func(
  * Internally used function to apply schema changes to the class that does not
  * have any data (so no data refactoring would be required)
  */
-int flexi_alter_new_class(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
-                          bool bCreateVTable, const char *zValidateMode, const char **pzErr);
+int _flexi_ClassDef_applyNewDef(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
+                                bool bCreateVTable, const char *zValidateMode, const char **pzErr);
 
 ///
 /// \param pCtx
@@ -188,6 +188,7 @@ int flexi_alter_new_class(struct flexi_db_context *pCtx, sqlite3_int64 lClassID,
 int flexi_class_alter(struct flexi_db_context *pCtx,
                       const char *zClassName,
                       const char *zNewClassDefJson,
+                      const char *zValidateMode,
                       bool bCreateVTable,
                       const char **pzError
 );

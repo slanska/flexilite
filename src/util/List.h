@@ -17,11 +17,11 @@
 typedef struct List_t
 {
     var first;
+
     size_t nextOffset;
+    int count;
 
     void (*disposeItem)(var item);
-
-    int count;
 } List_t;
 
 List_t *List_new(size_t offset, void (*disposeItem)(var item));

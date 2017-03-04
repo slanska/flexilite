@@ -88,4 +88,11 @@ typedef void *var;
 typedef void iterateeFunc(const char *zKey, u32 index, void *pData,
                           var collection, var param, bool *bStop);
 
+typedef union any
+{
+    char* zValue;
+    long long int i64;
+
+} any;
+
 #endif //FLEXILITE_COMMON_H

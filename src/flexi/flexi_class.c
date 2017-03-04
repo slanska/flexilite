@@ -401,11 +401,10 @@ int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName,
 
     CHECK_CALL(_create_class_record(pCtx, zClassName, &lClassID));
 
-    CHECK_CALL(flexi_alter_new_class(pCtx, lClassID, zClassDef,
-                                     bCreateVTable, NULL, pzError));
+    CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zClassDef, bCreateVTable, NULL, pzError));
 
 
-    // TODO
+    // TODO Remove
 
     char *sbClassDefJSON = sqlite3_mprintf("{\"properties\":{");
 
@@ -496,7 +495,7 @@ int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName,
         dProp.bUnique = (char) sqlite3_column_int(pExtractProps, 1);
         dProp.bFullTextIndex = (char) sqlite3_column_int(pExtractProps, 2);
         dProp.xRole = (short int) sqlite3_column_int(pExtractProps, 3);
-        dProp.type = (short int)sqlite3_column_int(pExtractProps, 4);
+        dProp.type = (short int) sqlite3_column_int(pExtractProps, 4);
 
         sqlite3_free((void *) zPropDefJSON);
         dProp.name.name = sqlite3_malloc(sqlite3_column_bytes(pExtractProps, 5) + 1);
@@ -531,11 +530,11 @@ int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName,
             case PROP_TYPE_NAME:
             case PROP_TYPE_ENUM:
             case PROP_TYPE_UUID:
-//                if (dProp.bUnique || (dProp.xRole & PROP_ROLE_ID) || (dProp.xRole & PROP_ROLE_NAME))
-//                {
-//                    xCtlv |= CTLV_UNIQUE_INDEX;
-//                    xCtlvPlan |= CTLV_UNIQUE_INDEX;
-//                }
+                //                if (dProp.bUnique || (dProp.xRole & PROP_ROLE_ID) || (dProp.xRole & PROP_ROLE_NAME))
+                //                {
+                //                    xCtlv |= CTLV_UNIQUE_INDEX;
+                //                    xCtlvPlan |= CTLV_UNIQUE_INDEX;
+                //                }
                 // Note: no break here;
 
             case PROP_TYPE_TEXT:
@@ -707,7 +706,7 @@ int flexi_class_alter_func(
         sqlite3_value **argv
 )
 {
-    assert(argc == 2);
+    assert(argc >= 2 && argc <= 4);
 
     int result;
     // 1st arg: class name
@@ -717,14 +716,19 @@ int flexi_class_alter_func(
     char *zNewClassDef = (char *) sqlite3_value_text(argv[1]);
 
     // 3rd optional argument - create virtual table for class
-    int bCreateVTable = 0;
+    bool bCreateVTable = false;
     if (argc == 3)
-        bCreateVTable = sqlite3_value_int(argv[2]);
+        bCreateVTable = (bool)sqlite3_value_int(argv[2]);
+
+    // 4th optional parameter - validation mode: ABORT, IGNORE
+    const char *zValidateMode = NULL;
+    if (argc == 4)
+        zValidateMode = (char *) sqlite3_value_text(argv[3]);
 
     const char *zError = NULL;
 
     struct flexi_db_context *pCtx = sqlite3_user_data(context);
-    CHECK_CALL(flexi_class_alter(pCtx, zClassName, zNewClassDef, bCreateVTable, &zError));
+    CHECK_CALL(flexi_class_alter(pCtx, zClassName, zNewClassDef, zValidateMode, bCreateVTable, &zError));
 
     goto FINALLY;
 
@@ -733,6 +737,11 @@ int flexi_class_alter_func(
         sqlite3_result_error(context, zError, -1);
 
     FINALLY:
+
+    sqlite3_free(zClassName);
+    sqlite3_free((void *)zValidateMode);
+    sqlite3_free(zNewClassDef);
+
     return result;
 }
 
