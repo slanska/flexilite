@@ -4,6 +4,7 @@
 
 #include <sqlite3ext.h>
 #include <string.h>
+#include <stdlib.h>
 #include "class_ref_def.h"
 
 SQLITE_EXTENSION_INIT3
@@ -37,10 +38,11 @@ void flexi_class_ref_def_init(struct flexi_class_ref_def *p)
 }
 
 static void
-_compareRefRules(const char *zUnused, u32 idx, const struct flexi_class_ref_rule* item, Buffer *pBuf, Buffer *pBuf2, bool *bStop)
+_compareRefRules(const char *zUnused, u32 idx, const struct flexi_class_ref_rule *item, Buffer *pBuf, Buffer *pBuf2,
+                 bool *bStop)
 {
     UNUSED_PARAM(zUnused);
-    const struct flexi_class_ref_rule*pItem2;
+    const struct flexi_class_ref_rule *pItem2;
     pItem2 = Buffer_get(pBuf2, idx);
     if (!flexi_class_ref_rule_compare(item, pItem2))
     {
@@ -51,8 +53,8 @@ _compareRefRules(const char *zUnused, u32 idx, const struct flexi_class_ref_rule
 ClassRefDef_Compare_Result
 flexi_class_ref_def_compare(const struct flexi_class_ref_def *pDef1, const struct flexi_class_ref_def *pDef2)
 {
-    if (!flexi_metadata_ref_compare(&pDef1->classRef, &pDef2->classRef) &
-        !flexi_metadata_ref_compare(&pDef1->dynSelectorProp, &pDef2->dynSelectorProp))
+    if (flexi_metadata_ref_compare(&pDef1->classRef, &pDef2->classRef) != 0 &
+        flexi_metadata_ref_compare(&pDef1->dynSelectorProp, &pDef2->dynSelectorProp) != 0)
         return CLS_REF_DEF_CMP_DIFF;
 
     ClassRefDef_Compare_Result result;
@@ -74,20 +76,21 @@ flexi_class_ref_def_compare(const struct flexi_class_ref_def *pDef1, const struc
         buf2 = &pDef1->rules;
     }
 
-    if (Buffer_each(buf, (void *) _compareRefRules, (var)buf2))
+    if (Buffer_each(buf, (void *) _compareRefRules, (var) buf2))
         return CLS_REF_DEF_CMP_DIFF;
 
     return result;
 }
 
-bool flexi_metadata_ref_compare(const flexi_metadata_ref *r1, const flexi_metadata_ref *r2)
+int flexi_metadata_ref_compare(const flexi_metadata_ref *r1, const flexi_metadata_ref *r2)
 {
     if (r1->name && r2->name)
     {
         return sqlite3_stricmp(r1->name, r2->name) == 0;
     }
 
-    return r1->id == r2->id;
+    sqlite3_int64 diff = r1->id - r2->id;
+    return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
 }
 
 bool flexi_class_ref_rule_compare(const struct flexi_class_ref_rule *p1, const struct flexi_class_ref_rule *p2)
@@ -95,11 +98,28 @@ bool flexi_class_ref_rule_compare(const struct flexi_class_ref_rule *p1, const s
     int result = strcmp(p1->regex, p2->regex);
     if (result == 0)
     {
-        return flexi_metadata_ref_compare(&p1->classRef, &p2->classRef);
+        return flexi_metadata_ref_compare(&p1->classRef, &p2->classRef) == 0;
     }
 
     return false;
 }
+
+bool flexi_metadata_ref_compare_n(flexi_metadata_ref *r1, flexi_metadata_ref *r2, int cnt)
+{
+    int found = 0;
+    qsort(r1, (size_t) cnt, sizeof(*r1), (void *) flexi_metadata_ref_compare);
+    for (int ii = 0; ii < cnt; ii++)
+    {
+        if (bsearch((const void *) &r2[ii], r1, (size_t) cnt, sizeof(*r1),
+                    (void *) flexi_metadata_ref_compare))
+        {
+            found++;
+        }
+    }
+
+    return found == cnt;
+}
+
 
 
 

@@ -18,7 +18,12 @@ struct flexi_metadata_ref
     char *name;
     sqlite3_int64 id;
 
-    enum CHANGE_STATUS eChngStatus;
+    //    enum CHANGE_STATUS eChngStatus;
+
+    /*
+     * If true, name is owned by this struct and should be freed in destructor
+     * Otherwise, it is owned by other object
+     */
     bool bOwnName;
 };
 
@@ -27,11 +32,19 @@ typedef struct flexi_metadata_ref flexi_metadata_ref;
 void flexi_metadata_ref_free(flexi_metadata_ref *);
 
 /*
+ * Compares 2 arrays of metadata_ref structs.
+ * Returns true if both arrays have identical definitions (exact order is not important)
+ * Performs sort on r1 for faster processing
+ * cnt - number of entries in the array
+ */
+bool flexi_metadata_ref_compare_n(flexi_metadata_ref *r1, flexi_metadata_ref *r2, int cnt);
+
+/*
  * Compare 2 metadata ref definitions
  * name maybe missing in either one, then comparison by id would be performed
  * It is valid situation when either ref is not initialized (id == 0)
  */
-bool flexi_metadata_ref_compare(const flexi_metadata_ref *r1, const flexi_metadata_ref *r2);
+int flexi_metadata_ref_compare(const flexi_metadata_ref *r1, const flexi_metadata_ref *r2);
 
 struct flexi_class_ref_rule
 {
@@ -97,5 +110,6 @@ typedef enum ClassRefDef_Compare_Result
  */
 ClassRefDef_Compare_Result
 flexi_class_ref_def_compare(const struct flexi_class_ref_def *pDef1, const struct flexi_class_ref_def *pDef2);
+
 
 #endif //CLASS_REF_DEF_H

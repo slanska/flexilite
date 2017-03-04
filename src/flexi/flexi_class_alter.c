@@ -8,6 +8,7 @@
 
 #include "../project_defs.h"
 #include "flexi_class.h"
+#include "../util/List.h"
 
 /*
  * Global mapping of type names between Flexilite and SQLite
@@ -18,6 +19,44 @@ typedef struct
     const char *zSqlite_t;
     int propType;
 } FlexiTypesToSqliteTypeMap;
+
+typedef struct _ClassAlterContext_t _ClassAlterContext_t;
+
+typedef struct _ClassAlterAction_t
+{
+    /*
+     * Class or property reference
+     */
+    flexi_metadata_ref *ref;
+
+    int (*action)(_ClassAlterContext_t *pCtx, var args);
+
+    void (*disposeSelf)();
+
+    var args;
+} _ClassAlterAction_t;
+
+struct _ClassAlterContext_t
+{
+    struct flexi_class_def *pNewClassDef;
+    struct flexi_class_def *pExistingClassDef;
+    char **pzErr;
+
+    /*
+     * List of actions to be executed before scanning existing data
+     */
+    List_t preActions;
+
+    /*
+     * List of property level actions to be performed on every existing row during scanning
+     */
+    List_t postActions;
+
+    /*
+     * List of actions to be performed after scanning existing data
+     */
+    List_t propActions;
+};
 
 /*
  * Map between Flexilite property types (in text representation) to
@@ -132,7 +171,7 @@ struct PropTypeTransitRule_t
     int type;
 
     /*
-     * Can be upgraded without problem
+     * Can be upgraded without problem to these types (bitmask)
      */
     int yes;
 
@@ -140,6 +179,10 @@ struct PropTypeTransitRule_t
      * May be OK to downgrade, but validation of existing data is needed
      */
     int maybe;
+
+    bool rangeProp;
+
+    bool fullTextProp;
 };
 
 static const struct PropTypeTransitRule_t g_propTypeTransitions[] =
@@ -192,6 +235,9 @@ _compareRefDefs(struct flexi_ref_def *p1, struct flexi_ref_def *p2)
     return 0;
 }
 
+/*
+ * Scans 2 sets of enum defs and checks if they are identical or not
+ */
 static int
 _compareEnumDefs(const struct flexi_enum_def *p1, const struct flexi_enum_def *p2)
 {
@@ -418,6 +464,131 @@ _copyExistingProp(const char *zPropName, int idx, struct flexi_prop_def *prop, v
             pNewProp->eChangeStatus = CHNG_STATUS_MODIFIED;
 }
 
+/*
+ * Determines if special properties have changed (or were never initialized)
+ * Validates properties based on their role(s)
+ * Ensures that indexing is set whenever needed
+ */
+static int
+_processSpecialProps(struct flexi_class_def *pExistingClass, struct flexi_class_def *pNewClass,
+                     const char **pzErr)
+{
+    int result;
+
+    if (!flexi_metadata_ref_compare_n(&pNewClass->aSpecProps[0], &pExistingClass->aSpecProps[0],
+                                      ARRAY_LEN(pNewClass->aSpecProps)))
+    {
+        // Special properties have changed (or, a special case, were not set in existing class def)
+        // Need to reset existing properties and set new ones (indexing, not null etc.)
+
+        //pNewClass->aSpecProps[SPCL_PROP_UID] - unique, required
+        //pNewClass->aSpecProps[SPCL_PROP_CODE] - unique, required
+        //        pNewClass->aSpecProps[SPCL_PROP_NAME] - unique, required
+        //        SPCL_PROP_UID = 0,
+        //        SPCL_PROP_NAME = 1,
+        //        SPCL_PROP_DESCRIPTION = 2,
+        //        SPCL_PROP_CODE = 3,
+        //        SPCL_PROP_NON_UNIQ_ID = 4,
+        //        SPCL_PROP_CREATE_DATE = 5,
+        //        SPCL_PROP_UPDATE_DATE = 6,
+        //        SPCL_PROP_AUTO_UUID = 7,
+        //        SPCL_PROP_AUTO_SHORT_ID = 8,
+
+    }
+
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
+}
+
+/*
+ *
+ */
+static int
+_findPropByMetadataRef(struct flexi_class_def *pClassDef, flexi_metadata_ref *pRef, struct flexi_prop_def **pProp)
+{}
+
+static int
+_processRangeProps(struct flexi_class_def *pExistingClass, struct flexi_class_def *pNewClass,
+                   const char **pzErr)
+{
+    int result;
+
+    if (!flexi_metadata_ref_compare_n(&pNewClass->aRangeProps[0], &pExistingClass->aRangeProps[0],
+                                      ARRAY_LEN(pNewClass->aRangeProps)))
+    {
+        // validate
+        /*
+         * properties should be any
+         */
+        // old range data will be removed
+    }
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
+}
+
+static int
+_processFtsProps(struct flexi_class_def *pExistingClass, struct flexi_class_def *pNewClass,
+                 const char **pzErr)
+{
+    int result;
+
+    if (!flexi_metadata_ref_compare_n(&pNewClass->aFtsProps[0], &pExistingClass->aFtsProps[0],
+                                      ARRAY_LEN(pNewClass->aFtsProps)))
+    {
+    }
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
+}
+
+static int
+_processMixins(struct flexi_class_def *pExistingClass, struct flexi_class_def *pNewClass,
+               const char **pzErr)
+{
+    int result;
+
+    /* Process mixins. If mixins are omitted in the new schema, existing definition of mixins will be used
+ * if mixins are defined in both old and new schema, they will be compared for equality.
+ * If not equal, data validation and processing needs to be performed
+ *
+ */
+    if (!pNewClass->aMixins)
+    {
+        pNewClass->aMixins = pExistingClass->aMixins;
+        pNewClass->aMixins->nRefCount++;
+    }
+    else
+    {
+        // Try to initialize classes
+
+    }
+
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+    return result;
+}
 
 /*
  * Merges properties and other attributes in existing and new class definitions.
@@ -448,31 +619,17 @@ _mergeClassSchemas(struct flexi_class_def *pExistingClass, struct flexi_class_de
     if (*propMergeParams.pzErr)
         goto CATCH;
 
-    /* Process mixins. If mixins are omitted in the new schema, existing definition of mixins will be used
-     * if mixins are defined in both old and new schema, they will be compared for equality.
-     * If not equal, data validation and processing needs to be performed
-     *
-     */
-    if (!pNewClass->aMixins)
-    {
-        pNewClass->aMixins = pExistingClass->aMixins;
-        pNewClass->aMixins->nRefCount++;
-    }
-    else
-    {
-        // Try to initialize classes
-
-    }
-
+    // Process mixins
+    CHECK_CALL(_processMixins(pExistingClass, pNewClass, pzErr));
 
     // Process special props
-//    pNewClass->aSpecialProps
+    CHECK_CALL(_processSpecialProps(pExistingClass, pNewClass, pzErr));
 
     // Process range props
-//    pNewClass->aRangeProps
+    CHECK_CALL(_processRangeProps(pExistingClass, pNewClass, pzErr));
 
     // Process FTS props
-//    pNewClass->aFtsProps
+    CHECK_CALL(_processFtsProps(pExistingClass, pNewClass, pzErr));
 
     result = SQLITE_OK;
     goto FINALLY;
