@@ -31,6 +31,13 @@ typedef struct HashElem HashElem;
 
 typedef void (*freeElem)(void *pElem);
 
+typedef enum DICTIONARY_TYPE
+{
+    DICT_STRING = 0,
+    DICT_STRING_IGNORE_CASE = 1,
+    DICT_INT = 2
+} DICTIONARY_TYPE;
+
 /* A complete hash table is an instance of the following structure.
 ** The internals of this structure are intended to be opaque -- client
 ** code should not attempt to access or modify the fields of this structure
@@ -75,6 +82,8 @@ struct Hash
      * Custom callback to free element data
      */
     freeElem freeElemFunc;
+
+    DICTIONARY_TYPE eDictType;
 };
 
 /* Each element in the hash table is an instance of the following
@@ -91,8 +100,12 @@ struct HashElem
     /* Data associated with this element */
     var data;
 
-    /* Key associated with this element */
-    const char *pKey;
+    /* Key associated with this element: either string or int64 */
+    union
+    {
+        const char *pKey;
+        sqlite3_int64 iKey;
+    };
 };
 
 /*
@@ -103,7 +116,7 @@ struct HashElem
  * Initializes hash table. If freeElemFunc is NULL, hash table is assumed to hold sqlite3_value
  * and sqlite3_value_free will be used for disposing elements' data
  */
-void HashTable_init(Hash *, freeElem freeElemFunc);
+void HashTable_init(Hash *, DICTIONARY_TYPE dictType, freeElem freeElemFunc);
 
 /*
  * Sets new value for key pKey
@@ -117,11 +130,11 @@ sqlite3_value *HashTable_get_v(const Hash *, const char *pKey);
 void *HashTable_get(const Hash *, const char *pKey);
 
 /// @brief
-/// @param pH
+/// @param self
 /// @param iteratee
 /// @param param
 /// @return
-void *HashTable_each(const Hash *pH, iterateeFunc iteratee, var param);
+void *HashTable_each(const Hash *self, iterateeFunc iteratee, var param);
 
 void HashTable_clear(Hash *);
 

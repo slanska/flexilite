@@ -74,7 +74,7 @@ int var_func_init(
 )
 {
     struct Hash *varHash = sqlite3_malloc(sizeof(struct Hash));
-    HashTable_init(varHash, NULL);
+    HashTable_init(varHash, DICT_STRING, NULL);
 
     int rc = sqlite3_create_function_v2(db, "var", 1, SQLITE_UTF8, varHash,
                                     sqlVarFunc, 0, 0, sqlVarFunc_Destroy);

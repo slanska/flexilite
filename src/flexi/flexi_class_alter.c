@@ -55,11 +55,28 @@ struct _ClassAlterAction_t
     var params;
 };
 
+_ClassAlterAction_t *_ClassAlterAction_new(flexi_metadata_ref *ref,
+                                           int (*action)(_ClassAlterAction_t *self, _ClassAlterContext_t *pCtx),
+                                           void (*disposeParams)(_ClassAlterAction_t *self),
+                                           var params)
+{
+    _ClassAlterAction_t *result = sqlite3_malloc(sizeof(_ClassAlterAction_t *));
+    if (result)
+    {
+        result->action = action;
+        result->disposeParams = disposeParams;
+        result->params = params;
+        result->ref = ref;
+    }
+    return result;
+}
+
 /*
  * Internally used composite for all parameters needed for class schema alteration
  */
 struct _ClassAlterContext_t
 {
+    struct flexi_db_context *pCtx;
     struct flexi_class_def *pNewClassDef;
     struct flexi_class_def *pExistingClassDef;
     const char **pzErr;
@@ -79,11 +96,8 @@ struct _ClassAlterContext_t
      */
     List_t propActions;
 
-    /*
-     * 0 - ABORT
-     * 1 - IGNORE
-     */
-    int validationMode;
+
+    enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode;
 };
 
 static void
@@ -135,19 +149,6 @@ static const FlexiTypesToSqliteTypeMap *_findFlexiType(const char *t)
 
     return &g_FlexiTypesToSqliteTypes[ARRAY_LEN(g_FlexiTypesToSqliteTypes) - 1];
 }
-
-struct PropMergeParams_t
-{
-    struct flexi_class_def *pExistingClass;
-    struct flexi_class_def *pNewClass;
-    const char **pzErr;
-
-    /*
-     * Set by _processProp and _mergeClassSchemas to reflect type of alteration
-     * if true, class definition is going to be shrinked, i.e. data validation/processing would be required
-     */
-    bool bValidateData;
-};
 
 /*
  * Allowed type transformations:
@@ -281,6 +282,14 @@ _compareEnumDefs(const struct flexi_enum_def *p1, const struct flexi_enum_def *p
 }
 
 /*
+ * Property action to check actual data type (if is compatible with new property definitions)
+ */
+static int _propAction_checkDataType(_ClassAlterAction_t *self, _ClassAlterContext_t *pCtx)
+{
+    return 0;
+}
+
+/*
  * At beginning of this function property can be in the following states:
  * ADDED, NON_MODIFIED (copied 'as-is' from existing class definition), MODIFIED or DELETED
  * Function:
@@ -292,8 +301,8 @@ _compareEnumDefs(const struct flexi_enum_def *p1, const struct flexi_enum_def *p
  * it sets Unresolved flag in class def
  */
 static void
-_processProp(const char *zPropName, int index, struct flexi_prop_def *p,
-             var pPropMap, _ClassAlterContext_t *alterCtx, bool *bStop)
+_validatePropChange(const char *zPropName, int index, struct flexi_prop_def *p,
+                    var pPropMap, _ClassAlterContext_t *alterCtx, bool *bStop)
 {
 
     UNUSED_PARAM(pPropMap);
@@ -339,9 +348,10 @@ _processProp(const char *zPropName, int index, struct flexi_prop_def *p,
                 {
                     if ((transitRule->maybe & p->type) != 0)
                     {
-                        // Transition is possible but data validation would be needed
-                        // TODO Add property action
-                        //                        alterCtx->bValidateData = true;
+                        _ClassAlterAction_t *propAction = NULL;
+                        propAction = _ClassAlterAction_new(&p->name, _propAction_checkDataType, NULL, p);
+                        CHECK_ERROR(propAction == NULL, "No memory");
+                        List_add(&alterCtx->propActions, propAction);
                     }
                     else transitRule = NULL;
                 }
@@ -446,11 +456,12 @@ static void
 _validateProp(const char *zPropName, int idx, struct flexi_prop_def *prop, var propMap,
               struct ValidateClassParams_t *params, bool *bStop)
 {
+    UNUSED_PARAM(zPropName);
+    UNUSED_PARAM(idx);
+    UNUSED_PARAM(propMap);
     if (prop->bValidate)
         // Already invalid. Nothing to do
         return;
-
-
 }
 
 /*
@@ -546,9 +557,12 @@ _processSpecialProps(_ClassAlterContext_t *alterCtx)
 }
 
 static void
-_compPropById(const char *zKey, u32 idx, struct flexi_prop_def *pProp, Hash *pPropMap, flexi_metadata_ref *pRef,
-              bool *bStop)
+_compPropByIdAndName(const char *zKey, u32 idx, struct flexi_prop_def *pProp, Hash *pPropMap, flexi_metadata_ref *pRef,
+                     bool *bStop)
 {
+    UNUSED_PARAM(zKey);
+    UNUSED_PARAM(idx);
+    UNUSED_PARAM(pPropMap);
     if (pProp->name.id == pRef->id || strcmp(pProp->name.name, pRef->name) == 0)
     {
         *bStop = true;
@@ -565,7 +579,7 @@ _findPropByMetadataRef(struct flexi_class_def *pClassDef, flexi_metadata_ref *pR
 {
     if (pRef->id != 0)
     {
-        *pProp = HashTable_each(&pClassDef->propMap, (void *) _compPropById, pRef);
+        *pProp = HashTable_each(&pClassDef->propMap, (void *) _compPropByIdAndName, pRef);
     }
     else
         *pProp = HashTable_get(&pClassDef->propMap, pRef->name);
@@ -666,7 +680,7 @@ _mergeClassSchemas(_ClassAlterContext_t *alterCtx)
         goto CATCH;
 
     // Iterate through properties. Find props: to be renamed, to be deleted, to be updated, to be added
-    HashTable_each(&alterCtx->pNewClassDef->propMap, (void *) _processProp, alterCtx);
+    HashTable_each(&alterCtx->pNewClassDef->propMap, (void *) _validatePropChange, alterCtx);
     if (*alterCtx->pzErr)
         goto CATCH;
 
@@ -737,7 +751,7 @@ int
 flexi_class_alter(struct flexi_db_context *pCtx,
                   const char *zClassName,
                   const char *zNewClassDefJson,
-                  const char *zValidateMode,
+                  enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
                   bool bCreateVTable,
                   const char **pzError
 )
@@ -747,7 +761,7 @@ flexi_class_alter(struct flexi_db_context *pCtx,
     // Check if class exists. If no - error
     // Check if class does not exist yet
     sqlite3_int64 lClassID;
-    CHECK_CALL(db_get_class_id_by_name(pCtx, zClassName, &lClassID));
+    CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
     if (lClassID <= 0)
     {
         result = SQLITE_ERROR;
@@ -755,7 +769,7 @@ flexi_class_alter(struct flexi_db_context *pCtx,
         goto CATCH;
     }
 
-    CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zNewClassDefJson, bCreateVTable, zValidateMode, pzError));
+    CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zNewClassDefJson, bCreateVTable, eValidateMode, pzError));
 
     goto FINALLY;
 
@@ -772,7 +786,8 @@ flexi_class_alter(struct flexi_db_context *pCtx,
  * Applies new definition to the class which does not yet have data
  */
 int _flexi_ClassDef_applyNewDef(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
-                                bool bCreateVTable, const char *zValidateMode, const char **pzErr)
+                                bool bCreateVTable, enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
+                                const char **pzErr)
 {
     int result;
 
@@ -780,9 +795,12 @@ int _flexi_ClassDef_applyNewDef(struct flexi_db_context *pCtx, sqlite3_int64 lCl
 
     _ClassAlterContext_t alterCtx;
     memset(&alterCtx, 0, sizeof(alterCtx));
+
+    alterCtx.pCtx = pCtx;
     List_init(&alterCtx.preActions, 0, NULL);
     List_init(&alterCtx.postActions, 0, NULL);
     List_init(&alterCtx.propActions, 0, NULL);
+    alterCtx.eValidateMode = eValidateMode;
     alterCtx.pzErr = pzErr;
 
     // Load existing class def

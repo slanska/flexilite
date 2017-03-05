@@ -87,31 +87,37 @@ struct flexi_db_context
      */
     duk_context *pDuk;
 
-    Hash classDefs;
+    /*
+     * Hash of loaded class definitions (by current names)
+     */
+    Hash classDefsByName;
+
+    // TODO Init and use
+    Hash classDefsById;
 };
 
 struct flexi_db_context *flexi_db_context_new(sqlite3 *db);
 
-void flexi_db_context_free(struct flexi_db_context *data);
+void flexi_Context_free(struct flexi_db_context *data);
 
 /*
  * Finds class by its name. Returns found ID in pClassID. If class not found, sets pClassID to -1;
  * Returns SQLITE_OK if operation was executed successfully, or SQLITE error code
  */
-int db_get_class_id_by_name(struct flexi_db_context *pCtx,
-                            const char *zClassName, sqlite3_int64 *pClassID);
+int flexi_Context_getClassIdByName(struct flexi_db_context *pCtx,
+                                   const char *zClassName, sqlite3_int64 *pClassID);
 
 /*
  * Ensures that there is given Name in [.names_props] table.
  * Returns name id in pNameID (if not null)
  */
-int db_get_name_id(struct flexi_db_context *pCtx,
-                   const char *zName, sqlite3_int64 *pNameID);
+int flexi_Context_getNameId(struct flexi_db_context *pCtx,
+                            const char *zName, sqlite3_int64 *pNameID);
 
 /*
  * Finds property ID by its class ID and name ID
  */
-int db_get_prop_id_by_class_and_name
+int flexi_Context_getPropIdByClassAndNameIds
         (struct flexi_db_context *pCtx,
          sqlite3_int64 lClassID, sqlite3_int64 lPropNameID,
          sqlite3_int64 *plPropID);
@@ -120,8 +126,8 @@ int db_get_prop_id_by_class_and_name
  * Ensures that there is given Name in [.names_props] table.
  * Returns name id in pNameID (if not null)
  */
-int db_insert_name(struct flexi_db_context *pCtx, const char *zName,
-                   sqlite3_int64 *pNameID);
+int flexi_Context_insertName(struct flexi_db_context *pCtx, const char *zName,
+                             sqlite3_int64 *pNameID);
 
 /*
  * Checks if name does not have invalid characters and its length is within supported range (1-128)

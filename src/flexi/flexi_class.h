@@ -59,6 +59,13 @@ enum RTREE_PROP_IDX
     RTREE_PROP_COUNT = RTREE_PROP_E1 + 1,
 };
 
+enum ALTER_CLASS_DATA_VALIDATION_MODE
+{
+    INVALID_DATA_ABORT = 0,
+    INVALID_DATA_IGNORE = 1,
+    INVALID_DATA_ERROR = 2
+};
+
 /*
  * Handle for Flexilite class definition
  */
@@ -176,7 +183,8 @@ int flexi_prop_to_obj_func(
  * have any data (so no data refactoring would be required)
  */
 int _flexi_ClassDef_applyNewDef(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
-                                bool bCreateVTable, const char *zValidateMode, const char **pzErr);
+                                bool bCreateVTable, enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
+                                const char **pzErr);
 
 ///
 /// \param pCtx
@@ -188,7 +196,7 @@ int _flexi_ClassDef_applyNewDef(struct flexi_db_context *pCtx, sqlite3_int64 lCl
 int flexi_class_alter(struct flexi_db_context *pCtx,
                       const char *zClassName,
                       const char *zNewClassDefJson,
-                      const char *zValidateMode,
+                      enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
                       bool bCreateVTable,
                       const char **pzError
 );

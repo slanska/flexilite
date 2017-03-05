@@ -24,13 +24,13 @@ static int _create_class_record(struct flexi_db_context *pCtx, const char *zClas
     }
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_INS_CLS]));
     sqlite3_int64 lClassNameID;
-    CHECK_CALL(db_insert_name(pCtx, zClassName, &lClassNameID));
+    CHECK_CALL(flexi_Context_insertName(pCtx, zClassName, &lClassNameID));
     CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_INS_CLS], 0, lClassNameID));
     CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_INS_CLS]));
     if (result != SQLITE_DONE)
         goto CATCH;
 
-    CHECK_CALL(db_get_class_id_by_name(pCtx, zClassName, lClassID));
+    CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, lClassID));
 
     goto FINALLY;
 
@@ -358,7 +358,7 @@ struct flexi_class_def *flexi_class_def_new(struct flexi_db_context *pCtx)
     memset(result, 0, sizeof(*result));
 
     result->pCtx = pCtx;
-    HashTable_init(&result->propMap, (void *) flexi_prop_def_free);
+    HashTable_init(&result->propMap, DICT_STRING, (void *) flexi_prop_def_free);
     return result;
 }
 
@@ -384,7 +384,7 @@ int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName,
 
     // Check if class does not exist yet
     sqlite3_int64 lClassID;
-    CHECK_CALL(db_get_class_id_by_name(pCtx, zClassName, &lClassID));
+    CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
     if (lClassID > 0)
     {
         result = SQLITE_ERROR;
@@ -412,7 +412,7 @@ int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName,
     memset(&dProp, 0, sizeof(dProp));
 
     sqlite3_int64 lClassNameID;
-    CHECK_CALL(db_insert_name(pCtx, zClassName, &lClassNameID));
+    CHECK_CALL(flexi_Context_insertName(pCtx, zClassName, &lClassNameID));
 
     // insert into .classes
     {
@@ -547,7 +547,7 @@ int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName,
         }
 
         sqlite3_int64 lPropNameID;
-        CHECK_CALL(db_insert_name(pCtx, dProp.name.name, &lPropNameID));
+        CHECK_CALL(flexi_Context_insertName(pCtx, dProp.name.name, &lPropNameID));
 
         {
             sqlite3_reset(pInsPropStmt);
@@ -565,7 +565,7 @@ int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName,
 
         // Get new property ID
         sqlite3_int64 iPropID;
-        CHECK_CALL(db_get_prop_id_by_class_and_name(pCtx, iClassID, lPropNameID, &iPropID));
+        CHECK_CALL(flexi_Context_getPropIdByClassAndNameIds(pCtx, iClassID, lPropNameID, &iPropID));
         if (iPropCnt != 0)
         {
             void *pTmp = sbClassDefJSON;
@@ -709,6 +709,8 @@ int flexi_class_alter_func(
     assert(argc >= 2 && argc <= 4);
 
     int result;
+    const char *zError = NULL;
+
     // 1st arg: class name
     char *zClassName = (char *) sqlite3_value_text(argv[0]);
 
@@ -718,17 +720,54 @@ int flexi_class_alter_func(
     // 3rd optional argument - create virtual table for class
     bool bCreateVTable = false;
     if (argc == 3)
-        bCreateVTable = (bool)sqlite3_value_int(argv[2]);
+        bCreateVTable = (bool) sqlite3_value_int(argv[2]);
 
-    // 4th optional parameter - validation mode: ABORT, IGNORE
+    /*
+     * 4th optional parameter - validation mode: ABORT (0) - in case of any data that cannot be converted
+     * to a new property, entire alter operation will be aborted,
+     * IGNORE (1) - all data validation errors will be ignored but corresponding properties
+     * and class itself will get ValidationNeeded flag set.
+     * This flag can be attempted to clear by flexi('validate data')
+     */
     const char *zValidateMode = NULL;
+    enum ALTER_CLASS_DATA_VALIDATION_MODE eValidationMode = INVALID_DATA_ABORT;
     if (argc == 4)
+    {
+        const static struct
+        {
+            const char *opName;
+            enum ALTER_CLASS_DATA_VALIDATION_MODE opCode;
+        }
+                g_DataValidationModes[] = {
+                {"ABORT",  INVALID_DATA_ABORT},
+                {"0",      INVALID_DATA_ABORT},
+                {"IGNORE", INVALID_DATA_IGNORE},
+                {"1",      INVALID_DATA_IGNORE}
+        };
         zValidateMode = (char *) sqlite3_value_text(argv[3]);
+        if (zValidateMode)
+        {
+            eValidationMode = INVALID_DATA_ERROR;
+            for (int iValMode = 0; iValMode < ARRAY_LEN(g_DataValidationModes); iValMode++)
+            {
+                if (sqlite3_stricmp(zValidateMode, g_DataValidationModes[iValMode].opName) == 0)
+                {
+                    eValidationMode = g_DataValidationModes[iValMode].opCode;
+                    break;
+                }
+            }
 
-    const char *zError = NULL;
-
+            if (eValidationMode == INVALID_DATA_ERROR)
+            {
+                zError = sqlite3_mprintf(
+                        "Invalid data validation mode - \"%s\". Supported values are: ABORT (default) or IGNORE",
+                        zValidateMode);
+                goto CATCH;
+            }
+        }
+    }
     struct flexi_db_context *pCtx = sqlite3_user_data(context);
-    CHECK_CALL(flexi_class_alter(pCtx, zClassName, zNewClassDef, zValidateMode, bCreateVTable, &zError));
+    CHECK_CALL(flexi_class_alter(pCtx, zClassName, zNewClassDef, eValidationMode, bCreateVTable, &zError));
 
     goto FINALLY;
 
@@ -739,7 +778,7 @@ int flexi_class_alter_func(
     FINALLY:
 
     sqlite3_free(zClassName);
-    sqlite3_free((void *)zValidateMode);
+    sqlite3_free((void *) zValidateMode);
     sqlite3_free(zNewClassDef);
 
     return result;
@@ -795,7 +834,7 @@ int flexi_class_drop_func(
 
     sqlite3_int64 lClassID;
     struct flexi_db_context *pCtx = sqlite3_user_data(context);
-    CHECK_CALL(db_get_class_id_by_name(pCtx, zClassName, &lClassID));
+    CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
 
     CHECK_CALL(flexi_class_drop(pCtx, lClassID, softDel, &zError));
     goto FINALLY;
@@ -818,7 +857,7 @@ int flexi_class_rename(struct flexi_db_context *pCtx, sqlite3_int64 iOldClassID,
     int result;
 
     sqlite3_int64 lNewNameID;
-    CHECK_CALL(db_insert_name(pCtx, zNewName, &lNewNameID));
+    CHECK_CALL(flexi_Context_insertName(pCtx, zNewName, &lNewNameID));
 
     // TODO Move to prepared statements
     if (!pCtx->pStmts[STMT_CLS_RENAME])
@@ -867,7 +906,7 @@ int flexi_class_rename_func(
 
     sqlite3_int64 iOldID;
     int result;
-    CHECK_CALL(db_get_name_id(pCtx, zOldClassName, &iOldID));
+    CHECK_CALL(flexi_Context_getNameId(pCtx, zOldClassName, &iOldID));
     CHECK_CALL(flexi_class_rename(pCtx, iOldID, zNewClassName));
     goto FINALLY;
 

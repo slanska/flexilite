@@ -113,6 +113,9 @@ static void flexi_func(sqlite3_context *context,
 
             {"init",                  flexi_init_func,           1},
             {"help",                  flexi_help_func,           0},
+
+            // TODO
+            {"validate data", NULL,                              1},
     };
 
     char *zMethodName = (char *) sqlite3_value_text(argv[0]);
@@ -180,13 +183,13 @@ int flexi_init(sqlite3 *db,
     }
 
     CHECK_CALL(sqlite3_create_function_v2(db, "flexi", 0, SQLITE_UTF8, pCtx,
-                                          flexi_func, 0, 0, (void *)flexi_db_context_free));
+                                          flexi_func, 0, 0, (void *) flexi_Context_free));
 
     CHECK_CALL(flexi_data_init(db, pzErrMsg, pApi, pCtx));
     goto FINALLY;
 
     CATCH:
-    flexi_db_context_free(pCtx);
+    flexi_Context_free(pCtx);
 
     FINALLY:
 

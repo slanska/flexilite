@@ -56,8 +56,9 @@ enum REF_PROP_ROLE
 #define CHECK_STMT(call)       result = (call); \
         if (result != SQLITE_DONE && result != SQLITE_ROW) goto CATCH;
 
-#define CHECK_MALLOC(v, s) v = sqlite3_malloc(s); \
-        if (v == NULL) { result = SQLITE_NOMEM; goto CATCH;}
+#define CHECK_NULL(v) if (v == NULL) { result = SQLITE_NOMEM; goto CATCH;}
+
+#define CHECK_MALLOC(v, s) v = sqlite3_malloc(s); CHECK_NULL(v)
 
 #define ARRAY_LEN(arr)   (sizeof(arr) / sizeof(arr[0]))
 
@@ -90,7 +91,7 @@ typedef void iterateeFunc(const char *zKey, u32 index, void *pData,
 
 typedef union any
 {
-    char* zValue;
+    char *zValue;
     long long int i64;
 
 } any;

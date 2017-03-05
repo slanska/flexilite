@@ -117,11 +117,11 @@ static int flexi_data_connect(
          * Should be instance of flexi_class_def
          */
         sqlite3_vtab **ppVtab,
-        const char **pzErr
+        char **pzErr
 ) {
     sqlite3_int64 lClassID;
     assert(argc >= 3);
-    int result = db_get_class_id_by_name(db, argv[2], &lClassID);
+    int result = flexi_Context_getClassIdByName(db, argv[2], &lClassID);
     if (result != SQLITE_OK)
         return result;
 
