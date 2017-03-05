@@ -7,7 +7,6 @@
 
 #include <sqlite3ext.h>
 #include <duktape.h>
-//#include "flexi_prop.h"
 #include "../util/hash.h"
 #include "flexi_user_info.h"
 #include "../util/buffer.h"
@@ -50,7 +49,7 @@ enum FLEXI_CTX_STMT
 /*
  * Connection wide data and settings
  */
-struct flexi_db_context
+struct flexi_Context_t
 {
     /*
      * Associated database connection
@@ -96,29 +95,29 @@ struct flexi_db_context
     Hash classDefsById;
 };
 
-struct flexi_db_context *flexi_db_context_new(sqlite3 *db);
+struct flexi_Context_t *flexi_Context_new(sqlite3 *db);
 
-void flexi_Context_free(struct flexi_db_context *data);
+void flexi_Context_free(struct flexi_Context_t *data);
 
 /*
  * Finds class by its name. Returns found ID in pClassID. If class not found, sets pClassID to -1;
  * Returns SQLITE_OK if operation was executed successfully, or SQLITE error code
  */
-int flexi_Context_getClassIdByName(struct flexi_db_context *pCtx,
+int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
                                    const char *zClassName, sqlite3_int64 *pClassID);
 
 /*
  * Ensures that there is given Name in [.names_props] table.
  * Returns name id in pNameID (if not null)
  */
-int flexi_Context_getNameId(struct flexi_db_context *pCtx,
+int flexi_Context_getNameId(struct flexi_Context_t *pCtx,
                             const char *zName, sqlite3_int64 *pNameID);
 
 /*
  * Finds property ID by its class ID and name ID
  */
 int flexi_Context_getPropIdByClassAndNameIds
-        (struct flexi_db_context *pCtx,
+        (struct flexi_Context_t *pCtx,
          sqlite3_int64 lClassID, sqlite3_int64 lPropNameID,
          sqlite3_int64 *plPropID);
 
@@ -126,7 +125,7 @@ int flexi_Context_getPropIdByClassAndNameIds
  * Ensures that there is given Name in [.names_props] table.
  * Returns name id in pNameID (if not null)
  */
-int flexi_Context_insertName(struct flexi_db_context *pCtx, const char *zName,
+int flexi_Context_insertName(struct flexi_Context_t *pCtx, const char *zName,
                              sqlite3_int64 *pNameID);
 
 /*

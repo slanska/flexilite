@@ -10,14 +10,14 @@
 /*
  * Forward declarations
  */
-static int flexi_prepare_db_statements(struct flexi_db_context *pCtx);
+static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx);
 
-struct flexi_db_context *flexi_db_context_new(sqlite3 *db)
+struct flexi_Context_t *flexi_Context_new(sqlite3 *db)
 {
-    struct flexi_db_context *result = sqlite3_malloc(sizeof(struct flexi_db_context));
+    struct flexi_Context_t *result = sqlite3_malloc(sizeof(struct flexi_Context_t));
     if (!result)
         return NULL;
-    memset(result, 0, sizeof(struct flexi_db_context));
+    memset(result, 0, sizeof(struct flexi_Context_t));
     result->db = db;
     HashTable_init(&result->classDefsByName, DICT_STRING, (void *) flexi_class_def_free);
     HashTable_init(&result->classDefsById, DICT_INT, NULL);
@@ -28,7 +28,7 @@ struct flexi_db_context *flexi_db_context_new(sqlite3 *db)
 /*
  * Gets name ID by value. Name is expected to exist
  */
-int flexi_Context_getNameId(struct flexi_db_context *pCtx,
+int flexi_Context_getNameId(struct flexi_Context_t *pCtx,
                             const char *zName, sqlite3_int64 *pNameID)
 {
     if (pNameID)
@@ -51,7 +51,7 @@ int flexi_Context_getNameId(struct flexi_db_context *pCtx,
  * Finds property ID by its class ID and name ID
  */
 int flexi_Context_getPropIdByClassAndNameIds
-        (struct flexi_db_context *pCtx,
+        (struct flexi_Context_t *pCtx,
          sqlite3_int64 lClassID, sqlite3_int64 lPropNameID, sqlite3_int64 *plPropID)
 {
     assert(plPropID);
@@ -74,7 +74,7 @@ int flexi_Context_getPropIdByClassAndNameIds
  * Ensures that there is given Name in [.names] table.
  * Returns name id in pNameID (if not null)
  */
-int flexi_Context_insertName(struct flexi_db_context *pCtx, const char *zName, sqlite3_int64 *pNameID)
+int flexi_Context_insertName(struct flexi_Context_t *pCtx, const char *zName, sqlite3_int64 *pNameID)
 {
     assert(zName);
     {
@@ -92,7 +92,7 @@ int flexi_Context_insertName(struct flexi_db_context *pCtx, const char *zName, s
     return result;
 }
 
-void flexi_Context_free(struct flexi_db_context *pCtx)
+void flexi_Context_free(struct flexi_Context_t *pCtx)
 {
     // Release prepared SQL statements
     for (int ii = 0; ii <= STMT_DEL_FTS; ii++)
@@ -133,7 +133,7 @@ void flexi_Context_free(struct flexi_db_context *pCtx)
     sqlite3_free(pCtx);
 }
 
-int flexi_Context_getClassIdByName(struct flexi_db_context *pCtx,
+int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
                                    const char *zClassName, sqlite3_int64 *pClassID)
 {
     assert(pCtx);
@@ -168,7 +168,7 @@ int flexi_Context_getClassIdByName(struct flexi_db_context *pCtx,
 /*
  * Initializes database connection wide SQL statements
  */
-static int flexi_prepare_db_statements(struct flexi_db_context *pCtx)
+static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx)
 {
     int result;
     sqlite3 *db = pCtx->db;

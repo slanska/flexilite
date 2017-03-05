@@ -15,8 +15,6 @@
 #ifndef _SQLITE_HASH_H_
 #define _SQLITE_HASH_H_
 
-//#include "../project_defs.h"
-
 #include <sqlite3ext.h>
 
 SQLITE_EXTENSION_INIT3
@@ -37,6 +35,15 @@ typedef enum DICTIONARY_TYPE
     DICT_STRING_IGNORE_CASE = 1,
     DICT_INT = 2
 } DICTIONARY_TYPE;
+
+/*
+ * Union type for dictionary/hash key which combines integer and string
+ */
+typedef union DictionaryKey_t
+{
+    const char *pKey;
+    sqlite3_int64 iKey;
+} DictionaryKey_t;
 
 /* A complete hash table is an instance of the following structure.
 ** The internals of this structure are intended to be opaque -- client
@@ -100,12 +107,13 @@ struct HashElem
     /* Data associated with this element */
     var data;
 
-    /* Key associated with this element: either string or int64 */
-    union
-    {
-        const char *pKey;
-        sqlite3_int64 iKey;
-    };
+    DictionaryKey_t key;
+    //    /* Key associated with this element: either string or int64 */
+    //    union
+    //    {
+    //        const char *pKey;
+    //        sqlite3_int64 iKey;
+    //    };
 };
 
 /*
@@ -121,13 +129,13 @@ void HashTable_init(Hash *, DICTIONARY_TYPE dictType, freeElem freeElemFunc);
 /*
  * Sets new value for key pKey
  */
-void HashTable_set_v(Hash *, const char *pKey, sqlite3_value *pData);
+void HashTable_set_v(Hash *, DictionaryKey_t key, sqlite3_value *pData);
 
-void HashTable_set(Hash *, const char *pKey, void *pData);
+void HashTable_set(Hash *, DictionaryKey_t key, void *pData);
 
-sqlite3_value *HashTable_get_v(const Hash *, const char *pKey);
+sqlite3_value *HashTable_get_v(const Hash *, DictionaryKey_t key);
 
-void *HashTable_get(const Hash *, const char *pKey);
+void *HashTable_get(const Hash *, DictionaryKey_t key);
 
 /// @brief
 /// @param self
@@ -138,6 +146,6 @@ void *HashTable_each(const Hash *self, iterateeFunc iteratee, var param);
 
 void HashTable_clear(Hash *);
 
-unsigned int HashTable_getHash(const char *z);
+unsigned int HashTable_getHash(DictionaryKey_t key);
 
 #endif /* _SQLITE_HASH_H_ */

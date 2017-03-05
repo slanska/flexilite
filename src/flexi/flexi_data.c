@@ -108,7 +108,7 @@ static int flexi_data_create(
 static int flexi_data_connect(
         sqlite3 *db,
 
-        // Should be instance of flexi_db_context
+        // Should be instance of flexi_Context_t
         void *pAux,
 
         int argc, const char *const *argv,
@@ -125,7 +125,7 @@ static int flexi_data_connect(
     if (result != SQLITE_OK)
         return result;
 
-    return flexi_class_def_load((struct flexi_db_context*)pAux, lClassID, ppVtab, pzErr);
+    return flexi_class_def_load((struct flexi_Context_t*)pAux, lClassID, ppVtab, pzErr);
 
     // TODO flexi_class_def_generate_vtable_sql();
     // TODO Apply generated sql
@@ -515,7 +515,7 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
 static void matchTextFunction(sqlite3_context *context, int argc, sqlite3_value **argv) {
     // TODO Update lookup statistics
     int result;
-    struct flexi_db_context *pDBEnv = sqlite3_user_data(context);
+    struct flexi_Context_t *pDBEnv = sqlite3_user_data(context);
 
     assert(pDBEnv);
 
@@ -1090,7 +1090,7 @@ int flexi_data_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi,
-        struct flexi_db_context *pEnv
+        struct flexi_Context_t *pEnv
 ) {
     (void) pApi;
 

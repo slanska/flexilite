@@ -76,7 +76,7 @@ _ClassAlterAction_t *_ClassAlterAction_new(flexi_metadata_ref *ref,
  */
 struct _ClassAlterContext_t
 {
-    struct flexi_db_context *pCtx;
+    struct flexi_Context_t *pCtx;
     struct flexi_class_def *pNewClassDef;
     struct flexi_class_def *pExistingClassDef;
     const char **pzErr;
@@ -322,7 +322,7 @@ _validatePropChange(const char *zPropName, int index, struct flexi_prop_def *p,
 
     // Check if class2 has the same property
     struct flexi_prop_def *pProp2;
-    pProp2 = HashTable_get(&alterCtx->pExistingClassDef->propMap, zPropName);
+    pProp2 = HashTable_get(&alterCtx->pExistingClassDef->propMap, (DictionaryKey_t) {.pKey= zPropName});
 
     if (pProp2)
     {
@@ -502,10 +502,11 @@ _copyExistingProp(const char *zPropName, int idx, struct flexi_prop_def *prop, v
     UNUSED_PARAM(idx);
     UNUSED_PARAM(propMap);
 
-    struct flexi_prop_def *pNewProp = HashTable_get(&alterCtx->pNewClassDef->propMap, zPropName);
+    struct flexi_prop_def *pNewProp = HashTable_get(&alterCtx->pNewClassDef->propMap,
+                                                    (DictionaryKey_t) {.pKey = zPropName});
     if (!pNewProp)
     {
-        HashTable_set(&alterCtx->pNewClassDef->propMap, zPropName, prop);
+        HashTable_set(&alterCtx->pNewClassDef->propMap, (DictionaryKey_t) {.pKey=zPropName}, prop);
         prop->eChangeStatus = CHNG_STATUS_NOT_MODIFIED;
         prop->nRefCount++;
     }
@@ -582,7 +583,7 @@ _findPropByMetadataRef(struct flexi_class_def *pClassDef, flexi_metadata_ref *pR
         *pProp = HashTable_each(&pClassDef->propMap, (void *) _compPropByIdAndName, pRef);
     }
     else
-        *pProp = HashTable_get(&pClassDef->propMap, pRef->name);
+        *pProp = HashTable_get(&pClassDef->propMap, (DictionaryKey_t) {.pKey=pRef->name});
 
     return *pProp != NULL;
 }
@@ -708,7 +709,7 @@ _mergeClassSchemas(_ClassAlterContext_t *alterCtx)
 }
 
 static int
-_createClassDefFromDefJSON(struct flexi_db_context *pCtx, const char *zClassDefJson,
+_createClassDefFromDefJSON(struct flexi_Context_t *pCtx, const char *zClassDefJson,
                            struct flexi_class_def **pClassDef)
 {
     int result;
@@ -748,7 +749,7 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx)
  * Ensures that class already exists and calls _flexi_ClassDef_applyNewDef
  */
 int
-flexi_class_alter(struct flexi_db_context *pCtx,
+flexi_class_alter(struct flexi_Context_t *pCtx,
                   const char *zClassName,
                   const char *zNewClassDefJson,
                   enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
@@ -785,7 +786,7 @@ flexi_class_alter(struct flexi_db_context *pCtx,
  * Internal function to handle 'alter class' and 'create class' calls
  * Applies new definition to the class which does not yet have data
  */
-int _flexi_ClassDef_applyNewDef(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
+int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
                                 bool bCreateVTable, enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
                                 const char **pzErr)
 {

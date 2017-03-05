@@ -111,7 +111,7 @@ struct flexi_class_def
     /*
      * Shortcut to Flexilite connection wide context
      */
-    struct flexi_db_context *pCtx;
+    struct flexi_Context_t *pCtx;
 
     /*
      * Special property definitions
@@ -136,7 +136,7 @@ struct flexi_class_def
     Buffer *aMixins;
 };
 
-int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName, const char *zClassDef, bool bCreateVTable,
+int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName, const char *zClassDef, bool bCreateVTable,
                        const char **pzError);
 
 int flexi_class_create_func(
@@ -157,7 +157,7 @@ int flexi_class_drop_func(
         sqlite3_value **argv
 );
 
-int flexi_class_rename(struct flexi_db_context *pCtx, sqlite3_int64 iOldClassID, const char *zNewName);
+int flexi_class_rename(struct flexi_Context_t *pCtx, sqlite3_int64 iOldClassID, const char *zNewName);
 
 int flexi_class_rename_func(
         sqlite3_context *context,
@@ -182,7 +182,7 @@ int flexi_prop_to_obj_func(
  * Internally used function to apply schema changes to the class that does not
  * have any data (so no data refactoring would be required)
  */
-int _flexi_ClassDef_applyNewDef(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
+int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
                                 bool bCreateVTable, enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
                                 const char **pzErr);
 
@@ -193,7 +193,7 @@ int _flexi_ClassDef_applyNewDef(struct flexi_db_context *pCtx, sqlite3_int64 lCl
 /// \param bCreateVTable
 /// \param pzError
 /// \return
-int flexi_class_alter(struct flexi_db_context *pCtx,
+int flexi_class_alter(struct flexi_Context_t *pCtx,
                       const char *zClassName,
                       const char *zNewClassDefJson,
                       enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
@@ -206,7 +206,7 @@ int flexi_class_alter(struct flexi_db_context *pCtx,
 /// \param lClassID
 /// \param softDelete
 /// \return
-int flexi_class_drop(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, int softDelete, const char **pzError);
+int flexi_class_drop(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, int softDelete, const char **pzError);
 
 void flexi_props_to_obj_func(
         sqlite3_context *context,
@@ -227,7 +227,7 @@ void flexi_class_def_free(struct flexi_class_def *pClsDef);
  * into ppVTab (casted to flexi_vtab).
  * Used by Create and Connect methods
  */
-int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, struct flexi_class_def **pClassDef,
+int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_class_def **pClassDef,
                          const char **pzErr);
 
 /*
@@ -235,7 +235,7 @@ int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, 
  */
 int flexi_class_def_generate_vtable_sql(struct flexi_class_def *pClassDef, char **zSQL);
 
-struct flexi_class_def *flexi_class_def_new(struct flexi_db_context *pCtx);
+struct flexi_class_def *flexi_class_def_new(struct flexi_Context_t *pCtx);
 
 int flexi_class_def_parse(struct flexi_class_def *pClassDef, const char *zClassDefJson, const char **pzErr);
 

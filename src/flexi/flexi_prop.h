@@ -24,7 +24,7 @@ typedef struct flexi_enum_def flexi_enum_def;
  */
 struct flexi_prop_def
 {
-    struct flexi_db_context *pCtx;
+    struct flexi_Context_t *pCtx;
     int nRefCount;
     sqlite3_int64 lClassID;
     sqlite3_int64 iPropID;

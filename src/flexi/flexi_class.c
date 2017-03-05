@@ -12,7 +12,7 @@
 /*
  * Create new class record in the database
  */
-static int _create_class_record(struct flexi_db_context *pCtx, const char *zClassName, sqlite3_int64 *lClassID)
+static int _create_class_record(struct flexi_Context_t *pCtx, const char *zClassName, sqlite3_int64 *lClassID)
 {
     int result;
     if (!pCtx->pStmts[STMT_INS_CLS])
@@ -313,7 +313,7 @@ static int _parseProperties(struct flexi_class_def *pClassDef, sqlite3_stmt *pSt
             pProp->xCtlvPlan = sqlite3_column_int(pStmt, ictlvPlanCol);
         }
 
-        HashTable_set(&pClassDef->propMap, zPropName, pProp);
+        HashTable_set(&pClassDef->propMap, (DictionaryKey_t) {.pKey=zPropName}, pProp);
     }
 
     result = SQLITE_OK;
@@ -350,7 +350,7 @@ static int _parseClassDefAux(struct flexi_class_def *pClassDef, const char *zCla
 /*
  * Allocates and initializes new instance of class definition
  */
-struct flexi_class_def *flexi_class_def_new(struct flexi_db_context *pCtx)
+struct flexi_class_def *flexi_class_def_new(struct flexi_Context_t *pCtx)
 {
     struct flexi_class_def *result = sqlite3_malloc(sizeof(struct flexi_class_def));
     if (!result)
@@ -369,7 +369,7 @@ struct flexi_class_def *flexi_class_def_new(struct flexi_db_context *pCtx)
 /// @param bCreateVTable
 /// @param pzError
 /// @return
-int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName,
+int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
                        const char *zClassDef, bool bCreateVTable,
                        const char **pzError)
 {
@@ -401,8 +401,7 @@ int flexi_class_create(struct flexi_db_context *pCtx, const char *zClassName,
 
     CHECK_CALL(_create_class_record(pCtx, zClassName, &lClassID));
 
-    CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zClassDef, bCreateVTable, NULL, pzError));
-
+    CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zClassDef, bCreateVTable, INVALID_DATA_ABORT, pzError));
 
     // TODO Remove
 
@@ -766,7 +765,7 @@ int flexi_class_alter_func(
             }
         }
     }
-    struct flexi_db_context *pCtx = sqlite3_user_data(context);
+    struct flexi_Context_t *pCtx = sqlite3_user_data(context);
     CHECK_CALL(flexi_class_alter(pCtx, zClassName, zNewClassDef, eValidationMode, bCreateVTable, &zError));
 
     goto FINALLY;
@@ -784,7 +783,7 @@ int flexi_class_alter_func(
     return result;
 }
 
-int flexi_class_drop(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, int softDelete,
+int flexi_class_drop(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, int softDelete,
                      const char **pzError)
 {
     // TODO
@@ -833,7 +832,7 @@ int flexi_class_drop_func(
         softDel = sqlite3_value_int(argv[1]);
 
     sqlite3_int64 lClassID;
-    struct flexi_db_context *pCtx = sqlite3_user_data(context);
+    struct flexi_Context_t *pCtx = sqlite3_user_data(context);
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
 
     CHECK_CALL(flexi_class_drop(pCtx, lClassID, softDel, &zError));
@@ -850,7 +849,7 @@ int flexi_class_drop_func(
     return result;
 }
 
-int flexi_class_rename(struct flexi_db_context *pCtx, sqlite3_int64 iOldClassID, const char *zNewName)
+int flexi_class_rename(struct flexi_Context_t *pCtx, sqlite3_int64 iOldClassID, const char *zNewName)
 {
     assert(pCtx && pCtx->db);
 
@@ -902,7 +901,7 @@ int flexi_class_rename_func(
     char *zNewClassName = (char *) sqlite3_value_text(argv[1]);
 
     sqlite3 *db = sqlite3_context_db_handle(context);
-    struct flexi_db_context *pCtx = sqlite3_user_data(context);
+    struct flexi_Context_t *pCtx = sqlite3_user_data(context);
 
     sqlite3_int64 iOldID;
     int result;
@@ -1086,7 +1085,7 @@ int flexi_class_def_parse(struct flexi_class_def *pClassDef,
  * into ppVTab (casted to flexi_class_def).
  * Used by Create and Connect methods
  */
-int flexi_class_def_load(struct flexi_db_context *pCtx, sqlite3_int64 lClassID, struct flexi_class_def **pClassDef,
+int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_class_def **pClassDef,
                          const char **pzErr)
 {
     int result;

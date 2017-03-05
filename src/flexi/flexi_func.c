@@ -167,7 +167,7 @@ int flexi_data_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi,
-        struct flexi_db_context *pEnv
+        struct flexi_Context_t *pEnv
 );
 
 int flexi_init(sqlite3 *db,
@@ -175,7 +175,7 @@ int flexi_init(sqlite3 *db,
                const sqlite3_api_routines *pApi)
 {
     int result;
-    struct flexi_db_context *pCtx = flexi_db_context_new(db);
+    struct flexi_Context_t *pCtx = flexi_Context_new(db);
     if (!pCtx)
     {
         result = SQLITE_NOMEM;

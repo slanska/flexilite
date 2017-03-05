@@ -55,7 +55,7 @@ void HashTable_clear(Hash *self)
         HashElem *next_elem = elem->next;
         self->freeElemFunc(elem->data);
         if (self->eDictType != DICT_INT)
-            sqlite3_free((void *) elem->pKey);
+            sqlite3_free((void *) elem->key.pKey);
         sqlite3_free(elem);
         elem = next_elem;
     }
@@ -78,11 +78,12 @@ static unsigned int _getHashForInt64(sqlite3_int64 key)
 /*
 ** The hashing function.
 */
-unsigned int HashTable_getHash(const char *z)
+unsigned int HashTable_getHash(DictionaryKey_t key)
 {
     unsigned int h = 0;
     unsigned char c;
-    while ((c = (unsigned char) *z++) != 0)
+    // TODO
+    while ((c = (unsigned char) *key.pKey++) != 0)
     {
         h = (h << 3) ^ h ^ c;
     }
@@ -166,7 +167,7 @@ static int _rehash(Hash *self, unsigned int new_size)
     memset(new_ht, 0, new_size * sizeof(struct _ht));
     for (elem = self->first, self->first = 0; elem; elem = next_elem)
     {
-        unsigned int h = HashTable_getHash(elem->pKey) % new_size;
+        unsigned int h = HashTable_getHash(elem->key) % new_size;
         next_elem = elem->next;
         _insertElement(self, &new_ht[h], elem);
     }
@@ -179,7 +180,7 @@ static int _rehash(Hash *self, unsigned int new_size)
 */
 static HashElem *_findElementWithHash(
         const Hash *self,     /* The pH to be searched */
-        const char *pKey,   /* The key we are searching for */
+        DictionaryKey_t key,   /* The key we are searching for */
         unsigned int *pHash /* Write the hash value here */
 )
 {
@@ -190,7 +191,7 @@ static HashElem *_findElementWithHash(
     if (self->ht)
     {
         struct _ht *pEntry;
-        h = HashTable_getHash(pKey) % self->htsize;
+        h = HashTable_getHash(key) % self->htsize;
         pEntry = (void *) &self->ht[h];
         elem = pEntry->chain;
         count = pEntry->count;
@@ -206,11 +207,27 @@ static HashElem *_findElementWithHash(
     {
         assert(elem != 0);
 
-        //        TODO sqlite3_stricmp()
-        if (strcmp(elem->pKey, pKey) == 0)
+        switch (self->eDictType)
         {
-            return elem;
+            case DICT_STRING:
+                if (strcmp(elem->key.pKey, key.pKey) == 0)
+                {
+                    return elem;
+                }
+
+            case DICT_INT:
+                if (elem->key.iKey == key.iKey)
+                {
+                    return elem;
+                }
+
+            case DICT_STRING_IGNORE_CASE:
+                if (sqlite3_stricmp(elem->key.pKey, key.pKey) == 0)
+                {
+                    return elem;
+                }
         }
+
         elem = elem->next;
     }
     return 0;
@@ -251,7 +268,9 @@ static void _removeElementGivenHash(
 
     // TODO   sqlite3_value_free(elem->data);
     self->freeElemFunc(elem->data);
-    sqlite3_free((void *) elem->pKey);
+
+    if (self->eDictType != DICT_INT)
+        sqlite3_free((void *) elem->key.pKey);
     sqlite3_free(elem);
 
     self->count--;
@@ -267,25 +286,24 @@ static void _removeElementGivenHash(
 ** that matches pKey.  Return the data for this element if it is
 ** found, or NULL if there is no match.
 */
-void *HashTable_get(const Hash *self, const char *pKey)
+void *HashTable_get(const Hash *self, DictionaryKey_t key)
 {
     HashElem *elem;    /* The element that matches key */
     unsigned int h;    /* A hash on key */
 
     assert(self != 0);
-    assert(pKey != 0);
-    elem = _findElementWithHash(self, pKey, &h);
+    elem = _findElementWithHash(self, key, &h);
     return elem ? elem->data : 0;
 }
 
-inline void HashTable_set_v(Hash *self, const char *pKey, sqlite3_value *pData)
+inline void HashTable_set_v(Hash *self, DictionaryKey_t key, sqlite3_value *pData)
 {
-    HashTable_set(self, pKey, pData);
+    HashTable_set(self, key, pData);
 }
 
-inline sqlite3_value *HashTable_get_v(const Hash *self, const char *pKey)
+inline sqlite3_value *HashTable_get_v(const Hash *self, DictionaryKey_t key)
 {
-    return (sqlite3_value *) HashTable_get(self, pKey);
+    return (sqlite3_value *) HashTable_get(self, key);
 }
 
 /* Insert an element into the hash table pH.  The key is pKey
@@ -302,14 +320,13 @@ inline sqlite3_value *HashTable_get_v(const Hash *self, const char *pKey)
 ** If the "data" parameter to this function is NULL, then the
 ** element corresponding to "key" is removed from the hash table.
 */
-void HashTable_set(Hash *self, const char *pKey, void *data)
+void HashTable_set(Hash *self, DictionaryKey_t key, void *data)
 {
     unsigned int h;       /* the hash of the key modulo hash table size */
     HashElem *elem;       /* Used to loop thru the element list */
 
     assert(self != 0);
-    assert(pKey != 0);
-    elem = _findElementWithHash(self, pKey, &h);
+    elem = _findElementWithHash(self, key, &h);
     if (elem)
     {
         // If new data is null, delete existing entry
@@ -326,10 +343,11 @@ void HashTable_set(Hash *self, const char *pKey, void *data)
                 elem->data = data;
             }
 
-            if (elem->pKey != pKey)
+            if (elem->key.pKey != key.pKey)
             {
-                sqlite3_free((void *) elem->pKey);
-                elem->pKey = pKey;
+                if (self->eDictType != DICT_INT)
+                    sqlite3_free((void *) elem->key.pKey);
+                elem->key = key;
             }
         }
         return;
@@ -341,7 +359,7 @@ void HashTable_set(Hash *self, const char *pKey, void *data)
     HashElem *new_elem = (HashElem *) sqlite3_malloc(sizeof(HashElem));
     if (new_elem == NULL)
         return;
-    new_elem->pKey = pKey;
+    new_elem->key = key;
     new_elem->data = data;
     self->count++;
     if (self->count >= 10 && self->count > 2 * self->htsize)
@@ -349,7 +367,7 @@ void HashTable_set(Hash *self, const char *pKey, void *data)
         if (_rehash(self, self->count * 2))
         {
             assert(self->htsize > 0);
-            h = HashTable_getHash(pKey) % self->htsize;
+            h = HashTable_getHash(key) % self->htsize;
         }
     }
     _insertElement(self, (void *) (self->ht ? &self->ht[h] : 0), new_elem);
@@ -368,7 +386,9 @@ void *HashTable_each(const Hash *self, iterateeFunc iteratee, var param)
     elem = self->first;
     while (elem)
     {
-        iteratee(elem->pKey, index, elem->data, (var) self, param, &bStop);
+        if (self->eDictType == DICT_INT)
+            iteratee(NULL, elem->key.iKey, elem->data, (var) self, param, &bStop);
+        else iteratee(elem->key.pKey, index, elem->data, (var) self, param, &bStop);
         if (bStop)
             return elem->data;
 

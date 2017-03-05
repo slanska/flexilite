@@ -26,7 +26,7 @@ static void sqlVarFunc(
         *dst_c++ = (char) toupper(*src_c++);
     }
 
-    sqlite3_value *value = HashTable_get_v(varHash, varName);
+    sqlite3_value *value = HashTable_get_v(varHash, (DictionaryKey_t){.pKey = varName});
     if (value)
     {
         sqlite3_result_value(context, value);
@@ -42,12 +42,12 @@ static void sqlVarFunc(
 
         if (valueType == SQLITE_NULL)
         {
-            HashTable_set_v(varHash, varName, NULL);
+            HashTable_set_v(varHash, (DictionaryKey_t){.pKey = varName}, NULL);
         }
         else
         {
             sqlite3_value *newValue = sqlite3_value_dup(argv[1]);
-            HashTable_set_v(varHash, varName, newValue);
+            HashTable_set_v(varHash, (DictionaryKey_t){.pKey = varName}, newValue);
         }
     }
     else

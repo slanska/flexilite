@@ -9,9 +9,6 @@
 
 SQLITE_EXTENSION_INIT3
 
-//#include <string.h>
-//#include <assert.h>
-
 static void sqlHashFunc(
         sqlite3_context *context,
         int argc,
@@ -20,7 +17,8 @@ static void sqlHashFunc(
 {
     assert(argc == 1);
     const char *localVarName = (const char *) sqlite3_value_text(argv[0]);
-    unsigned int result = HashTable_getHash(localVarName);
+    DictionaryKey_t key = {.pKey = localVarName};
+    unsigned int result = HashTable_getHash(key);
     sqlite3_result_int(context, result);
 }
 
