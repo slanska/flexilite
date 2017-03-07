@@ -40,7 +40,7 @@ static int _create_class_record(struct flexi_Context_t *pCtx, const char *zClass
     return result;
 }
 
-static int _parseSpecialProperties(struct flexi_class_def *pClassDef, const char *zClassDefJson)
+static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson)
 {
     int result;
 
@@ -89,7 +89,7 @@ static int _parseSpecialProperties(struct flexi_class_def *pClassDef, const char
     return result;
 }
 
-static int _parseRangeProperties(struct flexi_class_def *pClassDef, const char *zClassDefJson)
+static int _parseRangeProperties(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson)
 {
     int result;
     const char *zCols = "A0A1B0B1C0C1D0D1E0E1";
@@ -132,7 +132,7 @@ static int _parseRangeProperties(struct flexi_class_def *pClassDef, const char *
     return result;
 }
 
-static int _parseFullTextProperties(struct flexi_class_def *pClassDef, const char *zClassDefJson)
+static int _parseFullTextProperties(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson)
 {
     int result;
     char *zSql = NULL;
@@ -177,7 +177,7 @@ static int _parseFullTextProperties(struct flexi_class_def *pClassDef, const cha
     return result;
 }
 
-static int _parseMixins(struct flexi_class_def *pClassDef, const char *zClassDefJson)
+static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson)
 {
     int result;
 
@@ -272,7 +272,7 @@ static int _parseMixins(struct flexi_class_def *pClassDef, const char *zClassDef
 /// @param ctlvCol
 /// @param ictlvPlanCol
 /// @return
-static int _parseProperties(struct flexi_class_def *pClassDef, sqlite3_stmt *pStmt, int iPropNameCol,
+static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pStmt, int iPropNameCol,
                             int iPropDefCol, int iNameCol, int ctlvCol, int ictlvPlanCol)
 {
     int result;
@@ -327,10 +327,10 @@ static int _parseProperties(struct flexi_class_def *pClassDef, sqlite3_stmt *pSt
     return result;
 }
 
-static int _parseClassDefAux(struct flexi_class_def *pClassDef, const char *zClassDefJson)
+static int _parseClassDefAux(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson)
 {
 
-    int (*funcs[])(struct flexi_class_def *, const char *)  =
+    int (*funcs[])(struct flexi_ClassDef_t *, const char *)  =
             {_parseFullTextProperties,
              _parseMixins,
              _parseRangeProperties,
@@ -350,9 +350,9 @@ static int _parseClassDefAux(struct flexi_class_def *pClassDef, const char *zCla
 /*
  * Allocates and initializes new instance of class definition
  */
-struct flexi_class_def *flexi_class_def_new(struct flexi_Context_t *pCtx)
+struct flexi_ClassDef_t *flexi_class_def_new(struct flexi_Context_t *pCtx)
 {
-    struct flexi_class_def *result = sqlite3_malloc(sizeof(struct flexi_class_def));
+    struct flexi_ClassDef_t *result = sqlite3_malloc(sizeof(struct flexi_ClassDef_t));
     if (!result)
         return result;
     memset(result, 0, sizeof(*result));
@@ -971,39 +971,45 @@ int flexi_obj_to_props_func(
 
 }
 
-void flexi_class_def_free(struct flexi_class_def *pClsDef)
+void flexi_ClassDef_free(struct flexi_ClassDef_t *self)
 {
-    if (pClsDef != NULL)
+    if (self != NULL)
     {
-        sqlite3_free((void *) pClsDef->zHash);
+        if (self->nRefCount > 0)
+            self->nRefCount--;
 
-        HashTable_clear(&pClsDef->propMap);
-
-        Buffer_dispose(pClsDef->aMixins);
-
-        for (int ii = 0; ii < ARRAY_LEN(pClsDef->aSpecProps); ii++)
+        if (self->nRefCount == 0)
         {
-            flexi_metadata_ref_free(&pClsDef->aSpecProps[ii]);
-        }
+            sqlite3_free((void *) self->zHash);
 
-        for (int ii = 0; ii < ARRAY_LEN(pClsDef->aFtsProps); ii++)
-        {
-            flexi_metadata_ref_free(&pClsDef->aFtsProps[ii]);
-        }
+            HashTable_clear(&self->propMap);
 
-        for (int ii = 0; ii < ARRAY_LEN(pClsDef->aRangeProps); ii++)
-        {
-            flexi_metadata_ref_free(&pClsDef->aRangeProps[ii]);
-        }
+            Buffer_dispose(self->aMixins);
 
-        sqlite3_free(pClsDef);
+            for (int ii = 0; ii < ARRAY_LEN(self->aSpecProps); ii++)
+            {
+                flexi_metadata_ref_free(&self->aSpecProps[ii]);
+            }
+
+            for (int ii = 0; ii < ARRAY_LEN(self->aFtsProps); ii++)
+            {
+                flexi_metadata_ref_free(&self->aFtsProps[ii]);
+            }
+
+            for (int ii = 0; ii < ARRAY_LEN(self->aRangeProps); ii++)
+            {
+                flexi_metadata_ref_free(&self->aRangeProps[ii]);
+            }
+
+            sqlite3_free(self);
+        }
     }
 }
 
 /*
  * Generates SQL to create Flexilite virtual table from class definition
  */
-int flexi_class_def_generate_vtable_sql(struct flexi_class_def *pClassDef, char **zSQL)
+int flexi_class_def_generate_vtable_sql(struct flexi_ClassDef_t *pClassDef, char **zSQL)
 {
     int result;
 
@@ -1055,7 +1061,7 @@ int flexi_class_def_generate_vtable_sql(struct flexi_class_def *pClassDef, char 
 /*
  * Parses class definition JSON into classDef structure (which is supposed to be already allocated and zeroed)
  */
-int flexi_class_def_parse(struct flexi_class_def *pClassDef,
+int flexi_class_def_parse(struct flexi_ClassDef_t *pClassDef,
                           const char *zClassDefJson, const char **pzErr)
 {
     int result;
@@ -1082,10 +1088,10 @@ int flexi_class_def_parse(struct flexi_class_def *pClassDef,
 
 /*
  * Loads class definition from [.classes] and [flexi_prop] tables
- * into ppVTab (casted to flexi_class_def).
+ * into ppVTab (casted to flexi_ClassDef_t).
  * Used by Create and Connect methods
  */
-int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_class_def **pClassDef,
+int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef,
                          const char **pzErr)
 {
     int result;
@@ -1170,7 +1176,7 @@ int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, s
     CATCH:
     if (*pClassDef)
     {
-        flexi_class_def_free(*pClassDef);
+        flexi_ClassDef_free(*pClassDef);
         *pClassDef = NULL;
     }
     if (pzErr && !*pzErr)

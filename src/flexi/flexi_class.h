@@ -69,7 +69,7 @@ enum ALTER_CLASS_DATA_VALIDATION_MODE
 /*
  * Handle for Flexilite class definition
  */
-struct flexi_class_def
+typedef struct flexi_ClassDef_t
 {
     /*
      * Should be first field. Used for virtual table initialization
@@ -134,7 +134,12 @@ struct flexi_class_def
     Hash propMap;
 
     Buffer *aMixins;
-};
+
+    /*
+     * Number of references to this class def
+     */
+    int nRefCount;
+} flexi_ClassDef_t;
 
 int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName, const char *zClassDef, bool bCreateVTable,
                        const char **pzError);
@@ -220,23 +225,23 @@ int flexi_obj_to_props_func(
         sqlite3_value **argv
 );
 
-void flexi_class_def_free(struct flexi_class_def *pClsDef);
+void flexi_ClassDef_free(struct flexi_ClassDef_t *self);
 
 /*
  * Loads class definition from [.classes] and [flexi_prop] tables
  * into ppVTab (casted to flexi_vtab).
  * Used by Create and Connect methods
  */
-int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_class_def **pClassDef,
+int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef,
                          const char **pzErr);
 
 /*
  * Generates SQL to create Flexilite virtual table from class definition
  */
-int flexi_class_def_generate_vtable_sql(struct flexi_class_def *pClassDef, char **zSQL);
+int flexi_class_def_generate_vtable_sql(struct flexi_ClassDef_t *pClassDef, char **zSQL);
 
-struct flexi_class_def *flexi_class_def_new(struct flexi_Context_t *pCtx);
+struct flexi_ClassDef_t *flexi_class_def_new(struct flexi_Context_t *pCtx);
 
-int flexi_class_def_parse(struct flexi_class_def *pClassDef, const char *zClassDefJson, const char **pzErr);
+int flexi_class_def_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson, const char **pzErr);
 
 #endif //FLEXILITE_FLEXI_CLASS_H

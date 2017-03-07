@@ -78,12 +78,12 @@ static unsigned int _getHashForInt64(sqlite3_int64 key)
 /*
 ** The hashing function.
 */
-unsigned int HashTable_getHash(DictionaryKey_t key)
+unsigned int HashTable_getStringHash(const char *key)
 {
     unsigned int h = 0;
     unsigned char c;
     // TODO
-    while ((c = (unsigned char) *key.pKey++) != 0)
+    while ((c = (unsigned char) *key++) != 0)
     {
         h = (h << 3) ^ h ^ c;
     }
@@ -167,7 +167,9 @@ static int _rehash(Hash *self, unsigned int new_size)
     memset(new_ht, 0, new_size * sizeof(struct _ht));
     for (elem = self->first, self->first = 0; elem; elem = next_elem)
     {
-        unsigned int h = HashTable_getHash(elem->key) % new_size;
+        unsigned int h = self->eDictType == DICT_INT
+                         ? _getHashForInt64(elem->key.iKey)
+                         : HashTable_getStringHash(elem->key.pKey) % new_size;
         next_elem = elem->next;
         _insertElement(self, &new_ht[h], elem);
     }
@@ -191,7 +193,14 @@ static HashElem *_findElementWithHash(
     if (self->ht)
     {
         struct _ht *pEntry;
-        h = HashTable_getHash(key) % self->htsize;
+        if (self->eDictType == DICT_INT)
+        {
+            h = _getHashForInt64(key.iKey);
+        }
+        else
+        {
+            h = HashTable_getStringHash(key.pKey) % self->htsize;
+        }
         pEntry = (void *) &self->ht[h];
         elem = pEntry->chain;
         count = pEntry->count;
@@ -338,7 +347,6 @@ void HashTable_set(Hash *self, DictionaryKey_t key, void *data)
         {
             if (elem->data != data)
             {
-                //  TODO              sqlite3_value_free(elem->data);
                 self->freeElemFunc(elem->data);
                 elem->data = data;
             }
@@ -367,7 +375,9 @@ void HashTable_set(Hash *self, DictionaryKey_t key, void *data)
         if (_rehash(self, self->count * 2))
         {
             assert(self->htsize > 0);
-            h = HashTable_getHash(key) % self->htsize;
+            h = self->eDictType == DICT_INT
+                ? _getHashForInt64(key.iKey)
+                : HashTable_getStringHash(key.pKey) % self->htsize;
         }
     }
     _insertElement(self, (void *) (self->ht ? &self->ht[h] : 0), new_elem);

@@ -77,8 +77,8 @@ _ClassAlterAction_t *_ClassAlterAction_new(flexi_metadata_ref *ref,
 struct _ClassAlterContext_t
 {
     struct flexi_Context_t *pCtx;
-    struct flexi_class_def *pNewClassDef;
-    struct flexi_class_def *pExistingClassDef;
+    struct flexi_ClassDef_t *pNewClassDef;
+    struct flexi_ClassDef_t *pExistingClassDef;
     const char **pzErr;
 
     /*
@@ -576,7 +576,7 @@ _compPropByIdAndName(const char *zKey, u32 idx, struct flexi_prop_def *pProp, Ha
  * TODO Use RB tree or Hash for search
  */
 static bool
-_findPropByMetadataRef(struct flexi_class_def *pClassDef, flexi_metadata_ref *pRef, struct flexi_prop_def **pProp)
+_findPropByMetadataRef(struct flexi_ClassDef_t *pClassDef, flexi_metadata_ref *pRef, struct flexi_prop_def **pProp)
 {
     if (pRef->id != 0)
     {
@@ -710,7 +710,7 @@ _mergeClassSchemas(_ClassAlterContext_t *alterCtx)
 
 static int
 _createClassDefFromDefJSON(struct flexi_Context_t *pCtx, const char *zClassDefJson,
-                           struct flexi_class_def **pClassDef)
+                           struct flexi_ClassDef_t **pClassDef)
 {
     int result;
     const char *zErr = NULL;
@@ -823,7 +823,7 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
 
     CATCH:
     if (alterCtx.pNewClassDef)
-        flexi_class_def_free(alterCtx.pNewClassDef);
+        flexi_ClassDef_free(alterCtx.pNewClassDef);
     *pzErr = *alterCtx.pzErr;
 
     FINALLY:

@@ -19,7 +19,7 @@ struct flexi_Context_t *flexi_Context_new(sqlite3 *db)
         return NULL;
     memset(result, 0, sizeof(struct flexi_Context_t));
     result->db = db;
-    HashTable_init(&result->classDefsByName, DICT_STRING, (void *) flexi_class_def_free);
+    HashTable_init(&result->classDefsByName, DICT_STRING, (void *) flexi_ClassDef_free);
     HashTable_init(&result->classDefsById, DICT_INT, NULL);
     flexi_prepare_db_statements(result);
     return result;
@@ -255,4 +255,32 @@ bool db_validate_name(const char *zName)
     return result != 0;
 }
 
+int flexi_Context_addClassDef(struct flexi_Context_t *self, flexi_ClassDef_t *pClassDef)
+{
+    int result;
 
+    HashTable_set(&self->classDefsByName, (DictionaryKey_t) {.pKey =  pClassDef->name.name}, pClassDef);
+    HashTable_set(&self->classDefsById, (DictionaryKey_t) {.iKey =  pClassDef->lClassID}, pClassDef);
+    pClassDef->nRefCount++;
+
+    result = SQLITE_OK;
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+
+    return result;
+}
+
+int flexi_Context_getClassByName(struct flexi_Context_t *self, const char *zClassName, flexi_ClassDef_t **ppClassDef)
+{
+    *ppClassDef = HashTable_get(&self->classDefsByName, (DictionaryKey_t) {.pKey = zClassName});
+    return *ppClassDef != NULL;
+}
+
+int flexi_Context_getClassById(struct flexi_Context_t *self, sqlite3_int64 lClassId, flexi_ClassDef_t **ppClassDef)
+{
+    *ppClassDef = HashTable_get(&self->classDefsByName, (DictionaryKey_t) {.iKey = lClassId});
+    return *ppClassDef != NULL;
+}

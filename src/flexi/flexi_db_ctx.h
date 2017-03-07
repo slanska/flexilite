@@ -14,6 +14,12 @@
 SQLITE_EXTENSION_INIT3
 
 /*
+ * Forward declaration
+ */
+
+typedef struct flexi_ClassDef_t flexi_ClassDef_t;
+
+/*
  * SQLite statements used for flexi management
  *
  */
@@ -127,6 +133,14 @@ int flexi_Context_getPropIdByClassAndNameIds
  */
 int flexi_Context_insertName(struct flexi_Context_t *pCtx, const char *zName,
                              sqlite3_int64 *pNameID);
+
+/*
+ * Adds or replaces class definition. If another class definition with the same name existed, disposes it
+ */
+int flexi_Context_addClassDef(struct flexi_Context_t *self, flexi_ClassDef_t *pClassDef);
+
+int flexi_Context_getClassByName(struct flexi_Context_t*self, const char *zClassName, flexi_ClassDef_t**ppClassDef);
+int flexi_Context_getClassById(struct flexi_Context_t*self, sqlite3_int64 lClassId, flexi_ClassDef_t**ppClassDef);
 
 /*
  * Checks if name does not have invalid characters and its length is within supported range (1-128)

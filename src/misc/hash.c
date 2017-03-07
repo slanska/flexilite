@@ -18,7 +18,7 @@ static void sqlHashFunc(
     assert(argc == 1);
     const char *localVarName = (const char *) sqlite3_value_text(argv[0]);
     DictionaryKey_t key = {.pKey = localVarName};
-    unsigned int result = HashTable_getHash(key);
+    unsigned int result = HashTable_getStringHash(key.pKey);
     sqlite3_result_int(context, result);
 }
 

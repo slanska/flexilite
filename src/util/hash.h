@@ -107,13 +107,8 @@ struct HashElem
     /* Data associated with this element */
     var data;
 
+    /* Key associated with this element: either string or int64 */
     DictionaryKey_t key;
-    //    /* Key associated with this element: either string or int64 */
-    //    union
-    //    {
-    //        const char *pKey;
-    //        sqlite3_int64 iKey;
-    //    };
 };
 
 /*
@@ -146,6 +141,6 @@ void *HashTable_each(const Hash *self, iterateeFunc iteratee, var param);
 
 void HashTable_clear(Hash *);
 
-unsigned int HashTable_getHash(DictionaryKey_t key);
+unsigned int HashTable_getStringHash(const char *key);
 
 #endif /* _SQLITE_HASH_H_ */
