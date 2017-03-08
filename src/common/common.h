@@ -27,7 +27,26 @@
  *
  */
 #include <stdbool.h>
+
+#ifdef  SQLITE_CORE
+
 #include <sqlite3.h>
+
+#else
+
+#include <sqlite3ext.h>
+
+#endif
+
+
+#ifndef SQLITE_AMALGAMATION
+
+typedef unsigned int u32;
+typedef unsigned char u8;
+
+#endif
+
+typedef sqlite3_uint64 u64;
 
 enum CHANGE_STATUS
 {
@@ -39,6 +58,7 @@ enum CHANGE_STATUS
 
 typedef enum CHANGE_STATUS CHANGE_STATUS;
 
+// TODO
 enum REF_PROP_ROLE
 {
     REF_PROP_ROLE_MASTER = 0,
@@ -67,14 +87,6 @@ enum REF_PROP_ROLE
 ** warnings. */
 #ifndef UNUSED_PARAM
 # define UNUSED_PARAM(X)  (void)(X)
-#endif
-
-#ifndef SQLITE_AMALGAMATION
-/* Unsigned integer types.  These are already defined in the sqliteInt.h,
-** but the definitions need to be repeated for separate compilation. */
-
-typedef unsigned int u32;
-typedef unsigned char u8;
 #endif
 
 typedef void *var;

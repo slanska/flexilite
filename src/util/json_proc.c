@@ -73,6 +73,6 @@ JsonNode *json_n_get(JSON_Processor *json, JsonNode *pRoot, const char *zPath) {
 //}
 
 void json_dispose(JSON_Processor *json) {
-    jsonReset(&json->out);
+    StringBuilder_clear(&json->out);
     jsonParseReset(&json->parser);
 }

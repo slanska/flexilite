@@ -13,6 +13,12 @@ project(flexilite_test)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
+add_definitions(-DSQLITE_ENABLE_FTS4
+        -DSQLITE_ENABLE_RTREE
+        -DSQLITE_ENABLE_LOAD_EXTENSION
+        -DSQLITE_ENABLE_JSON1
+        -DSQLITE_CORE)
+
 include_directories(
         ../lib/cmocka/include
         ../lib/sqlite
@@ -32,12 +38,10 @@ set(TEST_FILES
         util/file_helper.h
         class.c
         sql_test_runner.c
-#        util/test_rbtree.c
+        ../src/util/hash.c
+        ../src/util/buffer.c
+        ../src/util/StringBuilder.c
+        ../src/util/Path.c
         )
-
-add_definitions(-DSQLITE_ENABLE_FTS4
-        -DSQLITE_ENABLE_RTREE
-        -DSQLITE_ENABLE_LOAD_EXTENSION
-        -DSQLITE_ENABLE_JSON1)
 
 add_executable(flexilite_test ${TEST_FILES} )

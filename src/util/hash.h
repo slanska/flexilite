@@ -15,9 +15,17 @@
 #ifndef _SQLITE_HASH_H_
 #define _SQLITE_HASH_H_
 
+#ifdef SQLITE_CORE
+
+#include <sqlite3.h>
+
+#else
+
 #include <sqlite3ext.h>
 
 SQLITE_EXTENSION_INIT3
+
+#endif
 
 #include <assert.h>
 #include <memory.h>

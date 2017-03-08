@@ -15,6 +15,7 @@
  * [slanska] This code has been modified to be used as a generic hash table (with arbitrary value type,
  * not only sqlite3_value)
 */
+
 #include "hash.h"
 
 /* Turn bulk memory into a hash table object by initializing the

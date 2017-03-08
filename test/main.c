@@ -30,5 +30,6 @@ static void init_db(void **state) {
 }
 
 int main() {
+    sqlite3_malloc(111);
     class_tests();
 }

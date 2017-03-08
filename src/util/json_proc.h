@@ -18,7 +18,7 @@ struct JSON_Processor {
     /*
      * JSON string builder
      */
-    JsonString out;
+    StringBuilder out;
 
     /*
      * List of sqlite3_value[] - replaced/added values

@@ -6,9 +6,17 @@
 #include <assert.h>
 #include "buffer.h"
 
+#ifdef SQLITE_CORE
+
+#include <sqlite3.h>
+
+#else
+
 #include <sqlite3ext.h>
 
 SQLITE_EXTENSION_INIT3
+
+#endif
 
 Buffer *Buffer_new(size_t elemSize, void (*disposeElem)(void *pElem))
 {
