@@ -20,8 +20,12 @@ SQLITE_EXTENSION_INIT3
 
 /*
  * Path.join implementation, inspired by Node.js and ported from JavaScript code
+ * zBase path should use OS specific separator ('/' or '\\')
+ * zAddPath should always use '/'
+ * Result is returned in *pzResult, as OS specific path
  */
+void Path_join(char **pzResult, const char *zBase, const char *zAddPath);
 
-void Path_join(char **pzResult, const char *zBase, const char *zAppendix);
+void Path_dirname(char **pzResult, const char *zPath);
 
 #endif //FLEXILITE_PATH_H

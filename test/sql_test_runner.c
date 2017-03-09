@@ -9,7 +9,51 @@
 #include "definitions.h"
 #include "../src/util/buffer.h"
 #include "../src/util/hash.h"
+#include "../src/util/Path.h"
 
+/*
+ * Column indexes in JSON test def
+ */
+enum TEST_DEF_PROP
+{
+    TEST_DEF_PROP_INCLUDE = 0,
+    TEST_DEF_PROP_DESCRIBE = 1,
+    TEST_DEF_PROP_IT = 2,
+    TEST_DEF_PROP_IN_DB = 3,
+    TEST_DEF_PROP_IN_SQL = 4,
+    TEST_DEF_PROP_IN_ARGS = 5,
+    TEST_DEF_PROP_IN_FILE_ARGS = 6,
+    TEST_DEF_PROP_CHK_DB = 7,
+    TEST_DEF_PROP_CHK_SQL = 8,
+    TEST_DEF_PROP_CHK_ARGS = 9,
+    TEST_DEF_PROP_CHK_FILE_ARGS = 10,
+    TEST_DEF_PROP_CHK_RESULT = 11
+};
+
+typedef struct SqlTestData_t
+{
+    char *props[TEST_DEF_PROP_CHK_RESULT + 1];
+} SqlTestData_t;
+
+static void SqlTestData_init(SqlTestData_t *self)
+{
+    memset(self, 0, sizeof(*self));
+}
+
+static void SqlTestData_clear(SqlTestData_t *self)
+{
+    if (self)
+    {
+        for (int ii = 0; ii < ARRAY_LEN(self->props); ii++)
+        {
+            sqlite3_free(self->props[ii]);
+        }
+    }
+}
+
+/*
+ * Single test handler
+ */
 static void _run_sql_test(void **state)
 {}
 
@@ -34,6 +78,9 @@ static void _free_test_item(void *item)
 /*
  * Loads array of test definitions from given JSON file (which should follow structure presented below)
  * and runs tests for all items in loaded JSON array
+ *
+ * if include - load external file, relative to the current one
+ * file args - arguments are treated as file names and content from those files is injected as UTF8 strings
  */
 void run_sql_tests(const char *zJsonFile)
 {
@@ -53,11 +100,8 @@ void run_sql_tests(const char *zJsonFile)
     sqlite3 *db = NULL;
     CHECK_CALL(sqlite3_open(":memory:", &db));
 
-    const unsigned char *prevColValues[12];
-    const unsigned char *colValues[12];
-
-    memset(&prevColValues, 0, sizeof(prevColValues));
-    memset(&colValues, 0, sizeof(colValues));
+    Buffer tests;
+    Buffer_init(&tests, sizeof(struct CMUnitTest), NULL);
 
     char *zSelJSON = sqlite3_mprintf("select json_extract(value, '$.include') as [include], " // 0
                                              "json_extract(value, '$.describe') as [describe], " // 1
@@ -74,21 +118,39 @@ void run_sql_tests(const char *zJsonFile)
                                              "from json_each('%s')", zJson);
 
     sqlite3_stmt *pJsonStmt = NULL;
+
+    SqlTestData_t prevTestData;
+    SqlTestData_init(&prevTestData);
+
     CHECK_CALL(sqlite3_prepare(db, zSelJSON, -1, &pJsonStmt, NULL));
-    while ((result = sqlite3_step(pJsonStmt)) == SQLITE_OK)
+    while ((result = sqlite3_step(pJsonStmt)) == SQLITE_ROW)
     {
+        SqlTestData_t *testData;
+        CHECK_MALLOC(testData, sizeof(*testData));
+        SqlTestData_init(testData);
         int iCol;
-        for (iCol = 0; iCol < sizeof(colValues) / sizeof(colValues[0]); iCol++)
+        for (iCol = 0; iCol < ARRAY_LEN(testData->props); iCol++)
         {
-            colValues[iCol] = sqlite3_column_text(pJsonStmt, iCol);
-            if (!colValues[iCol] && iCol != 0) // except include
-                colValues[iCol] = prevColValues[iCol];
+            testData->props[iCol] = (char *) sqlite3_column_text(pJsonStmt, iCol);
+            if (!testData->props[iCol] && iCol != TEST_DEF_PROP_INCLUDE)
+                testData->props[iCol] = prevTestData.props[iCol];
         }
 
-        if (colValues[1])
-        {}
+        struct CMUnitTest test;
+        test.name = testData->props[TEST_DEF_PROP_IT];
+        test.test_func = _run_sql_test;
+        test.initial_state = testData;
+        Buffer_set(&tests, tests.iCnt, &test);
 
+        if (testData->props[TEST_DEF_PROP_DESCRIBE])
+            // Define new test group
+        {
+            Buffer_clear(&tests);
+        }
+
+        prevTestData = *testData;
     }
+
     if (result != SQLITE_DONE)
         goto CATCH;
 
@@ -122,6 +184,7 @@ void run_sql_tests(const char *zJsonFile)
     sqlite3_free(zSelJSON);
     sqlite3_free(pTests);
     sqlite3_free(zError);
+    //    SqlTestData_clear(&prevTestData);
 
     return;
 }

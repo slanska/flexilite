@@ -105,7 +105,11 @@ void Buffer_set(Buffer *pBuf, u32 index, void *pElem)
     {
         pBuf->disposeElem(pItem);
     }
-    memcpy(pItem, pElem, pBuf->iElemSize);
+    if (pElem)
+        memcpy(pItem, pElem, pBuf->iElemSize);
+    else
+        memset(pItem, 0, pBuf->iElemSize);
+
     if (grow)
         pBuf->iCnt++;
 }

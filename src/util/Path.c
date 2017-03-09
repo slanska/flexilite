@@ -3,89 +3,100 @@
 //
 
 #include <string.h>
+#include <assert.h>
 #include "Path.h"
 #include "buffer.h"
 #include "StringBuilder.h"
 
-/*
- * https://gist.github.com/creationix/7435851
- *
- * Joins path segments.  Preserves initial "/" and resolves ".." and "."
-// Does not support using ".." to go above/outside the root.
-// This means that join("foo", "../../bar") will not resolve to "../bar"
-function join() {
-    // Split the inputs into a list of path commands.
-    var parts = [];
-    for (var i = 0, l = arguments.length; i < l; i++) {
-        parts = parts.concat(arguments[i].split("/"));
-    }
-    // Interpret the path commands to get the new resolved path.
-    var newParts = [];
-    for (i = 0, l = parts.length; i < l; i++) {
-        var part = parts[i];
-        // Remove leading and trailing slashes
-        // Also remove "." segments
-        if (!part || part === ".") continue;
-        // Interpret ".." to pop the last segment
-        if (part === "..") newParts.pop();
-            // Push new path segments.
-        else newParts.push(part);
-    }
-    // Preserve the initial slash if there was one.
-    if (parts[0] === "") newParts.unshift("");
-    // Turn back into a single string path.
-    return newParts.join("/") || (newParts.length ? "/" : ".");
-}
-
-
-// A simple function to get the dirname of a path
-// Trailing slashes are ignored. Leading slash is preserved.
-function dirname(path) {
-    return join(path, "..");
-}
- */
+#if defined( _WIN32 ) || defined( __WIN32__ ) || defined( _WIN64 )
+#define PATH_SEPARATOR "\\"
+#else
+#define PATH_SEPARATOR "/"
+#endif
 
 static void
-_processSegment(const char *zKey, int idx, var item, Buffer *self, Buffer *pNewSegs, bool *bStop)
+_processSegment(const char *zKey, u32 idx, char **item, Buffer *self, Buffer *pNewSegs, bool *bStop)
 {
+    UNUSED_PARAM(zKey);
+    UNUSED_PARAM(idx);
+    UNUSED_PARAM(self);
+    UNUSED_PARAM(bStop);
 
+    if (*item == NULL || strcmp(*item, ".") == 0)
+        return;
+
+    if (strcmp(*item, "..") != 0)
+    {
+        Buffer_set(pNewSegs, pNewSegs->iCnt, *item);
+    }
+    else
+        if (pNewSegs->iCnt > 0)
+            Buffer_set(pNewSegs, pNewSegs->iCnt - 1, NULL);
 }
 
 static void
-_concatenateSegment(const char *zKey, int idx, var item, Buffer *self, Buffer *pNewSegs, bool *bStop)
+_concatenateSegment(const char *zKey, uint32_t idx, char **item, Buffer *pNewSegs, StringBuilder *sb, bool *bStop)
 {
+    UNUSED_PARAM(zKey);
+    UNUSED_PARAM(idx);
+    UNUSED_PARAM(pNewSegs);
+    UNUSED_PARAM(bStop);
 
+    if (!*item)
+        return;
+
+    StringBuilder_append(sb, PATH_SEPARATOR, 1);
+
+    StringBuilder_append(sb, *item, (int32_t) strlen(*item));
 }
 
-void Path_join(char **pzResult, const char *zBase, const char *zAppendix)
+void static _splitPath(Buffer *segments, const char *zPath, const char* zSeparator)
 {
-    // Keep pointers to segments here
+    char *pSeg = strtok((char *) zPath, zSeparator);
+    while (pSeg)
+    {
+        Buffer_set(segments, segments->iCnt, &pSeg);
+        pSeg = strtok(NULL, zSeparator);
+    }
+}
+
+void Path_join(char **pzResult, const char *zBase, const char *zAddPath)
+{
+    assert(pzResult);
+
+    // Split path parameters by '/'
     Buffer segments;
-    Buffer_init(&segments, sizeof(char *), NULL);
+    Buffer_init(&segments, sizeof(char *), sqlite3_free);
+
+    _splitPath(&segments, zBase, PATH_SEPARATOR);
+    _splitPath(&segments, zAddPath, "/");
 
     Buffer newSegs;
     Buffer_init(&newSegs, sizeof(char *), NULL);
 
-    char *pSeg = strtok(zBase, "/");
-    while (pSeg)
-    {
-        Buffer_set(&segments, segments.iCnt, &pSeg);
-        pSeg = strtok(NULL, "/");
-    }
-
     StringBuilder strBuf;
     StringBuilder_init(&strBuf);
 
+    if (segments.iCnt > 0 && strcmp(*(char **) (Buffer_get(&segments, 0)), "") == 0)
+        StringBuilder_append(&strBuf, PATH_SEPARATOR, 1);
+
     Buffer_each(&segments, (void *) _processSegment, &newSegs);
 
-    Buffer_each(&newSegs, (void *) _concatenateSegment, NULL);
+    Buffer_each(&newSegs, (void *) _concatenateSegment, &strBuf);
 
     *pzResult = strBuf.zBuf;
+
     // to prevent memory deallocation
     strBuf.bStatic = true;
 
-    FINALLY:
     Buffer_clear(&segments);
     Buffer_clear(&newSegs);
     StringBuilder_clear(&strBuf);
 }
+
+void Path_dirname(char **pzResult, const char *zPath)
+{
+    Path_join(pzResult, zPath, "..");
+}
+
+#undef PATH_SEPARATOR
