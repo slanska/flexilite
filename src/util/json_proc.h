@@ -7,7 +7,7 @@
 
 #include "../project_defs.h"
 #include "../misc/json1.h"
-#include "buffer.h"
+#include "Array.h"
 
 struct JSON_Processor {
     /*
@@ -23,7 +23,7 @@ struct JSON_Processor {
     /*
      * List of sqlite3_value[] - replaced/added values
      */
-    Buffer nodeValues;
+    Array_t nodeValues;
 };
 
 typedef struct MyStruct MyType;

@@ -6,7 +6,7 @@
 #define CLASS_REF_DEF_H
 
 #include <stdbool.h>
-#include "../util/buffer.h"
+#include "../util/Array.h"
 
 /*
  * Holds entity name and corresponding ID
@@ -70,7 +70,7 @@ typedef struct flexi_class_ref_def
     /*
      * Array of flexi_class_ref_rule
      */
-    Buffer rules;
+    Array_t rules;
     CHANGE_STATUS eChangeStatus;
     int nRefCount;
 } Flexi_ClassRefDef_t;

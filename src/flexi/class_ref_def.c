@@ -19,7 +19,7 @@ void flexi_class_ref_def_dispose(struct flexi_class_ref_def *p)
 {
     if (p)
     {
-        Buffer_clear(&p->rules);
+        Array_clear(&p->rules);
         sqlite3_free(p->classRef.name);
         sqlite3_free(p->dynSelectorProp.name);
     }
@@ -34,16 +34,16 @@ static void _disposeMixinRuleItem(struct flexi_class_ref_rule *rr)
 void flexi_class_ref_def_init(struct flexi_class_ref_def *p)
 {
     memset(p, 0, sizeof(*p));
-    Buffer_init(&p->rules, sizeof(struct flexi_class_ref_rule), (void *) _disposeMixinRuleItem);
+    Array_init(&p->rules, sizeof(struct flexi_class_ref_rule), (void *) _disposeMixinRuleItem);
 }
 
 static void
-_compareRefRules(const char *zUnused, u32 idx, const struct flexi_class_ref_rule *item, Buffer *pBuf, Buffer *pBuf2,
+_compareRefRules(const char *zUnused, u32 idx, const struct flexi_class_ref_rule *item, Array_t *pBuf, Array_t *pBuf2,
                  bool *bStop)
 {
     UNUSED_PARAM(zUnused);
     const struct flexi_class_ref_rule *pItem2;
-    pItem2 = Buffer_get(pBuf2, idx);
+    pItem2 = Array_getNth(pBuf2, idx);
     if (!flexi_class_ref_rule_compare(item, pItem2))
     {
         *bStop = true;
@@ -61,8 +61,8 @@ flexi_class_ref_def_compare(const struct flexi_class_ref_def *pDef1, const struc
 
     // Compare rules
     int nDiff = pDef1->rules.iCnt - pDef2->rules.iCnt;
-    const Buffer *buf;
-    const Buffer *buf2;
+    const Array_t *buf;
+    const Array_t *buf2;
     if (nDiff < 0)
     {
         result = CLS_REF_DEF_CMP_LESS_RULES;
@@ -76,7 +76,7 @@ flexi_class_ref_def_compare(const struct flexi_class_ref_def *pDef1, const struc
         buf2 = &pDef1->rules;
     }
 
-    if (Buffer_each(buf, (void *) _compareRefRules, (var) buf2))
+    if (Array_each(buf, (void *) _compareRefRules, (var) buf2))
         return CLS_REF_DEF_CMP_DIFF;
 
     return result;

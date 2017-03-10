@@ -4,7 +4,7 @@
 
 #include "definitions.h"
 
-#include "../src/util/buffer.h"
+#include "Array.h"
 
 static void create_class_Employee(void **state) {
 
@@ -24,7 +24,7 @@ static void create_class_Orders(void **state) {
 #endif
                        &zBuf));
 
-    Buffer *pBuf;
+    Array_t *pBuf;
     sqlite3_stmt *pStmt = NULL;
     const char *zTail = NULL;
     CHECK_CALL(sqlite3_prepare(db, "select flexi_schema_init(:schema);", -1, &pStmt, &zTail));

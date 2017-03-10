@@ -8856,7 +8856,7 @@ void sqlite3session_table_filter(
 int sqlite3session_changeset(
   sqlite3_session *pSession,      /* Session object */
   int *pnChangeset,               /* OUT: Size of buffer at *ppChangeset */
-  void **ppChangeset              /* OUT: Buffer containing changeset */
+  void **ppChangeset              /* OUT: Array_t containing changeset */
 );
 
 /*
@@ -8953,7 +8953,7 @@ int sqlite3session_diff(
 int sqlite3session_patchset(
   sqlite3_session *pSession,      /* Session object */
   int *pnPatchset,                /* OUT: Size of buffer at *ppChangeset */
-  void **ppPatchset               /* OUT: Buffer containing changeset */
+  void **ppPatchset               /* OUT: Array_t containing changeset */
 );
 
 /*
@@ -9300,7 +9300,7 @@ int sqlite3changeset_concat(
   int nB,                         /* Number of bytes in buffer pB */
   void *pB,                       /* Pointer to buffer containing changeset B */
   int *pnOut,                     /* OUT: Number of bytes in output changeset */
-  void **ppOut                    /* OUT: Buffer containing output changeset */
+  void **ppOut                    /* OUT: Array_t containing output changeset */
 );
 
 

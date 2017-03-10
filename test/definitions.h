@@ -15,7 +15,7 @@
 #include <sqlite3.h>
 
 #include "../src/common/common.h"
-#include "../src/util/buffer.h"
+#include "Array.h"
 #include "util/db_init.h"
 #include "util/file_helper.h"
 

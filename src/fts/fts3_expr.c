@@ -297,7 +297,7 @@ static void *fts3ReallocOrFree(void *pOrig, int nNew)
 }
 
 /*
-** Buffer zInput, length nInput, contains the contents of a quoted string
+** Array_t zInput, length nInput, contains the contents of a quoted string
 ** that appeared as part of an fts3 query expression. Neither quote character
 ** is included in the buffer. This function attempts to tokenize the entire
 ** input buffer and create an Fts3Expr structure of type FTSQUERY_PHRASE 
@@ -334,11 +334,11 @@ static int getNextString(
     ** through the tokens in the expression. This pass uses fts3ReallocOrFree()
     ** to assemble data in two dynamic buffers:
     **
-    **   Buffer p: Points to the Fts3Expr structure, followed by the Fts3Phrase
+    **   Array_t p: Points to the Fts3Expr structure, followed by the Fts3Phrase
     **             structure, followed by the array of Fts3PhraseToken
     **             structures. This pass only populates the Fts3PhraseToken array.
     **
-    **   Buffer zTemp: Contains copies of all tokens.
+    **   Array_t zTemp: Contains copies of all tokens.
     **
     ** The second pass, in the block that begins "if( rc==SQLITE_DONE )" below,
     ** appends buffer zTemp to buffer p, and fills in the Fts3Expr and Fts3Phrase

@@ -200,9 +200,9 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
             break;
 
         if (pClassDef->aMixins == NULL)
-            pClassDef->aMixins = Buffer_new(sizeof(struct flexi_class_ref_def), (void *) flexi_class_ref_def_dispose);
+            pClassDef->aMixins = Array_new(sizeof(struct flexi_class_ref_def), (void *) flexi_class_ref_def_dispose);
 
-        struct flexi_class_ref_def *mixin = Buffer_append(pClassDef->aMixins);
+        struct flexi_class_ref_def *mixin = Array_append(pClassDef->aMixins);
         if (!mixin)
         {
             result = SQLITE_NOMEM;
@@ -232,7 +232,7 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
             if (result != SQLITE_ROW)
                 break;
 
-            struct flexi_class_ref_rule *rule = Buffer_append(&mixin->rules);
+            struct flexi_class_ref_rule *rule = Array_append(&mixin->rules);
             if (!rule)
             {
                 result = SQLITE_NOMEM;
@@ -252,7 +252,7 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
     CATCH:
     if (pClassDef->aMixins)
     {
-        Buffer_dispose(pClassDef->aMixins);
+        Array_dispose(pClassDef->aMixins);
         pClassDef->aMixins = NULL;
     }
 
@@ -984,7 +984,7 @@ void flexi_ClassDef_free(struct flexi_ClassDef_t *self)
 
             HashTable_clear(&self->propMap);
 
-            Buffer_dispose(self->aMixins);
+            Array_dispose(self->aMixins);
 
             for (int ii = 0; ii < ARRAY_LEN(self->aSpecProps); ii++)
             {

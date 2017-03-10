@@ -39,7 +39,7 @@ set(TEST_FILES
         class.c
         sql_test_runner.c
         ../src/util/hash.c
-        ../src/util/buffer.c
+        ../src/util/Array.c
         ../src/util/StringBuilder.c
         ../src/util/Path.c
         )

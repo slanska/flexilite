@@ -9,7 +9,7 @@
 #include <duktape.h>
 #include "../util/hash.h"
 #include "flexi_user_info.h"
-#include "../util/buffer.h"
+#include "../util/Array.h"
 
 SQLITE_EXTENSION_INIT3
 

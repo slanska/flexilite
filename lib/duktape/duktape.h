@@ -882,7 +882,7 @@ DUK_EXTERNAL_DECL void duk_json_decode(duk_context *ctx, duk_idx_t idx);
 DUK_EXTERNAL_DECL const char *duk_buffer_to_string(duk_context *ctx, duk_idx_t idx);
 
 /*
- *  Buffer
+ *  Array_t
  */
 
 DUK_EXTERNAL_DECL void *duk_resize_buffer(duk_context *ctx, duk_idx_t idx, duk_size_t new_size);

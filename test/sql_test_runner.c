@@ -7,7 +7,7 @@
  */
 
 #include "definitions.h"
-#include "../src/util/buffer.h"
+#include "Array.h"
 #include "../src/util/hash.h"
 #include "../src/util/Path.h"
 
@@ -52,10 +52,108 @@ static void SqlTestData_clear(SqlTestData_t *self)
 }
 
 /*
+ * Executes SQL statement zSql on zDatabase, using parameters zArgs and file name substitutions zFileArgs
+ * Result data is loaded onto pData, and pRowCnt and pColCnt will indicate number of loaded rows and
+ * number of columns in the row. Total number of items in pData will be nRowCnt * nColCnt
+ */
+static int
+_runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
+        sqlite3_value **pData, int *pRowCnt, int *pColCnt)
+{
+    // TODO
+    int result;
+    /*
+ * Open database (:memory: if not defined)
+ */
+    sqlite3 *pDB = NULL;
+    sqlite3_stmt *pStmt = NULL;
+    const char *zErr = NULL;
+
+    CHECK_CALL(sqlite3_open_v2(zDatabase, &pDB, 0, NULL));
+
+    CHECK_CALL(sqlite3_prepare_v2(pDB, zSql, -1, &pStmt, &zErr));
+
+    /*
+     * Process file args
+     */
+
+    /*
+     * Bind SQL parameters
+     */
+
+    /*
+     * Execute
+     */
+
+    /*
+     * Fetch data
+     */
+
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+
+    sqlite3_finalize(pStmt);
+    sqlite3_free((void *) zErr);
+    sqlite3_close(pDB);
+
+    return result;
+}
+
+/*
+ * Compares data loaded by 2 SQL statements (IN* and CHK*)
+ * Returns true if data sets are 100% equal
+ */
+static bool
+_compareSqlData(sqlite3_value *pTestData, int nTestRowCnt, int nTestColCnt,
+                sqlite3_value *pChkData, int nChkRowCnt, int nChkColCnt)
+{
+    return false;
+}
+
+/*
  * Single test handler
  */
 static void _run_sql_test(void **state)
-{}
+{
+    SqlTestData_t *tt = *state;
+
+    int result;
+    int ii;
+
+    sqlite3_value *pInData;
+    int nInRowCnt;
+    int nInColCnt;
+    CHECK_CALL(_runSql(tt->props[TEST_DEF_PROP_IN_DB], tt->props[TEST_DEF_PROP_IN_SQL],
+                       tt->props[TEST_DEF_PROP_IN_ARGS], tt->props[TEST_DEF_PROP_IN_FILE_ARGS],
+                       &pInData, &nInRowCnt, &nInColCnt));
+
+    sqlite3_value *pChkData;
+    int nChkRowCnt;
+    int nChkColCnt;
+    CHECK_CALL(_runSql(tt->props[TEST_DEF_PROP_CHK_DB], tt->props[TEST_DEF_PROP_CHK_SQL],
+                       tt->props[TEST_DEF_PROP_CHK_ARGS], tt->props[TEST_DEF_PROP_CHK_FILE_ARGS],
+                       &pChkData, &nChkRowCnt, &nChkColCnt));
+
+    if (!_compareSqlData(pInData, nInRowCnt, nInColCnt, pChkData, nChkRowCnt, nChkColCnt))
+    {
+        // Not passed
+    }
+
+    goto FINALLY;
+
+    CATCH:
+
+    FINALLY:
+
+    //    for (ii = 0; ii < nInColCnt * nInRowCnt; ii++)
+    //        sqlite3_value_free(pInData++);
+    //    for (ii = 0; ii < nChkColCnt * nChkRowCnt; ii++)
+    //        sqlite3_value_free(pChkData++);
+    return;
+}
 
 static int _setup_sql_test(void **state)
 {
@@ -71,7 +169,6 @@ static int _teardown_sql_test(void **state)
 
 static void _free_test_item(void *item)
 {
-
     sqlite3_free(item);
 }
 
@@ -100,8 +197,8 @@ void run_sql_tests(const char *zJsonFile)
     sqlite3 *db = NULL;
     CHECK_CALL(sqlite3_open(":memory:", &db));
 
-    Buffer tests;
-    Buffer_init(&tests, sizeof(struct CMUnitTest), NULL);
+    Array_t tests;
+    Array_init(&tests, sizeof(struct CMUnitTest), NULL);
 
     char *zSelJSON = sqlite3_mprintf("select json_extract(value, '$.include') as [include], " // 0
                                              "json_extract(value, '$.describe') as [describe], " // 1
@@ -121,65 +218,73 @@ void run_sql_tests(const char *zJsonFile)
 
     SqlTestData_t prevTestData;
     SqlTestData_init(&prevTestData);
+    char *zPrevDescribe = NULL;
 
     CHECK_CALL(sqlite3_prepare(db, zSelJSON, -1, &pJsonStmt, NULL));
-    while ((result = sqlite3_step(pJsonStmt)) == SQLITE_ROW)
+
+    bool done = false;
+    while (!done)
     {
-        SqlTestData_t *testData;
-        CHECK_MALLOC(testData, sizeof(*testData));
-        SqlTestData_init(testData);
-        int iCol;
-        for (iCol = 0; iCol < ARRAY_LEN(testData->props); iCol++)
+        result = sqlite3_step(pJsonStmt);
+
+        done = result == SQLITE_DONE;
+        if (result != SQLITE_ROW && !done)
+            break;
+
+        SqlTestData_t *testData = NULL;
+        if (result == SQLITE_ROW)
         {
-            testData->props[iCol] = (char *) sqlite3_column_text(pJsonStmt, iCol);
-            if (!testData->props[iCol] && iCol != TEST_DEF_PROP_INCLUDE)
-                testData->props[iCol] = prevTestData.props[iCol];
+            CHECK_MALLOC(testData, sizeof(*testData));
+            SqlTestData_init(testData);
+            int iCol;
+            for (iCol = 0; iCol < ARRAY_LEN(testData->props); iCol++)
+            {
+                testData->props[iCol] = (char *) sqlite3_column_text(pJsonStmt, iCol);
+                if (!testData->props[iCol] && iCol != TEST_DEF_PROP_INCLUDE)
+                    testData->props[iCol] = prevTestData.props[iCol];
+            }
+
+            struct CMUnitTest test;
+            test.name = testData->props[TEST_DEF_PROP_IT];
+            test.test_func = _run_sql_test;
+            test.initial_state = testData;
+            test.setup_func = _setup_sql_test;
+            test.teardown_func = _teardown_sql_test;
+
+            Array_setNth(&tests, tests.iCnt, &test);
         }
 
-        struct CMUnitTest test;
-        test.name = testData->props[TEST_DEF_PROP_IT];
-        test.test_func = _run_sql_test;
-        test.initial_state = testData;
-        Buffer_set(&tests, tests.iCnt, &test);
-
-        if (testData->props[TEST_DEF_PROP_DESCRIBE])
-            // Define new test group
+        if (done ||
+            (tests.iCnt > 0 && zPrevDescribe != NULL &&
+             strcmp(testData->props[TEST_DEF_PROP_DESCRIBE], zPrevDescribe) != 0))
+            // Run as a separate group
         {
-            Buffer_clear(&tests);
+            if (!zPrevDescribe)
+                zPrevDescribe = "SQL Tests";
+            CHECK_CALL(_cmocka_run_group_tests(zPrevDescribe,
+                                               (void *) tests.items,
+                                               tests.iCnt,
+                                               NULL, //CMFixtureFunction group_setup,
+                                               NULL // CMFixtureFunction group_teardown
+            ));
+
+            Array_clear(&tests);
         }
 
         prevTestData = *testData;
+        zPrevDescribe = testData->props[TEST_DEF_PROP_DESCRIBE];
     }
 
     if (result != SQLITE_DONE)
         goto CATCH;
 
-    //    Buffer pBuf;
-
-    //    Buffer_init(&pBuf, sizeof(struct CMUnitTest), NULL);
-    struct CMUnitTest *pt = sqlite3_malloc(sizeof(struct CMUnitTest *));
-    //    Buffer_append(&pBuf, &pt);
-    memset(pt, 0, sizeof(*pt));
-    pt->name = "";
-    pt->test_func = _run_sql_test;
-    pt->setup_func = _setup_sql_test;
-    pt->teardown_func = _teardown_sql_test;
-
-    // Execute JSON
-
-    // Iterate over items in JSON file and prepare tests
-    //    CHECK_CALL(cmocka_run_group_tests(const char *group_name,
-    //                                const struct CMUnitTest * const tests,
-    //                                const size_t num_tests,
-    //                                CMFixtureFunction group_setup,
-    //                                CMFixtureFunction group_teardown));
-    //
     goto FINALLY;
 
     CATCH:
 
     FINALLY:
     // Deallocate all resources
+    Array_clear(&tests);
     sqlite3_free(zJson);
     sqlite3_free(zSelJSON);
     sqlite3_free(pTests);

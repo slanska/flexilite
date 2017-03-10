@@ -7,7 +7,7 @@
 
 #include "../util/hash.h"
 #include "flexi_db_ctx.h"
-#include "../util/buffer.h"
+#include "../util/Array.h"
 #include "flexi_prop.h"
 #include "class_ref_def.h"
 
@@ -133,7 +133,7 @@ typedef struct flexi_ClassDef_t
      */
     Hash propMap;
 
-    Buffer *aMixins;
+    Array_t *aMixins;
 
     /*
      * Number of references to this class def

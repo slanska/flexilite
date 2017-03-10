@@ -95,8 +95,8 @@ set(EXT_FILES
         src/flexi/flexi_query.c
         src/util/json_proc.c
         src/common/common.h
-        src/util/buffer.c
-        src/util/buffer.h
+        src/util/Array.c
+        src/util/Array.h
         src/flexi/flexi_func.c
 
         src/flexi/flexi_prop_merge.h
