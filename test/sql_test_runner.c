@@ -6,8 +6,9 @@
  * General SQL script runner
  */
 
+#include <stdint.h>
 #include "definitions.h"
-#include "Array.h"
+#include "../src/util/Array.h"
 #include "../src/util/hash.h"
 #include "../src/util/Path.h"
 
@@ -58,48 +59,108 @@ static void SqlTestData_clear(SqlTestData_t *self)
  */
 static int
 _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
-        sqlite3_value **pData, int *pRowCnt, int *pColCnt)
+        Array_t *pData, int *pColCnt)
 {
-    // TODO
     int result;
     /*
- * Open database (:memory: if not defined)
- */
+    * Open database (:memory: if not defined)
+    */
     sqlite3 *pDB = NULL;
     sqlite3_stmt *pStmt = NULL;
     const char *zErr = NULL;
+    sqlite3_stmt *pArgsStmt = NULL;
+    Array_t sqlArgs;
+    char *zFileName = NULL;
+    char *zFileArgContent = NULL;
+    Array_init(&sqlArgs, sizeof(sqlite3_value *), (void *) sqlite3_value_free);
+
+    *pColCnt = 0;
+
+    Array_init(pData, sizeof(sqlite3_value *), (void *) sqlite3_value_free);
 
     CHECK_CALL(sqlite3_open_v2(zDatabase, &pDB, 0, NULL));
 
     CHECK_CALL(sqlite3_prepare_v2(pDB, zSql, -1, &pStmt, &zErr));
 
+    // Prepare arguments
+    CHECK_CALL(sqlite3_prepare_v2(pDB, "select value, type from json_each(:1);", -1, &pArgsStmt, &zErr));
+    CHECK_CALL(sqlite3_bind_text(pArgsStmt, 1, zArgs, -1, NULL));
+    int nArgCnt = 0;
+    while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW)
+    {
+        char *zArg = (char *) sqlite3_column_text(pArgsStmt, 0);
+        sqlite3_value *argVal = sqlite3_value_dup(sqlite3_column_value(pArgsStmt, 0));
+        Array_setNth(&sqlArgs, sqlArgs.iCnt, &argVal);
+        sqlite3_bind_value(pStmt, ++nArgCnt, argVal);
+    }
+
+    if (result != SQLITE_DONE)
+        goto CATCH;
     /*
      * Process file args
      */
 
-    /*
-     * Bind SQL parameters
-     */
+    CHECK_CALL(sqlite3_reset(pArgsStmt));
+    CHECK_CALL(sqlite3_bind_text(pArgsStmt, 1, zFileArgs, -1, NULL));
+    while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW)
+    {
+        int argNo = sqlite3_column_int(pArgsStmt, 0);
+        if (argNo >= 1 && argNo <= nArgCnt)
+        {
+            zFileName = (char *) sqlite3_value_text(*(sqlite3_value **) Array_getNth(&sqlArgs, (u32) argNo));
+            file_load_utf8(zFileName, &zFileArgContent);
+            sqlite3_bind_text(pStmt, argNo, zFileArgContent, -1, NULL);
+            sqlite3_free(zFileName);
+            zFileName = NULL;
+            sqlite3_free(zFileArgContent);
+            zFileArgContent = NULL;
+        }
+    }
 
-    /*
-     * Execute
-     */
+    if (result != SQLITE_DONE)
+        goto CATCH;
 
-    /*
-     * Fetch data
-     */
 
+    while ((result = sqlite3_step(pStmt)) == SQLITE_ROW)
+    {
+        if (*pColCnt == 0)
+            *pColCnt = sqlite3_column_count(pStmt);
+        int iCol;
+        for (iCol = 0; iCol < *pColCnt; iCol++)
+        {
+            sqlite3_value *pVal = sqlite3_value_dup(sqlite3_column_value(pStmt, iCol));
+            Array_setNth(pData, pData->iCnt, &pVal);
+        }
+    }
+
+    if (result != SQLITE_DONE)
+        goto CATCH;
+
+    result = SQLITE_OK;
     goto FINALLY;
 
     CATCH:
+    Array_clear(pData);
 
     FINALLY:
 
     sqlite3_finalize(pStmt);
+    sqlite3_finalize(pArgsStmt);
     sqlite3_free((void *) zErr);
     sqlite3_close(pDB);
+    Array_clear(&sqlArgs);
+    sqlite3_free(zFileArgContent);
+    sqlite3_free(zFileName);
+    sqlite3_free(zFileArgContent);
 
     return result;
+}
+
+static void
+_compareSqliteValues(char *zKey, uint32_t idx, sqlite3_value **vv, Array_t *pTestValues,
+                     Array_t *pChkValues, bool *pStop)
+{
+
 }
 
 /*
@@ -107,10 +168,25 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
  * Returns true if data sets are 100% equal
  */
 static bool
-_compareSqlData(sqlite3_value *pTestData, int nTestRowCnt, int nTestColCnt,
-                sqlite3_value *pChkData, int nChkRowCnt, int nChkColCnt)
+_compareSqlData(Array_t *pTestData, int nTestColCnt,
+                Array_t *pChkData, int nChkColCnt)
 {
-    return false;
+    if (nTestColCnt != nChkColCnt)
+        return false;
+
+    int64_t iTestRowCnt = pTestData->iCnt / nTestColCnt;
+    int64_t iChkRowCnt = pChkData->iCnt / nChkColCnt;
+
+    if (iTestRowCnt != iChkRowCnt)
+        return false;
+
+    sqlite3_value **pStoppedAt = Array_each(pTestData, (void *) _compareSqliteValues, pChkData);
+    if (*pStoppedAt)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 /*
@@ -121,23 +197,20 @@ static void _run_sql_test(void **state)
     SqlTestData_t *tt = *state;
 
     int result;
-    int ii;
 
-    sqlite3_value *pInData;
-    int nInRowCnt;
+    Array_t testData;
     int nInColCnt;
     CHECK_CALL(_runSql(tt->props[TEST_DEF_PROP_IN_DB], tt->props[TEST_DEF_PROP_IN_SQL],
                        tt->props[TEST_DEF_PROP_IN_ARGS], tt->props[TEST_DEF_PROP_IN_FILE_ARGS],
-                       &pInData, &nInRowCnt, &nInColCnt));
+                       &testData, &nInColCnt));
 
-    sqlite3_value *pChkData;
-    int nChkRowCnt;
+    Array_t chkData;
     int nChkColCnt;
     CHECK_CALL(_runSql(tt->props[TEST_DEF_PROP_CHK_DB], tt->props[TEST_DEF_PROP_CHK_SQL],
                        tt->props[TEST_DEF_PROP_CHK_ARGS], tt->props[TEST_DEF_PROP_CHK_FILE_ARGS],
-                       &pChkData, &nChkRowCnt, &nChkColCnt));
+                       &chkData, &nChkColCnt));
 
-    if (!_compareSqlData(pInData, nInRowCnt, nInColCnt, pChkData, nChkRowCnt, nChkColCnt))
+    if (!_compareSqlData(&testData, nInColCnt, &chkData, nChkColCnt))
     {
         // Not passed
     }
@@ -147,11 +220,9 @@ static void _run_sql_test(void **state)
     CATCH:
 
     FINALLY:
+    Array_clear(&testData);
+    Array_clear(&chkData);
 
-    //    for (ii = 0; ii < nInColCnt * nInRowCnt; ii++)
-    //        sqlite3_value_free(pInData++);
-    //    for (ii = 0; ii < nChkColCnt * nChkRowCnt; ii++)
-    //        sqlite3_value_free(pChkData++);
     return;
 }
 
@@ -289,9 +360,6 @@ void run_sql_tests(const char *zJsonFile)
     sqlite3_free(zSelJSON);
     sqlite3_free(pTests);
     sqlite3_free(zError);
-    //    SqlTestData_clear(&prevTestData);
-
-    return;
 }
 
 
