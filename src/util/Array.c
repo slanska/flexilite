@@ -81,6 +81,7 @@ _array_ensure_capacity(Array_t *pBuf, u32 newCnt)
         if (!newItems)
             return SQLITE_NOMEM;
         memcpy(newItems, pBuf->items, pBuf->iElemSize * pBuf->iCnt);
+        sqlite3_free(pBuf->items);
         pBuf->items = newItems;
         pBuf->iCapacity = newCap;
     }
@@ -99,9 +100,13 @@ void Array_setNth(Array_t *self, u32 index, void *pElem)
     assert(index <= self->iCnt);
     bool grow = index == self->iCnt;
     if (grow)
-        _array_ensure_capacity(self, index);
+        _array_ensure_capacity(self, index + 1);
+
+    if (grow)
+        self->iCnt++;
+
     void *pItem = Array_getNth(self, index);
-    if (!grow && self->disposeElem)
+    if (!grow && self->disposeElem && (!pElem || memcmp(pItem, pElem, self->iElemSize) == 0))
     {
         self->disposeElem(pItem);
     }
@@ -109,9 +114,6 @@ void Array_setNth(Array_t *self, u32 index, void *pElem)
         memcpy(pItem, pElem, self->iElemSize);
     else
         memset(pItem, 0, self->iElemSize);
-
-    if (grow)
-        self->iCnt++;
 }
 
 void *Array_append(Array_t *self)
@@ -137,7 +139,7 @@ var Array_each(const Array_t *self, iterateeFunc iteratee, var param)
     int idx = 0;
     while (idx < self->iCnt)
     {
-        iteratee(NULL, idx, pCur, self, param, &bStop);
+        iteratee(NULL, idx, pCur, (void *) self, param, &bStop);
         if (bStop)
             return pCur;
 

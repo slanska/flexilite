@@ -7,10 +7,8 @@
  */
 
 #include <stdint.h>
+#include <stdlib.h>
 #include "definitions.h"
-#include "../src/util/Array.h"
-#include "../src/util/hash.h"
-#include "../src/util/Path.h"
 
 /*
  * Column indexes in JSON test def
@@ -52,6 +50,18 @@ static void SqlTestData_clear(SqlTestData_t *self)
     }
 }
 
+static int
+_testGroupSetup(void **state)
+{
+    return 0;
+}
+
+static int
+_testGroupTeardown(void **state)
+{
+    return 0;
+}
+
 /*
  * Executes SQL statement zSql on zDatabase, using parameters zArgs and file name substitutions zFileArgs
  * Result data is loaded onto pData, and pRowCnt and pColCnt will indicate number of loaded rows and
@@ -72,6 +82,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
     Array_t sqlArgs;
     char *zFileName = NULL;
     char *zFileArgContent = NULL;
+    char *zError = NULL;
     Array_init(&sqlArgs, sizeof(sqlite3_value *), (void *) sqlite3_value_free);
 
     *pColCnt = 0;
@@ -96,10 +107,10 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
 
     if (result != SQLITE_DONE)
         goto ONERROR;
+
     /*
      * Process file args
      */
-
     CHECK_CALL(sqlite3_reset(pArgsStmt));
     CHECK_CALL(sqlite3_bind_text(pArgsStmt, 1, zFileArgs, -1, NULL));
     while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW)
@@ -108,7 +119,10 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
         if (argNo >= 1 && argNo <= nArgCnt)
         {
             zFileName = (char *) sqlite3_value_text(*(sqlite3_value **) Array_getNth(&sqlArgs, (u32) argNo));
-            file_load_utf8(zFileName, &zFileArgContent);
+
+            char zFullFilePath[FILENAME_MAX];
+            realpath(zFileName, zFullFilePath);
+            file_load_utf8(zFullFilePath, &zFileArgContent);
             sqlite3_bind_text(pStmt, argNo, zFileArgContent, -1, NULL);
             sqlite3_free(zFileName);
             zFileName = NULL;
@@ -141,9 +155,15 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
 
     ONERROR:
     Array_clear(pData);
+    if (pDB)
+    {
+        zError = sqlite3_errmsg(pDB);
+        printf("Error: %s", zError);
+    }
 
     EXIT:
 
+    sqlite3_free(zError);
     sqlite3_finalize(pStmt);
     sqlite3_finalize(pArgsStmt);
     sqlite3_free((void *) zErr);
@@ -244,6 +264,36 @@ static void _free_test_item(void *item)
 }
 
 /*
+ * Runs group of tests and clears tests at the end
+ */
+static int
+_runTestGroup(char **pzGroupTitle, Array_t *tests)
+{
+    if (tests->iCnt == 0)
+        return SQLITE_OK;
+
+    if (!*pzGroupTitle)
+        *pzGroupTitle = "SQL Tests";
+    int result = _cmocka_run_group_tests(*pzGroupTitle,
+                                         (void *) tests->items,
+                                         tests->iCnt,
+                                         _testGroupSetup,
+                                         _testGroupTeardown
+    );
+
+    Array_clear(tests);
+    return result;
+}
+
+static void
+_disposeCMUnitTest(struct CMUnitTest *ut)
+{
+    // Note: no need to free name as it is also referenced from initial_state.props
+    SqlTestData_clear(ut->initial_state);
+    sqlite3_free(ut->initial_state);
+}
+
+/*
  * Loads array of test definitions from given JSON file (which should follow structure presented below)
  * and runs tests for all items in loaded JSON array
  *
@@ -253,9 +303,8 @@ static void _free_test_item(void *item)
 void run_sql_tests(const char *zJsonFile)
 {
 
-    int result = SQLITE_OK;
+    int result;
 
-    int nTestCount = 0;
     struct CMUnitTest *pTests = NULL;
     const char *zError = NULL;
     SqlTestData_t *testData = NULL;
@@ -269,7 +318,7 @@ void run_sql_tests(const char *zJsonFile)
     CHECK_CALL(sqlite3_open(":memory:", &db));
 
     Array_t tests;
-    Array_init(&tests, sizeof(struct CMUnitTest), NULL);
+    Array_init(&tests, sizeof(struct CMUnitTest), (void *) _disposeCMUnitTest);
 
     char *zSelJSON = sqlite3_mprintf("select json_extract(value, '$.include') as [include], " // 0
                                              "json_extract(value, '$.describe') as [describe], " // 1
@@ -283,90 +332,76 @@ void run_sql_tests(const char *zJsonFile)
                                              "json_extract(value, '$.chkArgs') as [chkArgs], " // 9
                                              "json_extract(value, '$.chkFileArgs') as [chkFileArgs], " // 10
                                              "json_extract(value, '$.chkResult') as [chkResult] " // 11
-                                             "from json_each('%s')", zJson);
+                                             "from json_each('%q');", zJson);
 
     sqlite3_stmt *pJsonStmt = NULL;
 
     SqlTestData_t prevTestData;
     SqlTestData_init(&prevTestData);
-    char *zPrevDescribe = NULL;
+    char *zGroupTitle = NULL;
 
     CHECK_CALL(sqlite3_prepare(db, zSelJSON, -1, &pJsonStmt, NULL));
 
-    bool done = false;
-    while (!done)
+    while ((result = sqlite3_step(pJsonStmt)) == SQLITE_ROW)
     {
-        result = sqlite3_step(pJsonStmt);
-
-        done = result == SQLITE_DONE;
-        if (result != SQLITE_ROW && !done)
-            break;
-
-
-        if (result == SQLITE_ROW)
+        CHECK_MALLOC(testData, sizeof(*testData));
+        SqlTestData_init(testData);
+        int iCol;
+        for (iCol = 0; iCol < ARRAY_LEN(testData->props); iCol++)
         {
-            CHECK_MALLOC(testData, sizeof(*testData));
-            SqlTestData_init(testData);
-            int iCol;
-            for (iCol = 0; iCol < ARRAY_LEN(testData->props); iCol++)
-            {
-                testData->props[iCol] = (char *) sqlite3_column_text(pJsonStmt, iCol);
-                if (!testData->props[iCol] && iCol != TEST_DEF_PROP_INCLUDE)
-                    testData->props[iCol] = prevTestData.props[iCol];
-            }
-
-            struct CMUnitTest test;
-            test.name = testData->props[TEST_DEF_PROP_IT];
-            test.test_func = _run_sql_test;
-            test.initial_state = testData;
-
-            // Now test is the owner of this data
-            testData = NULL;
-
-            test.setup_func = _setup_sql_test;
-            test.teardown_func = _teardown_sql_test;
-
-            Array_setNth(&tests, tests.iCnt, &test);
+            char *zVal = (char *) sqlite3_column_text(pJsonStmt, iCol);
+            int textLen = sqlite3_column_bytes(pJsonStmt, iCol);
+            testData->props[iCol] = sqlite3_mprintf("%s", zVal);
+            if (!testData->props[iCol] && iCol != TEST_DEF_PROP_INCLUDE)
+                testData->props[iCol] = sqlite3_mprintf("%s", prevTestData.props[iCol]);
         }
 
-        if (done ||
-            (tests.iCnt > 0 && zPrevDescribe != NULL &&
-             strcmp(testData->props[TEST_DEF_PROP_DESCRIBE], zPrevDescribe) != 0))
-            // Run as a separate group
-        {
-            if (!zPrevDescribe)
-                zPrevDescribe = "SQL Tests";
-            CHECK_CALL(_cmocka_run_group_tests(zPrevDescribe,
-                                               (void *) tests.items,
-                                               tests.iCnt,
-                                               NULL, //CMFixtureFunction group_setup,
-                                               NULL // CMFixtureFunction group_teardown
-            ));
+        struct CMUnitTest test;
+        test.name = testData->props[TEST_DEF_PROP_IT];
+        test.test_func = _run_sql_test;
+        test.initial_state = testData;
 
-            Array_clear(&tests);
+        // Now test is the owner of this data
+        SqlTestData_t *initialState = testData;
+        testData = NULL;
+
+        test.setup_func = _setup_sql_test;
+        test.teardown_func = _teardown_sql_test;
+
+        Array_setNth(&tests, tests.iCnt, &test);
+        if (zGroupTitle != NULL && strcmp(initialState->props[TEST_DEF_PROP_DESCRIBE], zGroupTitle) != 0)
+        {
+            CHECK_CALL(_runTestGroup(&zGroupTitle, &tests));
         }
 
-        prevTestData = *testData;
-        zPrevDescribe = testData->props[TEST_DEF_PROP_DESCRIBE];
+        prevTestData = *initialState;
+        zGroupTitle = initialState->props[TEST_DEF_PROP_DESCRIBE];
     }
 
     if (result != SQLITE_DONE)
         goto ONERROR;
 
+    CHECK_CALL(_runTestGroup(&zGroupTitle, &tests));
+
     goto EXIT;
 
     ONERROR:
 
+    if (db)
+    {
+        zError = sqlite3_errmsg(db);
+        printf("Error: %s", zError);
+    }
+
     EXIT:
 
+    sqlite3_finalize(pJsonStmt);
+    sqlite3_close(db);
     Array_clear(&tests);
     SqlTestData_clear(testData);
     sqlite3_free(testData);
     sqlite3_free(zJson);
     sqlite3_free(zSelJSON);
     sqlite3_free(pTests);
-    sqlite3_free((void*)zError);
+    sqlite3_free((void *) zError);
 }
-
-
-

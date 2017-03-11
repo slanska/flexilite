@@ -99,8 +99,8 @@ typedef void *var;
  * @param collection - collection instance (hash table or array)
  * @param bStop - should be set to true by iterateeFunc to stop iteration and return last processed item
  */
-typedef void iterateeFunc(const char *zKey, sqlite3_int64 index, void *pData,
-                          var collection, var param, bool *bStop);
+typedef void iterateeFunc(const char *zKey, const sqlite3_int64 index, void *pData,
+                          const var collection, var param, bool *bStop);
 
 typedef union any
 {
