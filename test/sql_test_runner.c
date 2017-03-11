@@ -95,7 +95,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
     }
 
     if (result != SQLITE_DONE)
-        goto CATCH;
+        goto ONERROR;
     /*
      * Process file args
      */
@@ -118,7 +118,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
     }
 
     if (result != SQLITE_DONE)
-        goto CATCH;
+        goto ONERROR;
 
 
     while ((result = sqlite3_step(pStmt)) == SQLITE_ROW)
@@ -134,15 +134,15 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
     }
 
     if (result != SQLITE_DONE)
-        goto CATCH;
+        goto ONERROR;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     Array_clear(pData);
 
-    FINALLY:
+    EXIT:
 
     sqlite3_finalize(pStmt);
     sqlite3_finalize(pArgsStmt);
@@ -215,11 +215,11 @@ static void _run_sql_test(void **state)
         // Not passed
     }
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     Array_clear(&testData);
     Array_clear(&chkData);
 
@@ -257,8 +257,8 @@ void run_sql_tests(const char *zJsonFile)
 
     int nTestCount = 0;
     struct CMUnitTest *pTests = NULL;
-
     const char *zError = NULL;
+    SqlTestData_t *testData = NULL;
 
     // Read JSON file
     char *zJson = NULL;
@@ -302,7 +302,7 @@ void run_sql_tests(const char *zJsonFile)
         if (result != SQLITE_ROW && !done)
             break;
 
-        SqlTestData_t *testData = NULL;
+
         if (result == SQLITE_ROW)
         {
             CHECK_MALLOC(testData, sizeof(*testData));
@@ -319,6 +319,10 @@ void run_sql_tests(const char *zJsonFile)
             test.name = testData->props[TEST_DEF_PROP_IT];
             test.test_func = _run_sql_test;
             test.initial_state = testData;
+
+            // Now test is the owner of this data
+            testData = NULL;
+
             test.setup_func = _setup_sql_test;
             test.teardown_func = _teardown_sql_test;
 
@@ -347,19 +351,21 @@ void run_sql_tests(const char *zJsonFile)
     }
 
     if (result != SQLITE_DONE)
-        goto CATCH;
+        goto ONERROR;
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
-    // Deallocate all resources
+    EXIT:
+
     Array_clear(&tests);
+    SqlTestData_clear(testData);
+    sqlite3_free(testData);
     sqlite3_free(zJson);
     sqlite3_free(zSelJSON);
     sqlite3_free(pTests);
-    sqlite3_free(zError);
+    sqlite3_free((void*)zError);
 }
 
 

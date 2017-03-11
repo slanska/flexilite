@@ -18,11 +18,11 @@ int flexi_prop_create_func(
     int result;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -35,11 +35,11 @@ int flexi_prop_alter_func(
     int result;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 
 }
@@ -53,11 +53,11 @@ int flexi_prop_drop_func(
     int result;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 
 }
@@ -71,11 +71,11 @@ int flexi_prop_rename_func(
     int result;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 
 }
@@ -173,9 +173,9 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
         }
     }
 
-    goto FINALLY;
-    CATCH:
-    FINALLY:
+    goto EXIT;
+    ONERROR:
+    EXIT:
     return result;
 }
 
@@ -200,11 +200,11 @@ int flexi_prop_to_ref_func(
     int result;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 
 }
@@ -218,11 +218,11 @@ int flexi_ref_to_prop_func(
     int result;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 
 }

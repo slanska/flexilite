@@ -28,15 +28,15 @@ static int _create_class_record(struct flexi_Context_t *pCtx, const char *zClass
     CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_INS_CLS], 0, lClassNameID));
     CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_INS_CLS]));
     if (result != SQLITE_DONE)
-        goto CATCH;
+        goto ONERROR;
 
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, lClassID));
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -78,11 +78,11 @@ static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const cha
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     sqlite3_finalize(pStmt);
     sqlite3_free(zSql);
 
@@ -123,10 +123,10 @@ static int _parseRangeProperties(struct flexi_ClassDef_t *pClassDef, const char 
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
-    FINALLY:
+    ONERROR:
+    EXIT:
     sqlite3_free(zSql);
     sqlite3_finalize(pStmt);
     return result;
@@ -166,11 +166,11 @@ static int _parseFullTextProperties(struct flexi_ClassDef_t *pClassDef, const ch
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     sqlite3_finalize(pStmt);
     sqlite3_free(zSql);
 
@@ -206,7 +206,7 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
         if (!mixin)
         {
             result = SQLITE_NOMEM;
-            goto CATCH;
+            goto ONERROR;
         }
 
         flexi_class_ref_def_init(mixin);
@@ -236,7 +236,7 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
             if (!rule)
             {
                 result = SQLITE_NOMEM;
-                goto CATCH;
+                goto ONERROR;
             }
 
             rule->regex = (char *) sqlite3_column_text(pRulesStmt, 0);
@@ -247,16 +247,16 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     if (pClassDef->aMixins)
     {
         Array_dispose(pClassDef->aMixins);
         pClassDef->aMixins = NULL;
     }
 
-    FINALLY:
+    EXIT:
     sqlite3_free(zRulesJson);
     sqlite3_finalize(pStmt);
     sqlite3_finalize(pRulesStmt);
@@ -289,7 +289,7 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
         if (!pProp)
         {
             result = SQLITE_NOMEM;
-            goto CATCH;
+            goto ONERROR;
         }
 
         sqlite3_free(zPropDefJson);
@@ -317,12 +317,12 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     sqlite3_free(zPropDefJson);
 
-    FINALLY:
+    EXIT:
 
     return result;
 }
@@ -389,14 +389,14 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
     {
         result = SQLITE_ERROR;
         *pzError = sqlite3_mprintf("Class [%s] already exists", zClassName);
-        goto CATCH;
+        goto ONERROR;
     }
 
     if (!db_validate_name(zClassName))
     {
         result = SQLITE_ERROR;
         *pzError = sqlite3_mprintf("Invalid class name [%s]", zClassName);
-        goto CATCH;
+        goto ONERROR;
     }
 
     CHECK_CALL(_create_class_record(pCtx, zClassName, &lClassID));
@@ -423,7 +423,7 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
         if (stepResult != SQLITE_DONE)
         {
             result = stepResult;
-            goto CATCH;
+            goto ONERROR;
         }
     }
 
@@ -437,7 +437,7 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
         if (stepRes != SQLITE_ROW)
         {
             result = stepRes;
-            goto CATCH;
+            goto ONERROR;
         }
 
         iClassID = sqlite3_column_int64(p, 0);
@@ -486,7 +486,7 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
         if (iStep != SQLITE_ROW)
         {
             result = iStep;
-            goto CATCH;
+            goto ONERROR;
         }
 
         memset(&dProp, 0, sizeof(dProp));
@@ -558,7 +558,7 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
             if (stepResult != SQLITE_DONE)
             {
                 result = stepResult;
-                goto CATCH;
+                goto ONERROR;
             }
         }
 
@@ -597,7 +597,7 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
     if (updResult != SQLITE_DONE)
     {
         result = updResult;
-        goto CATCH;
+        goto ONERROR;
     }
 
     // TODO
@@ -605,13 +605,13 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
 
     result = SQLITE_OK;
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     // Release resources because of errors (catch)
     printf("%s", sqlite3_errmsg(pCtx->db));
 
-    FINALLY:
+    EXIT:
 
     sqlite3_free((void *) zPropDefJSON);
     sqlite3_free(dProp.name.name);
@@ -681,16 +681,16 @@ int flexi_class_create_func(
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     if (zError)
     {
         sqlite3_result_error(context, zError, result);
         sqlite3_free((void *) zError);
     }
 
-    FINALLY:
+    EXIT:
     sqlite3_free(zSQL);
     return result;
 }
@@ -761,20 +761,20 @@ int flexi_class_alter_func(
                 zError = sqlite3_mprintf(
                         "Invalid data validation mode - \"%s\". Supported values are: ABORT (default) or IGNORE",
                         zValidateMode);
-                goto CATCH;
+                goto ONERROR;
             }
         }
     }
     struct flexi_Context_t *pCtx = sqlite3_user_data(context);
     CHECK_CALL(flexi_class_alter(pCtx, zClassName, zNewClassDef, eValidationMode, bCreateVTable, &zError));
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     if (zError)
         sqlite3_result_error(context, zError, -1);
 
-    FINALLY:
+    EXIT:
 
     sqlite3_free(zClassName);
     sqlite3_free((void *) zValidateMode);
@@ -836,16 +836,16 @@ int flexi_class_drop_func(
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
 
     CHECK_CALL(flexi_class_drop(pCtx, lClassID, softDel, &zError));
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     if (!zError)
         sqlite3_result_error(context, zError, -1);
     else
         if (result != SQLITE_OK)
             sqlite3_result_error(context, sqlite3_errstr(result), -1);
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -871,11 +871,11 @@ int flexi_class_rename(struct flexi_Context_t *pCtx, sqlite3_int64 iOldClassID, 
     sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_RENAME], 2, iOldClassID);
     CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_CLS_RENAME]));
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
 
     return result;
 }
@@ -907,13 +907,13 @@ int flexi_class_rename_func(
     int result;
     CHECK_CALL(flexi_Context_getNameId(pCtx, zOldClassName, &iOldID));
     CHECK_CALL(flexi_class_rename(pCtx, iOldID, zNewClassName));
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     zErr = (char *) sqlite3_errstr(result);
     sqlite3_result_error(context, zErr, -1);
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -926,11 +926,11 @@ int flexi_change_object_class(
     int result;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 
 }
@@ -944,11 +944,11 @@ int flexi_prop_to_obj_func(
     int result;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 
 }
@@ -962,11 +962,11 @@ int flexi_obj_to_props_func(
     int result;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 
 }
@@ -1017,7 +1017,7 @@ int flexi_class_def_generate_vtable_sql(struct flexi_ClassDef_t *pClassDef, char
     if (!sbClassDef)
     {
         result = SQLITE_NOMEM;
-        goto CATCH;
+        goto ONERROR;
     }
 
     // TODO
@@ -1047,11 +1047,11 @@ int flexi_class_def_generate_vtable_sql(struct flexi_ClassDef_t *pClassDef, char
     // Fix strange issue with misplaced terminating zero
     CHECK_CALL(sqlite3_declare_vtab(pClassDef->pCtx->db, sbClassDef));
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     sqlite3_free(sbClassDef);
 
     return 0;
@@ -1077,11 +1077,11 @@ int flexi_class_def_parse(struct flexi_ClassDef_t *pClassDef,
     // Load other properties
     CHECK_CALL(_parseClassDefAux(pClassDef, zClassDefJson));
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     sqlite3_finalize(pStmt);
     return result;
 }
@@ -1101,7 +1101,7 @@ int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, s
     if (!*pClassDef)
     {
         result = SQLITE_NOMEM;
-        goto CATCH;
+        goto ONERROR;
     }
 
     // Initialize variables
@@ -1128,11 +1128,11 @@ int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, s
         result = SQLITE_NOTFOUND;
         if (pzErr)
             *pzErr = sqlite3_mprintf("Cannot find Flexilite class with ID [%ld]", lClassID);
-        goto CATCH;
+        goto ONERROR;
     }
 
     if (result != SQLITE_ROW)
-        goto CATCH;
+        goto ONERROR;
 
     (*pClassDef)->lClassID = sqlite3_column_int64(pGetClassStmt, 0);
     (*pClassDef)->name.id = sqlite3_column_int64(pGetClassStmt, 1);
@@ -1171,9 +1171,9 @@ int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, s
     CHECK_CALL(_parseClassDefAux(*pClassDef, zClassDefJson));
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     if (*pClassDef)
     {
         flexi_ClassDef_free(*pClassDef);
@@ -1182,7 +1182,7 @@ int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, s
     if (pzErr && !*pzErr)
         *pzErr = sqlite3_errstr(result);
 
-    FINALLY:
+    EXIT:
     if (pGetClassStmt)
         sqlite3_finalize(pGetClassStmt);
     sqlite3_free(zClassDefJson);

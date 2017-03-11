@@ -157,11 +157,11 @@ int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
     { *pClassID = -1; }
     result = SQLITE_OK;
 
-    goto CATCH;
+    goto ONERROR;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -227,9 +227,9 @@ static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx)
             db, "delete from [.range_data] where ObjectID = :1;",
             -1, &pCtx->pStmts[STMT_DEL_RTREE], NULL));
 
-    goto FINALLY;
-    CATCH:
-    FINALLY:
+    goto EXIT;
+    ONERROR:
+    EXIT:
     return result;
 }
 
@@ -264,11 +264,11 @@ int flexi_Context_addClassDef(struct flexi_Context_t *self, flexi_ClassDef_t *pC
     pClassDef->nRefCount++;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
 
     return result;
 }

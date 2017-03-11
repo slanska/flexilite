@@ -12,11 +12,11 @@ int flexi_prop_merge_func(
     int result;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 
 }
@@ -29,11 +29,11 @@ int flexi_prop_split_func(
     int result;
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 
 }

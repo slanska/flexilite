@@ -32,12 +32,12 @@ static void create_class_Orders(void **state) {
     CHECK_STMT(sqlite3_step(pStmt));
 
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     assert_false(result);
 
-    FINALLY:
+    EXIT:
     if (pStmt)
         sqlite3_finalize(pStmt);
     if (db)

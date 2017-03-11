@@ -55,12 +55,12 @@ static int flexi_init_func(sqlite3_context *context,
     char *zError = NULL;
     int result;
     CHECK_CALL(sqlite3_exec(db, zSQL, NULL, NULL, &zError));
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     sqlite3_result_error(context, zError, -1);
 
-    FINALLY:
+    EXIT:
     sqlite3_free(zSQL);
     return result;
 
@@ -179,19 +179,19 @@ int flexi_init(sqlite3 *db,
     if (!pCtx)
     {
         result = SQLITE_NOMEM;
-        goto CATCH;
+        goto ONERROR;
     }
 
     CHECK_CALL(sqlite3_create_function_v2(db, "flexi", 0, SQLITE_UTF8, pCtx,
                                           flexi_func, 0, 0, (void *) flexi_Context_free));
 
     CHECK_CALL(flexi_data_init(db, pzErrMsg, pApi, pCtx));
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     flexi_Context_free(pCtx);
 
-    FINALLY:
+    EXIT:
 
     return result;
 }

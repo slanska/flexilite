@@ -549,11 +549,11 @@ _processSpecialProps(_ClassAlterContext_t *alterCtx)
 
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -605,11 +605,11 @@ _processRangeProps(_ClassAlterContext_t *alterCtx)
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -624,11 +624,11 @@ _processFtsProps(_ClassAlterContext_t *alterCtx)
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -655,11 +655,11 @@ _processMixins(_ClassAlterContext_t *alterCtx)
 
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -678,12 +678,12 @@ _mergeClassSchemas(_ClassAlterContext_t *alterCtx)
     // These properties will get eChangeStatus NONMODIFIED
     HashTable_each(&alterCtx->pExistingClassDef->propMap, (void *) _copyExistingProp, alterCtx);
     if (*alterCtx->pzErr)
-        goto CATCH;
+        goto ONERROR;
 
     // Iterate through properties. Find props: to be renamed, to be deleted, to be updated, to be added
     HashTable_each(&alterCtx->pNewClassDef->propMap, (void *) _validatePropChange, alterCtx);
     if (*alterCtx->pzErr)
-        goto CATCH;
+        goto ONERROR;
 
     // Process mixins
     CHECK_CALL(_processMixins(alterCtx));
@@ -698,12 +698,12 @@ _mergeClassSchemas(_ClassAlterContext_t *alterCtx)
     CHECK_CALL(_processFtsProps(alterCtx));
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     result = SQLITE_ERROR;
 
-    FINALLY:
+    EXIT:
 
     return result;
 }
@@ -719,17 +719,17 @@ _createClassDefFromDefJSON(struct flexi_Context_t *pCtx, const char *zClassDefJs
     if (!*pClassDef)
     {
         result = SQLITE_NOMEM;
-        goto CATCH;
+        goto ONERROR;
     }
 
     CHECK_CALL(flexi_class_def_parse(*pClassDef, zClassDefJson, &zErr));
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -767,18 +767,18 @@ flexi_class_alter(struct flexi_Context_t *pCtx,
     {
         result = SQLITE_ERROR;
         *pzError = sqlite3_mprintf("Class [%s] is not found", zClassName);
-        goto CATCH;
+        goto ONERROR;
     }
 
     CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zNewClassDefJson, bCreateVTable, eValidateMode, pzError));
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     if (!*pzError)
         *pzError = sqlite3_errstr(result);
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -819,14 +819,14 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
     // Last step - replace existing class definition in pCtx
     // TODO
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     if (alterCtx.pNewClassDef)
         flexi_ClassDef_free(alterCtx.pNewClassDef);
     *pzErr = *alterCtx.pzErr;
 
-    FINALLY:
+    EXIT:
 
     _ClassAlterContext_clear(&alterCtx);
 

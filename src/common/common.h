@@ -13,16 +13,16 @@
  * int result = SQLITE_OK; // int result must be declared
  * ... API calls
  *
- * goto FINALLY; // skip CATCH
+ * goto EXIT; // skip ONERROR
  *
- * CATCH:
+ * ONERROR:
  * clean up on error
  * return result; // optionally, return error code
- * FINALLY:
+ * EXIT:
  * clean up when done regardless if success or failure
  * return result;
  *
- * result declaration, CATCH and FINALLY must be always present in the function body
+ * result declaration, ONERROR and EXIT must be always present in the function body
  * if one of the following macros is used
  *
  */
@@ -68,16 +68,16 @@ enum REF_PROP_ROLE
 };
 
 #define CHECK_CALL(call)       result = (call); \
-        if (result != SQLITE_OK) goto CATCH;
+        if (result != SQLITE_OK) goto ONERROR;
 
 /*
  * Checks result of sqlite3_step. SQLITE_DONE and SQLITE_ROW are ok.
  * Other codes are treated as error
  */
 #define CHECK_STMT(call)       result = (call); \
-        if (result != SQLITE_DONE && result != SQLITE_ROW) goto CATCH;
+        if (result != SQLITE_DONE && result != SQLITE_ROW) goto ONERROR;
 
-#define CHECK_NULL(v) if (v == NULL) { result = SQLITE_NOMEM; goto CATCH;}
+#define CHECK_NULL(v) if (v == NULL) { result = SQLITE_NOMEM; goto ONERROR;}
 
 #define CHECK_MALLOC(v, s) v = sqlite3_malloc(s); CHECK_NULL(v)
 

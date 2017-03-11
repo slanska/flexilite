@@ -24,11 +24,11 @@ int file_load_utf8(const char *zFileName, char **ppBuf) {
         fclose(f);
     }
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     sqlite3_free(*ppBuf);
 
-    FINALLY:
+    EXIT:
     return result;
 }

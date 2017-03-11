@@ -35,9 +35,9 @@ int db_create_or_open(const char *zFile, sqlite3 **pDb) {
 
     CHECK_CALL(sqlite3_exec(*pDb, "select var('Foo', 'Boo');", NULL, NULL, &zErrMsg));
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     if (*pDb) {
         sqlite3_close(*pDb);
         *pDb = NULL;
@@ -46,7 +46,7 @@ int db_create_or_open(const char *zFile, sqlite3 **pDb) {
     if (zErrMsg)
         printf("Error: %s", zErrMsg);
 
-    FINALLY:
+    EXIT:
     sqlite3_free(zErrMsg);
     sqlite3_free(zSql);
 

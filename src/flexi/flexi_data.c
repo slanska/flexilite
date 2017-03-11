@@ -95,11 +95,11 @@ static int flexi_data_create(
 
     result = SQLITE_OK;
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
 
     return result;
 }
@@ -245,12 +245,12 @@ static int flexi_data_open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) 
     CHECK_CALL(sqlite3_prepare_v2(vtab->pCtx->db, zPropSql, -1, &cur->pPropertyIterator, NULL));
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     printf("%s", sqlite3_errmsg(vtab->pCtx->db));
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -316,16 +316,16 @@ static int flexi_data_next(sqlite3_vtab_cursor *pCursor) {
         cur->iEof = 0;
         CHECK_CALL(sqlite3_reset(cur->pPropertyIterator));
         sqlite3_bind_int64(cur->pPropertyIterator, 1, cur->lObjectID);
-    } else goto CATCH;
+    } else goto ONERROR;
 
     result = SQLITE_OK;
-    goto FINALLY;
-    CATCH:
+    goto EXIT;
+    ONERROR:
     {
         // Release resources because of errors (catch)
         printf("%s", sqlite3_errmsg(vtab->pCtx->db));
     }
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -493,11 +493,11 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
     CHECK_CALL(flexi_data_next(pCursor));
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     sqlite3_free(zSQL);
     sqlite3_free(zRangeSQL);
 
@@ -550,11 +550,11 @@ static void matchTextFunction(sqlite3_context *context, int argc, sqlite3_value 
     else
         sqlite3_result_int(context, 0);
 
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     sqlite3_result_error_code(context, result);
-    FINALLY:
+    EXIT:
     {}
 }
 
@@ -637,7 +637,7 @@ static int flexi_data_column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pCon
 
     if (iCol == -1) {
         sqlite3_result_int64(pContext, cur->lObjectID);
-        goto FINALLY;
+        goto EXIT;
     }
 
     struct flexi_ClassDef_t *vtab = (void *) cur->base.pVtab;
@@ -649,7 +649,7 @@ static int flexi_data_column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pCon
             break;
         if (colResult != SQLITE_ROW) {
             result = colResult;
-            goto CATCH;
+            goto ONERROR;
         }
         sqlite3_int64 lPropID = sqlite3_column_int64(cur->pPropertyIterator, 1);
         if (lPropID < vtab->pProps[cur->iReadCol + 1].iPropID)
@@ -675,10 +675,10 @@ static int flexi_data_column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pCon
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
-    CATCH:
+    goto EXIT;
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     // Map column number to property ID
     return result;
 }
@@ -720,7 +720,7 @@ static int flexi_validate_prop_data(struct flexi_ClassDef_t *pVTab, int iCol, sq
     if (pProp->minOccurences > 0 && sqlite3_value_type(v) == SQLITE_NULL) {
         // TODO set name
         pVTab->base.zErrMsg = "Column %s is required";
-        goto CATCH;
+        goto ONERROR;
     }
 
     int t = sqlite3_value_type(v);
@@ -749,7 +749,7 @@ static int flexi_validate_prop_data(struct flexi_ClassDef_t *pVTab, int iCol, sq
             // Check minValue, maxValue
             if (d < pProp->minValue || d > pProp->maxValue) {
                 pVTab->base.zErrMsg = "Value is not within range";
-                goto CATCH;
+                goto ONERROR;
             }
 
             break;
@@ -766,7 +766,7 @@ static int flexi_validate_prop_data(struct flexi_ClassDef_t *pVTab, int iCol, sq
             // Check minValue, maxValue
             if (d < pProp->minValue || d > pProp->maxValue) {
                 pVTab->base.zErrMsg = "Value is not within range";
-                goto CATCH;
+                goto ONERROR;
             }
         }
             break;
@@ -785,7 +785,7 @@ static int flexi_validate_prop_data(struct flexi_ClassDef_t *pVTab, int iCol, sq
                 int len = get_utf8_len(str);
                 if (len > pProp->maxLength) {
                     pVTab->base.zErrMsg = "Too long value for column %s";
-                    goto CATCH;
+                    goto ONERROR;
                 }
             }
 
@@ -804,10 +804,10 @@ static int flexi_validate_prop_data(struct flexi_ClassDef_t *pVTab, int iCol, sq
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
-    CATCH:
+    goto EXIT;
+    ONERROR:
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -823,10 +823,10 @@ static int flexi_validate(struct flexi_ClassDef_t *pVTab, int argc, sqlite3_valu
         CHECK_CALL(flexi_validate_prop_data(pVTab, ii - 2, argv[ii]));
     }
 
-    goto FINALLY;
-    CATCH:
+    goto EXIT;
+    ONERROR:
     //
-    FINALLY:
+    EXIT:
     //
     return result;
 }
@@ -929,15 +929,15 @@ static int flexi_upsert_props(struct flexi_ClassDef_t *pVTab, sqlite3_int64 lObj
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
 
     if (pVTab->base.zErrMsg == NULL) {
 // TODO Set message?
     }
 
-    FINALLY:
+    EXIT:
     return result;
 }
 
@@ -1034,12 +1034,12 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
     }
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     printf("%s", sqlite3_errmsg(vtab->pCtx->db));
 
-    FINALLY:
+    EXIT:
 
     return result;
 }
@@ -1106,12 +1106,12 @@ int flexi_data_init(
                                        matchTextFunction, 0, 0));
 
     result = SQLITE_OK;
-    goto FINALLY;
+    goto EXIT;
 
-    CATCH:
+    ONERROR:
     *pzErrMsg = sqlite3_mprintf(sqlite3_errmsg(db));
     printf("%s", *pzErrMsg);
 
-    FINALLY:
+    EXIT:
     return result;
 }
