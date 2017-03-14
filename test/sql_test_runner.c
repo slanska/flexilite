@@ -88,7 +88,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
     char *zFileArgContent = NULL;
     char *zError = NULL;
     char *zFullFilePath = NULL;
-    char zNormalizedFPath[FILENAME_MAX];
+    char *zNormalizedFPath;
 
     Array_init(&sqlArgs, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
 
@@ -139,7 +139,9 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
     if (result != SQLITE_DONE)
         goto ONERROR;
 
-    CHECK_CALL(vfs->xFullPathname(vfs, "", FILENAME_MAX, zNormalizedFPath));
+    char zTemp[FILENAME_MAX];
+    CHECK_CALL(vfs->xFullPathname(vfs, "", FILENAME_MAX, zTemp));
+    Path_join(&zNormalizedFPath, zTemp, "../../");
 
     /*
      * Process file args
@@ -154,15 +156,11 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
             sqlite3_free(zFullFilePath);
             zFullFilePath = NULL;
 
-            zFileName = sqlite3_mprintf("../../%s", sqlite3_value_text(
-                    *(sqlite3_value **) Array_getNth(&sqlArgs, (u32) argNo - 1)));
-
-            Path_join(&zFullFilePath, zNormalizedFPath, "../../");
+            Path_join(&zFullFilePath, zNormalizedFPath,
+                      (char *) sqlite3_value_text(*(sqlite3_value **) Array_getNth(&sqlArgs, (u32) argNo - 1)));
 
             CHECK_CALL(file_load_utf8(zFullFilePath, &zFileArgContent));
             sqlite3_bind_text(pStmt, argNo, zFileArgContent, -1, NULL);
-            sqlite3_free(zFileName);
-            zFileName = NULL;
             sqlite3_free(zFileArgContent);
             zFileArgContent = NULL;
         }
@@ -207,6 +205,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
     sqlite3_free(zFileArgContent);
     sqlite3_free(zFileName);
     sqlite3_free(zFullFilePath);
+    sqlite3_free(zNormalizedFPath);
 
     return result;
 }

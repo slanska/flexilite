@@ -37,7 +37,11 @@ _processSegment(const char *zKey, u32 idx, Token_t *pToken, Array_t *self, Array
     }
     else
         if (pNewSegs->iCnt > 0)
-            Array_setNth(pNewSegs, pNewSegs->iCnt - 1, NULL);
+        {
+            Token_t *pNewTok = Array_getNth(pNewSegs, pNewSegs->iCnt - 1);
+            pNewTok->len = 0;
+            pNewSegs->iCnt--;
+        }
 }
 
 static void
@@ -103,10 +107,8 @@ void Path_join(char **pzResult, const char *zBase, const char *zAddPath)
 
     Array_each(&newSegs, (void *) _concatenateSegment, &strBuf);
 
-    *pzResult = strBuf.zBuf;
-
-    // to prevent memory deallocation
-    strBuf.bStatic = true;
+    *pzResult = sqlite3_malloc((int) strBuf.nUsed);
+    memcpy(*pzResult, strBuf.zBuf + 3, strBuf.nUsed - 3);
 
     Array_clear(&segments);
     Array_clear(&newSegs);

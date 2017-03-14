@@ -1225,7 +1225,6 @@ void flexi_schema_func(sqlite3_context *context,
     if (zErr == NULL)
         zErr = (char *) sqlite3_errstr(result);
     sqlite3_result_error(context, zErr, -1);
-    sqlite3_free(zErr);
 
     EXIT:
     sqlite3_free(zClassDef);
