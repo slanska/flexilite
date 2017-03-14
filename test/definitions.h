@@ -18,6 +18,7 @@
 #include "Array.h"
 #include "util/db_init.h"
 #include "util/file_helper.h"
+#include "../src/util/Path.h"
 
 int class_tests();
 

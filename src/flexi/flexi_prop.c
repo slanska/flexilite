@@ -134,28 +134,28 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
     CHECK_STMT(sqlite3_step(st));
     if (result == SQLITE_DONE)
     {
-        pProp->zIndex = (char *) sqlite3_column_text(st, 0);
-        pProp->zSubType = (char *) sqlite3_column_text(st, 1);
+        CHECK_CALL(getColumnAsText(&pProp->zIndex ,st, 0));
+        CHECK_CALL(getColumnAsText(&pProp->zSubType ,st, 1));
         pProp->minOccurences = sqlite3_column_int(st, 2);
         pProp->maxOccurences = sqlite3_column_int(st, 3);
-        pProp->zType = (char *) sqlite3_column_text(st, 4);
+        CHECK_CALL(getColumnAsText(&pProp->zType ,st, 4));
         pProp->bNoTrackChanges = (bool) sqlite3_column_int(st, 5);
-        pProp->zEnumDef = (char *) sqlite3_column_text(st, 6);
-        pProp->zRefDef = (char *) sqlite3_column_text(st, 7);
-        pProp->zRenameTo = (char *) sqlite3_column_text(st, 8);
+        CHECK_CALL(getColumnAsText(&pProp->zEnumDef ,st, 6));
+        CHECK_CALL(getColumnAsText(&pProp->zRefDef ,st, 7));
+        CHECK_CALL(getColumnAsText(&pProp->zRenameTo ,st, 8));
         if (sqlite3_column_int(st, 9) == 1)
             pProp->eChangeStatus = CHNG_STATUS_DELETED;
         pProp->maxLength = sqlite3_column_int(st, 10);
         pProp->minValue = sqlite3_column_int(st, 11);
         pProp->maxValue = sqlite3_column_int(st, 12);
-        pProp->regex = (char *) sqlite3_column_text(st, 13);
+        CHECK_CALL(getColumnAsText(&pProp->regex ,st, 13));
 
         // Check enumDef
         if (pProp->zEnumDef)
         {
             flexi_metadata_ref enumName;
             enumName.id = sqlite3_column_int64(st, 14);
-            enumName.name = (char *) sqlite3_column_text(st, 15);
+            CHECK_CALL(getColumnAsText(&enumName.name ,st, 15));
 
             // Get items
         }

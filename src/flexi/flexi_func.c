@@ -102,7 +102,9 @@ static void flexi_func(sqlite3_context *context,
             {"object to properties",  flexi_obj_to_props_func,   1},
             {"property to reference", flexi_prop_to_ref_func,    1},
             {"reference to property", flexi_ref_to_prop_func,    1},
-            {"change object class",   flexi_change_object_class, 1},
+            {"change object class",   flexi_change_object_class_func, 1},
+
+            {"schema",   flexi_schema_func, 1},
 
             /*
              * "structural merge" -- join 2+ objects to 1 object
@@ -182,7 +184,7 @@ int flexi_init(sqlite3 *db,
         goto ONERROR;
     }
 
-    CHECK_CALL(sqlite3_create_function_v2(db, "flexi", 0, SQLITE_UTF8, pCtx,
+    CHECK_CALL(sqlite3_create_function_v2(db, "flexi", -1, SQLITE_UTF8, pCtx,
                                           flexi_func, 0, 0, (void *) flexi_Context_free));
 
     CHECK_CALL(flexi_data_init(db, pzErrMsg, pApi, pCtx));

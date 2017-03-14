@@ -5,15 +5,15 @@
 #include <stdio.h>
 #include "file_helper.h"
 
-//SQLITE_EXTENSION_INIT3
-
-int file_load_utf8(const char *zFileName, char **ppBuf) {
+int file_load_utf8(const char *zFileName, char **ppBuf)
+{
     int result = SQLITE_OK;
     *ppBuf = NULL;
     size_t length;
     FILE *f = fopen(zFileName, "rb");
 
-    if (f) {
+    if (f)
+    {
         fseek(f, 0, SEEK_END);
         length = (size_t) ftell(f);
         fseek(f, 0, SEEK_SET);
@@ -22,6 +22,11 @@ int file_load_utf8(const char *zFileName, char **ppBuf) {
         (*ppBuf)[length] = 0;
 
         fclose(f);
+    }
+    else
+    {
+        result = SQLITE_NOTFOUND;
+        goto ONERROR;
     }
 
     goto EXIT;

@@ -42,6 +42,10 @@ typedef struct Array_t
      * Number of references to this array
      */
     int nRefCount;
+
+    bool bStatic;
+
+    char staticData[128];
 } Array_t;
 
 extern Array_t *Array_new(size_t elemSize, void (*disposeElem)(void *pElem));
@@ -90,7 +94,7 @@ extern void Array_remove(Array_t *self, u32 index);
 /*
  * Increases iRefCount of array
  */
-extern void Array_ref(Array_t *pDestBuf, Array_t *pSrcBuf);
+extern void Array_ref(Array_t *pDestArray, Array_t *pSrcBufArray);
 
 /*
  * Decreases iRefCount of array. If iRefCount riches 0, array will be cleaned and freed

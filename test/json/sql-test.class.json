@@ -2,12 +2,12 @@
   {
     "describe": "Schema init",
     "it": "Create entire Northwind schema",
-    "inSql": "select flexi_schema_init('%s');",
+    "inSql": "select flexi('schema', :1);",
     "inArgs": [
       "Northwind.db3.schema.json"
     ],
     "inFileArgs": [
-      0
+      1
     ],
     "chkResult": null
   }

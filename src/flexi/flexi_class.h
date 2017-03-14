@@ -170,7 +170,7 @@ int flexi_class_rename_func(
         sqlite3_value **argv
 );
 
-int flexi_change_object_class(
+int flexi_change_object_class_func(
         sqlite3_context *context,
         int argc,
         sqlite3_value **argv
@@ -243,5 +243,9 @@ int flexi_class_def_generate_vtable_sql(struct flexi_ClassDef_t *pClassDef, char
 struct flexi_ClassDef_t *flexi_class_def_new(struct flexi_Context_t *pCtx);
 
 int flexi_class_def_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson, const char **pzErr);
+
+void flexi_schema_func(sqlite3_context *context,
+                       int argc,
+                       sqlite3_value **argv);
 
 #endif //FLEXILITE_FLEXI_CLASS_H

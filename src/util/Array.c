@@ -18,16 +18,16 @@ SQLITE_EXTENSION_INIT3
 
 #endif
 
-Array_t *Array_new(size_t elemSize, void (*disposeElem)(void *pElem))
+Array_t *Array_new(size_t elemSize, void (*disposeElem)(void *))
 {
-    Array_t *pBuf;
-    pBuf = sqlite3_malloc(sizeof(*pBuf));
-    if (!pBuf)
+    Array_t *self;
+    self = sqlite3_malloc(sizeof(*self));
+    if (self != NULL)
     {
-        Array_init(pBuf, elemSize, disposeElem);
-        pBuf->nRefCount = 1;
+        Array_init(self, elemSize, disposeElem);
+        self->nRefCount = 1;
     }
-    return pBuf;
+    return self;
 }
 
 void Array_dispose(Array_t *self)
@@ -40,12 +40,19 @@ void Array_dispose(Array_t *self)
         sqlite3_free(self);
 }
 
-void Array_init(Array_t *self, size_t elemSize, void (*disposeElem)(void *pElem))
+void Array_init(Array_t *self, size_t elemSize, void (*disposeElem)(void *))
 {
     memset(self, 0, sizeof(*self));
 
     self->iElemSize = elemSize;
     self->disposeElem = disposeElem;
+
+    if (elemSize < sizeof(self->staticData))
+    {
+        self->iCapacity = sizeof(self->staticData) / elemSize;
+        self->bStatic = true;
+        self->items = self->staticData;
+    }
 }
 
 void Array_clear(Array_t *self)
@@ -53,37 +60,51 @@ void Array_clear(Array_t *self)
     if (self->disposeElem)
     {
         int idx;
-        char *pElem;
-        for (idx = 0, pElem = self->items; idx < self->iCnt * self->iElemSize; idx++,
-                pElem += self->iElemSize)
+        char *pElem = self->items;
+        for (idx = 0; idx < self->iCnt; idx++)
         {
             self->disposeElem(pElem);
+            pElem += self->iElemSize;
         }
     }
-    sqlite3_free(self->items);
-    self->items = 0;
+
+    if (!self->bStatic)
+    {
+        sqlite3_free(self->items);
+
+        if (self->iElemSize < sizeof(self->staticData))
+        {
+            self->items = self->staticData;
+            self->bStatic = true;
+        }
+        else self->items = NULL;
+    }
+
     self->iCapacity = 0;
     self->iCnt = 0;
 }
 
 static int
-_array_ensure_capacity(Array_t *pBuf, u32 newCnt)
+_array_ensure_capacity(Array_t *self, u32 newCnt)
 {
-    if (newCnt > pBuf->iCapacity)
+    if (newCnt > self->iCapacity)
     {
-
-        // Delta for grow is at least 10, or 10% of current capacity
-        u32 newCap = (pBuf->iCnt >> 3 > 8 ? pBuf->iCnt >> 3 : 8) + pBuf->iCnt;
+        u32 newCap = (self->iCnt >> 3 > 8 ? self->iCnt >> 3 : 8) + self->iCnt;
         if (newCap < newCnt)
             newCap = newCnt;
 
-        void *newItems = sqlite3_malloc(newCap * (int) pBuf->iElemSize);
+        void *newItems = sqlite3_malloc(newCap * (int) self->iElemSize);
         if (!newItems)
             return SQLITE_NOMEM;
-        memcpy(newItems, pBuf->items, pBuf->iElemSize * pBuf->iCnt);
-        sqlite3_free(pBuf->items);
-        pBuf->items = newItems;
-        pBuf->iCapacity = newCap;
+        memcpy(newItems, self->items, self->iElemSize * self->iCnt);
+
+        if (!self->bStatic)
+        {
+            sqlite3_free(self->items);
+        }
+        self->items = newItems;
+        self->bStatic = false;
+        self->iCapacity = newCap;
     }
     return SQLITE_OK;
 }
@@ -165,14 +186,14 @@ void Array_remove(Array_t *self, u32 index)
 /*
  * Copies array
  */
-void Array_ref(Array_t *pDestBuf, Array_t *pSrcBuf)
+void Array_ref(Array_t *pDestArray, Array_t *pSrcBufArray)
 {
-    assert(pSrcBuf);
-    if (pDestBuf != pSrcBuf)
+    assert(pSrcBufArray);
+    if (pDestArray != pSrcBufArray)
     {
-        memcpy(pDestBuf, pSrcBuf, sizeof(*pSrcBuf));
+        memcpy(pDestArray, pSrcBufArray, sizeof(*pSrcBufArray));
     }
-    pDestBuf->nRefCount++;
+    pDestArray->nRefCount++;
 }
 
 /*

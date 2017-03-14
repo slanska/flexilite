@@ -62,6 +62,13 @@ _testGroupTeardown(void **state)
     return 0;
 }
 
+static void
+_freeSqliteValue(sqlite3_value **pVal)
+{
+    sqlite3_value_free(*pVal);
+}
+
+
 /*
  * Executes SQL statement zSql on zDatabase, using parameters zArgs and file name substitutions zFileArgs
  * Result data is loaded onto pData, and pRowCnt and pColCnt will indicate number of loaded rows and
@@ -72,29 +79,53 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
         Array_t *pData, int *pColCnt)
 {
     int result;
-    /*
-    * Open database (:memory: if not defined)
-    */
+
     sqlite3 *pDB = NULL;
     sqlite3_stmt *pStmt = NULL;
-    const char *zErr = NULL;
     sqlite3_stmt *pArgsStmt = NULL;
     Array_t sqlArgs;
     char *zFileName = NULL;
     char *zFileArgContent = NULL;
     char *zError = NULL;
-    Array_init(&sqlArgs, sizeof(sqlite3_value *), (void *) sqlite3_value_free);
+    char *zFullFilePath = NULL;
+    char zNormalizedFPath[FILENAME_MAX];
+
+    Array_init(&sqlArgs, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
+
+    sqlite3_vfs *vfs;
+    vfs = sqlite3_vfs_find(NULL);
 
     *pColCnt = 0;
 
-    Array_init(pData, sizeof(sqlite3_value *), (void *) sqlite3_value_free);
+    Array_init(pData, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
 
-    CHECK_CALL(sqlite3_open_v2(zDatabase, &pDB, 0, NULL));
+    /*
+    * Open database (use :memory: if not defined)
+    */
+    if (zDatabase == NULL || strlen(zDatabase) == 0)
+    {
+        zDatabase = ":memory:";
+    }
+    CHECK_CALL(sqlite3_open_v2(zDatabase, &pDB,
+                               SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_SHAREDCACHE,
+                               NULL));
 
-    CHECK_CALL(sqlite3_prepare_v2(pDB, zSql, -1, &pStmt, &zErr));
+    CHECK_CALL(sqlite3_enable_load_extension(pDB, 1));
+
+    // load extension library
+    CHECK_CALL(sqlite3_load_extension(pDB, "../../bin/libFlexilite", NULL, &zError));
+
+    // load and run db schema
+    char *zSchemaSql = NULL;
+    CHECK_CALL(file_load_utf8("../../sql/dbschema.sql", &zSchemaSql));
+    CHECK_CALL(sqlite3_exec(pDB, (const char *) zSchemaSql, NULL, NULL, &zError));
+
+    // TODO use flexi('init')
+
+    CHECK_CALL(sqlite3_prepare_v2(pDB, zSql, -1, &pStmt, NULL));
 
     // Prepare arguments
-    CHECK_CALL(sqlite3_prepare_v2(pDB, "select value, type from json_each(:1);", -1, &pArgsStmt, &zErr));
+    CHECK_CALL(sqlite3_prepare_v2(pDB, "select value, type from json_each(:1);", -1, &pArgsStmt, NULL));
     CHECK_CALL(sqlite3_bind_text(pArgsStmt, 1, zArgs, -1, NULL));
     int nArgCnt = 0;
     while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW)
@@ -108,6 +139,8 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
     if (result != SQLITE_DONE)
         goto ONERROR;
 
+    CHECK_CALL(vfs->xFullPathname(vfs, "", FILENAME_MAX, zNormalizedFPath));
+
     /*
      * Process file args
      */
@@ -118,11 +151,15 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
         int argNo = sqlite3_column_int(pArgsStmt, 0);
         if (argNo >= 1 && argNo <= nArgCnt)
         {
-            zFileName = (char *) sqlite3_value_text(*(sqlite3_value **) Array_getNth(&sqlArgs, (u32) argNo));
+            sqlite3_free(zFullFilePath);
+            zFullFilePath = NULL;
 
-            char zFullFilePath[FILENAME_MAX];
-            realpath(zFileName, zFullFilePath);
-            file_load_utf8(zFullFilePath, &zFileArgContent);
+            zFileName = sqlite3_mprintf("../../%s", sqlite3_value_text(
+                    *(sqlite3_value **) Array_getNth(&sqlArgs, (u32) argNo - 1)));
+
+            Path_join(&zFullFilePath, zNormalizedFPath, "../../");
+
+            CHECK_CALL(file_load_utf8(zFullFilePath, &zFileArgContent));
             sqlite3_bind_text(pStmt, argNo, zFileArgContent, -1, NULL);
             sqlite3_free(zFileName);
             zFileName = NULL;
@@ -133,7 +170,6 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
 
     if (result != SQLITE_DONE)
         goto ONERROR;
-
 
     while ((result = sqlite3_step(pStmt)) == SQLITE_ROW)
     {
@@ -157,7 +193,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
     Array_clear(pData);
     if (pDB)
     {
-        zError = sqlite3_errmsg(pDB);
+        zError = (char *) sqlite3_errmsg(pDB);
         printf("Error: %s", zError);
     }
 
@@ -166,12 +202,11 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs,
     sqlite3_free(zError);
     sqlite3_finalize(pStmt);
     sqlite3_finalize(pArgsStmt);
-    sqlite3_free((void *) zErr);
     sqlite3_close(pDB);
     Array_clear(&sqlArgs);
     sqlite3_free(zFileArgContent);
     sqlite3_free(zFileName);
-    sqlite3_free(zFileArgContent);
+    sqlite3_free(zFullFilePath);
 
     return result;
 }
