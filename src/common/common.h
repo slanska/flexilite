@@ -67,8 +67,13 @@ enum REF_PROP_ROLE
     REF_PROP_ROLE_DEPENDENT = 0
 };
 
-#define CHECK_CALL(call)       result = (call); \
-        if (result != SQLITE_OK) goto ONERROR;
+#define CHECK_CALL(call) \
+        result = (call); \
+        if (result != SQLITE_OK) \
+        { \
+                printf("Error %d in \"%s\", line %d, function %s", result, __FILE__, __LINE__, __func__); \
+                goto ONERROR; \
+        }
 
 /*
  * Checks result of sqlite3_step. SQLITE_DONE and SQLITE_ROW are ok.

@@ -32,6 +32,7 @@ _zero(StringBuilder *self)
 
 void StringBuilder_init(StringBuilder *self)
 {
+    memset(self, 0, sizeof(*self));
     self->bErr = false;
     _zero(self);
 }

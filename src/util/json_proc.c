@@ -62,11 +62,11 @@ JsonNode *json_n_get(JSON_Processor *json, JsonNode *pRoot, const char *zPath) {
 //    int iApnd = 1;
 //    JsonNode *result = jsonLookup(&json->parser, zPath, &iApnd, json->out.pCtx);
 //    int len = sqlite3_value_bytes(val);
-//    char *zValue = sqlite3_malloc(len);
-//    strncpy(zValue, sqlite3_value_text(val), len - 1);
-//    // TODO When zValue will be disposed?
+//    char *zText = sqlite3_malloc(len);
+//    strncpy(zText, sqlite3_value_text(val), len - 1);
+//    // TODO When zText will be disposed?
 //    sqlite3_value
-//    result->u.zJContent = zValue;
+//    result->u.zJContent = zText;
 //    result->jnFlags |= JNODE_REPLACE;
 //    result->n = json->nodeValues.
 //    return result;

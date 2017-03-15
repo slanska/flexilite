@@ -541,6 +541,9 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
                     xCtlvPlan |= CTLV_FULL_TEXT_INDEX;
 
                 break;
+
+            default:
+                break;
         }
 
         sqlite3_int64 lPropNameID;
