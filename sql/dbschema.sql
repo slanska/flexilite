@@ -81,10 +81,10 @@ These flags define indexing, logging and other property attributes
  */
   PluralOf     INTEGER             NULL
     CONSTRAINT [fkNamesByPluralOf]
-    REFERENCES [.names] ([ID]) ON DELETE SET NULL ON UPDATE RESTRICT,
+    REFERENCES [.names_props] ([NameID]) ON DELETE SET NULL ON UPDATE RESTRICT,
   AliasOf      INTEGER             NULL
     CONSTRAINT [fkNamesByAliasOf]
-    REFERENCES [.names] ([ID]) ON DELETE SET NULL ON UPDATE RESTRICT,
+    REFERENCES [.names_props] ([NameID]) ON DELETE SET NULL ON UPDATE RESTRICT,
 
   /*
   Property specific columns

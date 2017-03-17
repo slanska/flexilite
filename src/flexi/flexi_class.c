@@ -428,6 +428,14 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
 
     sqlite3_int64 iClassID;
     {
+        if (pCtx->pStmts[STMT_SEL_CLS_BY_NAME] == NULL)
+        {
+            CHECK_CALL(sqlite3_prepare_v2(
+                    pCtx->db,
+                    "select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);",
+                    -1, &pCtx->pStmts[STMT_SEL_CLS_BY_NAME], NULL));
+        }
+
         sqlite3_stmt *p = pCtx->pStmts[STMT_SEL_CLS_BY_NAME];
         assert(p);
         sqlite3_reset(p);
@@ -610,7 +618,6 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
 
     ONERROR:
     // Release resources because of errors (catch)
-    printf("%s", sqlite3_errmsg(pCtx->db));
 
     EXIT:
 
