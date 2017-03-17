@@ -19,7 +19,8 @@ SQLITE_EXTENSION_INIT3
 
 #endif
 
-/* Set the StringBuilder object to an empty string
+/*
+ * Set the StringBuilder object to an empty string
 */
 static void
 _zero(StringBuilder *self)
@@ -72,26 +73,12 @@ _grow(StringBuilder *self, uint32_t N)
 
 /* Append N bytes from zIn onto the end of the StringBuilder string.
 */
-void StringBuilder_appendRaw(StringBuilder *self, const char *zIn, uint32_t N)
+void StringBuilder_appendRaw(StringBuilder *self, const char *zInStr, uint32_t nInStrLen)
 {
-    if ((N + self->nUsed >= self->nAlloc) && _grow(self, N) != 0)
+    if ((nInStrLen + self->nUsed >= self->nAlloc) && _grow(self, nInStrLen) != 0)
         return;
-    memcpy(self->zBuf + self->nUsed, zIn, N);
-    self->nUsed += N;
-}
-
-/* Append formatted text (not to exceed N bytes) to the StringBuilder.
-*/
-static void
-_printf(int N, StringBuilder *p, const char *zFormat, ...)
-{
-    va_list ap;
-    if ((p->nUsed + N >= p->nAlloc) && _grow(p, N))
-        return;
-    va_start(ap, zFormat);
-    sqlite3_vsnprintf(N, p->zBuf + p->nUsed, zFormat, ap);
-    va_end(ap);
-    p->nUsed += (int) strlen(p->zBuf + p->nUsed);
+    memcpy(self->zBuf + self->nUsed, zInStr, nInStrLen);
+    self->nUsed += nInStrLen;
 }
 
 /* Append a single character
@@ -104,18 +91,6 @@ _appendChar(StringBuilder *p, char c)
     p->zBuf[p->nUsed++] = c;
 }
 
-/* Append a comma separator to the output buffer, if the previous
-** character is not '[' or '{'.
-*/
-static void
-_appendSeparator(StringBuilder *self)
-{
-    char c;
-    if (self->nUsed == 0) return;
-    c = self->zBuf[self->nUsed - 1];
-    if (c != '[' && c != '{') _appendChar(self, ',');
-}
-
 /* Free all allocated memory and reset the StringBuilder object back to its
 ** initial state.
 */
@@ -126,12 +101,12 @@ void StringBuilder_clear(StringBuilder *self)
     _zero(self);
 }
 
-/* Append the N-byte string in zIn to the end of the JsonString string
+/* Append the N-byte string in zIn to the end of the StringBuilder string
 ** under construction.  Enclose the string in "..." and escape
 ** any double-quotes or backslash characters contained within the
 ** string.
 */
-void StringBuilder_append(StringBuilder *p, const char *zIn, uint32_t N)
+void StringBuilder_appendJsonElem(StringBuilder *p, const char *zIn, uint32_t N)
 {
     uint32_t i;
     if ((N + p->nUsed + 2 >= p->nAlloc) && _grow(p, N + 2) != 0) return;

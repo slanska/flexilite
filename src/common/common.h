@@ -71,8 +71,9 @@ enum REF_PROP_ROLE
         result = (call); \
         if (result != SQLITE_OK) \
         { \
-                printf("Error %d in \"%s\", line %d, function %s", result, __FILE__, __LINE__, __func__); \
-                goto ONERROR; \
+            char *zErrStr = sqlite3_errstr(result); \
+            printf("\nError %d:%s in \"%s\", line %d, function %s", result, zErrStr, __FILE__, __LINE__, __func__); \
+            goto ONERROR; \
         }
 
 /*

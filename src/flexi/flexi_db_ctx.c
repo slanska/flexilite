@@ -147,7 +147,7 @@ int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
                                       -1, &pCtx->pStmts[STMT_CLS_ID_BY_NAME], NULL));
     }
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_ID_BY_NAME]));
-    CHECK_CALL(sqlite3_bind_text(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 0, zClassName, -1, NULL));
+    CHECK_CALL(sqlite3_bind_text(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 1, zClassName, -1, NULL));
     CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_CLS_ID_BY_NAME]));
     if (result == SQLITE_ROW)
     {
@@ -157,7 +157,7 @@ int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
     { *pClassID = -1; }
     result = SQLITE_OK;
 
-    goto ONERROR;
+    goto EXIT;
 
     ONERROR:
 
@@ -229,6 +229,7 @@ static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx)
 
     goto EXIT;
     ONERROR:
+
     EXIT:
     return result;
 }

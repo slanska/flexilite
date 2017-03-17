@@ -55,7 +55,7 @@ _concatenateSegment(const char *zKey, uint32_t idx, Token_t *pToken, Array_t *pN
     if (pToken->len == 0)
         return;
 
-    StringBuilder_appendRaw(sb, PATH_SEPARATOR, 1);
+    StringBuilder_appendRaw(sb, PATH_SEPARATOR, (uint32_t)strlen(PATH_SEPARATOR));
 
     StringBuilder_appendRaw(sb, pToken->zValue, (int32_t) pToken->len);
 }
@@ -85,7 +85,6 @@ _splitPath(Array_t *segments, const char *zPath, const char chSeparator)
     } while (true);
 }
 
-
 void Path_join(char **pzResult, const char *zBase, const char *zAddPath)
 {
     assert(pzResult);
@@ -107,8 +106,9 @@ void Path_join(char **pzResult, const char *zBase, const char *zAddPath)
 
     Array_each(&newSegs, (void *) _concatenateSegment, &strBuf);
 
-    *pzResult = sqlite3_malloc((int) strBuf.nUsed);
+    *pzResult = sqlite3_malloc((int) strBuf.nUsed + 1);
     memcpy(*pzResult, strBuf.zBuf, strBuf.nUsed);
+    (*pzResult)[strBuf.nUsed] = '\0';
 
     Array_clear(&segments);
     Array_clear(&newSegs);

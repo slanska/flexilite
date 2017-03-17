@@ -381,6 +381,9 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
     sqlite3_stmt *pUpdClsStmt = NULL;
     char *zPropDefJSON = NULL;
 
+    struct flexi_prop_def dProp;
+    memset(&dProp, 0, sizeof(dProp));
+
     // Check if class does not exist yet
     sqlite3_int64 lClassID;
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
@@ -405,9 +408,6 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
     // TODO Remove
 
     char *sbClassDefJSON = sqlite3_mprintf("{\"properties\":{");
-
-    struct flexi_prop_def dProp;
-    memset(&dProp, 0, sizeof(dProp));
 
     sqlite3_int64 lClassNameID;
     CHECK_CALL(flexi_Context_insertName(pCtx, zClassName, &lClassNameID));
@@ -1191,9 +1191,11 @@ void flexi_schema_func(sqlite3_context *context,
     int result;
 
     sqlite3_stmt *pStmt = NULL;
-    char *zErr = NULL;
+    const char *zErr = NULL;
     char *zClassName = NULL;
     char *zClassDef = NULL;
+
+    sqlite3 *db = sqlite3_context_db_handle(context);
 
     if (argc == 0)
     {
@@ -1206,7 +1208,6 @@ void flexi_schema_func(sqlite3_context *context,
         if (argc == 2)
             bCreateVTable = sqlite3_value_int(argv[1]) != 0;
         void *pCtx = sqlite3_user_data(context);
-        sqlite3 *db = sqlite3_context_db_handle(context);
         CHECK_CALL(sqlite3_prepare_v2(db, "select value, key from json_each(:1)", -1, &pStmt, NULL));
         CHECK_CALL(sqlite3_bind_text(pStmt, 1, (const char *) sqlite3_value_text(argv[0]), -1, &zErr));
 
@@ -1226,7 +1227,11 @@ void flexi_schema_func(sqlite3_context *context,
 
     ONERROR:
     if (zErr == NULL)
-        zErr = (char *) sqlite3_errstr(result);
+    {
+        zErr = sqlite3_errmsg(db);
+        if (zErr == NULL)
+            zErr = (char *) sqlite3_errstr(result);
+    }
     sqlite3_result_error(context, zErr, -1);
 
     EXIT:

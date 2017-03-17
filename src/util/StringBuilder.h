@@ -46,11 +46,11 @@ void StringBuilder_init(StringBuilder *self /*, sqlite3_context *pCtx*/);
 ** any double-quotes or backslash characters contained within the
 ** string.
 */
-void StringBuilder_append(StringBuilder *self, const char *zIn,uint32_t  N);
+void StringBuilder_appendJsonElem(StringBuilder *self, const char *zIn, uint32_t N);
 
 /* Append N bytes from zIn onto the end of the StringBuilder string.
 */
-void StringBuilder_appendRaw(StringBuilder *self, const char *zIn, uint32_t N);
+void StringBuilder_appendRaw(StringBuilder *self, const char *zInStr, uint32_t nInStrLen);
 
 /* Free all allocated memory and reset the StringBuilder object back to its
 ** initial state.
