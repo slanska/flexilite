@@ -2,7 +2,6 @@
 // Created by slanska on 2016-03-12.
 //
 
-#include <stddef.h>
 #include "main.h"
 
 #ifdef _WIN32

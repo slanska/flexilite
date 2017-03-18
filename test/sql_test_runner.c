@@ -403,8 +403,9 @@ void run_sql_tests(const char *zJsonFile)
     {
         CHECK_MALLOC(testData, sizeof(*testData));
         SqlTestData_init(testData);
+        int nCols = sqlite3_column_count(pJsonStmt);
         int iCol;
-        for (iCol = 0; iCol < ARRAY_LEN(testData->props); iCol++)
+        for (iCol = 0; iCol < nCols; iCol++)
         {
             char *zVal = (char *) sqlite3_column_text(pJsonStmt, iCol);
             testData->props[iCol] = sqlite3_mprintf("%s", zVal);
@@ -416,7 +417,7 @@ void run_sql_tests(const char *zJsonFile)
         vfs = sqlite3_vfs_find(NULL);
 
         char zFullPath[FILENAME_MAX];
-        CHECK_CALL(vfs->xFullPathname(vfs, "", FILENAME_MAX, zFullPath));
+        CHECK_CALL(vfs->xFullPathname(vfs, "", sizeof(zFullPath), zFullPath));
         Path_join(&zDir, zFullPath, zJsonFile);
         Path_dirname(&testData->props[TEST_DEF_ENTRY_FILE_PATH], zDir);
 
@@ -467,6 +468,5 @@ void run_sql_tests(const char *zJsonFile)
     sqlite3_free(zJson);
     sqlite3_free(zSelJSON);
     sqlite3_free(pTests);
-    sqlite3_free((void *) zError);
     sqlite3_free(zDir);
 }

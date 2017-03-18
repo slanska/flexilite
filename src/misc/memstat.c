@@ -6,10 +6,10 @@
 
 SQLITE_EXTENSION_INIT3
 
-
-#ifdef _WIN32
-__declspec(dllexport)
-#endif
+//
+//#ifdef _WIN32
+//__declspec(dllexport)
+//#endif
 
 static void sqlMemUsedFunc(
         sqlite3_context *context,

@@ -113,6 +113,8 @@ set(CMAKE_FIND_LIBRARY_PREFIXES "")
 
 add_library(Flexilite SHARED ${EXT_FILES})
 
+set_target_properties(Flexilite PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+
 add_custom_target(install_${PROJECT_NAME}
         make install
         DEPENDS ${PROJECT_NAME}
