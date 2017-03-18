@@ -157,7 +157,7 @@ var Array_each(const Array_t *self, iterateeFunc iteratee, var param)
     bool bStop = false;
 
     char *pCur = self->items;
-    int idx = 0;
+    sqlite3_int64 idx = 0;
     while (idx < self->iCnt)
     {
         iteratee(NULL, idx, pCur, (void *) self, param, &bStop);

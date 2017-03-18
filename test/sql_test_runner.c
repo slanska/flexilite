@@ -356,7 +356,7 @@ _disposeCMUnitTest(struct CMUnitTest *ut)
  * if include - load external file, relative to the current one
  * file args - arguments are treated as file names and content from those files is injected as UTF8 strings
  */
-void run_sql_tests(const char *zJsonFile)
+void run_sql_tests(char *zBaseDir, const char *zJsonFile)
 {
 
     int result;
@@ -413,13 +413,17 @@ void run_sql_tests(const char *zJsonFile)
                 testData->props[iCol] = sqlite3_mprintf("%s", prevTestData.props[iCol]);
         }
 
-        sqlite3_vfs *vfs;
-        vfs = sqlite3_vfs_find(NULL);
+//        sqlite3_vfs *vfs;
+//        vfs = sqlite3_vfs_find(NULL);
 
-        char zFullPath[FILENAME_MAX];
-        CHECK_CALL(vfs->xFullPathname(vfs, "", sizeof(zFullPath), zFullPath));
-        Path_join(&zDir, zFullPath, zJsonFile);
-        Path_dirname(&testData->props[TEST_DEF_ENTRY_FILE_PATH], zDir);
+//        char zFullPath[FILENAME_MAX];
+//        CHECK_CALL(vfs->xFullPathname(vfs, "", sizeof(zFullPath), zFullPath));
+//        Path_join(&zDir, zFullPath, zJsonFile);
+        size_t nDirLen = strlen(zBaseDir) + 1;
+        testData->props[TEST_DEF_ENTRY_FILE_PATH] = sqlite3_malloc(nDirLen);
+        CHECK_NULL(testData->props[TEST_DEF_ENTRY_FILE_PATH]);
+        strncpy(testData->props[TEST_DEF_ENTRY_FILE_PATH], zBaseDir, nDirLen);
+//        Path_dirname(&testData->props[TEST_DEF_ENTRY_FILE_PATH], zDir);
 
         struct CMUnitTest test;
         test.name = testData->props[TEST_DEF_PROP_IT];

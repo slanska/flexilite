@@ -31,7 +31,9 @@ static void init_db(void **state)
     pDb = NULL;
 }
 
-int main()
+int main(int argc, char** argv)
 {
-    run_sql_tests("../../test/json/sql-test.class.json");
+    char* zDir = NULL;
+    Path_dirname(&zDir, *argv);
+    run_sql_tests(zDir, "../../test/json/sql-test.class.json");
 }
