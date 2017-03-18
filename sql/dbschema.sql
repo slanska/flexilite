@@ -24,19 +24,18 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
 -- .names_props
 ------------------------------------------------------------------------------------------
 
-/*
-.names_props table has rows of 2 types - class properties and symbolic names. Column 'type' defines
-which sort of entity it is: 0 - name, 1 - property name
-The reason why 2 entities are combined into single table is to share IDs.
-Objects may have attributes which are not defined in .classes.Data.properties
-(if .classes.Data.allowNotDefinedProps = 1). Such attributes will be stored as IDs to .names table,
-where ID will be for record with type = 0 (name). Normally, object properties defined in schema will be referencing
-rows with type = 1 (property). Having both types of entities in one table allows shared space for names. Both types are exposed as
-updatable views (.names and flexi_prop), so their exposition will not be much different from real table
-
-When a new property is created, a new row gets inserted with Type = 1. Also, if needed row for Name (with Type = 0) gets inserted as well.
-
-*/
+------------------------------------------------------------------------------------------
+--  .names_props table has rows of 2 types - class properties and symbolic names. 
+--  Column 'type' defines which sort of entity it is: 0 - name, 1 - property name
+--  The reason why 2 entities are combined into single table is to share IDs.
+--  Objects may have attributes which are not defined in .classes.Data.properties
+--  (if .classes.Data.allowNotDefinedProps = 1). Such attributes will be stored as IDs to .names table,
+--  where ID will be for record with type = 0 (name). Normally, object properties defined in schema will be referencing
+--  rows with type = 1 (property). Having both types of entities in one table allows shared space for names. Both types are exposed as
+--  updatable views (.names and flexi_prop), so their exposition will not be much different from real table
+--  
+--  When a new property is created, a new row gets inserted with Type = 1. Also, if needed row for Name (with Type = 0) gets inserted as well.
+------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [.names_props]
 (
   ID           INTEGER             NOT NULL PRIMARY KEY               AUTOINCREMENT,
@@ -54,9 +53,9 @@ CREATE TABLE IF NOT EXISTS [.names_props]
   Deleted      BOOLEAN             NOT NULL                           DEFAULT 0,
 
   /*
-Actual control flags (already applied).
-These flags define indexing, logging and other property attributes
-*/
+  Actual control flags (already applied).
+  These flags define indexing, logging and other property attributes
+  */
   [ctlv]       INTEGER             NOT NULL                           DEFAULT 0,
 
   /*
@@ -78,13 +77,13 @@ These flags define indexing, logging and other property attributes
 
   /*
   These 2 columns are reserved for future to be used for semantic search.
- */
+  */
   PluralOf     INTEGER             NULL
     CONSTRAINT [fkNamesByPluralOf]
-    REFERENCES [.names_props] ([NameID]) ON DELETE SET NULL ON UPDATE RESTRICT,
+    REFERENCES [.names_props] ([ID]) ON DELETE SET NULL ON UPDATE RESTRICT,
   AliasOf      INTEGER             NULL
     CONSTRAINT [fkNamesByAliasOf]
-    REFERENCES [.names_props] ([NameID]) ON DELETE SET NULL ON UPDATE RESTRICT,
+    REFERENCES [.names_props] ([ID]) ON DELETE SET NULL ON UPDATE RESTRICT,
 
   /*
   Property specific columns
@@ -95,7 +94,7 @@ These flags define indexing, logging and other property attributes
   /*
   ID of property name
   */
-  [PropNameID] INTEGER             NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.names_props] ([NameID])
+  [PropNameID] INTEGER             NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.names_props] ([ID])
   ON DELETE RESTRICT ON UPDATE RESTRICT,
 
   /*
@@ -110,7 +109,7 @@ AFTER INSERT
 FOR EACH ROW
   WHEN new.Value IS NOT NULL
 BEGIN
-  INSERT INTO [.full_text_data] (id, ClassID, X1) VALUES (-new.ID, 0, new.Value);
+  INSERT INTO [.full_text_data] (docid, ClassID, X1) VALUES (-new.ID, 0, new.Value);
 END;
 
 CREATE TRIGGER IF NOT EXISTS [namesAfterUpdate]
@@ -121,7 +120,7 @@ FOR EACH ROW
 BEGIN
   UPDATE [.full_text_data]
   SET X1 = new.Value
-  WHERE id = -new.ID;
+  WHERE docid = -new.ID;
 END;
 
 CREATE TRIGGER IF NOT EXISTS [namesAfterDelete]
@@ -131,7 +130,7 @@ FOR EACH ROW
   WHEN old.Value IS NOT NULL
 BEGIN
   DELETE FROM [.full_text_data]
-  WHERE id = -old.ID;
+  WHERE docid = -old.ID;
 END;
 
 -- .names specific indexes
@@ -156,9 +155,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByMap]
   (ClassID, LockedCol)
   WHERE ClassID IS NOT NULL AND [LockedCol] IS NOT NULL;
 
-/*
-.names view
- */
+--------------------------------------------------------------------------------
+--  .names view
+--------------------------------------------------------------------------------
 CREATE VIEW IF NOT EXISTS [.names] AS
   SELECT
     ID AS NameID,
@@ -183,7 +182,7 @@ FOR EACH ROW
 BEGIN
   UPDATE [.names_props]
   SET Value = new.Value, AliasOf = new.Value, PluralOf = new.PluralOf
-  WHERE ID = old.NameID;
+  WHERE [.names_props].ID = old.NameID;
 END;
 
 CREATE TRIGGER IF NOT EXISTS [names_Delete]
@@ -192,7 +191,7 @@ INSTEAD OF DELETE
 FOR EACH ROW
 BEGIN
   DELETE FROM [.names_props]
-  WHERE ID = old.NameID;
+  WHERE [.names_props].ID = old.NameID;
 END;
 
 ------------------------------------------------------------------------------------------
