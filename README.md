@@ -10,7 +10,7 @@
 > Linus Torvalds
 
 #What is Flexilite?
-Flexilite ("F") is a node.js library and set of SQL scripts to convert ordinary SQLite database 
+Flexilite ("F") is a C library which converts ordinary SQLite database
 into repository of data classes, objects 
 and their relations, with highly dynamic and flexible structure. Flexilite intends to solve typical problems of 
 evolutional design of relational databases. "F" covers most of known db schema refactoring patterns. Not only that,

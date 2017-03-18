@@ -6,7 +6,7 @@
   "bundle": "typings/tsd.d.ts",
   "installed": {
     "lodash/lodash.d.ts": {
-      "commit": "36c6ce86fb64bafb28ec95dc78c6b98228b45c8d"
+      "commit": "398bd742115e2b071ab3edf8b543b6df6fa62dc2"
     },
     "sqlite3/sqlite3.d.ts": {
       "commit": "421d6610bdb09e1015b71f5991d7a68d079eca21"
