@@ -25,7 +25,7 @@ static int _create_class_record(struct flexi_Context_t *pCtx, const char *zClass
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_INS_CLS]));
     sqlite3_int64 lClassNameID;
     CHECK_CALL(flexi_Context_insertName(pCtx, zClassName, &lClassNameID));
-    CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_INS_CLS], 0, lClassNameID));
+    CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_INS_CLS], 1, lClassNameID));
     CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_INS_CLS]));
     if (result != SQLITE_DONE)
         goto ONERROR;

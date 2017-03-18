@@ -10,7 +10,7 @@
 /*
  * Forward declarations
  */
-static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx);
+//static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx);
 
 struct flexi_Context_t *flexi_Context_new(sqlite3 *db)
 {
@@ -33,7 +33,7 @@ int flexi_Context_getNameId(struct flexi_Context_t *pCtx,
     int result;
     if (pNameID)
     {
-        if (pCtx->pStmts[STMT_SEL_NAME_ID])
+        if (pCtx->pStmts[STMT_SEL_NAME_ID] == NULL)
         {
             CHECK_CALL(sqlite3_prepare_v2(
                     pCtx->db,
@@ -42,7 +42,7 @@ int flexi_Context_getNameId(struct flexi_Context_t *pCtx,
         }
 
         sqlite3_stmt *p = pCtx->pStmts[STMT_SEL_NAME_ID];
-        assert(p);
+
         sqlite3_reset(p);
         sqlite3_bind_text(p, 1, zName, -1, NULL);
         int stepRes = sqlite3_step(p);
@@ -214,43 +214,6 @@ static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx)
 {
     int result;
     sqlite3 *db = pCtx->db;
-
-    //    const char *zDelObjSQL = "delete from [.objects] where ObjectID = :1;";
-    //    CHECK_CALL(sqlite3_prepare_v2(db, zDelObjSQL, -1, &pCtx->pStmts[STMT_DEL_OBJ], NULL));
-
-    //    const char *zInsObjSQL = "insert into [.objects] (ObjectID, ClassID, ctlo) values (:1, :2, :3); "
-    //            "select last_insert_rowid();";
-    //    CHECK_CALL(sqlite3_prepare_v2(db, zInsObjSQL, -1, &pCtx->pStmts[STMT_INS_OBJ], NULL));
-
-    //    const char *zInsPropSQL = "insert into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
-    //            " values (:1, :2, :3, :4, :5);";
-    //    CHECK_CALL(sqlite3_prepare_v2(db, zInsPropSQL, -1, &pCtx->pStmts[STMT_INS_PROP], NULL));
-
-    //    const char *zUpdPropSQL = "insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
-    //            " values (:1, :2, :3, :4, :5);";
-    //    CHECK_CALL(sqlite3_prepare_v2(db, zUpdPropSQL, -1, &pCtx->pStmts[STMT_UPD_PROP], NULL));
-
-    //    const char *zDelPropSQL = "delete from [.ref-values] where ObjectID = :1 and PropertyID = :2 and PropIndex = :3;";
-    //    CHECK_CALL(sqlite3_prepare_v2(db, zDelPropSQL, -1, &pCtx->pStmts[STMT_DEL_PROP], NULL));
-
-    //    const char *zInsNameSQL = "insert or replace into [.names] ([Value], NameID)"
-    //            " values (:1, (select NameID from [.names] where Value = :1 limit 1));";
-    //    CHECK_CALL(sqlite3_prepare_v2(db, zInsNameSQL, -1, &pCtx->pStmts[STMT_INS_NAME], NULL));
-
-    //    CHECK_CALL(sqlite3_prepare_v2(
-    //            db,
-    //            "select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);",
-    //            -1, &pCtx->pStmts[STMT_SEL_CLS_BY_NAME], NULL));
-
-    //    CHECK_CALL(sqlite3_prepare_v2(
-    //            db,
-    //            "select NameID from [.names] where [Value] = :1;",
-    //            -1, &pCtx->pStmts[STMT_SEL_NAME_ID], NULL));
-
-    //    CHECK_CALL(sqlite3_prepare_v2(
-    //            db,
-    //            "select PropertyID from [flexi_prop] where ClassID = :1 and NameID = :2;",
-    //            -1, &pCtx->pStmts[STMT_SEL_PROP_ID], NULL));
 
     // TODO move to RTRee related code
     CHECK_CALL(sqlite3_prepare_v2(

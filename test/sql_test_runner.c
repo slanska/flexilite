@@ -13,8 +13,7 @@
 /*
  * Column indexes in JSON test def
  */
-enum TEST_DEF_PROP
-{
+enum TEST_DEF_PROP {
     TEST_DEF_PROP_INCLUDE = 0,
     TEST_DEF_PROP_DESCRIBE = 1,
     TEST_DEF_PROP_IT = 2,
@@ -31,49 +30,40 @@ enum TEST_DEF_PROP
     TEST_DEF_PROP_LAST_INDEX = 12
 };
 
-typedef struct SqlTestData_t
-{
+typedef struct SqlTestData_t {
     char *props[TEST_DEF_PROP_LAST_INDEX + 1];
 } SqlTestData_t;
 
-static void SqlTestData_init(SqlTestData_t *self)
-{
+static void SqlTestData_init(SqlTestData_t *self) {
     memset(self, 0, sizeof(*self));
 }
 
-static void SqlTestData_clear(SqlTestData_t *self)
-{
-    if (self)
-    {
-        for (int ii = 0; ii < ARRAY_LEN(self->props); ii++)
-        {
+static void SqlTestData_clear(SqlTestData_t *self) {
+    if (self) {
+        for (int ii = 0; ii < ARRAY_LEN(self->props); ii++) {
             sqlite3_free(self->props[ii]);
         }
     }
 }
 
 static int
-_testGroupSetup(void **state)
-{
+_testGroupSetup(void **state) {
     // TODO
     return 0;
 }
 
 static int
-_testGroupTeardown(void **state)
-{
+_testGroupTeardown(void **state) {
     // TODO
     return 0;
 }
 
 static void
-_freeSqliteValue(sqlite3_value **pVal)
-{
+_freeSqliteValue(sqlite3_value **pVal) {
     sqlite3_value_free(*pVal);
 }
 
-typedef struct SqlArg_t
-{
+typedef struct SqlArg_t {
     /*
     * Normally, arguments are coming directly from test definition JSON
     */
@@ -86,15 +76,13 @@ typedef struct SqlArg_t
 } SqlArg_t;
 
 static void
-_freeSqlArg(SqlArg_t *p)
-{
+_freeSqlArg(SqlArg_t *p) {
     sqlite3_value_free(p->pValue);
     sqlite3_free(p->zText);
 }
 
 static void _bindSqlArg(const char *zKey, const sqlite3_int64 index, SqlArg_t *pArg,
-                        const Array_t *arr, sqlite3_stmt *pStmt, bool *bStop)
-{
+                        const Array_t *arr, sqlite3_stmt *pStmt, bool *bStop) {
     UNUSED_PARAM(zKey);
     UNUSED_PARAM(arr);
     UNUSED_PARAM(bStop);
@@ -111,8 +99,7 @@ static void _bindSqlArg(const char *zKey, const sqlite3_int64 index, SqlArg_t *p
  */
 static int
 _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pData, int *pColCnt,
-        char *zEntryFilePath)
-{
+        char *zEntryFilePath) {
     int result;
 
     sqlite3 *pDB = NULL;
@@ -131,8 +118,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
     /*
     * Open database (use :memory: if not defined)
     */
-    if (zDatabase == NULL || strlen(zDatabase) == 0)
-    {
+    if (zDatabase == NULL || strlen(zDatabase) == 0) {
         zDatabase = ":memory:";
     }
     CHECK_CALL(sqlite3_open_v2(zDatabase, &pDB,
@@ -157,8 +143,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
     CHECK_CALL(sqlite3_prepare_v2(pDB, "select value, type from json_each(:1);", -1, &pArgsStmt, NULL));
     CHECK_CALL(sqlite3_bind_text(pArgsStmt, 1, zArgs, -1, NULL));
     int nArgCnt = 0;
-    while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW)
-    {
+    while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW) {
         SqlArg_t item;
         memset(&item, 0, sizeof(item));
         item.pValue = sqlite3_value_dup(sqlite3_column_value(pArgsStmt, 0));
@@ -174,11 +159,9 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
      */
     CHECK_CALL(sqlite3_reset(pArgsStmt));
     CHECK_CALL(sqlite3_bind_text(pArgsStmt, 1, zFileArgs, -1, NULL));
-    while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW)
-    {
+    while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW) {
         int argNo = sqlite3_column_int(pArgsStmt, 0);
-        if (argNo >= 1 && argNo <= nArgCnt)
-        {
+        if (argNo >= 1 && argNo <= nArgCnt) {
             sqlite3_free(zFullFilePath);
             zFullFilePath = NULL;
 
@@ -194,13 +177,11 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
 
     Array_each(&sqlArgs, (void *) _bindSqlArg, pStmt);
 
-    while ((result = sqlite3_step(pStmt)) == SQLITE_ROW)
-    {
+    while ((result = sqlite3_step(pStmt)) == SQLITE_ROW) {
         if (*pColCnt == 0)
             *pColCnt = sqlite3_column_count(pStmt);
         int iCol;
-        for (iCol = 0; iCol < *pColCnt; iCol++)
-        {
+        for (iCol = 0; iCol < *pColCnt; iCol++) {
             sqlite3_value *pVal = sqlite3_value_dup(sqlite3_column_value(pStmt, iCol));
             Array_setNth(pData, pData->iCnt, &pVal);
         }
@@ -214,8 +195,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
 
     ONERROR:
     Array_clear(pData);
-    if (pDB)
-    {
+    if (pDB) {
         zError = (char *) sqlite3_errmsg(pDB);
         printf("Error: %s", zError);
     }
@@ -234,8 +214,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
 
 static void
 _compareSqliteValues(char *zKey, uint32_t idx, sqlite3_value **vv, Array_t *pTestValues,
-                     Array_t *pChkValues, bool *pStop)
-{
+                     Array_t *pChkValues, bool *pStop) {
 
 }
 
@@ -245,8 +224,7 @@ _compareSqliteValues(char *zKey, uint32_t idx, sqlite3_value **vv, Array_t *pTes
  */
 static bool
 _compareSqlData(Array_t *pTestData, int nTestColCnt,
-                Array_t *pChkData, int nChkColCnt)
-{
+                Array_t *pChkData, int nChkColCnt) {
     if (nTestColCnt != nChkColCnt)
         return false;
 
@@ -257,8 +235,7 @@ _compareSqlData(Array_t *pTestData, int nTestColCnt,
         return false;
 
     sqlite3_value **pStoppedAt = Array_each(pTestData, (void *) _compareSqliteValues, pChkData);
-    if (*pStoppedAt)
-    {
+    if (*pStoppedAt) {
         return false;
     }
 
@@ -268,8 +245,7 @@ _compareSqlData(Array_t *pTestData, int nTestColCnt,
 /*
  * Single test handler
  */
-static void _run_sql_test(void **state)
-{
+static void _run_sql_test(void **state) {
     SqlTestData_t *tt = *state;
 
     int result;
@@ -286,8 +262,7 @@ static void _run_sql_test(void **state)
                        tt->props[TEST_DEF_PROP_CHK_ARGS], tt->props[TEST_DEF_PROP_CHK_FILE_ARGS], &chkData, &nChkColCnt,
                        tt->props[TEST_DEF_ENTRY_FILE_PATH]));
 
-    if (!_compareSqlData(&testData, nInColCnt, &chkData, nChkColCnt))
-    {
+    if (!_compareSqlData(&testData, nInColCnt, &chkData, nChkColCnt)) {
         // Not passed
     }
 
@@ -302,20 +277,17 @@ static void _run_sql_test(void **state)
     return;
 }
 
-static int _setup_sql_test(void **state)
-{
+static int _setup_sql_test(void **state) {
     // Start transaction
     return 0;
 }
 
-static int _teardown_sql_test(void **state)
-{
+static int _teardown_sql_test(void **state) {
     // Rollback transaction
     return 0;
 }
 
-static void _free_test_item(void *item)
-{
+static void _free_test_item(void *item) {
     sqlite3_free(item);
 }
 
@@ -323,8 +295,7 @@ static void _free_test_item(void *item)
  * Runs group of tests and clears tests at the end
  */
 static int
-_runTestGroup(char **pzGroupTitle, Array_t *tests)
-{
+_runTestGroup(char **pzGroupTitle, Array_t *tests) {
     if (tests->iCnt == 0)
         return SQLITE_OK;
 
@@ -342,8 +313,7 @@ _runTestGroup(char **pzGroupTitle, Array_t *tests)
 }
 
 static void
-_disposeCMUnitTest(struct CMUnitTest *ut)
-{
+_disposeCMUnitTest(struct CMUnitTest *ut) {
     // Note: no need to free name as it is also referenced from initial_state.props
     SqlTestData_clear(ut->initial_state);
     sqlite3_free(ut->initial_state);
@@ -356,9 +326,7 @@ _disposeCMUnitTest(struct CMUnitTest *ut)
  * if include - load external file, relative to the current one
  * file args - arguments are treated as file names and content from those files is injected as UTF8 strings
  */
-void run_sql_tests(const char *zJsonFile)
-{
-
+void run_sql_tests(char *zBaseDir, const char *zJsonFile) {
     int result;
 
     struct CMUnitTest *pTests = NULL;
@@ -366,9 +334,14 @@ void run_sql_tests(const char *zJsonFile)
     SqlTestData_t *testData = NULL;
     char *zDir = NULL;
 
+    char *zJsonFileFull = NULL;
+    Path_join(&zJsonFileFull, zBaseDir, zJsonFile);
+    char *zJsonBasePath = NULL;
+    Path_dirname(&zJsonBasePath, zJsonFileFull);
+
     // Read JSON file
     char *zJson = NULL;
-    CHECK_CALL(file_load_utf8(zJsonFile, &zJson));
+    CHECK_CALL(file_load_utf8(zJsonFileFull, &zJson));
 
     // Open memory database
     sqlite3 *db = NULL;
@@ -399,27 +372,22 @@ void run_sql_tests(const char *zJsonFile)
 
     CHECK_CALL(sqlite3_prepare(db, zSelJSON, -1, &pJsonStmt, NULL));
 
-    while ((result = sqlite3_step(pJsonStmt)) == SQLITE_ROW)
-    {
+    while ((result = sqlite3_step(pJsonStmt)) == SQLITE_ROW) {
         CHECK_MALLOC(testData, sizeof(*testData));
         SqlTestData_init(testData);
         int nCols = sqlite3_column_count(pJsonStmt);
         int iCol;
-        for (iCol = 0; iCol < nCols; iCol++)
-        {
+        for (iCol = 0; iCol < nCols; iCol++) {
             char *zVal = (char *) sqlite3_column_text(pJsonStmt, iCol);
             testData->props[iCol] = sqlite3_mprintf("%s", zVal);
             if (!testData->props[iCol] && iCol != TEST_DEF_PROP_INCLUDE)
                 testData->props[iCol] = sqlite3_mprintf("%s", prevTestData.props[iCol]);
         }
 
-        sqlite3_vfs *vfs;
-        vfs = sqlite3_vfs_find(NULL);
-
-        char zFullPath[FILENAME_MAX];
-        CHECK_CALL(vfs->xFullPathname(vfs, "", sizeof(zFullPath), zFullPath));
-        Path_join(&zDir, zFullPath, zJsonFile);
-        Path_dirname(&testData->props[TEST_DEF_ENTRY_FILE_PATH], zDir);
+        size_t nDirLen = strlen(zJsonBasePath) + 1;
+        testData->props[TEST_DEF_ENTRY_FILE_PATH] = sqlite3_malloc(nDirLen);
+        CHECK_NULL(testData->props[TEST_DEF_ENTRY_FILE_PATH]);
+        strncpy(testData->props[TEST_DEF_ENTRY_FILE_PATH], zJsonBasePath, nDirLen);
 
         struct CMUnitTest test;
         test.name = testData->props[TEST_DEF_PROP_IT];
@@ -434,8 +402,7 @@ void run_sql_tests(const char *zJsonFile)
         test.teardown_func = _teardown_sql_test;
 
         Array_setNth(&tests, tests.iCnt, &test);
-        if (zGroupTitle != NULL && strcmp(initialState->props[TEST_DEF_PROP_DESCRIBE], zGroupTitle) != 0)
-        {
+        if (zGroupTitle != NULL && strcmp(initialState->props[TEST_DEF_PROP_DESCRIBE], zGroupTitle) != 0) {
             CHECK_CALL(_runTestGroup(&zGroupTitle, &tests));
         }
 
@@ -452,8 +419,7 @@ void run_sql_tests(const char *zJsonFile)
 
     ONERROR:
 
-    if (db)
-    {
+    if (db) {
         zError = sqlite3_errmsg(db);
         printf("Error: %s", zError);
     }
@@ -469,4 +435,6 @@ void run_sql_tests(const char *zJsonFile)
     sqlite3_free(zSelJSON);
     sqlite3_free(pTests);
     sqlite3_free(zDir);
+    sqlite3_free(zJsonBasePath);
+    sqlite3_free(zJsonFileFull);
 }

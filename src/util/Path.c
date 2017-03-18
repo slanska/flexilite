@@ -14,15 +14,14 @@
 #define PATH_SEPARATOR "/"
 #endif
 
-typedef struct Token_t
-{
+typedef struct Token_t {
     const char *zValue;
     size_t len;
 } Token_t;
 
 static void
-_processSegment(const char *zKey, u32 idx, Token_t *pToken, Array_t *self, Array_t *pNewSegs, bool *bStop)
-{
+_processSegment(const char *zKey, const sqlite3_int64 idx, Token_t *pToken, Array_t *self, Array_t *pNewSegs,
+                bool *bStop) {
     UNUSED_PARAM(zKey);
     UNUSED_PARAM(idx);
     UNUSED_PARAM(self);
@@ -31,47 +30,40 @@ _processSegment(const char *zKey, u32 idx, Token_t *pToken, Array_t *self, Array
     if (pToken->len == 0 || strncmp(pToken->zValue, ".", pToken->len) == 0)
         return;
 
-    if (strncmp(pToken->zValue, "..", pToken->len) != 0)
-    {
+    if (strncmp(pToken->zValue, "..", pToken->len) != 0) {
         Array_setNth(pNewSegs, pNewSegs->iCnt, pToken);
+    } else if (pNewSegs->iCnt > 0) {
+        Token_t *pNewTok = Array_getNth(pNewSegs, pNewSegs->iCnt - 1);
+        pNewTok->len = 0;
+        pNewSegs->iCnt--;
     }
-    else
-        if (pNewSegs->iCnt > 0)
-        {
-            Token_t *pNewTok = Array_getNth(pNewSegs, pNewSegs->iCnt - 1);
-            pNewTok->len = 0;
-            pNewSegs->iCnt--;
-        }
 }
 
 static void
-_concatenateSegment(const char *zKey, uint32_t idx, Token_t *pToken, Array_t *pNewSegs, StringBuilder *sb, bool *bStop)
-{
+_concatenateSegment(const char *zKey, const sqlite3_int64 idx, Token_t *pToken, Array_t *self, StringBuilder *sb,
+                    bool *bStop) {
     UNUSED_PARAM(zKey);
     UNUSED_PARAM(idx);
-    UNUSED_PARAM(pNewSegs);
     UNUSED_PARAM(bStop);
 
-    if (pToken->len == 0)
-        return;
-
-    StringBuilder_appendRaw(sb, PATH_SEPARATOR, (uint32_t)strlen(PATH_SEPARATOR));
-
-    StringBuilder_appendRaw(sb, pToken->zValue, (int32_t) pToken->len);
+    if (pToken->len == 0 && idx == 0) {
+        StringBuilder_appendRaw(sb, PATH_SEPARATOR, (uint32_t) strlen(PATH_SEPARATOR));
+    } else {
+        StringBuilder_appendRaw(sb, pToken->zValue, (int32_t) pToken->len);
+        if (idx != self->iCnt - 1)
+            StringBuilder_appendRaw(sb, PATH_SEPARATOR, (uint32_t) strlen(PATH_SEPARATOR));
+    }
 }
 
 void static
-_splitPath(Array_t *segments, const char *zPath, const char chSeparator)
-{
+_splitPath(Array_t *segments, const char *zPath, const char chSeparator) {
     Token_t token;
     token.len = 0;
     token.zValue = zPath;
     char *p = (char *) zPath;
 
-    do
-    {
-        if (*p == '\0' || *p == chSeparator)
-        {
+    do {
+        if (*p == '\0' || *p == chSeparator) {
             token.len = p - token.zValue;
             Array_setNth(segments, segments->iCnt, &token);
             token.len = 0;
@@ -85,8 +77,7 @@ _splitPath(Array_t *segments, const char *zPath, const char chSeparator)
     } while (true);
 }
 
-void Path_join(char **pzResult, const char *zBase, const char *zAddPath)
-{
+void Path_join(char **pzResult, const char *zBase, const char *zAddPath) {
     assert(pzResult);
 
     // Split path parameters by '/'
@@ -115,8 +106,7 @@ void Path_join(char **pzResult, const char *zBase, const char *zAddPath)
     StringBuilder_clear(&strBuf);
 }
 
-void Path_dirname(char **pzResult, const char *zPath)
-{
+void Path_dirname(char **pzResult, const char *zPath) {
     Path_join(pzResult, zPath, "..");
 }
 

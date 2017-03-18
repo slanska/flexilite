@@ -22,7 +22,7 @@
 
 int class_tests();
 
-void run_sql_tests(const char *zJsonFile);
+void run_sql_tests(char *zBaseDir, const char *zJsonFile);
 
 /*
  * prop_tests();
