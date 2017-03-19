@@ -79,7 +79,7 @@ typedef struct flexi_ClassDef_t
     sqlite3_int64 lClassID;
 
     // Array of property metadata, by column index
-    struct flexi_prop_def *pProps;
+    struct flexi_PropDef_t *pProps;
 
     /*
      * Class definition hash

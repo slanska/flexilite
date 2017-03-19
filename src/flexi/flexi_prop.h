@@ -22,7 +22,7 @@ typedef struct flexi_enum_def flexi_enum_def;
 /*
  * Property definition object
  */
-struct flexi_prop_def
+struct flexi_PropDef_t
 {
     struct flexi_Context_t *pCtx;
     int nRefCount;
@@ -110,19 +110,19 @@ struct flexi_prop_def
 /// Other attributes need to be set in code or via flexi_prop_def_parse
 /// @param lClassID
 /// @return
-struct flexi_prop_def *flexi_prop_def_new(sqlite3_int64 lClassID);
+struct flexi_PropDef_t *flexi_prop_def_new(sqlite3_int64 lClassID);
 
 /// Parses JSON with property definition. pProp is expected to be zeroed and to have lClassID and pCtx initialized.
 /// \param pProp
 /// \param zPropDefJson
 /// \return
-int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, const char *zPropDefJson);
+int flexi_prop_def_parse(struct flexi_PropDef_t *pProp, const char *zPropName, const char *zPropDefJson);
 
 /// Stringifies property definition to JSON
 /// \param pProp
 /// \param pzPropDefJson
 /// \return
-int flexi_prop_def_stringify(struct flexi_prop_def *pProp, char **pzPropDefJson);
+int flexi_prop_def_stringify(struct flexi_PropDef_t *pProp, char **pzPropDefJson);
 
 /*
  * Transformation:
@@ -149,7 +149,7 @@ int flexi_prop_def_stringify(struct flexi_prop_def *pProp, char **pzPropDefJson)
 /// \param piResult
 /// \param pzError
 /// \return
-int flexi_prop_def_get_changes_needed(struct flexi_prop_def *pOldDef, struct flexi_prop_def *pNewDef, int *piResult,
+int flexi_prop_def_get_changes_needed(struct flexi_PropDef_t *pOldDef, struct flexi_PropDef_t *pNewDef, int *piResult,
                                       const char **pzError);
 
 
@@ -195,7 +195,7 @@ int flexi_ref_to_prop_func(
 /*
  *
  */
-void flexi_prop_def_free(struct flexi_prop_def *prop);
+void flexi_prop_def_free(struct flexi_PropDef_t *prop);
 
 struct flexi_ref_def
 {
