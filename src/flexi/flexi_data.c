@@ -51,10 +51,10 @@ struct flexi_vtab_cursor
  * @pRngProp - pointer to base range property
  * @iBound - bound shift, 1 for low bound, 2 - for high bound
  */
-static void init_range_column(struct flexi_prop_def *pRngProp, unsigned char cBound)
+static void init_range_column(struct flexi_PropDef_t *pRngProp, unsigned char cBound)
 {
     assert(cBound == 1 || cBound == 2);
-    struct flexi_prop_def *pBound = pRngProp + cBound;
+    struct flexi_PropDef_t *pBound = pRngProp + cBound;
 
     // We do not need all attributes from original property. Just key ones
     pBound->cRngBound = cBound;
@@ -239,7 +239,7 @@ static int flexi_data_destroy(sqlite3_vtab *pVTab)
  */
 static int flexi_data_open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
 {
-    int result = SQLITE_OK;
+    int result;
 
     struct flexi_ClassDef_t *vtab = (struct flexi_ClassDef_t *) pVTab;
     // Cursor will have 2 prepared sqlite statements: 1) find object IDs by property values (either with index or not), 2) to iterate through found objects' properties
@@ -449,7 +449,7 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
             }
             else
             {
-                struct flexi_prop_def *prop = &vtab->pProps[colIdx];
+                struct flexi_PropDef_t *prop = &vtab->pProps[colIdx];
                 if (IS_RANGE_PROPERTY(prop->type))
                     // Special case: range data request
                 {
@@ -716,7 +716,7 @@ static int flexi_data_column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pCon
             sqlite3_int64 lPropIdx = sqlite3_column_int64(cur->pPropertyIterator, 2);
 
             /*
-             * No need in any special verification as we expect columns are storted by property IDs, so
+             * No need in any special verification as we expect columns are sorted by property IDs, so
              * we just assume that once column index is OK, we can process this property data
              */
 
@@ -768,7 +768,7 @@ static int get_utf8_len(const unsigned char *s)
 }
 
 /*
- * Validates data for the property by iCol index. Returns SQLITE_OK if validation was successfull, or error code
+ * Validates data for the property by iCol index. Returns SQLITE_OK if validation was successful, or error code
  * otherwise
  */
 static int flexi_validate_prop_data(struct flexi_ClassDef_t *pVTab, int iCol, sqlite3_value *v)
@@ -777,7 +777,7 @@ static int flexi_validate_prop_data(struct flexi_ClassDef_t *pVTab, int iCol, sq
     int result = SQLITE_ERROR;
 
     assert(iCol >= 0 && iCol < pVTab->propMap.count);
-    struct flexi_prop_def *pProp = &pVTab->pProps[iCol];
+    struct flexi_PropDef_t *pProp = &pVTab->pProps[iCol];
 
     // Required
     if (pProp->minOccurences > 0 && sqlite3_value_type(v) == SQLITE_NULL)
@@ -922,7 +922,7 @@ static int flexi_upsert_props(struct flexi_ClassDef_t *pVTab, sqlite3_int64 lObj
     // Values are coming from index 2 (0 and 1 used for object IDs)
     for (int ii = 2; ii < argc; ii++)
     {
-        struct flexi_prop_def *pProp = &pVTab->pProps[ii - 2];
+        struct flexi_PropDef_t *pProp = &pVTab->pProps[ii - 2];
         sqlite3_value *pVal = argv[ii];
 
         /*

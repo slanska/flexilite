@@ -27,6 +27,9 @@ typedef struct _ClassAlterContext_t _ClassAlterContext_t;
 
 typedef struct _ClassAlterAction_t _ClassAlterAction_t;
 
+/*
+ * Pre- and post-action for class alter
+ */
 struct _ClassAlterAction_t
 {
     /*
@@ -96,8 +99,17 @@ struct _ClassAlterContext_t
      */
     List_t propActions;
 
-
     enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode;
+
+    /*
+     * Compiled statement to insert/update property definition
+     */
+    sqlite3_stmt *pUpsertPropDefStmt;
+
+    /*
+     * Result ot last executed SQLite operation
+     */
+    int nSqlResult;
 };
 
 static void
@@ -106,6 +118,8 @@ _ClassAlterContext_clear(_ClassAlterContext_t *alterCtx)
     List_clear(&alterCtx->propActions);
     List_clear(&alterCtx->preActions);
     List_clear(&alterCtx->postActions);
+
+    sqlite3_finalize(alterCtx->pUpsertPropDefStmt);
 }
 
 /*
@@ -301,7 +315,7 @@ static int _propAction_checkDataType(_ClassAlterAction_t *self, _ClassAlterConte
  * it sets Unresolved flag in class def
  */
 static void
-_validatePropChange(const char *zPropName, int index, struct flexi_prop_def *p,
+_validatePropChange(const char *zPropName, int index, struct flexi_PropDef_t *p,
                     var pPropMap, _ClassAlterContext_t *alterCtx, bool *bStop)
 {
 
@@ -321,7 +335,7 @@ _validatePropChange(const char *zPropName, int index, struct flexi_prop_def *p,
         return;
 
     // Check if class2 has the same property
-    struct flexi_prop_def *pProp2;
+    struct flexi_PropDef_t *pProp2;
     pProp2 = HashTable_get(&alterCtx->pExistingClassDef->propMap, (DictionaryKey_t) {.pKey= zPropName});
 
     if (pProp2)
@@ -453,7 +467,7 @@ struct ValidateClassParams_t
 };
 
 static void
-_validateProp(const char *zPropName, int idx, struct flexi_prop_def *prop, var propMap,
+_validateProp(const char *zPropName, int idx, struct flexi_PropDef_t *prop, var propMap,
               struct ValidateClassParams_t *params, bool *bStop)
 {
     UNUSED_PARAM(zPropName);
@@ -495,15 +509,15 @@ _validateClassData(_ClassAlterContext_t *alterCtx)
  * Iteratee function. Clones property definition to a new class def if it is not defined in the new class def
  */
 static void
-_copyExistingProp(const char *zPropName, int idx, struct flexi_prop_def *prop, var propMap,
+_copyExistingProp(const char *zPropName, int idx, struct flexi_PropDef_t *prop, var propMap,
                   _ClassAlterContext_t *alterCtx, bool *bStop)
 {
     UNUSED_PARAM(bStop);
     UNUSED_PARAM(idx);
     UNUSED_PARAM(propMap);
 
-    struct flexi_prop_def *pNewProp = HashTable_get(&alterCtx->pNewClassDef->propMap,
-                                                    (DictionaryKey_t) {.pKey = zPropName});
+    struct flexi_PropDef_t *pNewProp = HashTable_get(&alterCtx->pNewClassDef->propMap,
+                                                     (DictionaryKey_t) {.pKey = zPropName});
     if (!pNewProp)
     {
         HashTable_set(&alterCtx->pNewClassDef->propMap, (DictionaryKey_t) {.pKey=zPropName}, prop);
@@ -558,7 +572,7 @@ _processSpecialProps(_ClassAlterContext_t *alterCtx)
 }
 
 static void
-_compPropByIdAndName(const char *zKey, u32 idx, struct flexi_prop_def *pProp, Hash *pPropMap, flexi_metadata_ref *pRef,
+_compPropByIdAndName(const char *zKey, u32 idx, struct flexi_PropDef_t *pProp, Hash *pPropMap, flexi_metadata_ref *pRef,
                      bool *bStop)
 {
     UNUSED_PARAM(zKey);
@@ -576,7 +590,7 @@ _compPropByIdAndName(const char *zKey, u32 idx, struct flexi_prop_def *pProp, Ha
  * TODO Use RB tree or Hash for search
  */
 static bool
-_findPropByMetadataRef(struct flexi_ClassDef_t *pClassDef, flexi_metadata_ref *pRef, struct flexi_prop_def **pProp)
+_findPropByMetadataRef(struct flexi_ClassDef_t *pClassDef, flexi_metadata_ref *pRef, struct flexi_PropDef_t **pProp)
 {
     if (pRef->id != 0)
     {
@@ -733,6 +747,41 @@ _createClassDefFromDefJSON(struct flexi_Context_t *pCtx, const char *zClassDefJs
     return result;
 }
 
+static void
+_upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_PropDef_t *propDef,
+               const Hash *propMap, _ClassAlterContext_t *alterCtx, bool *bStop)
+{
+    UNUSED_PARAM(index);
+    sqlite3_reset(alterCtx->pUpsertPropDefStmt);
+    sqlite3_bind_int64(alterCtx->pUpsertPropDefStmt, 1, propDef->name.id);
+    sqlite3_bind_int64(alterCtx->pUpsertPropDefStmt, 2, alterCtx->pNewClassDef->lClassID);
+    sqlite3_bind_int(alterCtx->pUpsertPropDefStmt, 3, propDef->xCtlv);
+    sqlite3_bind_int(alterCtx->pUpsertPropDefStmt, 4, propDef->xCtlvPlan);
+
+    int result = sqlite3_step(alterCtx->pUpsertPropDefStmt);
+    if (result != SQLITE_DONE)
+    {
+        *bStop = true;
+        alterCtx->nSqlResult = result;
+        *alterCtx->pzErr = sqlite3_errmsg(alterCtx->pCtx->db);
+    }
+
+
+}
+
+static void
+_processAction(const char *zKey, const sqlite3_int64 index, _ClassAlterAction_t *actionDef,
+               const List_t *actionList, _ClassAlterContext_t *alterCtx, bool *bStop)
+{
+    UNUSED_PARAM(zKey);
+    UNUSED_PARAM(index);
+    UNUSED_PARAM(actionList);
+
+    if (actionDef->action)
+        actionDef->action(actionDef, alterCtx);
+
+}
+
 /*
  *
  */
@@ -740,6 +789,38 @@ static int
 _applyClassSchema(_ClassAlterContext_t *alterCtx)
 {
     int result;
+
+//    int xCtloMask = 0;
+
+    if (alterCtx->pUpsertPropDefStmt == NULL)
+    {
+        const char *zInsPropSQL = "insert into [flexi_prop] (NameID, ClassID, ctlv, ctlvPlan)"
+                " values (:1, :2, :3, :4);";
+        CHECK_CALL(sqlite3_prepare_v2(alterCtx->pCtx->db, zInsPropSQL, -1, &alterCtx->pUpsertPropDefStmt, NULL));
+    }
+
+    // Pre-actions
+    List_each(&alterCtx->preActions, (void *) _processAction, alterCtx);
+
+    // Ensure properties exist and updated
+    if (HashTable_each(&alterCtx->pNewClassDef->propMap, (void *) _upsertPropDef, alterCtx) != NULL)
+    {
+        result = alterCtx->nSqlResult;
+        goto ONERROR;
+    }
+
+    // Iterate through existing objects and run property level actions
+
+
+    // Post-actions
+    List_each(&alterCtx->postActions, (void *) _processAction, alterCtx);
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
 
     return result;
 }

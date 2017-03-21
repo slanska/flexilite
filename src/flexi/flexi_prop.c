@@ -84,12 +84,12 @@ int flexi_prop_rename_func(
  * Allocates new instance of class prop definition
  * Sets class ID, ref count to 1 and status 'ADDED'
  */
-struct flexi_prop_def *flexi_prop_def_new(sqlite3_int64 lClassID)
+struct flexi_PropDef_t *flexi_prop_def_new(sqlite3_int64 lClassID)
 {
-    struct flexi_prop_def *result = sqlite3_malloc(sizeof(struct flexi_prop_def));
+    struct flexi_PropDef_t *result = sqlite3_malloc(sizeof(struct flexi_PropDef_t));
     if (result)
     {
-        memset(result, 0, sizeof(struct flexi_prop_def));
+        memset(result, 0, sizeof(struct flexi_PropDef_t));
         result->lClassID = lClassID;
         result->nRefCount = 1;
         result->eChangeStatus = CHNG_STATUS_ADDED;
@@ -97,7 +97,7 @@ struct flexi_prop_def *flexi_prop_def_new(sqlite3_int64 lClassID)
     return result;
 }
 
-int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, const char *zPropDefJson)
+int flexi_prop_def_parse(struct flexi_PropDef_t *pProp, const char *zPropName, const char *zPropDefJson)
 {
     assert(pProp && pProp->lClassID && pProp->pCtx);
 
@@ -179,13 +179,13 @@ int flexi_prop_def_parse(struct flexi_prop_def *pProp, const char *zPropName, co
     return result;
 }
 
-int flexi_prop_def_stringify(struct flexi_prop_def *pProp, char **pzPropDefJson)
+int flexi_prop_def_stringify(struct flexi_PropDef_t *pProp, char **pzPropDefJson)
 {
     return 0;
 }
 
-int flexi_prop_def_get_changes_needed(struct flexi_prop_def *pOldDef,
-                                      struct flexi_prop_def *pNewDef, int *piResult,
+int flexi_prop_def_get_changes_needed(struct flexi_PropDef_t *pOldDef,
+                                      struct flexi_PropDef_t *pNewDef, int *piResult,
                                       const char **pzError)
 {
     return 0;
@@ -230,7 +230,7 @@ int flexi_ref_to_prop_func(
 /*
  *
  */
-void flexi_prop_def_free(struct flexi_prop_def *prop)
+void flexi_prop_def_free(struct flexi_PropDef_t *prop)
 {
     assert(prop);
 
