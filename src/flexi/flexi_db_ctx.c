@@ -296,7 +296,13 @@ int flexi_Context_getClassById(struct flexi_Context_t *self, sqlite3_int64 lClas
 int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol)
 {
     int len = sqlite3_column_bytes(pStmt, iCol);
-    *pzDest = sqlite3_malloc(len + 1);
+    if (len == 0)
+    {
+        *pzDest = NULL;
+        return SQLITE_OK;
+    }
+
+    *pzDest = sqlite3_malloc(len);
     if (*pzDest == NULL)
         return SQLITE_NOMEM;
     strcpy(*pzDest, sqlite3_column_text(pStmt, iCol));

@@ -76,6 +76,13 @@ enum REF_PROP_ROLE
             goto ONERROR; \
         }
 
+//#define CHECK_STMT_PREPARE(db, zSQL, stmt) \
+//    result = sqlite3_prepare_v2(db, zSQL, -1, stmt, NULL); \
+//    if (result != SQLITE_OK) \
+//    { \
+//
+//    }
+
 /*
  * Checks result of sqlite3_step. SQLITE_DONE and SQLITE_ROW are ok.
  * Other codes are treated as error
