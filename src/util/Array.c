@@ -57,6 +57,7 @@ void Array_init(Array_t *self, size_t elemSize, void (*disposeElem)(void *))
 
 void Array_clear(Array_t *self)
 {
+    assert(self);
     if (self->disposeElem)
     {
         int idx;

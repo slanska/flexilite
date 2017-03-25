@@ -360,7 +360,7 @@ _disposeCMUnitTest(struct CMUnitTest *ut)
  */
 void run_sql_tests(char *zBaseDir, const char *zJsonFile)
 {
-    int result;
+    int result = SQLITE_OK;
 
     struct CMUnitTest *pTests = NULL;
     const char *zError = NULL;
@@ -463,7 +463,8 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
 
     EXIT:
 
-    sqlite3_finalize(pJsonStmt);
+    if (pJsonStmt != NULL)
+        sqlite3_finalize(pJsonStmt);
     if (db != NULL)
         sqlite3_close(db);
     Array_clear(&tests);
