@@ -383,7 +383,7 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     Array_t tests;
     Array_init(&tests, sizeof(struct CMUnitTest), (void *) _disposeCMUnitTest);
 
-    char *zSelJSON = sqlite3_mprintf("select json_extract(value, '$.include') as [include], " // 0
+    const char *zSelJSON = "select json_extract(value, '$.include') as [include], " // 0
                                              "json_extract(value, '$.describe') as [describe], " // 1
                                              "json_extract(value, '$.it') as [it], " // 2
                                              "json_extract(value, '$.inDb') as [inDb], " // 3
@@ -395,7 +395,7 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
                                              "json_extract(value, '$.chkArgs') as [chkArgs], " // 9
                                              "json_extract(value, '$.chkFileArgs') as [chkFileArgs], " // 10
                                              "json_extract(value, '$.chkResult') as [chkResult] " // 11
-                                             "from json_each('%q');", zJson);
+                                             "from json_each(:1);";
 
     sqlite3_stmt *pJsonStmt = NULL;
 
@@ -404,6 +404,7 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     char *zGroupTitle = NULL;
 
     CHECK_CALL(sqlite3_prepare(db, zSelJSON, -1, &pJsonStmt, NULL));
+    CHECK_CALL(sqlite3_bind_text(pJsonStmt, 1, zJson, -1, NULL));
 
     while ((result = sqlite3_step(pJsonStmt)) == SQLITE_ROW)
     {
@@ -470,7 +471,6 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     SqlTestData_clear(testData);
     sqlite3_free(testData);
     sqlite3_free(zJson);
-    sqlite3_free(zSelJSON);
     sqlite3_free(pTests);
     sqlite3_free(zDir);
     sqlite3_free(zJsonBasePath);
