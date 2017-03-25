@@ -244,7 +244,7 @@ struct flexi_ClassDef_t *flexi_class_def_new(struct flexi_Context_t *pCtx);
 
 int flexi_class_def_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson, const char **pzErr);
 
-void flexi_schema_func(sqlite3_context *context,
+int flexi_schema_func(sqlite3_context *context,
                        int argc,
                        sqlite3_value **argv);
 

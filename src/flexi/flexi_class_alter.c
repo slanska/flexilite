@@ -659,7 +659,8 @@ _processMixins(_ClassAlterContext_t *alterCtx)
     if (!alterCtx->pNewClassDef->aMixins)
     {
         alterCtx->pNewClassDef->aMixins = alterCtx->pExistingClassDef->aMixins;
-        alterCtx->pNewClassDef->aMixins->nRefCount++;
+        if (alterCtx->pNewClassDef->aMixins != NULL)
+            alterCtx->pNewClassDef->aMixins->nRefCount++;
     }
     else
     {
@@ -747,6 +748,9 @@ _createClassDefFromDefJSON(struct flexi_Context_t *pCtx, const char *zClassDefJs
     return result;
 }
 
+/*
+ * Updates or inserts class property definition (via flexi_props view)
+ */
 static void
 _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_PropDef_t *propDef,
                const Hash *propMap, _ClassAlterContext_t *alterCtx, bool *bStop)
@@ -765,8 +769,6 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
         alterCtx->nSqlResult = result;
         *alterCtx->pzErr = sqlite3_errmsg(alterCtx->pCtx->db);
     }
-
-
 }
 
 static void
@@ -779,24 +781,23 @@ _processAction(const char *zKey, const sqlite3_int64 index, _ClassAlterAction_t 
 
     if (actionDef->action)
         actionDef->action(actionDef, alterCtx);
-
 }
 
 /*
- *
+ * Physically saves class definition changes to the Flexilite database
  */
 static int
 _applyClassSchema(_ClassAlterContext_t *alterCtx)
 {
     int result;
 
-//    int xCtloMask = 0;
+    //    int xCtloMask = 0;
 
     if (alterCtx->pUpsertPropDefStmt == NULL)
     {
         const char *zInsPropSQL = "insert into [flexi_prop] (NameID, ClassID, ctlv, ctlvPlan)"
                 " values (:1, :2, :3, :4);";
-        CHECK_CALL(sqlite3_prepare_v2(alterCtx->pCtx->db, zInsPropSQL, -1, &alterCtx->pUpsertPropDefStmt, NULL));
+        CHECK_STMT_PREPARE(alterCtx->pCtx->db, zInsPropSQL,  &alterCtx->pUpsertPropDefStmt);
     }
 
     // Pre-actions

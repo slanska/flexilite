@@ -124,7 +124,7 @@ int flexi_prop_def_parse(struct flexi_PropDef_t *pProp, const char *zPropName, c
     struct flexi_Context_t *pCtx = pProp->pCtx;
     if (!pCtx->pStmts[STMT_PROP_PARSE])
     {
-        CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zPropParseSQL, -1, &pCtx->pStmts[STMT_PROP_PARSE], NULL));
+        CHECK_STMT_PREPARE(pCtx->db, zPropParseSQL, &pCtx->pStmts[STMT_PROP_PARSE]);
     }
 
     sqlite3_stmt *st = pCtx->pStmts[STMT_PROP_PARSE];

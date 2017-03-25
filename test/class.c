@@ -6,11 +6,13 @@
 
 #include "Array.h"
 
-static void create_class_Employee(void **state) {
+static void create_class_Employee(void **state)
+{
 
 }
 
-static void create_class_Orders(void **state) {
+static void create_class_Orders(void **state)
+{
     sqlite3 *db = NULL;
     int result = 0;
     char *zBuf = NULL;
@@ -27,7 +29,7 @@ static void create_class_Orders(void **state) {
     Array_t *pBuf;
     sqlite3_stmt *pStmt = NULL;
     const char *zTail = NULL;
-    CHECK_CALL(sqlite3_prepare(db, "select flexi_schema_init(:schema);", -1, &pStmt, &zTail));
+    CHECK_STMT_PREPARE(db, "select flexi_schema_init(:schema);", &pStmt);
     sqlite3_bind_text(pStmt, 0, zBuf, -1, NULL);
     CHECK_STMT(sqlite3_step(pStmt));
 
@@ -46,7 +48,8 @@ static void create_class_Orders(void **state) {
         sqlite3_free(zBuf);
 }
 
-int class_tests() {
+int class_tests()
+{
     const struct CMUnitTest tests[] = {
             cmocka_unit_test(create_class_Employee),
             cmocka_unit_test(create_class_Orders),

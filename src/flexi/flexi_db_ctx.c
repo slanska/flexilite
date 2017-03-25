@@ -35,10 +35,10 @@ int flexi_Context_getNameId(struct flexi_Context_t *pCtx,
     {
         if (pCtx->pStmts[STMT_SEL_NAME_ID] == NULL)
         {
-            CHECK_CALL(sqlite3_prepare_v2(
+            CHECK_STMT_PREPARE(
                     pCtx->db,
                     "select NameID from [.names] where [Value] = :1;",
-                    -1, &pCtx->pStmts[STMT_SEL_NAME_ID], NULL));
+                    &pCtx->pStmts[STMT_SEL_NAME_ID]);
         }
 
         sqlite3_stmt *p = pCtx->pStmts[STMT_SEL_NAME_ID];
@@ -74,10 +74,10 @@ int flexi_Context_getPropIdByClassAndNameIds
 
     if (pCtx->pStmts[STMT_SEL_PROP_ID] == NULL)
     {
-        CHECK_CALL(sqlite3_prepare_v2(
+        CHECK_STMT_PREPARE(
                 pCtx->db,
                 "select PropertyID from [flexi_prop] where ClassID = :1 and NameID = :2;",
-                -1, &pCtx->pStmts[STMT_SEL_PROP_ID], NULL));
+                &pCtx->pStmts[STMT_SEL_PROP_ID]);
     }
 
     sqlite3_stmt *p = pCtx->pStmts[STMT_SEL_PROP_ID];
@@ -113,7 +113,7 @@ int flexi_Context_insertName(struct flexi_Context_t *pCtx, const char *zName, sq
         {
             const char *zInsNameSQL = "insert or replace into [.names] ([Value], NameID)"
                     " values (:1, (select ID from [.names_props] where Value = :1 limit 1));";
-            CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zInsNameSQL, -1, &pCtx->pStmts[STMT_INS_NAME], NULL));
+            CHECK_STMT_PREPARE(pCtx->db, zInsNameSQL, &pCtx->pStmts[STMT_INS_NAME]);
         }
 
         sqlite3_stmt *p = pCtx->pStmts[STMT_INS_NAME];
@@ -183,10 +183,10 @@ int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
     int result;
     if (!pCtx->pStmts[STMT_CLS_ID_BY_NAME])
     {
-        CHECK_CALL(sqlite3_prepare_v2(pCtx->db,
-                                      "select ClassID from [.classes] "
-                                              "where NameID = (select ID from [.names_props] where Value = :1 limit 1);",
-                                      -1, &pCtx->pStmts[STMT_CLS_ID_BY_NAME], NULL));
+        CHECK_STMT_PREPARE(pCtx->db,
+                           "select ClassID from [.classes] "
+                                   "where NameID = (select ID from [.names_props] where Value = :1 limit 1);",
+                           &pCtx->pStmts[STMT_CLS_ID_BY_NAME]);
     }
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_ID_BY_NAME]));
     CHECK_CALL(sqlite3_bind_text(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 1, zClassName, -1, NULL));
@@ -216,23 +216,23 @@ static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx)
     sqlite3 *db = pCtx->db;
 
     // TODO move to RTRee related code
-    CHECK_CALL(sqlite3_prepare_v2(
+    CHECK_STMT_PREPARE(
             db,
             "insert into [.range_data] ([ObjectID], [ClassID], [ClassID_1], "
                     "[A0], [_1], [B0], [B1], [C0], [C1], [D0], [D1]) values "
                     "(:1, :2, :2, :3, :4, :5, :6, :7, :8, :9, :10);",
-            -1, &pCtx->pStmts[STMT_INS_RTREE], NULL));
+            &pCtx->pStmts[STMT_INS_RTREE]);
 
-    CHECK_CALL(sqlite3_prepare_v2(
+    CHECK_STMT_PREPARE(
             db,
             "update [.range_data] set [ClassID] = :2, [ClassID_1] = :2, "
                     "[A0] = :3, [A1] = :4, [B0] = :5, [B1] = :6, "
                     "[C0] = :7, [C1] = :8, [D0] = :9, [D1] = :10 where ObjectID = :1;",
-            -1, &pCtx->pStmts[STMT_UPD_RTREE], NULL));
+            &pCtx->pStmts[STMT_UPD_RTREE]);
 
-    CHECK_CALL(sqlite3_prepare_v2(
+    CHECK_STMT_PREPARE(
             db, "delete from [.range_data] where ObjectID = :1;",
-            -1, &pCtx->pStmts[STMT_DEL_RTREE], NULL));
+            &pCtx->pStmts[STMT_DEL_RTREE]);
 
     goto EXIT;
     ONERROR:
@@ -305,7 +305,7 @@ int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol)
     *pzDest = sqlite3_malloc(len);
     if (*pzDest == NULL)
         return SQLITE_NOMEM;
-    strncpy(*pzDest, sqlite3_column_text(pStmt, iCol), len - 1);
+    strncpy(*pzDest, (char *) sqlite3_column_text(pStmt, iCol), len - 1);
 
     return SQLITE_OK;
 }

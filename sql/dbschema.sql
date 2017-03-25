@@ -442,7 +442,7 @@ INSTEAD OF INSERT
   ON [flexi_prop]
 FOR EACH ROW
 BEGIN
-  SELECT flexi('create property', new.Class, new.Property, new.Definition);
+--  SELECT flexi('create property', new.Class, new.Property, new.Definition);
 
   INSERT OR IGNORE INTO [.names_props] (Value, Type) VALUES (new.Name, 0);
   INSERT INTO [.names_props] (Type, PropNameID, ClassID, ctlv, ctlvPlan, RefClassID, RefPropID)
@@ -463,8 +463,8 @@ INSTEAD OF UPDATE
   ON [flexi_prop]
 FOR EACH ROW
 BEGIN
-  SELECT flexi('rename property', new.Class, old.Property, new.Property);
-  SELECT flexi('alter property', new.Class, new.Property, new.Definition);
+--  SELECT flexi('rename property', new.Class, old.Property, new.Property);
+--  SELECT flexi('alter property', new.Class, new.Property, new.Definition);
 
   INSERT OR IGNORE INTO [.names_props] (Value, Type, RefClassID, RefPropID)
   VALUES (new.Name, 0, new.RefClassID, new.RefPropID);
@@ -482,7 +482,7 @@ INSTEAD OF DELETE
   ON [flexi_prop]
 FOR EACH ROW
 BEGIN
-  SELECT flexi('drop property', old.Class, old.Property);
+--  SELECT flexi('drop property', old.Class, old.Property);
 
   DELETE FROM [.names_props]
   WHERE ID = old.PropertyID;

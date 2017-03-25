@@ -254,7 +254,7 @@ static int flexi_data_open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
 
     const char *zPropSql = "select ObjectID, PropertyID, PropIndex, ctlv, [Value] from [.ref-values] "
             "where ObjectID = :1 order by ObjectID, PropertyID, PropIndex;";
-    CHECK_CALL(sqlite3_prepare_v2(vtab->pCtx->db, zPropSql, -1, &cur->pPropertyIterator, NULL));
+    CHECK_STMT_PREPARE(vtab->pCtx->db, zPropSql, &cur->pPropertyIterator);
 
     result = SQLITE_OK;
     goto EXIT;
@@ -387,9 +387,9 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
     if (idxNum == 0 || argc == 0)
         // No special index used. Apply linear scan
     {
-        CHECK_CALL(sqlite3_prepare_v2(
+        CHECK_STMT_PREPARE(
                 vtab->pCtx->db, "select ObjectID from [.objects] where ClassID = :1;",
-                -1, &cur->pObjectIterator, NULL));
+                &cur->pObjectIterator);
         sqlite3_bind_int64(cur->pObjectIterator, 1, vtab->lClassID);
     }
     else
@@ -527,7 +527,7 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
             sqlite3_free(pTmp);
         }
 
-        CHECK_CALL(sqlite3_prepare_v2(vtab->pCtx->db, zSQL, -1, &cur->pObjectIterator, NULL));
+        CHECK_STMT_PREPARE(vtab->pCtx->db, zSQL, &cur->pObjectIterator);
         // Bind arguments
         for (int ii = 0; ii < argc; ii++)
         {
@@ -573,13 +573,11 @@ static void matchTextFunction(sqlite3_context *context, int argc, sqlite3_value 
                                         "create virtual table if not exists [.match_func] using 'fts4' (txt, tokenize=unicode61);", NULL, NULL,
                                 NULL));
 
-        CHECK_CALL(
-                sqlite3_prepare_v2(pDBEnv->pMemDB, "insert or replace into [.match_func] (docid, txt) values (1, :1);",
-                                   -1, &pDBEnv->pMatchFuncInsStmt, NULL));
+        CHECK_STMT_PREPARE(pDBEnv->pMemDB, "insert or replace into [.match_func] (docid, txt) values (1, :1);",
+                           &pDBEnv->pMatchFuncInsStmt);
 
-        CHECK_CALL(
-                sqlite3_prepare_v2(pDBEnv->pMemDB, "select docid from [.match_func] where txt match :1;",
-                                   -1, &pDBEnv->pMatchFuncSelStmt, NULL));
+        CHECK_STMT_PREPARE(pDBEnv->pMemDB, "select docid from [.match_func] where txt match :1;",
+                           &pDBEnv->pMatchFuncSelStmt);
 
     }
 
@@ -1011,8 +1009,7 @@ static int flexi_upsert_props(struct flexi_ClassDef_t *pVTab, sqlite3_int64 lObj
                 if (pVTab->pCtx->pStmts[STMT_DEL_PROP] == NULL)
                 {
                     const char *zDelPropSQL = "delete from [.ref-values] where ObjectID = :1 and PropertyID = :2 and PropIndex = :3;";
-                    CHECK_CALL(sqlite3_prepare_v2(pVTab->pCtx->db, zDelPropSQL, -1, &pVTab->pCtx->pStmts[STMT_DEL_PROP],
-                                                  NULL));
+                    CHECK_STMT_PREPARE(pVTab->pCtx->db, zDelPropSQL, &pVTab->pCtx->pStmts[STMT_DEL_PROP]);
                 }
 
                 sqlite3_stmt *pDelProp = pVTab->pCtx->pStmts[STMT_DEL_PROP];
@@ -1083,8 +1080,8 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
 
         if (vtab->pCtx->pStmts[STMT_DEL_OBJ] == NULL)
         {
-            CHECK_CALL(sqlite3_prepare_v2(vtab->pCtx->db, "delete from [.objects] where ObjectID = :1;", -1,
-                                          &vtab->pCtx->pStmts[STMT_DEL_OBJ], NULL));
+            CHECK_STMT_PREPARE(vtab->pCtx->db, "delete from [.objects] where ObjectID = :1;",
+                               &vtab->pCtx->pStmts[STMT_DEL_OBJ]);
         }
 
         sqlite3_stmt *pDel = vtab->pCtx->pStmts[STMT_DEL_OBJ];
@@ -1109,7 +1106,7 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
             {
                 const char *zInsObjSQL = "insert into [.objects] (ObjectID, ClassID, ctlo) values (:1, :2, :3); "
                         "select last_insert_rowid();";
-                CHECK_CALL(sqlite3_prepare_v2(vtab->pCtx->db, zInsObjSQL, -1, &vtab->pCtx->pStmts[STMT_INS_OBJ], NULL));
+                CHECK_STMT_PREPARE(vtab->pCtx->db, zInsObjSQL, &vtab->pCtx->pStmts[STMT_INS_OBJ]);
             }
 
             sqlite3_stmt *pInsObj = vtab->pCtx->pStmts[STMT_INS_OBJ];
@@ -1132,8 +1129,7 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
             {
                 const char *zInsPropSQL = "insert into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
                         " values (:1, :2, :3, :4, :5);";
-                CHECK_CALL(
-                        sqlite3_prepare_v2(vtab->pCtx->db, zInsPropSQL, -1, &vtab->pCtx->pStmts[STMT_INS_PROP], NULL));
+                CHECK_STMT_PREPARE(vtab->pCtx->db, zInsPropSQL, &vtab->pCtx->pStmts[STMT_INS_PROP]);
             }
 
             sqlite3_stmt *pInsProp = vtab->pCtx->pStmts[STMT_INS_PROP];
@@ -1160,8 +1156,7 @@ static int flexi_data_update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv
             {
                 const char *zUpdPropSQL = "insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, ctlv, [Value])"
                         " values (:1, :2, :3, :4, :5);";
-                CHECK_CALL(
-                        sqlite3_prepare_v2(vtab->pCtx->db, zUpdPropSQL, -1, &vtab->pCtx->pStmts[STMT_UPD_PROP], NULL));
+                CHECK_STMT_PREPARE(vtab->pCtx->db, zUpdPropSQL, &vtab->pCtx->pStmts[STMT_UPD_PROP]);
             }
 
             sqlite3_stmt *pUpdProp = vtab->pCtx->pStmts[STMT_UPD_PROP];

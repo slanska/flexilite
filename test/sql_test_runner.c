@@ -151,10 +151,10 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
 
     // TODO use flexi('init')
 
-    CHECK_CALL(sqlite3_prepare_v2(pDB, zSql, -1, &pStmt, NULL));
+    CHECK_STMT_PREPARE(pDB, zSql, &pStmt);
 
     // Prepare arguments
-    CHECK_CALL(sqlite3_prepare_v2(pDB, "select value, type from json_each(:1);", -1, &pArgsStmt, NULL));
+    CHECK_STMT_PREPARE(pDB, "select value, type from json_each(:1);", &pArgsStmt);
     CHECK_CALL(sqlite3_bind_text(pArgsStmt, 1, zArgs, -1, NULL));
     int nArgCnt = 0;
     while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW)
@@ -367,43 +367,43 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     SqlTestData_t *testData = NULL;
     char *zDir = NULL;
     sqlite3 *db = NULL;
-
-    char *zJsonFileFull = NULL;
-    Path_join(&zJsonFileFull, zBaseDir, zJsonFile);
     char *zJsonBasePath = NULL;
+    char *zJson = NULL;
+    char *zJsonFileFull = NULL;
+    Array_t tests;
+    sqlite3_stmt *pJsonStmt = NULL;
+    char *zGroupTitle = NULL;
+    SqlTestData_t prevTestData;
+
+    Array_init(&tests, sizeof(struct CMUnitTest), (void *) _disposeCMUnitTest);
+
+    Path_join(&zJsonFileFull, zBaseDir, zJsonFile);
     Path_dirname(&zJsonBasePath, zJsonFileFull);
 
     // Read JSON file
-    char *zJson = NULL;
     CHECK_CALL(file_load_utf8(zJsonFileFull, &zJson));
 
     // Open memory database
     CHECK_CALL(sqlite3_open(":memory:", &db));
 
-    Array_t tests;
-    Array_init(&tests, sizeof(struct CMUnitTest), (void *) _disposeCMUnitTest);
-
     const char *zSelJSON = "select json_extract(value, '$.include') as [include], " // 0
-                                             "json_extract(value, '$.describe') as [describe], " // 1
-                                             "json_extract(value, '$.it') as [it], " // 2
-                                             "json_extract(value, '$.inDb') as [inDb], " // 3
-                                             "json_extract(value, '$.inSql') as [inSql], " // 4
-                                             "json_extract(value, '$.inArgs') as [inArgs], " // 5
-                                             "json_extract(value, '$.inFileArgs') as [inFileArgs], " // 6
-                                             "json_extract(value, '$.chkDb') as [chkDb], " // 7
-                                             "json_extract(value, '$.chkSql') as [chkSql], " // 8
-                                             "json_extract(value, '$.chkArgs') as [chkArgs], " // 9
-                                             "json_extract(value, '$.chkFileArgs') as [chkFileArgs], " // 10
-                                             "json_extract(value, '$.chkResult') as [chkResult] " // 11
-                                             "from json_each(:1);";
+            "json_extract(value, '$.describe') as [describe], " // 1
+            "json_extract(value, '$.it') as [it], " // 2
+            "json_extract(value, '$.inDb') as [inDb], " // 3
+            "json_extract(value, '$.inSql') as [inSql], " // 4
+            "json_extract(value, '$.inArgs') as [inArgs], " // 5
+            "json_extract(value, '$.inFileArgs') as [inFileArgs], " // 6
+            "json_extract(value, '$.chkDb') as [chkDb], " // 7
+            "json_extract(value, '$.chkSql') as [chkSql], " // 8
+            "json_extract(value, '$.chkArgs') as [chkArgs], " // 9
+            "json_extract(value, '$.chkFileArgs') as [chkFileArgs], " // 10
+            "json_extract(value, '$.chkResult') as [chkResult] " // 11
+            "from json_each(:1);";
 
-    sqlite3_stmt *pJsonStmt = NULL;
 
-    SqlTestData_t prevTestData;
     SqlTestData_init(&prevTestData);
-    char *zGroupTitle = NULL;
 
-    CHECK_CALL(sqlite3_prepare(db, zSelJSON, -1, &pJsonStmt, NULL));
+    CHECK_STMT_PREPARE(db, zSelJSON, &pJsonStmt);
     CHECK_CALL(sqlite3_bind_text(pJsonStmt, 1, zJson, -1, NULL));
 
     while ((result = sqlite3_step(pJsonStmt)) == SQLITE_ROW)
@@ -465,8 +465,8 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
 
     EXIT:
 
-    if (pJsonStmt != NULL)
-        sqlite3_finalize(pJsonStmt);
+    //    if (pJsonStmt != NULL)
+    //        sqlite3_finalize(pJsonStmt);
     if (db != NULL)
         sqlite3_close(db);
     Array_clear(&tests);
@@ -477,4 +477,6 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     sqlite3_free(zDir);
     sqlite3_free(zJsonBasePath);
     sqlite3_free(zJsonFileFull);
+
+    assert_int_equal(result, SQLITE_OK);
 }
