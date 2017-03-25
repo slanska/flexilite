@@ -1213,7 +1213,7 @@ void flexi_schema_func(sqlite3_context *context,
             bCreateVTable = sqlite3_value_int(argv[1]) != 0;
         void *pCtx = sqlite3_user_data(context);
         CHECK_CALL(sqlite3_prepare_v2(db, "select value, key from json_each(:1)", -1, &pStmt, NULL));
-        CHECK_CALL(sqlite3_bind_text(pStmt, 1, (const char *) sqlite3_value_text(argv[0]), -1, &zErr));
+        CHECK_CALL(sqlite3_bind_value(pStmt, 1, sqlite3_value_dup(argv[0])));
 
         while ((result = sqlite3_step(pStmt)) == SQLITE_ROW)
         {

@@ -305,7 +305,7 @@ int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol)
     *pzDest = sqlite3_malloc(len);
     if (*pzDest == NULL)
         return SQLITE_NOMEM;
-    strcpy(*pzDest, sqlite3_column_text(pStmt, iCol));
+    strncpy(*pzDest, sqlite3_column_text(pStmt, iCol), len - 1);
 
     return SQLITE_OK;
 }
