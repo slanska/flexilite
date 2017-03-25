@@ -444,13 +444,13 @@ FOR EACH ROW
 BEGIN
 --  SELECT flexi('create property', new.Class, new.Property, new.Definition);
 
-  INSERT OR IGNORE INTO [.names_props] (Value, Type) VALUES (new.Name, 0);
-  INSERT INTO [.names_props] (Type, PropNameID, ClassID, ctlv, ctlvPlan, RefClassID, RefPropID)
+  INSERT OR IGNORE INTO [.names_props] (Value, Type) VALUES (new.Property, 0);
+  INSERT INTO [.names_props] (Type, PropNameID, ClassID, ctlv, ctlvPlan)
   VALUES (1, (SELECT ID
               FROM [.names_props]
-              WHERE Value = new.Name
+              WHERE Value = new.Property
               LIMIT 1),
-          new.ClassID, new.ctlv, new.ctlvPlan, new.RefClassID, new.RefPropID);
+          new.ClassID, new.ctlv, new.ctlvPlan);
 
   -- TODO Fix unresolved references
 
@@ -466,12 +466,12 @@ BEGIN
 --  SELECT flexi('rename property', new.Class, old.Property, new.Property);
 --  SELECT flexi('alter property', new.Class, new.Property, new.Definition);
 
-  INSERT OR IGNORE INTO [.names_props] (Value, Type, RefClassID, RefPropID)
-  VALUES (new.Name, 0, new.RefClassID, new.RefPropID);
+  INSERT OR IGNORE INTO [.names_props] (Value, Type)
+  VALUES (new.Property, 0);
   UPDATE [.names_props]
   SET PropNameID = (SELECT ID
                     FROM [.names_props]
-                    WHERE Value = new.Name
+                    WHERE Value = new.Property
                     LIMIT 1),
     ClassID      = new.ClassID, ctlv = new.ctlv, ctlvPlan = new.ctlvPlan
   WHERE ID = old.PropertyID;
