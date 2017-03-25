@@ -431,10 +431,7 @@ CREATE VIEW IF NOT EXISTS [flexi_prop] AS
     -- TODO Needed
     cp.ctlvPlan                                                      AS ctlvPlan,
     -- TODO Needed
-    (json_extract(c.Definition, printf('$.properties.%d', cp.[ID]))) AS Definition,
-    cp.RefClassID                                                    AS RefClassID,
-    -- TODO Needed
-    cp.RefPropID                                                     AS RefPropID -- TODO Needed
+    (json_extract(c.Definition, printf('$.properties.%d', cp.[ID]))) AS Definition
 
   FROM [.names_props] cp
     JOIN [flexi_class] c ON cp.ClassID = c.ClassID

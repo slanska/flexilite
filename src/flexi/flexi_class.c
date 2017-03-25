@@ -7,7 +7,6 @@
  */
 
 #include "flexi_class.h"
-#include "../typings/DBDefinitions.h"
 
 /*
  * Create new class record in the database
@@ -54,7 +53,7 @@ static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const cha
     zSql = sqlite3_mprintf("select ");
     const char *zp = zSpecProps[0];
     char sep[] = " ";
-    for (int ii = 0; ii < sizeof(zSpecProps) / sizeof(zSpecProps[0]); ii++, zp++)
+    for (int ii = 0; ii < ARRAY_LEN(zSpecProps); ii++, zp++)
     {
         char *zTemp = zSql;
         zSql = sqlite3_mprintf("%s%s\n json_extract(:1, '$.specialProperties.%s.$id') as %s_id,"
@@ -71,8 +70,8 @@ static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const cha
     {
         for (int ii = 0; ii < ARRAY_LEN(pClassDef->aSpecProps); ii++)
         {
-            pClassDef->aSpecProps[ii].bOwnName = true;
             CHECK_CALL(getColumnAsText(&pClassDef->aSpecProps[ii].name, pStmt, ii * 2 + 1));
+            pClassDef->aSpecProps[ii].bOwnName = pClassDef->aSpecProps[ii].name != NULL;
             pClassDef->aSpecProps[ii].id = sqlite3_column_int64(pStmt, ii * 2);
         }
     }
@@ -407,207 +406,207 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
 
     // TODO Remove
 
-//    char *sbClassDefJSON = sqlite3_mprintf("{\"properties\":{");
+    //    char *sbClassDefJSON = sqlite3_mprintf("{\"properties\":{");
 
-//    sqlite3_int64 lClassNameID;
-//    CHECK_CALL(flexi_Context_insertName(pCtx, zClassName, &lClassNameID));
+    //    sqlite3_int64 lClassNameID;
+    //    CHECK_CALL(flexi_Context_insertName(pCtx, zClassName, &lClassNameID));
 
     // insert into .classes
-//    {
-//        const char *zInsClsSQL = "insert into [.classes] (NameID) values (:1);";
-//
-//        CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zInsClsSQL, -1, &pInsClsStmt, NULL));
-//        sqlite3_bind_int64(pInsClsStmt, 1, lClassNameID);
-//        int stepResult = sqlite3_step(pInsClsStmt);
-//        if (stepResult != SQLITE_DONE)
-//        {
-//            result = stepResult;
-//            goto ONERROR;
-//        }
-//    }
+    //    {
+    //        const char *zInsClsSQL = "insert into [.classes] (NameID) values (:1);";
+    //
+    //        CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zInsClsSQL, -1, &pInsClsStmt, NULL));
+    //        sqlite3_bind_int64(pInsClsStmt, 1, lClassNameID);
+    //        int stepResult = sqlite3_step(pInsClsStmt);
+    //        if (stepResult != SQLITE_DONE)
+    //        {
+    //            result = stepResult;
+    //            goto ONERROR;
+    //        }
+    //    }
 
-//    sqlite3_int64 iClassID;
-//    {
-//        if (pCtx->pStmts[STMT_SEL_CLS_BY_NAME] == NULL)
-//        {
-//            CHECK_CALL(sqlite3_prepare_v2(
-//                    pCtx->db,
-//                    "select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);",
-//                    -1, &pCtx->pStmts[STMT_SEL_CLS_BY_NAME], NULL));
-//        }
-//
-//        sqlite3_stmt *p = pCtx->pStmts[STMT_SEL_CLS_BY_NAME];
-//        assert(p);
-//        sqlite3_reset(p);
-//        sqlite3_bind_text(p, 1, zClassName, -1, NULL);
-//        int stepRes = sqlite3_step(p);
-//        if (stepRes != SQLITE_ROW)
-//        {
-//            result = stepRes;
-//            goto ONERROR;
-//        }
-//
-//        iClassID = sqlite3_column_int64(p, 0);
-//    }
+    //    sqlite3_int64 iClassID;
+    //    {
+    //        if (pCtx->pStmts[STMT_SEL_CLS_BY_NAME] == NULL)
+    //        {
+    //            CHECK_CALL(sqlite3_prepare_v2(
+    //                    pCtx->db,
+    //                    "select ClassID from [.classes] where NameID = (select NameID from [.names] where [Value] = :1 limit 1);",
+    //                    -1, &pCtx->pStmts[STMT_SEL_CLS_BY_NAME], NULL));
+    //        }
+    //
+    //        sqlite3_stmt *p = pCtx->pStmts[STMT_SEL_CLS_BY_NAME];
+    //        assert(p);
+    //        sqlite3_reset(p);
+    //        sqlite3_bind_text(p, 1, zClassName, -1, NULL);
+    //        int stepRes = sqlite3_step(p);
+    //        if (stepRes != SQLITE_ROW)
+    //        {
+    //            result = stepRes;
+    //            goto ONERROR;
+    //        }
+    //
+    //        iClassID = sqlite3_column_int64(p, 0);
+    //    }
 
-//    int xCtloMask = 0;
-//
-//    const char *zInsPropSQL = "insert into [flexi_prop] (NameID, ClassID, ctlv, ctlvPlan)"
-//            " values (:1, :2, :3, :4);";
-//    CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zInsPropSQL, -1, &pInsPropStmt, NULL));
-//
-//    // Prepare JSON processing
-//    const char *zExtractPropSQL = "select "
-//            "coalesce(json_extract(value, '$.index'), 'none') as indexed," // 0
-//            //    subType // 1
-//            //    minOccurences // 2
-//            //    maxOccurences // 3
-//            "coalesce(json_extract(value, '$.rules.type'), 'text') as type," // 4
-//            "key as prop_name," // 5
-//            "value as prop_def," // 6 - Original property definition JSON
-//            "coalesce(json_extract(value, '$.noTrackChanges'), 0) as indexed," // 7
-//            //    enumDef
-//            //    refDef
-//            //    $renameTo
-//            //    $drop
-//            //    rules.maxLength
-//            //    rules.minValue
-//            //    rules.maxValue
-//            //    rules.regex
-//            " from json_each(:1, '$.properties');";
-//
-//    // Need to remove leading and trailing quotes
-//    int iJSONLen = (int) strlen(zClassDef);
-//    CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zExtractPropSQL, -1, &pExtractProps, NULL));
-//    CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, zClassDef + sizeof(char), iJSONLen - 2, NULL));
-//
-//    int iPropCnt = 0;
-//
-//    // Load property definitions from JSON
-//    while (1)
-//    {
-//        int iStep = sqlite3_step(pExtractProps);
-//        if (iStep == SQLITE_DONE)
-//            break;
-//
-//        if (iStep != SQLITE_ROW)
-//        {
-//            result = iStep;
-//            goto ONERROR;
-//        }
-//
-//        memset(&dProp, 0, sizeof(dProp));
-//        dProp.bIndexed = (char) sqlite3_column_int(pExtractProps, 0);
-//        dProp.bUnique = (char) sqlite3_column_int(pExtractProps, 1);
-//        dProp.bFullTextIndex = (char) sqlite3_column_int(pExtractProps, 2);
-//        dProp.xRole = (short int) sqlite3_column_int(pExtractProps, 3);
-//        dProp.type = (short int) sqlite3_column_int(pExtractProps, 4);
-//
-//        sqlite3_free((void *) zPropDefJSON);
-//
-//        CHECK_CALL(getColumnAsText(&dProp.name.name, pExtractProps, 5));
-//        CHECK_CALL(getColumnAsText(&zPropDefJSON, pExtractProps, 6));
-//
-//        // Property control flags which regulate actual indexing and other settings
-//        int xCtlv = 0;
-//
-//        // Planned (postponed for future) property control flags which will be applied later
-//        // when enough statistics accumulated about best index strategy.
-//        // Typically, this will happen when database size reaches few megabytes and 1K-5K records
-//        // On smaller databases there is no real point to apply indexing to the full extent
-//        // Plus, in the database schema lifetime initial period is usually associated with heavy refactoring
-//        // and data restructuring.
-//        // Taking into account these 2 considerations, we will remember user settings for desired indexing
-//        // (in ctlvPlan) but currently apply only settings for unique values (as it is mostly constraint, rather
-//        // than indexing)
-//        int xCtlvPlan = 0;
-//
-//        switch (dProp.type)
-//        {
-//            // These property types can be searched by range, can be indexed and can be unique
-//            case PROP_TYPE_DECIMAL:
-//            case PROP_TYPE_NUMBER:
-//            case PROP_TYPE_DATETIME:
-//            case PROP_TYPE_INTEGER:
-//
-//                // These property types can be indexed
-//            case PROP_TYPE_BINARY:
-//            case PROP_TYPE_NAME:
-//            case PROP_TYPE_ENUM:
-//            case PROP_TYPE_UUID:
-//                //                if (dProp.bUnique || (dProp.xRole & PROP_ROLE_ID) || (dProp.xRole & PROP_ROLE_NAME))
-//                //                {
-//                //                    xCtlv |= CTLV_UNIQUE_INDEX;
-//                //                    xCtlvPlan |= CTLV_UNIQUE_INDEX;
-//                //                }
-//                // Note: no break here;
-//
-//            case PROP_TYPE_TEXT:
-//                if (dProp.bIndexed && dProp.maxLength <= 30)
-//                    xCtlvPlan |= CTLV_INDEX;
-//                if (dProp.bFullTextIndex)
-//                    xCtlvPlan |= CTLV_FULL_TEXT_INDEX;
-//
-//                break;
-//
-//            default:
-//                break;
-//        }
-//
-//        sqlite3_int64 lPropNameID;
-//        CHECK_CALL(flexi_Context_insertName(pCtx, dProp.name.name, &lPropNameID));
-//
-//        {
-//            sqlite3_reset(pInsPropStmt);
-//            sqlite3_bind_int64(pInsPropStmt, 1, lPropNameID);
-//            sqlite3_bind_int64(pInsPropStmt, 2, iClassID);
-//            sqlite3_bind_int(pInsPropStmt, 3, xCtlv);
-//            sqlite3_bind_int(pInsPropStmt, 4, xCtlvPlan);
-//            int stepResult = sqlite3_step(pInsPropStmt);
-//            if (stepResult != SQLITE_DONE)
-//            {
-//                result = stepResult;
-//                goto ONERROR;
-//            }
-//        }
-//
-//        // Get new property ID
-//        sqlite3_int64 iPropID;
-//        CHECK_CALL(flexi_Context_getPropIdByClassAndNameIds(pCtx, iClassID, lPropNameID, &iPropID));
-//        if (iPropCnt != 0)
-//        {
-//            void *pTmp = sbClassDefJSON;
-//            sbClassDefJSON = sqlite3_mprintf("%s,", pTmp);
-//            sqlite3_free(pTmp);
-//        }
-//
-//        {
-//            void *pTmp = sbClassDefJSON;
-//            sbClassDefJSON = sqlite3_mprintf("%s\"%lld\":%s", pTmp, iPropID, zPropDefJSON);
-//            sqlite3_free(pTmp);
-//        }
-//
-//        iPropCnt++;
-//    }
-//
-//    {
-//        void *pTmp = sbClassDefJSON;
-//        sbClassDefJSON = sqlite3_mprintf("%s}}", pTmp);
-//        sqlite3_free(pTmp);
-//    }
-//
-//    // Update class with new JSON data
-//    const char *zUpdClsSQL = "update [.classes] set Data = :1, ctloMask= :2 where ClassID = :3";
-//    CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zUpdClsSQL, -1, &pUpdClsStmt, NULL));
-//    sqlite3_bind_text(pUpdClsStmt, 1, sbClassDefJSON, (int) strlen(sbClassDefJSON), NULL);
-//    sqlite3_bind_int(pUpdClsStmt, 2, xCtloMask);
-//    sqlite3_bind_int64(pUpdClsStmt, 3, iClassID);
-//    int updResult = sqlite3_step(pUpdClsStmt);
-//    if (updResult != SQLITE_DONE)
-//    {
-//        result = updResult;
-//        goto ONERROR;
-//    }
+    //    int xCtloMask = 0;
+    //
+    //    const char *zInsPropSQL = "insert into [flexi_prop] (NameID, ClassID, ctlv, ctlvPlan)"
+    //            " values (:1, :2, :3, :4);";
+    //    CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zInsPropSQL, -1, &pInsPropStmt, NULL));
+    //
+    //    // Prepare JSON processing
+    //    const char *zExtractPropSQL = "select "
+    //            "coalesce(json_extract(value, '$.index'), 'none') as indexed," // 0
+    //            //    subType // 1
+    //            //    minOccurences // 2
+    //            //    maxOccurences // 3
+    //            "coalesce(json_extract(value, '$.rules.type'), 'text') as type," // 4
+    //            "key as prop_name," // 5
+    //            "value as prop_def," // 6 - Original property definition JSON
+    //            "coalesce(json_extract(value, '$.noTrackChanges'), 0) as indexed," // 7
+    //            //    enumDef
+    //            //    refDef
+    //            //    $renameTo
+    //            //    $drop
+    //            //    rules.maxLength
+    //            //    rules.minValue
+    //            //    rules.maxValue
+    //            //    rules.regex
+    //            " from json_each(:1, '$.properties');";
+    //
+    //    // Need to remove leading and trailing quotes
+    //    int iJSONLen = (int) strlen(zClassDef);
+    //    CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zExtractPropSQL, -1, &pExtractProps, NULL));
+    //    CHECK_CALL(sqlite3_bind_text(pExtractProps, 1, zClassDef + sizeof(char), iJSONLen - 2, NULL));
+    //
+    //    int iPropCnt = 0;
+    //
+    //    // Load property definitions from JSON
+    //    while (1)
+    //    {
+    //        int iStep = sqlite3_step(pExtractProps);
+    //        if (iStep == SQLITE_DONE)
+    //            break;
+    //
+    //        if (iStep != SQLITE_ROW)
+    //        {
+    //            result = iStep;
+    //            goto ONERROR;
+    //        }
+    //
+    //        memset(&dProp, 0, sizeof(dProp));
+    //        dProp.bIndexed = (char) sqlite3_column_int(pExtractProps, 0);
+    //        dProp.bUnique = (char) sqlite3_column_int(pExtractProps, 1);
+    //        dProp.bFullTextIndex = (char) sqlite3_column_int(pExtractProps, 2);
+    //        dProp.xRole = (short int) sqlite3_column_int(pExtractProps, 3);
+    //        dProp.type = (short int) sqlite3_column_int(pExtractProps, 4);
+    //
+    //        sqlite3_free((void *) zPropDefJSON);
+    //
+    //        CHECK_CALL(getColumnAsText(&dProp.name.name, pExtractProps, 5));
+    //        CHECK_CALL(getColumnAsText(&zPropDefJSON, pExtractProps, 6));
+    //
+    //        // Property control flags which regulate actual indexing and other settings
+    //        int xCtlv = 0;
+    //
+    //        // Planned (postponed for future) property control flags which will be applied later
+    //        // when enough statistics accumulated about best index strategy.
+    //        // Typically, this will happen when database size reaches few megabytes and 1K-5K records
+    //        // On smaller databases there is no real point to apply indexing to the full extent
+    //        // Plus, in the database schema lifetime initial period is usually associated with heavy refactoring
+    //        // and data restructuring.
+    //        // Taking into account these 2 considerations, we will remember user settings for desired indexing
+    //        // (in ctlvPlan) but currently apply only settings for unique values (as it is mostly constraint, rather
+    //        // than indexing)
+    //        int xCtlvPlan = 0;
+    //
+    //        switch (dProp.type)
+    //        {
+    //            // These property types can be searched by range, can be indexed and can be unique
+    //            case PROP_TYPE_DECIMAL:
+    //            case PROP_TYPE_NUMBER:
+    //            case PROP_TYPE_DATETIME:
+    //            case PROP_TYPE_INTEGER:
+    //
+    //                // These property types can be indexed
+    //            case PROP_TYPE_BINARY:
+    //            case PROP_TYPE_NAME:
+    //            case PROP_TYPE_ENUM:
+    //            case PROP_TYPE_UUID:
+    //                //                if (dProp.bUnique || (dProp.xRole & PROP_ROLE_ID) || (dProp.xRole & PROP_ROLE_NAME))
+    //                //                {
+    //                //                    xCtlv |= CTLV_UNIQUE_INDEX;
+    //                //                    xCtlvPlan |= CTLV_UNIQUE_INDEX;
+    //                //                }
+    //                // Note: no break here;
+    //
+    //            case PROP_TYPE_TEXT:
+    //                if (dProp.bIndexed && dProp.maxLength <= 30)
+    //                    xCtlvPlan |= CTLV_INDEX;
+    //                if (dProp.bFullTextIndex)
+    //                    xCtlvPlan |= CTLV_FULL_TEXT_INDEX;
+    //
+    //                break;
+    //
+    //            default:
+    //                break;
+    //        }
+    //
+    //        sqlite3_int64 lPropNameID;
+    //        CHECK_CALL(flexi_Context_insertName(pCtx, dProp.name.name, &lPropNameID));
+    //
+    //        {
+    //            sqlite3_reset(pInsPropStmt);
+    //            sqlite3_bind_int64(pInsPropStmt, 1, lPropNameID);
+    //            sqlite3_bind_int64(pInsPropStmt, 2, iClassID);
+    //            sqlite3_bind_int(pInsPropStmt, 3, xCtlv);
+    //            sqlite3_bind_int(pInsPropStmt, 4, xCtlvPlan);
+    //            int stepResult = sqlite3_step(pInsPropStmt);
+    //            if (stepResult != SQLITE_DONE)
+    //            {
+    //                result = stepResult;
+    //                goto ONERROR;
+    //            }
+    //        }
+    //
+    //        // Get new property ID
+    //        sqlite3_int64 iPropID;
+    //        CHECK_CALL(flexi_Context_getPropIdByClassAndNameIds(pCtx, iClassID, lPropNameID, &iPropID));
+    //        if (iPropCnt != 0)
+    //        {
+    //            void *pTmp = sbClassDefJSON;
+    //            sbClassDefJSON = sqlite3_mprintf("%s,", pTmp);
+    //            sqlite3_free(pTmp);
+    //        }
+    //
+    //        {
+    //            void *pTmp = sbClassDefJSON;
+    //            sbClassDefJSON = sqlite3_mprintf("%s\"%lld\":%s", pTmp, iPropID, zPropDefJSON);
+    //            sqlite3_free(pTmp);
+    //        }
+    //
+    //        iPropCnt++;
+    //    }
+    //
+    //    {
+    //        void *pTmp = sbClassDefJSON;
+    //        sbClassDefJSON = sqlite3_mprintf("%s}}", pTmp);
+    //        sqlite3_free(pTmp);
+    //    }
+    //
+    //    // Update class with new JSON data
+    //    const char *zUpdClsSQL = "update [.classes] set Data = :1, ctloMask= :2 where ClassID = :3";
+    //    CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zUpdClsSQL, -1, &pUpdClsStmt, NULL));
+    //    sqlite3_bind_text(pUpdClsStmt, 1, sbClassDefJSON, (int) strlen(sbClassDefJSON), NULL);
+    //    sqlite3_bind_int(pUpdClsStmt, 2, xCtloMask);
+    //    sqlite3_bind_int64(pUpdClsStmt, 3, iClassID);
+    //    int updResult = sqlite3_step(pUpdClsStmt);
+    //    if (updResult != SQLITE_DONE)
+    //    {
+    //        result = updResult;
+    //        goto ONERROR;
+    //    }
 
     // TODO
     //    CHECK_CALL(flexi_class_def_load(db, pAux, zClassName, ppVTab, pzErr));
@@ -633,7 +632,7 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
     if (pInsPropStmt)
         sqlite3_finalize(pInsPropStmt);
 
-//    sqlite3_free(sbClassDefJSON);
+    //    sqlite3_free(sbClassDefJSON);
 
     return result;
 
@@ -1122,9 +1121,8 @@ int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, s
             "NameID, " // 1
             "SystemClass, " // 2
             "ctloMask, " // 3
-            "Hash, " // 4
-            "AsTable, " // 5
-            "Data as Definition" // 6
+            "VirtualTable, " // 4
+            "Data as Definition " // 5
             "from [.classes] "
             "where ClassID = :1;";
     CHECK_CALL(sqlite3_prepare_v2(pCtx->db, zGetClassSQL, -1, &pGetClassStmt, NULL));
@@ -1147,12 +1145,12 @@ int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, s
     (*pClassDef)->bSystemClass = (bool) sqlite3_column_int(pGetClassStmt, 2);
     (*pClassDef)->xCtloMask = sqlite3_column_int(pGetClassStmt, 3);
 
-    CHECK_CALL(getColumnAsText(&(*pClassDef)->zHash, pGetClassStmt, 4));
+    //    CHECK_CALL(getColumnAsText(&(*pClassDef)->zHash, pGetClassStmt, 4));
 
     // Load properties from flexi_prop
     if (!pCtx->pStmts[STMT_LOAD_CLS_PROP])
     {
-        CHECK_CALL(sqlite3_prepare_v2(pCtx->db, "select"
+        CHECK_CALL(sqlite3_prepare_v2(pCtx->db, "select "
                                               "PropertyID," // 0
                                               "Class, " // 1
                                               "NameID, " // 2
@@ -1168,7 +1166,7 @@ int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, s
     CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_LOAD_CLS_PROP], 1, lClassID));
     CHECK_CALL(_parseProperties(*pClassDef, pCtx->pStmts[STMT_LOAD_CLS_PROP], 3, 6, 2, 4, 5));
 
-    CHECK_CALL(getColumnAsText(&zClassDefJson, pGetClassStmt, 6));
+    CHECK_CALL(getColumnAsText(&zClassDefJson, pGetClassStmt, 5));
     CHECK_CALL(_parseClassDefAux(*pClassDef, zClassDefJson));
 
     result = SQLITE_OK;
@@ -1180,8 +1178,7 @@ int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, s
         flexi_ClassDef_free(*pClassDef);
         *pClassDef = NULL;
     }
-    if (pzErr && !*pzErr)
-        *pzErr = sqlite3_errstr(result);
+    *pzErr = sqlite3_errmsg(pCtx->db);
 
     EXIT:
     if (pGetClassStmt)
@@ -1220,6 +1217,11 @@ void flexi_schema_func(sqlite3_context *context,
 
         while ((result = sqlite3_step(pStmt)) == SQLITE_ROW)
         {
+            sqlite3_free(zClassDef);
+            zClassDef = NULL;
+            sqlite3_free(zClassName);
+            zClassName = NULL;
+
             CHECK_CALL(getColumnAsText(&zClassDef, pStmt, 0));
             CHECK_CALL(getColumnAsText(&zClassName, pStmt, 1));
 
@@ -1242,8 +1244,8 @@ void flexi_schema_func(sqlite3_context *context,
     sqlite3_result_error(context, zErr, -1);
 
     EXIT:
+    sqlite3_finalize(pStmt);
     sqlite3_free(zClassDef);
     sqlite3_free(zClassName);
-    sqlite3_finalize(pStmt);
 }
 
