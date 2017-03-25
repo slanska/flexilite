@@ -18,12 +18,15 @@
     "type": "git",
     "url": "git://github.com/slanska/flexilite.git"
   },
+  "scripts": {
+    "valgrind": "valgrind --leak-check=full --track-origins=yes ./cmake-build-debug/bin/flexilite_test"
+  },
   "main": "lib/index.js",
   "engines": {
     "node": ">=0.8",
     "npm": ">=1.0"
   },
-  "license": "MIT",
+  "license": "MPL2",
   "devDependencies": {
     "chai": "^3.3.0",
     "csv": "^0.4.6",

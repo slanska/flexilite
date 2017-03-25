@@ -17,7 +17,8 @@ add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_RTREE
         -DSQLITE_ENABLE_LOAD_EXTENSION
         -DSQLITE_ENABLE_JSON1
-        -DSQLITE_CORE)
+        -DSQLITE_CORE
+        -DHAVE_SIGNAL_H)
 
 include_directories(
         ../lib/cmocka/include
@@ -25,7 +26,10 @@ include_directories(
         ../src/util
 )
 
+find_package(Threads REQUIRED)
+
 set(TEST_FILES
+
         ../lib/cmocka/src/cmocka.c
         ../lib/sqlite/sqlite3.c
         fts.c
@@ -45,3 +49,5 @@ set(TEST_FILES
         )
 
 add_executable(flexilite_test ${TEST_FILES} )
+
+target_link_libraries(flexilite_test ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})

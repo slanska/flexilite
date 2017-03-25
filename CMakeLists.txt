@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 2.8)
 
 enable_testing()
 
@@ -22,9 +22,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 project(sqlite_shell)
 
+message("Building on: ${CMAKE_SYSTEM_NAME}")
+
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
-find_package(zlib)
+find_package(ZLIB REQUIRED)
+find_package(Threads REQUIRED)
 
 set(SHELL_FILES
         lib/sqlite/shell.c
@@ -37,6 +40,11 @@ add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_JSON1)
 
 add_executable(sqlite_shell ${SHELL_FILES})
+
+# Note libraries are linked AFTER executable is registered
+# also, using 'm' for standard math library
+target_link_libraries(sqlite_shell ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
+target_link_libraries(sqlite_shell m)
 
 # libFlexilite library
 project(Flexilite)
@@ -105,13 +113,22 @@ set(EXT_FILES
         src/flexi/flexi_user_info.c
         src/flexi/flexi_user_info.h
         src/util/rbtree.c
-        src/flexi/class_ref_def.c src/flexi/class_ref_def.h src/util/List.c src/util/List.h src/util/Path.c src/util/Path.h src/util/StringBuilder.c src/util/StringBuilder.h)
+        src/flexi/class_ref_def.c
+        src/flexi/class_ref_def.h
+        src/util/List.c
+        src/util/List.h
+        src/util/Path.c
+        src/util/Path.h
+        src/util/StringBuilder.c
+        src/util/StringBuilder.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
 #set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
 
 add_library(Flexilite SHARED ${EXT_FILES})
+
+target_link_libraries(Flexilite m)
 
 #set_target_properties(Flexilite PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 #set_target_properties(Flexilite PROPERTIES COMPILE_FLAGS "-m64" LINK_FLAGS "-m64")
