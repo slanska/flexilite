@@ -22,9 +22,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 project(sqlite_shell)
 
+message("Building on: ${CMAKE_SYSTEM_NAME}")
+
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
-find_package(zlib)
+find_package(ZLIB REQUIRED)
+find_package(Threads REQUIRED)
 
 set(SHELL_FILES
         lib/sqlite/shell.c
@@ -37,6 +40,8 @@ add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_JSON1)
 
 add_executable(sqlite_shell ${SHELL_FILES})
+
+target_link_libraries(sqlite_shell ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 
 # libFlexilite library
 project(Flexilite)
