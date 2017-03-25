@@ -461,6 +461,7 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
         printf("Error: %s", zError);
     }
 
+
     EXIT:
 
     if (pJsonStmt != NULL)
