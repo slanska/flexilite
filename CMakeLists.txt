@@ -26,7 +26,12 @@ message("Building on: ${CMAKE_SYSTEM_NAME}")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
-find_package(ZLIB REQUIRED)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    find_package(zlib REQUIRED)
+else ()
+    find_package(ZLIB REQUIRED)
+endif ()
+
 find_package(Threads REQUIRED)
 
 set(SHELL_FILES
@@ -65,7 +70,7 @@ set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TR
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
-add_definitions(-DRESOURCES_GENERATED )
+add_definitions(-DRESOURCES_GENERATED)
 
 set(EXT_FILES
         src/misc/json1.c
