@@ -283,12 +283,8 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
 
     char *zPropDefJson = NULL;
 
-    while (true)
+    while ((result = sqlite3_step(pStmt)) == SQLITE_ROW)
     {
-        CHECK_STMT(sqlite3_step(pClassDef->pCtx->pStmts[STMT_LOAD_CLS_PROP]));
-        if (result == SQLITE_DONE)
-            break;
-
         struct flexi_PropDef_t *pProp = flexi_prop_def_new(pClassDef->lClassID);
         if (!pProp)
         {
@@ -296,9 +292,11 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
             goto ONERROR;
         }
 
+        pProp->pCtx = pClassDef->pCtx;
+
         sqlite3_free(zPropDefJson);
-        CHECK_CALL(getColumnAsText(&zPropDefJson, pClassDef->pCtx->pStmts[STMT_LOAD_CLS_PROP], iPropDefCol));
-        CHECK_CALL(getColumnAsText(&pProp->name.name, pClassDef->pCtx->pStmts[STMT_LOAD_CLS_PROP], iPropNameCol));
+        CHECK_CALL(getColumnAsText(&zPropDefJson, pStmt, iPropDefCol));
+        CHECK_CALL(getColumnAsText(&pProp->name.name, pStmt, iPropNameCol));
         CHECK_CALL(flexi_prop_def_parse(pProp, pProp->name.name, zPropDefJson));
 
         if (iNameCol >= 0)
@@ -318,6 +316,9 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
 
         HashTable_set(&pClassDef->propMap, (DictionaryKey_t) {.pKey=pProp->name.name}, pProp);
     }
+
+    if (result != SQLITE_DONE)
+        goto ONERROR;
 
     result = SQLITE_OK;
     goto EXIT;
@@ -648,6 +649,11 @@ int flexi_class_drop_func(
     return result;
 }
 
+/// @brief
+/// @param pCtx
+/// @param iOldClassID
+/// @param zNewName
+/// @return
 int flexi_class_rename(struct flexi_Context_t *pCtx, sqlite3_int64 iOldClassID, const char *zNewName)
 {
     assert(pCtx && pCtx->db);
@@ -679,10 +685,10 @@ int flexi_class_rename(struct flexi_Context_t *pCtx, sqlite3_int64 iOldClassID, 
     return result;
 }
 
-///
-/// \param context
-/// \param argc
-/// \param argv
+/*
+ * Handler for flexi('rename class'...)
+ */
+
 int flexi_class_rename_func(
         sqlite3_context *context,
         int argc,
@@ -716,6 +722,10 @@ int flexi_class_rename_func(
     return result;
 }
 
+/*
+ * Handler for flexi('change object class'...)
+ */
+
 int flexi_change_object_class_func(
         sqlite3_context *context,
         int argc,
@@ -733,6 +743,10 @@ int flexi_change_object_class_func(
     return result;
 
 }
+
+/*
+ * Handler for flexi('properties to object'...)
+ */
 
 int flexi_prop_to_obj_func(
         sqlite3_context *context,
@@ -752,6 +766,9 @@ int flexi_prop_to_obj_func(
 
 }
 
+/*
+ * Handler for flexi('object to properties'...)
+ */
 int flexi_obj_to_props_func(
         sqlite3_context *context,
         int argc,
@@ -863,6 +880,8 @@ int flexi_class_def_generate_vtable_sql(struct flexi_ClassDef_t *pClassDef, char
 int flexi_class_def_parse(struct flexi_ClassDef_t *pClassDef,
                           const char *zClassDefJson, const char **pzErr)
 {
+    UNUSED_PARAM(pzErr);
+
     int result;
 
     sqlite3_stmt *pStmt = NULL;
