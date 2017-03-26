@@ -54,9 +54,10 @@ static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const cha
     {
         char *zTemp = zSql;
         const char *zp = zSpecProps[ii];
-        zSql = sqlite3_mprintf("%s%s\n json_extract(:1, '$.specialProperties.%s.$id') as %s_id,"
-                                       "json_extract(:1, '$.specialProperties.%s.$name') as %s_name",
-                               zTemp, sep, zp, zp, zp, zp);
+        zSql = sqlite3_mprintf("%s%s\n json_extract(:1, '$.specialProperties.%s.$id') as %s_id," // 3 * ii + 0
+                                       "json_extract(:1, '$.specialProperties.%s.$name') as %s_name," // 3 * ii + 1
+                                       "json_extract(:1, '$.specialProperties.%s') as %s", // 3 * ii + 2
+                               zTemp, sep, zp, zp, zp, zp, zp, zp);
         sep[0] = ',';
         sqlite3_free(zTemp);
     }
@@ -68,9 +69,15 @@ static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const cha
     {
         for (int ii = 0; ii < ARRAY_LEN(pClassDef->aSpecProps); ii++)
         {
-            CHECK_CALL(getColumnAsText(&pClassDef->aSpecProps[ii].name, pStmt, ii * 2 + 1));
-            pClassDef->aSpecProps[ii].bOwnName = pClassDef->aSpecProps[ii].name != NULL;
-            pClassDef->aSpecProps[ii].id = sqlite3_column_int64(pStmt, ii * 2);
+            flexi_metadata_ref* specProp = &pClassDef->aSpecProps[ii];
+            CHECK_CALL(getColumnAsText(&specProp->name, pStmt, ii * 3 + 1));
+            specProp->bOwnName = specProp->name != NULL;
+            specProp->id = sqlite3_column_int64(pStmt, ii * 3);
+            if (!specProp->bOwnName && specProp->id == 0)
+            {
+                CHECK_CALL(getColumnAsText(&specProp->name, pStmt, ii * 3 + 2));
+                specProp->bOwnName = specProp->name != NULL;
+            }
         }
     }
 
@@ -325,22 +332,16 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
 
 static int _parseClassDefAux(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson)
 {
-
-    int (*funcs[])(struct flexi_ClassDef_t *, const char *)  =
-            {_parseFullTextProperties,
-             _parseMixins,
-             _parseRangeProperties,
-             _parseSpecialProperties
-            };
-    int ii;
     int result;
-    for (ii = 0; ii < ARRAY_LEN(funcs); ii++)
-    {
-        result = funcs[ii](pClassDef, zClassDefJson);
-        if (result != SQLITE_OK)
-            return result;
-    }
-    return SQLITE_OK;
+    CHECK_CALL(_parseFullTextProperties(pClassDef, zClassDefJson));
+    CHECK_CALL(_parseMixins(pClassDef, zClassDefJson));
+    CHECK_CALL(_parseRangeProperties(pClassDef, zClassDefJson));
+    CHECK_CALL(_parseSpecialProperties(pClassDef, zClassDefJson));
+
+    goto EXIT;
+    ONERROR:
+    EXIT:
+    return result;
 }
 
 /*
@@ -993,6 +994,7 @@ int flexi_schema_func(sqlite3_context *context,
 
     if (argc == 0)
     {
+        // TODO
         // return schema definition
     }
 

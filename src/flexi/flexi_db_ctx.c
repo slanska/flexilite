@@ -295,17 +295,18 @@ int flexi_Context_getClassById(struct flexi_Context_t *self, sqlite3_int64 lClas
 
 int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol)
 {
-    int len = sqlite3_column_bytes(pStmt, iCol);
-    if (len == 0)
-    {
-        *pzDest = NULL;
+    *pzDest = NULL;
+    char *zSrc = (char *) sqlite3_column_text(pStmt, iCol);
+    if (zSrc == NULL)
         return SQLITE_OK;
-    }
+    size_t len = strlen(zSrc);
+    if (len == 0)
+        return SQLITE_OK;
 
-    *pzDest = sqlite3_malloc(len);
+    *pzDest = sqlite3_malloc((int)len + 1);
     if (*pzDest == NULL)
         return SQLITE_NOMEM;
-    strncpy(*pzDest, (char *) sqlite3_column_text(pStmt, iCol), len - 1);
+    strncpy(*pzDest, (char *) sqlite3_column_text(pStmt, iCol), len);
 
     return SQLITE_OK;
 }
