@@ -284,10 +284,10 @@ static void _run_sql_test(void **state)
 
     Array_t chkData;
     int nChkColCnt;
-    CHECK_CALL(_runSql(tt->props[TEST_DEF_PROP_CHK_DB], tt->props[TEST_DEF_PROP_CHK_SQL],
-                       tt->props[TEST_DEF_PROP_CHK_ARGS], tt->props[TEST_DEF_PROP_CHK_FILE_ARGS], &chkData, &nChkColCnt,
-                       tt->props[TEST_DEF_ENTRY_FILE_PATH]));
-
+//    CHECK_CALL(_runSql(tt->props[TEST_DEF_PROP_CHK_DB], tt->props[TEST_DEF_PROP_CHK_SQL],
+//                       tt->props[TEST_DEF_PROP_CHK_ARGS], tt->props[TEST_DEF_PROP_CHK_FILE_ARGS], &chkData, &nChkColCnt,
+//                       tt->props[TEST_DEF_ENTRY_FILE_PATH]));
+//
     if (!_compareSqlData(&testData, nInColCnt, &chkData, nChkColCnt))
     {
         // Not passed

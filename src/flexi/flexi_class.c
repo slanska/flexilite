@@ -22,7 +22,7 @@ static int _create_class_record(struct flexi_Context_t *pCtx, const char *zClass
     sqlite3_int64 lClassNameID;
     CHECK_CALL(flexi_Context_insertName(pCtx, zClassName, &lClassNameID));
     CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_INS_CLS], 1, lClassNameID));
-    CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_INS_CLS]));
+    CHECK_STMT_STEP(pCtx->pStmts[STMT_INS_CLS]);
     if (result != SQLITE_DONE)
         goto ONERROR;
 
@@ -68,12 +68,12 @@ static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const cha
 
     CHECK_STMT_PREPARE(pClassDef->pCtx->db, zSql, &pStmt);
     CHECK_CALL(sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
-    CHECK_STMT(sqlite3_step(pStmt));
+    CHECK_STMT_STEP(pStmt);
     if (result == SQLITE_ROW)
     {
         for (int ii = 0; ii < ARRAY_LEN(pClassDef->aSpecProps); ii++)
         {
-            flexi_metadata_ref* specProp = &pClassDef->aSpecProps[ii];
+            flexi_metadata_ref *specProp = &pClassDef->aSpecProps[ii];
             CHECK_CALL(getColumnAsText(&specProp->name, pStmt, ii * 3 + 1));
             specProp->bOwnName = specProp->name != NULL;
             specProp->id = sqlite3_column_int64(pStmt, ii * 3);
@@ -118,7 +118,7 @@ static int _parseRangeProperties(struct flexi_ClassDef_t *pClassDef, const char 
 
     CHECK_STMT_PREPARE(pClassDef->pCtx->db, zSql, &pStmt);
     CHECK_CALL(sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
-    CHECK_STMT(sqlite3_step(pStmt));
+    CHECK_STMT_STEP(pStmt);
     if (result == SQLITE_ROW)
     {
         for (int ii = 0; ii < ARRAY_LEN(pClassDef->aRangeProps); ii += 2)
@@ -162,7 +162,7 @@ static int _parseFullTextProperties(struct flexi_ClassDef_t *pClassDef, const ch
     sqlite3_stmt *pStmt = NULL;
     CHECK_STMT_PREPARE(pClassDef->pCtx->db, zSql, &pStmt);
     CHECK_CALL(sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
-    CHECK_STMT(sqlite3_step(pStmt));
+    CHECK_STMT_STEP(pStmt);
     if (result == SQLITE_ROW)
     {
         for (int ii = 0; ii < ARRAY_LEN(pClassDef->aFtsProps); ii++)
@@ -203,7 +203,7 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
     CHECK_CALL(sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
     while (true)
     {
-        CHECK_STMT(sqlite3_step(pStmt));
+        CHECK_STMT_STEP(pStmt);
         if (result == SQLITE_DONE)
             break;
 
@@ -236,7 +236,7 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
         CHECK_CALL(sqlite3_bind_text(pRulesStmt, 1, zRulesJson, -1, NULL));
         while (true)
         {
-            CHECK_STMT(sqlite3_step(pRulesStmt));
+            CHECK_STMT_STEP(pRulesStmt);
             if (result != SQLITE_ROW)
                 break;
 
@@ -405,6 +405,7 @@ int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
         goto ONERROR;
     }
 
+    // Create (non-complete) record in .classes table
     CHECK_CALL(_create_class_record(pCtx, zClassName, &lClassID));
 
     CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zClassDef, bCreateVTable, INVALID_DATA_ABORT, pzError));
@@ -679,7 +680,7 @@ int flexi_class_rename(struct flexi_Context_t *pCtx, sqlite3_int64 iOldClassID, 
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_RENAME]));
     sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_RENAME], 1, lNewNameID);
     sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_RENAME], 2, iOldClassID);
-    CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_CLS_RENAME]));
+    CHECK_STMT_STEP(pCtx->pStmts[STMT_CLS_RENAME]);
     result = SQLITE_OK;
     goto EXIT;
 
@@ -693,7 +694,6 @@ int flexi_class_rename(struct flexi_Context_t *pCtx, sqlite3_int64 iOldClassID, 
 /*
  * Handler for flexi('rename class'...)
  */
-
 int flexi_class_rename_func(
         sqlite3_context *context,
         int argc,
@@ -746,7 +746,6 @@ int flexi_change_object_class_func(
 
     EXIT:
     return result;
-
 }
 
 /*
@@ -868,6 +867,7 @@ int flexi_class_def_generate_vtable_sql(struct flexi_ClassDef_t *pClassDef, char
     // Fix strange issue with misplaced terminating zero
     CHECK_CALL(sqlite3_declare_vtab(pClassDef->pCtx->db, sbClassDef));
 
+    result = SQLITE_OK;
     goto EXIT;
 
     ONERROR:
@@ -875,7 +875,7 @@ int flexi_class_def_generate_vtable_sql(struct flexi_ClassDef_t *pClassDef, char
     EXIT:
     sqlite3_free(sbClassDef);
 
-    return 0;
+    return result;
 }
 
 
@@ -893,7 +893,7 @@ int flexi_class_def_parse(struct flexi_ClassDef_t *pClassDef,
 
     // Load properties
     char *zPropSql = "select key as Name, value as Definition from json_each(:1, '$.properties');";
-    CHECK_STMT_PREPARE(pClassDef->pCtx->db, zPropSql,  &pStmt);
+    CHECK_STMT_PREPARE(pClassDef->pCtx->db, zPropSql, &pStmt);
     CHECK_CALL(sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
     CHECK_CALL(_parseProperties(pClassDef, pStmt, 0, 1, -1, -1, -1));
 
@@ -941,7 +941,7 @@ int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, s
             "Data as Definition " // 5
             "from [.classes] "
             "where ClassID = :1;";
-    CHECK_STMT_PREPARE(pCtx->db, zGetClassSQL,  &pGetClassStmt);
+    CHECK_STMT_PREPARE(pCtx->db, zGetClassSQL, &pGetClassStmt);
     sqlite3_bind_int64(pGetClassStmt, 1, lClassID);
     result = sqlite3_step(pGetClassStmt);
     if (result == SQLITE_DONE)
@@ -967,14 +967,14 @@ int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, s
     if (!pCtx->pStmts[STMT_LOAD_CLS_PROP])
     {
         CHECK_STMT_PREPARE(pCtx->db, "select "
-                                              "PropertyID," // 0
-                                              "Class, " // 1
-                                              "NameID, " // 2
-                                              "Property," // 3
-                                              "ctlv," // 4
-                                              "ctlvPlan," // 5
-                                              "Definition" // 6
-                                              " from [flexi_prop] where ClassID=:1",
+                "PropertyID," // 0
+                "Class, " // 1
+                "NameID, " // 2
+                "Property," // 3
+                "ctlv," // 4
+                "ctlvPlan," // 5
+                "Definition" // 6
+                " from [flexi_prop] where ClassID=:1",
                            &pCtx->pStmts[STMT_LOAD_CLS_PROP]);
     }
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_LOAD_CLS_PROP]));
@@ -1007,7 +1007,7 @@ int flexi_schema_func(sqlite3_context *context,
                       int argc,
                       sqlite3_value **argv)
 {
-    int result = SQLITE_OK;
+    int result;
 
     sqlite3_stmt *pStmt = NULL;
     const char *zErr = NULL;

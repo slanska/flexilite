@@ -2,6 +2,7 @@
   {
     "describe": "Schema init",
     "it": "Create entire Northwind schema",
+    "inDb": "../../data/Northwind.test.db",
     "inSql": "select flexi('schema', :1);",
     "inArgs": [
       "Northwind.db3.schema.json"

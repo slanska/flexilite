@@ -792,7 +792,7 @@ _processAction(const char *zKey, const sqlite3_int64 index, _ClassAlterAction_t 
  * Physically saves class definition changes to the Flexilite database
  */
 static int
-_applyClassSchema(_ClassAlterContext_t *alterCtx)
+_applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
 {
     int result;
 
@@ -800,9 +800,10 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx)
 
     if (alterCtx->pUpsertPropDefStmt == NULL)
     {
+        // TODO Use context statement
         const char *zInsPropSQL = "insert into [flexi_prop] (NameID, ClassID, ctlv, ctlvPlan)"
                 " values (:1, :2, :3, :4);";
-        CHECK_STMT_PREPARE(alterCtx->pCtx->db, zInsPropSQL,  &alterCtx->pUpsertPropDefStmt);
+        CHECK_STMT_PREPARE(alterCtx->pCtx->db, zInsPropSQL, &alterCtx->pUpsertPropDefStmt);
     }
 
     // Pre-actions
@@ -820,6 +821,21 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx)
 
     // Post-actions
     List_each(&alterCtx->postActions, (void *) _processAction, alterCtx);
+
+    // Save class JSON definition
+    if (alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF] == NULL)
+    {
+        CHECK_STMT_PREPARE(alterCtx->pCtx->db,
+                           "update [.classes] set Data = :2 where ClassID = :1;",
+                           &alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF]);
+    }
+
+    sqlite3_stmt *pUpdClsStmt = alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF];
+    CHECK_CALL(sqlite3_reset(pUpdClsStmt));
+    CHECK_CALL(sqlite3_bind_int64(pUpdClsStmt, 1, alterCtx->pNewClassDef->lClassID));
+    CHECK_CALL(sqlite3_bind_text(pUpdClsStmt, 2, zNewClassDef, -1, NULL));
+    
+    CHECK_STMT_STEP(pUpdClsStmt);
 
     result = SQLITE_OK;
     goto EXIT;
@@ -899,7 +915,7 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
 
     CHECK_CALL(_mergeClassSchemas(&alterCtx));
 
-    CHECK_CALL(_applyClassSchema(&alterCtx));
+    CHECK_CALL(_applyClassSchema(&alterCtx, zNewClassDef));
 
     // Last step - replace existing class definition in pCtx
     // TODO

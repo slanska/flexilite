@@ -89,7 +89,7 @@ enum REF_PROP_ROLE
  * Checks result of sqlite3_step. SQLITE_DONE and SQLITE_ROW are ok.
  * Other codes are treated as error
  */
-#define CHECK_STMT(call)       result = (call); \
+#define CHECK_STMT_STEP(stmt)       result = sqlite3_step(stmt); \
         if (result != SQLITE_DONE && result != SQLITE_ROW) goto ONERROR;
 
 #define CHECK_NULL(v) if (v == NULL) { result = SQLITE_NOMEM; goto ONERROR;}

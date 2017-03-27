@@ -190,7 +190,7 @@ int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
     }
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_ID_BY_NAME]));
     CHECK_CALL(sqlite3_bind_text(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 1, zClassName, -1, NULL));
-    CHECK_STMT(sqlite3_step(pCtx->pStmts[STMT_CLS_ID_BY_NAME]));
+    CHECK_STMT_STEP(pCtx->pStmts[STMT_CLS_ID_BY_NAME]);
     if (result == SQLITE_ROW)
     {
         *pClassID = sqlite3_column_int64(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 0);

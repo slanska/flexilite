@@ -26,27 +26,71 @@ typedef struct flexi_ClassDef_t flexi_ClassDef_t;
 
 enum FLEXI_CTX_STMT
 {
-    STMT_DEL_OBJ = 0,
-    STMT_UPD_OBJ = 1,
-    STMT_UPD_PROP = 2,
-    STMT_INS_OBJ = 3,
-    STMT_INS_PROP = 4,
-    STMT_DEL_PROP = 5,
-    STMT_UPD_OBJ_ID = 6,
-    STMT_INS_NAME = 7,
-    STMT_SEL_CLS_BY_NAME = 8,
-    STMT_SEL_NAME_ID = 9,
-    STMT_SEL_PROP_ID = 10,
-    STMT_INS_RTREE = 11,
-    STMT_UPD_RTREE = 12,
-    STMT_DEL_RTREE = 13,
-    STMT_LOAD_CLS = 14,
-    STMT_LOAD_CLS_PROP = 15,
-    STMT_CLS_ID_BY_NAME = 16,
-    STMT_INS_CLS = 17,
-    STMT_CLS_HAS_DATA = 18,
-    STMT_PROP_PARSE = 19,
-    STMT_CLS_RENAME = 20,
+    // Delete .objects
+            STMT_DEL_OBJ = 0,
+
+    // Update .objects
+            STMT_UPD_OBJ = 1,
+
+    // Update .ref-values
+            STMT_UPD_PROP = 2,
+
+    // Insert into .objects
+            STMT_INS_OBJ = 3,
+
+    // Insert into .ref-values
+            STMT_INS_PROP = 4,
+
+    // Delete from .ref-values
+            STMT_DEL_PROP = 5,
+
+    // Update .object ID ?? TODO
+            STMT_UPD_OBJ_ID = 6,
+
+    // Insert into .names_props
+            STMT_INS_NAME = 7,
+
+    // Select from .classes by name TODO Used?
+            STMT_SEL_CLS_BY_NAME = 8,
+
+    // Select from .names_props by ID
+            STMT_SEL_NAME_ID = 9,
+
+    // Select property by property ID
+            STMT_SEL_PROP_ID = 10,
+
+    // Insert into .range_data
+            STMT_INS_RTREE = 11,
+
+    // Update .range_data
+            STMT_UPD_RTREE = 12,
+
+    // Delete from .range_data
+            STMT_DEL_RTREE = 13,
+
+    // Load .classes definition TODO Used?
+            STMT_LOAD_CLS = 14,
+
+    // Load flexi_props TODO Used
+            STMT_LOAD_CLS_PROP = 15,
+
+    // Get class ID by its name
+            STMT_CLS_ID_BY_NAME = 16,
+
+    // Insert into .classes
+            STMT_INS_CLS = 17,
+
+    // Check if class has data (objects)
+            STMT_CLS_HAS_DATA = 18,
+
+    // Parse property JSON definition
+            STMT_PROP_PARSE = 19,
+
+    // Rename class
+            STMT_CLS_RENAME = 20,
+
+    // Updates .classes
+            STMT_UPDATE_CLS_DEF = 21,
 
     // Should be last one in the list
             STMT_DEL_FTS = 30
@@ -139,8 +183,9 @@ int flexi_Context_insertName(struct flexi_Context_t *pCtx, const char *zName,
  */
 int flexi_Context_addClassDef(struct flexi_Context_t *self, flexi_ClassDef_t *pClassDef);
 
-int flexi_Context_getClassByName(struct flexi_Context_t*self, const char *zClassName, flexi_ClassDef_t**ppClassDef);
-int flexi_Context_getClassById(struct flexi_Context_t*self, sqlite3_int64 lClassId, flexi_ClassDef_t**ppClassDef);
+int flexi_Context_getClassByName(struct flexi_Context_t *self, const char *zClassName, flexi_ClassDef_t **ppClassDef);
+
+int flexi_Context_getClassById(struct flexi_Context_t *self, sqlite3_int64 lClassId, flexi_ClassDef_t **ppClassDef);
 
 /*
  * Checks if name does not have invalid characters and its length is within supported range (1-128)

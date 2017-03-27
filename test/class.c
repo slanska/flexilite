@@ -31,7 +31,7 @@ static void create_class_Orders(void **state)
     const char *zTail = NULL;
     CHECK_STMT_PREPARE(db, "select flexi_schema_init(:schema);", &pStmt);
     sqlite3_bind_text(pStmt, 0, zBuf, -1, NULL);
-    CHECK_STMT(sqlite3_step(pStmt));
+    CHECK_STMT_STEP(pStmt);
 
 
     goto EXIT;
