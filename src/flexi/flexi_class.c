@@ -36,6 +36,10 @@ static int _create_class_record(struct flexi_Context_t *pCtx, const char *zClass
     return result;
 }
 
+/// @brief Parses specialProperties block of class definition ({specialProperties})
+/// @param pClassDef Pointer to class definition object
+/// @param zClassDefJson Class definition JSON string to be parsed
+/// @return 0 (SQLITE_OK) is processing was successful
 static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson)
 {
     int result;
@@ -295,6 +299,7 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
         pProp->pCtx = pClassDef->pCtx;
 
         sqlite3_free(zPropDefJson);
+        zPropDefJson = NULL;
         CHECK_CALL(getColumnAsText(&zPropDefJson, pStmt, iPropDefCol));
         CHECK_CALL(getColumnAsText(&pProp->name.name, pStmt, iPropNameCol));
         CHECK_CALL(flexi_prop_def_parse(pProp, pProp->name.name, zPropDefJson));
@@ -1002,7 +1007,7 @@ int flexi_schema_func(sqlite3_context *context,
                       int argc,
                       sqlite3_value **argv)
 {
-    int result;
+    int result = SQLITE_OK;
 
     sqlite3_stmt *pStmt = NULL;
     const char *zErr = NULL;
@@ -1043,6 +1048,7 @@ int flexi_schema_func(sqlite3_context *context,
             goto ONERROR;
     }
 
+    result = SQLITE_OK;
     goto EXIT;
 
     ONERROR:
