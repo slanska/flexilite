@@ -146,7 +146,7 @@ static void flexi_func(sqlite3_context *context,
                 // Check if call finished with error
                 if (result != SQLITE_OK)
                 {
-                    sqlite3_exec(db, "rollback flexi1;", NULL, NULL, &zError);
+                    sqlite3_exec(db, "rollback to savepoint flexi1;", NULL, NULL, &zError);
                 }
                 else
                 {

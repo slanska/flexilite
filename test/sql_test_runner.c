@@ -467,9 +467,9 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     EXIT:
 
     if (pJsonStmt != NULL)
-        sqlite3_finalize(pJsonStmt);
+        result = sqlite3_finalize(pJsonStmt);
     if (db != NULL)
-        sqlite3_close(db);
+        result = sqlite3_close(db);
     Array_clear(&tests);
     SqlTestData_clear(testData);
     sqlite3_free(testData);
