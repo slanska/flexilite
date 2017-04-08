@@ -161,7 +161,7 @@ void flexi_Context_free(struct flexi_Context_t *pCtx)
         pCtx->pMemDB = NULL;
     }
 
-    flexi_free_user_info(pCtx->pCurrentUser);
+    flexi_UserInfo_free(pCtx->pCurrentUser);
 
     HashTable_clear(&pCtx->classDefsByName);
     HashTable_clear(&pCtx->classDefsById);

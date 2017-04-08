@@ -115,8 +115,8 @@ set(EXT_FILES
         src/flexi/flexi_prop_merge.h
         src/flexi/flexi_db_ctx.c
         src/flexi/flexi_db_ctx.h
-        src/flexi/flexi_user_info.c
-        src/flexi/flexi_user_info.h
+        src/flexi/flexi_UserInfo_t.c
+        src/flexi/flexi_UserInfo_t.h
         src/util/rbtree.c
         src/flexi/class_ref_def.c
         src/flexi/class_ref_def.h

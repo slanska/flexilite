@@ -8,7 +8,7 @@
 #include <sqlite3ext.h>
 #include <duktape.h>
 #include "../util/hash.h"
-#include "flexi_user_info.h"
+#include "flexi_UserInfo_t.h"
 #include "../util/Array.h"
 
 SQLITE_EXTENSION_INIT3
@@ -129,7 +129,7 @@ struct flexi_Context_t
     /*
      * Info on current user
      */
-    flexi_user_info *pCurrentUser;
+    flexi_UserInfo_t *pCurrentUser;
 
     /*
      * Duktape context. Created on demand

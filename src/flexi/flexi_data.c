@@ -30,9 +30,6 @@
  *
  * select * from flexi_data where ClassName = 'Orders' and filter = '{... filter JSON ...}'
  *
- * Since eponymous tables in SQLite are implemented with same method for create and connect,
- * the only way to distinguish between CREATE and CONNECT is number and types of passed arguments.
- * This is done by using 2 internal modules, which serve as subclasses via proxy module
  */
 
 #include "../project_defs.h"
@@ -80,6 +77,65 @@ struct flexi_vtab_cursor
 };
 
 /*
+ * Forward declarations
+ */
+static sqlite3_module _classDefProxyModule;
+static sqlite3_module _adhocQryProxyModule;
+
+static struct AdHocQryParams_t
+{
+    char *zFilter; // JSON string
+    char *zOrderBy;
+    intptr_t limit;
+    sqlite3_int64 ID;
+    intptr_t skip;
+    char *zBookmark;
+
+    /*
+     * User info. If set, will temporarily replace context user info
+     */
+    char *zUser;
+    int fetchDepth;
+
+};
+
+/*
+ * Proxy virtual table module for flexi_data
+ */
+static struct FlexiDataProxyVTab_t
+{
+    /*
+    * Should be first field. Used for virtual table initialization
+    */
+    sqlite3_vtab base;
+
+    /*
+     * Real implementation
+     */
+    sqlite3_module *pApi;
+
+    /*
+     * reference Flexi class definition.
+     * Applicable to both AdHoc and virtual table
+     */
+    flexi_ClassDef_t *pClassDef;
+
+    /*
+     * These fields are applicable to ad-hoc
+     */
+    struct AdHocQryParams_t *pQry;
+};
+
+static void FlexiDataProxyVTab_free(struct FlexiDataProxyVTab_t *self)
+{
+    if (self != NULL)
+    {
+        sqlite3_free(self);
+    }
+}
+
+
+/*
  * Initialized range bound computed column based on base range property and bound
  * @pRngProp - pointer to base range property
  * @iBound - bound shift, 1 for low bound, 2 - for high bound
@@ -124,7 +180,13 @@ static int _createNewClass(struct flexi_Context_t *pCtx, const char *zClassName,
     return result;
 }
 
-/* Connects to flexi virtual table. */
+/*
+ * Generic method to connect to flexi virtual table.
+ * Since eponymous tables in SQLite are implemented with same method for create and connect,
+ * the only way to distinguish between CREATE and CONNECT is number and types of passed arguments.
+ * This is done by using 2 internal modules, which serve as subclasses via proxy module
+
+ */
 static int flexi_data_connect(
         sqlite3 *db,
 
@@ -138,8 +200,8 @@ static int flexi_data_connect(
 
         // argv[0] - module name. Expected 'flexi_data'
         // argv[1] - database name ("main", "temp" etc.) Ignored as all changes will be stored in main database
-        // argv[2] - 'flexi_data' or name of new table (class)
-        // argv[3] - class definition in JSON
+        // argv[2] - either 'flexi_data' or name of new table (class)
+        // argv[3] - class definition in JSON (if argv[2] is not 'flexi_data')
         const char *const *argv,
 
         /*
@@ -155,6 +217,7 @@ static int flexi_data_connect(
 
     sqlite3_vtab *pNew = NULL;
 
+    // We expect pAux to be connection context
     struct flexi_Context_t *pCtx = pAux;
 
     /* Check if this is function-type call ('select * from flexi_data')
@@ -176,24 +239,30 @@ static int flexi_data_connect(
         if (argc == 3 && strcmp(argv[2], "flexi_data") == 0)
         {
             result = sqlite3_declare_vtab(db, "create table x([select] JSON1 NULL,"
-                    "[from] TEXT NULL,"
-                    "[filter] JSON1 NULL,"
-                    "[orderBy] JSON1 NULL,"
-                    "[limit] INTEGER NULL,"
-                    "[skip] INTEGER NULL,"
-                    "[bookmark] TEXT NULL,"
-                    "[user] JSON1 NULL,"
-                    "[fetchDepth] INTEGER NULL);");
+                    "[ClassName] TEXT NULL,"
+                    "[from] TEXT NULL," // Alias to ClassName, for the sake of similarity with SQL syntax
+                    "[filter] JSON1 NULL," // 'where' clause
+                    "[orderBy] JSON1 NULL," // 'order by' clause
+                    "[limit] INTEGER NULL," // 'limit' clause
+                    "[ID] INTEGER NULL," // object ID (applicable to update and delete)
+                    "[skip] INTEGER NULL," // 'skip' clause
+                    "[bookmark] TEXT NULL," // opaque string used for multi-page navigation
+                    "[user] JSON1 NULL," // user context: either string user ID or JSON with full user info
+                    "[fetchDepth] INTEGER NULL);" // when to stop when fetching nested/referenced objects
+            );
             if (result == SQLITE_OK)
             {
-                // TODO temp
-                //TODO Find/load class definition on opening
-                //            CHECK_MALLOC(pNew, sizeof(*pNew));
-                //            memset(pNew, 0, sizeof(*pNew));
-                //            *ppVtab = pNew;
             }
             goto EXIT;
         }
+        else
+        {
+            *pzErr = "Invalid arguments. Expected class name and class definition JSON"
+                    " for virtual table creation or 'flexi_data' for eponymous table";
+            result = SQLITE_ERROR;
+            goto ONERROR;
+        }
+
 
     result = SQLITE_OK;
     goto EXIT;
@@ -644,7 +713,8 @@ static void _matchTextFunction(sqlite3_context *context, int argc, sqlite3_value
         CHECK_CALL(sqlite3_open_v2(":memory:", &pDBEnv->pMemDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL));
 
         CHECK_CALL(sqlite3_exec(pDBEnv->pMemDB, "PRAGMA journal_mode = OFF;"
-                                        "create virtual table if not exists [.match_func] using 'fts4' (txt, tokenize=unicode61);", NULL, NULL,
+                                        "create virtual table if not exists [.match_func] using 'fts4' (txt, tokenize=unicode61);", NULL,
+                                NULL,
                                 NULL));
 
         CHECK_STMT_PREPARE(pDBEnv->pMemDB, "insert or replace into [.match_func] (docid, txt) values (1, :1);",
@@ -1261,6 +1331,109 @@ static int flexi_data_rename(sqlite3_vtab *pVtab, const char *zNew)
     return flexi_class_rename(pTab->pCtx, pTab->lClassID, zNew);
 }
 
+/*
+*
+Class definition
+proxy module
+.
+* Used for
+virtual table
+create and
+connect
+*/
+
+/*
+ *   int iVersion;
+  int (*xCreate)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xConnect)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xBestIndex)(sqlite3_vtab *pVTab, sqlite3_index_info*);
+  int (*xDisconnect)(sqlite3_vtab *pVTab);
+  int (*xDestroy)(sqlite3_vtab *pVTab);
+  int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor);
+  int (*xClose)(sqlite3_vtab_cursor*);
+  int (*xFilter)(sqlite3_vtab_cursor*, int idxNum, const char *idxStr,
+                int argc, sqlite3_value **argv);
+  int (*xNext)(sqlite3_vtab_cursor*);
+  int (*xEof)(sqlite3_vtab_cursor*);
+  int (*xColumn)(sqlite3_vtab_cursor*, sqlite3_context*, int);
+  int (*xRowid)(sqlite3_vtab_cursor*, sqlite3_int64 *pRowid);
+  int (*xUpdate)(sqlite3_vtab *, int, sqlite3_value **, sqlite3_int64 *);
+  int (*xBegin)(sqlite3_vtab *pVTab);
+  int (*xSync)(sqlite3_vtab *pVTab);
+  int (*xCommit)(sqlite3_vtab *pVTab);
+  int (*xRollback)(sqlite3_vtab *pVTab);
+  int (*xFindFunction)(sqlite3_vtab *pVtab, int nArg, const char *zName,
+                       void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
+                       void **ppArg);
+  int (*xRename)(sqlite3_vtab *pVtab, const char *zNew);
+  /* The methods above are in version 1 of the sqlite_module object. Those
+  ** below are for version 2 and greater.
+int (*xSavepoint)(sqlite3_vtab *pVTab, int);
+
+int (*xRelease)(sqlite3_vtab *pVTab, int);
+
+int (*xRollbackTo)(sqlite3_vtab *pVTab, int);
+
+*/
+static sqlite3_module _classDefProxyModule = {
+        .iVersion = 0,
+        .xCreate = flexi_data_connect,
+        .xConnect = flexi_data_connect,
+        .xBestIndex = flexi_data_best_index,
+        .xDisconnect = flexi_data_disconnect,
+        .xDestroy = flexi_data_destroy,
+        .xOpen = flexi_data_open,
+        .xClose = flexi_data_close,
+        .xFilter = flexi_data_filter,
+        .xNext = flexi_data_next,
+        .xEof = flexi_data_eof,
+        .xColumn = flexi_data_column,
+        .xRowid = flexi_data_row_id,
+        .xUpdate = flexi_data_update,
+        .xBegin = NULL,
+        .xSync = NULL,
+        .xCommit= NULL,
+        .xRollback = NULL,
+        .xFindFunction = flexi_data_find_method,
+        .xRename = flexi_data_rename,
+        .xSavepoint = NULL,
+        .xRelease = NULL,
+        .xRollback = NULL
+};
+
+/*
+ * Eponymous table proxy module.
+ * Used when flexi_data is accessed directly, not via virtual table
+ */
+static sqlite3_module _adhocQryProxyModule = {
+        .iVersion = 0,
+        .xCreate = flexi_data_connect,
+        .xConnect = flexi_data_connect,
+        .xBestIndex = flexi_data_best_index,
+        .xDisconnect = flexi_data_disconnect,
+        .xDestroy = flexi_data_destroy,
+        .xOpen = flexi_data_open,
+        .xClose = flexi_data_close,
+        .xFilter = flexi_data_filter,
+        .xNext = flexi_data_next,
+        .xEof = flexi_data_eof,
+        .xColumn = flexi_data_column,
+        .xRowid = flexi_data_row_id,
+        .xUpdate = flexi_data_update,
+        .xBegin = NULL,
+        .xSync = NULL,
+        .xCommit= NULL,
+        .xRollback = NULL,
+        .xFindFunction = flexi_data_find_method,
+        .xRename = flexi_data_rename,
+        .xSavepoint = NULL,
+        .xRelease = NULL,
+        .xRollback = NULL
+};
 
 /* The methods of the flexi virtual table */
 static sqlite3_module flexi_data_module = {
