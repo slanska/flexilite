@@ -742,7 +742,7 @@ _createClassDefFromDefJSON(struct flexi_Context_t *pCtx, const char *zClassDefJs
 
     (*pClassDef)->lClassID = lClassID;
     (*pClassDef)->bAsTable = bAsTable;
-    CHECK_CALL(flexi_class_def_parse(*pClassDef, zClassDefJson, &zErr));
+    CHECK_CALL(flexi_ClassDef_parse(*pClassDef, zClassDefJson, &zErr));
 
     result = SQLITE_OK;
     goto EXIT;
@@ -908,7 +908,7 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
     alterCtx.pzErr = pzErr;
 
     // Load existing class def
-    CHECK_CALL(flexi_class_def_load(pCtx, lClassID, &alterCtx.pExistingClassDef, pzErr));
+    CHECK_CALL(flexi_ClassDef_load(pCtx, lClassID, &alterCtx.pExistingClassDef, pzErr));
 
     // Parse new definition
     CHECK_CALL(_createClassDefFromDefJSON(pCtx, zNewClassDef, &alterCtx.pNewClassDef, lClassID, bCreateVTable));

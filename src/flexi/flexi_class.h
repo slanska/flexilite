@@ -141,8 +141,9 @@ typedef struct flexi_ClassDef_t
     int nRefCount;
 } flexi_ClassDef_t;
 
-int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName, const char *zClassDef, bool bCreateVTable,
-                       const char **pzError);
+int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName, const char *zClassDef,
+                          bool bCreateVTable,
+                          const char **pzError);
 
 int flexi_class_create_func(
         sqlite3_context *context,
@@ -232,20 +233,20 @@ void flexi_ClassDef_free(struct flexi_ClassDef_t *self);
  * into ppVTab (casted to flexi_vtab).
  * Used by Create and Connect methods
  */
-int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef,
-                         const char **pzErr);
+int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef,
+                        const char **pzErr);
 
 /*
  * Generates SQL to create Flexilite virtual table from class definition
  */
-int flexi_class_def_generate_vtable_sql(struct flexi_ClassDef_t *pClassDef, char **zSQL);
+int flexi_ClassDef_generateVtableSql(struct flexi_ClassDef_t *pClassDef, char **zSQL);
 
 struct flexi_ClassDef_t *flexi_class_def_new(struct flexi_Context_t *pCtx);
 
-int flexi_class_def_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson, const char **pzErr);
+int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson, const char **pzErr);
 
 int flexi_schema_func(sqlite3_context *context,
-                       int argc,
-                       sqlite3_value **argv);
+                      int argc,
+                      sqlite3_value **argv);
 
 #endif //FLEXILITE_FLEXI_CLASS_H

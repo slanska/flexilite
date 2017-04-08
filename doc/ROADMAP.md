@@ -1,5 +1,5 @@
 * &#10004; define TypeScript interfaces for basic operations
-* test flexi_class_create
+* test flexi_ClassDef_create
 * &#10004; add Northwind to Git
 * flexish - node.js utility (TypeScript)
 * JsonHelper

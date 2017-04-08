@@ -372,9 +372,9 @@ struct flexi_ClassDef_t *flexi_class_def_new(struct flexi_Context_t *pCtx)
 /// @param bCreateVTable
 /// @param pzError
 /// @return
-int flexi_class_create(struct flexi_Context_t *pCtx, const char *zClassName,
-                       const char *zClassDef, bool bCreateVTable,
-                       const char **pzError)
+int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName,
+                          const char *zClassDef, bool bCreateVTable,
+                          const char **pzError)
 {
     int result;
 
@@ -483,7 +483,7 @@ int flexi_class_create_func(
     else
     {
         void *pCtx = sqlite3_user_data(context);
-        CHECK_CALL(flexi_class_create(pCtx, zClassName, zClassDef, bCreateVTable, &zError));
+        CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, bCreateVTable, &zError));
     }
 
     result = SQLITE_OK;
@@ -829,7 +829,7 @@ void flexi_ClassDef_free(struct flexi_ClassDef_t *self)
 /*
  * Generates SQL to create Flexilite virtual table from class definition
  */
-int flexi_class_def_generate_vtable_sql(struct flexi_ClassDef_t *pClassDef, char **zSQL)
+int flexi_ClassDef_generateVtableSql(struct flexi_ClassDef_t *pClassDef, char **zSQL)
 {
     int result;
 
@@ -882,8 +882,8 @@ int flexi_class_def_generate_vtable_sql(struct flexi_ClassDef_t *pClassDef, char
 /*
  * Parses class definition JSON into classDef structure (which is supposed to be already allocated and zeroed)
  */
-int flexi_class_def_parse(struct flexi_ClassDef_t *pClassDef,
-                          const char *zClassDefJson, const char **pzErr)
+int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef,
+                         const char *zClassDefJson, const char **pzErr)
 {
     UNUSED_PARAM(pzErr);
 
@@ -914,8 +914,8 @@ int flexi_class_def_parse(struct flexi_ClassDef_t *pClassDef,
  * into ppVTab (casted to flexi_ClassDef_t).
  * Used by Create and Connect methods
  */
-int flexi_class_def_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef,
-                         const char **pzErr)
+int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef,
+                        const char **pzErr)
 {
     int result;
     char *zClassDefJson = NULL;
@@ -1041,7 +1041,7 @@ int flexi_schema_func(sqlite3_context *context,
             CHECK_CALL(getColumnAsText(&zClassDef, pStmt, 0));
             CHECK_CALL(getColumnAsText(&zClassName, pStmt, 1));
 
-            CHECK_CALL(flexi_class_create(pCtx, zClassName, zClassDef, bCreateVTable, &zErr));
+            CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, bCreateVTable, &zErr));
         }
 
         if (result != SQLITE_DONE)

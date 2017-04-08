@@ -1,4 +1,4 @@
-flexi_class_create(className:string, classDef: IClassDef)
+flexi_ClassDef_create(className:string, classDef: IClassDef)
 
 flexi_class_alter(className:string, classDef: IClassDef)
 

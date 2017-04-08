@@ -20,7 +20,7 @@
 * Set value - array of sqlite3_values
 * Unit tests
 
-### flexi_class_create
+### flexi_ClassDef_create
 * class definition validation
 * indexing
 * full text search
@@ -100,7 +100,7 @@ Transformations supported by this function:
 
 ####flexi_class_drop
 
-####flexi_class_create
+####flexi_ClassDef_create
 *Done*
 
 ####flexi_props_to_object

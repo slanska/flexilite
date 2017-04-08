@@ -35,7 +35,7 @@ For the user all these internals of storage are hidden and stored data is availa
 * **[.values]** table keeps its data in clustered index by object ID, so values belonging to the same object will be physically placed together,
 on one or 2 adjacent pages in the data file.
 
-* The following functions - flexi_class_create, flexi_class_alter, flexi_class_drop - are used to create, modify and delete classes, respectively.
+* The following functions - flexi_ClassDef_create, flexi_class_alter, flexi_class_drop - are used to create, modify and delete classes, respectively.
 Create and alter functions accept class definitions in JSON format and allow wide set of changes to be applied in single operation.
 
 * flexi_class_alter allows: a) add new properties, b) remove existing properties, c) change definitions for existing properties, including
