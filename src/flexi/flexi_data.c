@@ -2,6 +2,39 @@
 // Created by slanska on 2016-04-08.
 //
 
+/*
+ * This module implements 'flexi_data' virtual table.
+ * This virtual table is eponymous, i.e. it can be used for creating actual virtual tables
+ * as well as for CRUD operations on Flexilite classes without corresponding virtual tables.
+ *
+ * Example of actual virtual table creation:
+ * create virtual table if not exists Orders using flexi_data ('Orders', '{"... class definition JSON ..."}');
+ * This will create a new class called 'Orders' as well as corresponding permanent virtual table also called
+ * Orders. This table can be accessed as regular SQLite table, with direct access to all
+ * rows and columns
+ *
+ * Example of CRUD operations:
+ * select flexi('create class', 'Orders', '{... class definition JSON ...}')
+ * -- create new Flexilite class called Orders.
+ * No corresponding virtual table will be created by default (unless 4th boolean parameter is passed and equal true)
+ * Then this class can be accessed in the following way:
+ *
+ * insert into flexi_data(ClassName, Data) values ('Orders', '{... data ...}')
+ *
+ * update flexi_data set Data = '{... data ...}' where ClassName = 'Order' and id = 1;
+ * update flexi_data set Data = '{... data ...}' where ClassName = 'Order'
+ *  and filter = '{... filter JSON ...}';
+ *
+ * delete from flexi_data where ClassName = 'Orders' and filter = '{... filter JSON ...}'
+ * delete from flexi_data where ClassName = 'Orders' and id = 1
+ *
+ * select * from flexi_data where ClassName = 'Orders' and filter = '{... filter JSON ...}'
+ *
+ * Since eponymous tables in SQLite are implemented with same method for create and connect,
+ * the only way to distinguish between CREATE and CONNECT is number and types of passed arguments.
+ * This is done by using 2 internal modules, which serve as subclasses via proxy module
+ */
+
 #include "../project_defs.h"
 
 SQLITE_EXTENSION_INIT3
@@ -66,44 +99,28 @@ static void init_range_column(struct flexi_PropDef_t *pRngProp, unsigned char cB
 }
 
 /*
- * Creates new class
- * TODO Move to flexi_class_alter
+ * Creates new class in transaction
  */
-static int flexi_data_create(
-        sqlite3 *db,
-        // User data
-        void *pAux,
-        int argc,
-
-        // argv[0] - module name. Should be 'flexi_data'
-        // argv[1] - database name ("main", "temp" etc.) Ignored as all changes will be stored in main database
-        // argv[2] - name of new table (class)
-        // argv[3] - class definition in JSON
-        const char *const *argv,
-
-        // Result of function - table spec
-        sqlite3_vtab **ppVTab,
-        char **pzErr)
+static int _createNewClass(struct flexi_Context_t *pCtx, const char *zClassName, const char *zClassDef,
+                           struct flexi_ClassDef_t **ppClassDef, const char **pzErr)
 {
-    assert(argc == 4);
-
-    const char *zClassName = argv[2];
-    const char *zClassDef = argv[3];
-
     int result;
 
-    CHECK_CALL(flexi_class_create(pAux, zClassName, zClassDef, 1, pzErr));
+    // TODO Begin trn
+    sqlite3_int64 lClassID;
 
-    CHECK_CALL(flexi_class_def_load(db, zClassName, ppVTab, pzErr));
+    CHECK_CALL(flexi_class_create(pCtx, zClassName, zClassDef, 1, pzErr));
+    CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
+    CHECK_CALL(flexi_class_def_load(pCtx, lClassID, ppClassDef, pzErr));
+
+    // TODO Rollback/commit
 
     result = SQLITE_OK;
-
     goto EXIT;
 
     ONERROR:
 
     EXIT:
-
     return result;
 }
 
@@ -114,10 +131,19 @@ static int flexi_data_connect(
         // Should be instance of flexi_Context_t
         void *pAux,
 
-        int argc, const char *const *argv,
+        /*
+         * Number of arguments. Either 3 or 4
+         */
+        int argc,
+
+        // argv[0] - module name. Expected 'flexi_data'
+        // argv[1] - database name ("main", "temp" etc.) Ignored as all changes will be stored in main database
+        // argv[2] - 'flexi_data' or name of new table (class)
+        // argv[3] - class definition in JSON
+        const char *const *argv,
 
         /*
-         * Should be instance of flexi_ClassDef_t
+         * Instance of flexi_ClassDef_t
          */
         sqlite3_vtab **ppVtab,
         char **pzErr
@@ -125,11 +151,57 @@ static int flexi_data_connect(
 {
     sqlite3_int64 lClassID;
     assert(argc >= 3);
-    int result = flexi_Context_getClassIdByName(db, argv[2], &lClassID);
-    if (result != SQLITE_OK)
-        return result;
+    int result;
 
-    return flexi_class_def_load((struct flexi_Context_t *) pAux, lClassID, ppVtab, pzErr);
+    sqlite3_vtab *pNew = NULL;
+
+    struct flexi_Context_t *pCtx = pAux;
+
+    /* Check if this is function-type call ('select * from flexi_data')
+    or create-table-type call ('create virtual table T using flexi_data')
+
+     Function-type call will have argv[2] == 'flexi_data' and argc == 3
+     Table-create call will have argv[2] == ClassName and argc == 4
+     argv[3] will be JSON with class definition
+     */
+    if (argc == 4)
+    {
+        const char *zClassName = argv[2];
+        const char *zClassDef = argv[3];
+
+        CHECK_CALL(_createNewClass(pCtx, zClassName, zClassDef, (struct flexi_ClassDef_t **) ppVtab,
+                                   (const char **) pzErr));
+    }
+    else
+        if (argc == 3 && strcmp(argv[2], "flexi_data") == 0)
+        {
+            result = sqlite3_declare_vtab(db, "create table x([select] JSON1 NULL,"
+                    "[from] TEXT NULL,"
+                    "[filter] JSON1 NULL,"
+                    "[orderBy] JSON1 NULL,"
+                    "[limit] INTEGER NULL,"
+                    "[skip] INTEGER NULL,"
+                    "[bookmark] TEXT NULL,"
+                    "[user] JSON1 NULL,"
+                    "[fetchDepth] INTEGER NULL);");
+            if (result == SQLITE_OK)
+            {
+                // TODO temp
+                //TODO Find/load class definition on opening
+                //            CHECK_MALLOC(pNew, sizeof(*pNew));
+                //            memset(pNew, 0, sizeof(*pNew));
+                //            *ppVtab = pNew;
+            }
+            goto EXIT;
+        }
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    return result;
 
     // TODO flexi_class_def_generate_vtable_sql();
     // TODO Apply generated sql
@@ -254,7 +326,9 @@ static int flexi_data_open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
 
     const char *zPropSql = "select ObjectID, PropertyID, PropIndex, ctlv, [Value] from [.ref-values] "
             "where ObjectID = :1 order by ObjectID, PropertyID, PropIndex;";
-    CHECK_STMT_PREPARE(vtab->pCtx->db, zPropSql, &cur->pPropertyIterator);
+
+    // TODO
+    //    CHECK_STMT_PREPARE(vtab->pCtx->db, zPropSql, &cur->pPropertyIterator);
 
     result = SQLITE_OK;
     goto EXIT;
@@ -557,7 +631,7 @@ static int flexi_data_filter(sqlite3_vtab_cursor *pCursor, int idxNum, const cha
  * this looks like a reasonable compromize which should work OK for smaller sets
  * of data.
  */
-static void matchTextFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
+static void _matchTextFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
 {
     // TODO Update lookup statistics
     int result;
@@ -1191,7 +1265,8 @@ static int flexi_data_rename(sqlite3_vtab *pVtab, const char *zNew)
 /* The methods of the flexi virtual table */
 static sqlite3_module flexi_data_module = {
         0,                              /* iVersion */
-        flexi_data_create,              /* xCreate */
+        //        flexi_data_create,              /* xCreate */
+        flexi_data_connect,             /* xCreate */
         flexi_data_connect,             /* xConnect */
         flexi_data_best_index,          /* xBestIndex */
         flexi_data_disconnect,          /* xDisconnect */
@@ -1215,6 +1290,12 @@ static sqlite3_module flexi_data_module = {
         0                               /* xRollbackTo */
 };
 
+static void _flexi_Data_destroy(void *pCtx)
+{
+    printf("_flexi_Data_destroy");
+    int i = 9;
+}
+
 /*
  * Registers 'flexi_data' function and virtual table module
  */
@@ -1230,13 +1311,18 @@ int flexi_data_init(
     int result;
 
     // Init module
-    CHECK_CALL(sqlite3_create_module_v2(db, "flexi_data", &flexi_data_module, pEnv, NULL));
+    CHECK_CALL(sqlite3_create_module_v2(db, "flexi_data", &flexi_data_module, pEnv, _flexi_Data_destroy));
+
+    //    sqlite3_stmt *pTempSt = NULL;
+    //    CHECK_STMT_PREPARE(db, "select * from flexi_data(1);", &pTempSt);
+    //    CHECK_STMT_STEP(pTempSt);
+    //    sqlite3_finalize(pTempSt);
 
     /*
      * Register match_text function, used for searching on non-FTS indexed columns
      */
-    CHECK_CALL(sqlite3_create_function(db, "match_text", 2, SQLITE_UTF8, pEnv,
-                                       matchTextFunction, 0, 0));
+    CHECK_CALL(sqlite3_create_function_v2(db, "match_text", 2, SQLITE_UTF8, pEnv,
+                                          _matchTextFunction, 0, 0, _flexi_Data_destroy));
 
     result = SQLITE_OK;
     goto EXIT;
