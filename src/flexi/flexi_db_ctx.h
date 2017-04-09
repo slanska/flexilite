@@ -196,4 +196,6 @@ bool db_validate_name(const char *zName);
 
 int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol);
 
+char *String_substr(const char *zSource, intptr_t start, intptr_t len);
+
 #endif //FLEXILITE_FLEXI_ENV_H

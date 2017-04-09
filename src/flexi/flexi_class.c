@@ -319,6 +319,8 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
             pProp->xCtlvPlan = sqlite3_column_int(pStmt, ictlvPlanCol);
         }
 
+        assert(pProp->name.name != NULL);
+
         HashTable_set(&pClassDef->propMap, (DictionaryKey_t) {.pKey=pProp->name.name}, pProp);
     }
 

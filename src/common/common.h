@@ -98,6 +98,8 @@ enum REF_PROP_ROLE
 
 #define ARRAY_LEN(arr)   (sizeof(arr) / sizeof(arr[0]))
 
+#define STR_EMPTY(s) (s == NULL || strcmp(s, "") == 0)
+
 /* Mark a function parameter as unused, to suppress nuisance compiler
 ** warnings. */
 #ifndef UNUSED_PARAM

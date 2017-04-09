@@ -73,7 +73,7 @@ struct flexi_vtab_cursor
      * 0: Next was called, not Eof reached
      * 1: Next was called and Eof was reached
      */
-    int iEof;
+    short iEof;
 };
 
 /*
@@ -203,7 +203,7 @@ static int _createNewClass(struct flexi_Context_t *pCtx, const char *zClassName,
  * This is done by using 2 internal modules, which serve as subclasses via proxy module
 
  */
-static int flexi_data_createOrConnect(
+static int _createOrConnect(
         sqlite3 *db,
 
         // Should be instance of flexi_Context_t
@@ -230,6 +230,7 @@ static int flexi_data_createOrConnect(
     assert(argc >= 3);
     int result;
 
+    const char *zClassDef = NULL;
 
     struct FlexiDataProxyVTab_t *proxyVTab = NULL;
 
@@ -250,11 +251,14 @@ static int flexi_data_createOrConnect(
     if (argc == 4)
     {
         const char *zClassName = argv[2];
-        const char *zClassDef = argv[3];
+
+        // Omitting wrapping single quotes around class def JSON
+        zClassDef = String_substr(argv[3], 1, strlen(argv[3]) - 2);
 
         proxyVTab->pApi = &_classDefProxyModule;
 
-        CHECK_CALL(_createNewClass(proxyVTab->pCtx, zClassName, zClassDef, &proxyVTab->pClassDef, (const char **) pzErr));
+        CHECK_CALL(
+                _createNewClass(proxyVTab->pCtx, zClassName, zClassDef, &proxyVTab->pClassDef, (const char **) pzErr));
     }
     else
         if (argc == 3 && strcmp(argv[2], "flexi_data") == 0)
@@ -300,13 +304,14 @@ static int flexi_data_createOrConnect(
         FlexiDataProxyVTab_free(proxyVTab);
 
     EXIT:
+    sqlite3_free(zClassDef);
     return result;
 }
 
 /*
  *
  */
-static int flexi_data_disconnect(sqlite3_vtab *pVTab)
+static int _disconnect(sqlite3_vtab *pVTab)
 {
     FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
     int result = proxyVTab->pApi->xDisconnect(pVTab);
@@ -354,16 +359,13 @@ static int _bestIndex(
     return 0;
 }
 
-static int _disconnect(sqlite3_vtab *pVTab)
-{
-    return SQLITE_OK;
-}
-
 /*
  * Starts SELECT on a Flexilite class
  */
 static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
-{}
+{
+
+}
 
 /*
  * Delete class and all its object data
@@ -483,10 +485,10 @@ static int _rename(sqlite3_vtab *pVtab, const char *zNew)
 static sqlite3_module flexi_data_module = {
         0,                              /* iVersion */
         //        flexi_data_create,              /* xCreate */
-        flexi_data_createOrConnect,             /* xCreate */
-        flexi_data_createOrConnect,             /* xConnect */
+        _createOrConnect,             /* xCreate */
+        _createOrConnect,             /* xConnect */
         _bestIndex,          /* xBestIndex */
-        flexi_data_disconnect,          /* xDisconnect */
+        _disconnect,          /* xDisconnect */
         _destroy,             /* xDestroy */
         _open,                /* xOpen - open a cursor */
         _close,               /* xClose - close a cursor */
@@ -518,7 +520,7 @@ static void _flexi_Data_destroy(void *pCtx)
  * For the sake of simplicity function uses in-memory FTS4 table with 1 row, which
  * gets replaced for every call. In future this method should be re-implemented
  * and use more efficient direct calls to Sqlite FTS3/4 API. For now,
- * this looks like a reasonable compromize which should work OK for smaller sets
+ * this looks like a reasonable compromise which should work OK for smaller sets
  * of data.
  */
 static void _matchTextFunction(sqlite3_context *context, int argc, sqlite3_value **argv)
@@ -585,12 +587,8 @@ int flexi_data_init(
     // Init module
     CHECK_CALL(sqlite3_create_module_v2(db, "flexi_data", &flexi_data_module, pEnv, _flexi_Data_destroy));
 
-    //    sqlite3_stmt *pTempSt = NULL;
-    //    CHECK_STMT_PREPARE(db, "select * from flexi_data(1);", &pTempSt);
-    //    CHECK_STMT_STEP(pTempSt);
-    //    sqlite3_finalize(pTempSt);
-
     /*
+     * TODO move to general functions
      * Register match_text function, used for searching on non-FTS indexed columns
      */
     CHECK_CALL(sqlite3_create_function_v2(db, "match_text", 2, SQLITE_UTF8, pEnv,
@@ -606,4 +604,3 @@ int flexi_data_init(
     EXIT:
     return result;
 }
-

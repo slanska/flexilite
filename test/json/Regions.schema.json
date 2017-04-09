@@ -1,0 +1,23 @@
+{
+  "properties": {
+    "RegionID": {
+      "rules": {
+        "type": "integer",
+        "maxOccurences": 1,
+        "minOccurences": 1
+      },
+      "index": "unique"
+    },
+    "RegionDescription": {
+      "rules": {
+        "type": "text",
+        "maxLength": 50,
+        "maxOccurences": 1,
+        "minOccurences": 1
+      }
+    }
+  },
+  "specialProperties": {
+    "uid": "RegionID"
+  }
+}

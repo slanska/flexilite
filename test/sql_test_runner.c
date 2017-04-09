@@ -28,7 +28,10 @@ enum TEST_DEF_PROP
     TEST_DEF_PROP_CHK_FILE_ARGS = 10,
     TEST_DEF_PROP_CHK_RESULT = 11,
     TEST_DEF_ENTRY_FILE_PATH = 12,
-    TEST_DEF_PROP_LAST_INDEX = 12
+    TEST_DEF_PROP_IN_SUBST = 13,
+    TEST_DEF_PROP_CHK_SUBST = 14,
+
+    TEST_DEF_PROP_LAST_INDEX = 14
 };
 
 typedef struct SqlTestData_t
@@ -110,8 +113,8 @@ static void _bindSqlArg(const char *zKey, const sqlite3_int64 index, SqlArg_t *p
  * number of columns in the row. Total number of items in pData will be nRowCnt * nColCnt
  */
 static int
-_runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pData, int *pColCnt,
-        char *zEntryFilePath)
+_runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pData, int *pColCnt, char *zEntryFilePath,
+        char *zSubstFileNames)
 {
     int result;
 
@@ -121,6 +124,16 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
     Array_t sqlArgs;
     char *zError = NULL;
     char *zFullFilePath = NULL;
+    sqlite3_stmt *pSubstStmt = NULL;
+    char *pzFileContent = NULL;
+
+    /*
+    * Only first 16 substitute parameters will be processed. This is related to the fact that in C there
+    * is no non-hacking way to dynamically build variadic arguments. So, to support list of values we just
+    * limit maximum number of substitute strings to reasonably high number (16)
+    */
+    const char *zz[16];
+    memset(&zz, 0, sizeof(zz));
 
     Array_init(&sqlArgs, sizeof(SqlArg_t), (void *) _freeSqlArg);
 
@@ -149,50 +162,87 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
     CHECK_CALL(file_load_utf8("../../sql/dbschema.sql", &zSchemaSql));
     CHECK_CALL(sqlite3_exec(pDB, (const char *) zSchemaSql, NULL, NULL, &zError));
 
+    /*
+     * Substitute strings
+     */
+    if (!STR_EMPTY(zSubstFileNames))
+    {
+        CHECK_STMT_PREPARE(pDB, "select key, value from json_each(:1);", &pSubstStmt);
+        CHECK_CALL(sqlite3_bind_text(pSubstStmt, 1, zSubstFileNames, -1, NULL));
+        int nSubst = 0;
+        while ((result = sqlite3_step(pSubstStmt)) == SQLITE_ROW)
+        {
+            if (nSubst >= 16)
+            {
+                result = SQLITE_ERROR;
+                zError = "Number of substitute strings must not exceed 16";
+                goto ONERROR;
+            }
+            sqlite3_free(zFullFilePath);
+            zFullFilePath = NULL;
+
+            Path_join(&zFullFilePath, zEntryFilePath, (char *) sqlite3_column_text(pSubstStmt, 1));
+
+            CHECK_CALL(file_load_utf8(zFullFilePath, &pzFileContent));
+
+            zz[nSubst++] = pzFileContent;
+        }
+        if (result != SQLITE_DONE)
+            goto ONERROR;
+
+        char *zTemp = zSql;
+        zSql = sqlite3_mprintf(zTemp, zz[0], zz[1], zz[2], zz[3], zz[4], zz[5], zz[6], zz[7], zz[8],
+                               zz[9], zz[10], zz[11], zz[12], zz[13], zz[14], zz[15]);
+        sqlite3_free(zTemp);
+    }
+
     // TODO use flexi('init')
 
     CHECK_STMT_PREPARE(pDB, zSql, &pStmt);
 
-    // Prepare arguments
-    CHECK_STMT_PREPARE(pDB, "select value, type from json_each(:1);", &pArgsStmt);
-    CHECK_CALL(sqlite3_bind_text(pArgsStmt, 1, zArgs, -1, NULL));
-    int nArgCnt = 0;
-    while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW)
+    // Check if we have arguments JSON. Prepare arguments
+    if (!STR_EMPTY(zArgs))
     {
-        SqlArg_t item;
-        memset(&item, 0, sizeof(item));
-        item.pValue = sqlite3_value_dup(sqlite3_column_value(pArgsStmt, 0));
-        Array_setNth(&sqlArgs, sqlArgs.iCnt, &item);
-        nArgCnt++;
-    }
-
-    if (result != SQLITE_DONE)
-        goto ONERROR;
-
-    /*
-     * Process file args
-     */
-    CHECK_CALL(sqlite3_reset(pArgsStmt));
-    CHECK_CALL(sqlite3_bind_text(pArgsStmt, 1, zFileArgs, -1, NULL));
-    while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW)
-    {
-        int argNo = sqlite3_column_int(pArgsStmt, 0);
-        if (argNo >= 1 && argNo <= nArgCnt)
+        CHECK_STMT_PREPARE(pDB, "select value, type from json_each(:1);", &pArgsStmt);
+        CHECK_CALL(sqlite3_bind_text(pArgsStmt, 1, zArgs, -1, NULL));
+        int nArgCnt = 0;
+        while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW)
         {
-            sqlite3_free(zFullFilePath);
-            zFullFilePath = NULL;
-
-            SqlArg_t *arg = Array_getNth(&sqlArgs, (u32) argNo - 1);
-            Path_join(&zFullFilePath, zEntryFilePath, (char *) sqlite3_value_text(arg->pValue));
-
-            CHECK_CALL(file_load_utf8(zFullFilePath, &arg->zText));
+            SqlArg_t item;
+            memset(&item, 0, sizeof(item));
+            item.pValue = sqlite3_value_dup(sqlite3_column_value(pArgsStmt, 0));
+            Array_setNth(&sqlArgs, sqlArgs.iCnt, &item);
+            nArgCnt++;
         }
+
+        if (result != SQLITE_DONE)
+            goto ONERROR;
+
+        /*
+         * Process file args
+         */
+        CHECK_CALL(sqlite3_reset(pArgsStmt));
+        CHECK_CALL(sqlite3_bind_text(pArgsStmt, 1, zFileArgs, -1, NULL));
+        while ((result = sqlite3_step(pArgsStmt)) == SQLITE_ROW)
+        {
+            int argNo = sqlite3_column_int(pArgsStmt, 0);
+            if (argNo >= 1 && argNo <= nArgCnt)
+            {
+                sqlite3_free(zFullFilePath);
+                zFullFilePath = NULL;
+
+                SqlArg_t *arg = Array_getNth(&sqlArgs, (u32) argNo - 1);
+                Path_join(&zFullFilePath, zEntryFilePath, (char *) sqlite3_value_text(arg->pValue));
+
+                CHECK_CALL(file_load_utf8(zFullFilePath, &arg->zText));
+            }
+        }
+
+        if (result != SQLITE_DONE)
+            goto ONERROR;
+
+        Array_each(&sqlArgs, (void *) _bindSqlArg, pStmt);
     }
-
-    if (result != SQLITE_DONE)
-        goto ONERROR;
-
-    Array_each(&sqlArgs, (void *) _bindSqlArg, pStmt);
 
     while ((result = sqlite3_step(pStmt)) == SQLITE_ROW)
     {
@@ -208,7 +258,6 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
 
     if (result != SQLITE_DONE)
         goto ONERROR;
-
     result = SQLITE_OK;
     goto EXIT;
 
@@ -225,9 +274,16 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
 
     sqlite3_finalize(pStmt);
     sqlite3_finalize(pArgsStmt);
+    sqlite3_finalize(pSubstStmt);
     sqlite3_close(pDB);
     Array_clear(&sqlArgs);
     sqlite3_free(zFullFilePath);
+
+    for (int i = 0; i < ARRAY_LEN(zz); i++)
+        sqlite3_free((void *) zz[i]);
+
+    if (pzFileContent != NULL)
+        sqlite3_free(pzFileContent);
 
     sqlite3_free(zError);
 
@@ -280,15 +336,16 @@ static void _run_sql_test(void **state)
     int nInColCnt;
     CHECK_CALL(
             _runSql(tt->props[TEST_DEF_PROP_IN_DB], tt->props[TEST_DEF_PROP_IN_SQL], tt->props[TEST_DEF_PROP_IN_ARGS],
-                    tt->props[TEST_DEF_PROP_IN_FILE_ARGS], &testData, &nInColCnt, tt->props[TEST_DEF_ENTRY_FILE_PATH]));
+                    tt->props[TEST_DEF_PROP_IN_FILE_ARGS], &testData, &nInColCnt, tt->props[TEST_DEF_ENTRY_FILE_PATH],
+                    tt->props[TEST_DEF_PROP_IN_SUBST]));
 
     Array_t chkData;
     int nChkColCnt;
-//    CHECK_CALL(_runSql(tt->props[TEST_DEF_PROP_CHK_DB], tt->props[TEST_DEF_PROP_CHK_SQL],
-//                       tt->props[TEST_DEF_PROP_CHK_ARGS], tt->props[TEST_DEF_PROP_CHK_FILE_ARGS], &chkData, &nChkColCnt,
-//                       tt->props[TEST_DEF_ENTRY_FILE_PATH]));
-//
-    if (!_compareSqlData(&testData, nInColCnt, &chkData, nChkColCnt))
+    //    CHECK_CALL(_runSql(tt->props[TEST_DEF_PROP_CHK_DB], tt->props[TEST_DEF_PROP_CHK_SQL],
+    //                       tt->props[TEST_DEF_PROP_CHK_ARGS], tt->props[TEST_DEF_PROP_CHK_FILE_ARGS], &chkData, &nChkColCnt,
+    //                       tt->props[TEST_DEF_ENTRY_FILE_PATH], tt->props[TEST_DEF_PROP_CHK_SUBST]));
+    //
+    if (nChkColCnt > 0 && !_compareSqlData(&testData, nInColCnt, &chkData, nChkColCnt))
     {
         // Not passed
     }
@@ -388,6 +445,24 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     // Open memory database
     CHECK_CALL(sqlite3_open(":memory:", &db));
 
+    /*
+     *     TEST_DEF_PROP_INCLUDE = 0,
+    TEST_DEF_PROP_DESCRIBE = 1,
+    TEST_DEF_PROP_IT = 2,
+    TEST_DEF_PROP_IN_DB = 3,
+    TEST_DEF_PROP_IN_SQL = 4,
+    TEST_DEF_PROP_IN_ARGS = 5,
+    TEST_DEF_PROP_IN_FILE_ARGS = 6,
+    TEST_DEF_PROP_CHK_DB = 7,
+    TEST_DEF_PROP_CHK_SQL = 8,
+    TEST_DEF_PROP_CHK_ARGS = 9,
+    TEST_DEF_PROP_CHK_FILE_ARGS = 10,
+    TEST_DEF_PROP_CHK_RESULT = 11,
+    TEST_DEF_ENTRY_FILE_PATH = 12,
+    TEST_DEF_PROP_IN_SUBST = 13,
+    TEST_DEF_PROP_CHK_SUBST = 14,
+
+     */
     const char *zSelJSON = "select json_extract(value, '$.include') as [include], " // 0
             "json_extract(value, '$.describe') as [describe], " // 1
             "json_extract(value, '$.it') as [it], " // 2
@@ -399,9 +474,11 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
             "json_extract(value, '$.chkSql') as [chkSql], " // 8
             "json_extract(value, '$.chkArgs') as [chkArgs], " // 9
             "json_extract(value, '$.chkFileArgs') as [chkFileArgs], " // 10
-            "json_extract(value, '$.chkResult') as [chkResult] " // 11
+            "json_extract(value, '$.chkResult') as [chkResult], " // 11
+            "json_extract(value, '$.entryFilePath') as [entryFilePath], " // 12
+            "json_extract(value, '$.inSubst') as [inSubst], " // 13
+            "json_extract(value, '$.chkSubst') as [chkSubst] " // 14
             "from json_each(:1);";
-
 
     SqlTestData_init(&prevTestData);
 

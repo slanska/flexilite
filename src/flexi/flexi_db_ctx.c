@@ -303,11 +303,28 @@ int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol)
     if (len == 0)
         return SQLITE_OK;
 
-    *pzDest = sqlite3_malloc((int)len + 1);
+    *pzDest = sqlite3_malloc((int) len + 1);
     if (*pzDest == NULL)
         return SQLITE_NOMEM;
     strncpy(*pzDest, (char *) sqlite3_column_text(pStmt, iCol), len);
     (*pzDest)[len] = 0;
 
     return SQLITE_OK;
+}
+
+char *String_substr(const char *zSource, intptr_t start, intptr_t len)
+{
+    if (len == 0)
+        return NULL;
+
+    size_t sourceLen = strlen(zSource);
+    assert(start >= 0 && start + len < sourceLen);
+    char *result = sqlite3_malloc((int) (len + 1));
+    if (result == NULL)
+        return NULL;
+
+    strncpy(result, zSource + start, len);
+    result[len] = 0;
+
+    return result;
 }

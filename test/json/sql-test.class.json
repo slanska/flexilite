@@ -1,6 +1,29 @@
 [
   {
     "describe": "Schema init",
+    "it": "Creates Regions table using flexi_data",
+    "inDb": "../../data/Northwind.test.db",
+    "inSql": "create virtual table if not exists [Regions] using flexi_data(%Q);",
+    "inSubst": [
+      "Regions.schema.json"
+    ],
+    "chkResult": null
+  },
+  {
+    "describe": "Schema init",
+    "it": "Initializes flexi_data",
+    "inDb": "../../data/Northwind.test.db",
+    "inSql": "select * from flexi_data('Regions') where filter=:1;",
+    "inArgs": [
+      "Regions.schema.json"
+    ],
+    "inFileArgs": [
+      1
+    ],
+    "chkResult": null
+  },
+  {
+    "describe": "Schema init",
     "it": "Create entire Northwind schema",
     "inDb": "../../data/Northwind.test.db",
     "inSql": "select flexi('schema', :1);",
