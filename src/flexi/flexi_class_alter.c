@@ -826,15 +826,15 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     if (alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF] == NULL)
     {
         CHECK_STMT_PREPARE(alterCtx->pCtx->db,
-                           "update [.classes] set Data = :2 where ClassID = :1;",
+                           "update [.classes] set Data = :1 where ClassID = :2;",
                            &alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF]);
     }
 
     sqlite3_stmt *pUpdClsStmt = alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF];
     CHECK_CALL(sqlite3_reset(pUpdClsStmt));
-    CHECK_CALL(sqlite3_bind_int64(pUpdClsStmt, 1, alterCtx->pNewClassDef->lClassID));
-    CHECK_CALL(sqlite3_bind_text(pUpdClsStmt, 2, zNewClassDef, -1, NULL));
-    
+    CHECK_CALL(sqlite3_bind_text(pUpdClsStmt, 1, zNewClassDef, -1, NULL));
+    CHECK_CALL(sqlite3_bind_int64(pUpdClsStmt, 2, alterCtx->pNewClassDef->lClassID));
+
     CHECK_STMT_STEP(pUpdClsStmt);
 
     result = SQLITE_OK;

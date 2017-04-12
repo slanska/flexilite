@@ -963,6 +963,10 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
     (*pClassDef)->bSystemClass = (bool) sqlite3_column_int(pGetClassStmt, 2);
     (*pClassDef)->xCtloMask = sqlite3_column_int(pGetClassStmt, 3);
 
+    // TODO Temp
+    char *zClassDef = NULL;
+    getColumnAsText(&zClassDef, pGetClassStmt, 5);
+
     //    CHECK_CALL(getColumnAsText(&(*pClassDef)->zHash, pGetClassStmt, 4));
 
     // Load properties from flexi_prop
@@ -1001,6 +1005,8 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
     if (pGetClassStmt)
         sqlite3_finalize(pGetClassStmt);
     sqlite3_free(zClassDefJson);
+
+    sqlite3_free(zClassDef);
 
     return result;
 }
