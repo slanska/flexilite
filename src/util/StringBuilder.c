@@ -20,10 +20,10 @@ SQLITE_EXTENSION_INIT3
 #endif
 
 /*
- * Set the StringBuilder object to an empty string
+ * Set the StringBuilder_t object to an empty string
 */
 static void
-_zero(StringBuilder *self)
+_zero(StringBuilder_t *self)
 {
     self->zBuf = self->zSpace;
     self->nAlloc = sizeof(self->zSpace);
@@ -31,7 +31,7 @@ _zero(StringBuilder *self)
     self->bStatic = true;
 }
 
-void StringBuilder_init(StringBuilder *self)
+void StringBuilder_init(StringBuilder_t *self)
 {
     memset(self, 0, sizeof(*self));
     self->bErr = false;
@@ -42,7 +42,7 @@ void StringBuilder_init(StringBuilder *self)
 ** Return zero on success.  Return non-zero on an OOM error
 */
 static int
-_grow(StringBuilder *self, uint32_t N)
+_grow(StringBuilder_t *self, uint32_t N)
 {
     sqlite3_uint64 nTotal = N < self->nAlloc ? self->nAlloc * 2 : self->nAlloc + N + 10;
     char *zNew;
@@ -71,10 +71,13 @@ _grow(StringBuilder *self, uint32_t N)
     return SQLITE_OK;
 }
 
-/* Append N bytes from zIn onto the end of the StringBuilder string.
+/* Append N bytes from zIn onto the end of the StringBuilder_t string.
 */
-void StringBuilder_appendRaw(StringBuilder *self, const char *zInStr, uint32_t nInStrLen)
+void StringBuilder_appendRaw(StringBuilder_t *self, const char *zInStr, int32_t nInStrLen)
 {
+    if (nInStrLen < 0)
+        nInStrLen = (int32_t) strlen(zInStr);
+
     if ((nInStrLen + self->nUsed >= self->nAlloc) && _grow(self, nInStrLen) != 0)
         return;
     memcpy(self->zBuf + self->nUsed, zInStr, nInStrLen);
@@ -84,31 +87,36 @@ void StringBuilder_appendRaw(StringBuilder *self, const char *zInStr, uint32_t n
 /* Append a single character
 */
 static void
-_appendChar(StringBuilder *p, char c)
+_appendChar(StringBuilder_t *p, char c)
 {
     if (p->nUsed >= p->nAlloc && _grow(p, 1) != 0)
         return;
     p->zBuf[p->nUsed++] = c;
 }
 
-/* Free all allocated memory and reset the StringBuilder object back to its
+/* Free all allocated memory and reset the StringBuilder_t object back to its
 ** initial state.
 */
-void StringBuilder_clear(StringBuilder *self)
+void StringBuilder_clear(StringBuilder_t *self)
 {
     if (!self->bStatic)
         sqlite3_free(self->zBuf);
     _zero(self);
 }
 
-/* Append the N-byte string in zIn to the end of the StringBuilder string
+/* Append the N-byte string in zIn to the end of the StringBuilder_t string
 ** under construction.  Enclose the string in "..." and escape
 ** any double-quotes or backslash characters contained within the
 ** string.
+** If N < 0, number of characters to take will be determined by strlen(zIn)
 */
-void StringBuilder_appendJsonElem(StringBuilder *p, const char *zIn, uint32_t N)
+void StringBuilder_appendJsonElem(StringBuilder_t *p, const char *zIn, int32_t N)
 {
     uint32_t i;
+
+    if (N < 0)
+        N = strlen(zIn);
+
     if ((N + p->nUsed + 2 >= p->nAlloc) && _grow(p, N + 2) != 0) return;
     p->zBuf[p->nUsed++] = '"';
     for (i = 0; i < N; i++)

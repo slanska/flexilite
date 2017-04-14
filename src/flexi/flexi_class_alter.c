@@ -336,7 +336,7 @@ _validatePropChange(const char *zPropName, int index, struct flexi_PropDef_t *p,
 
     // Check if class2 has the same property
     struct flexi_PropDef_t *pProp2;
-    pProp2 = HashTable_get(&alterCtx->pExistingClassDef->propMap, (DictionaryKey_t) {.pKey= zPropName});
+    pProp2 = HashTable_get(&alterCtx->pExistingClassDef->propsByName, (DictionaryKey_t) {.pKey= zPropName});
 
     if (pProp2)
     {
@@ -499,7 +499,7 @@ _validateClassData(_ClassAlterContext_t *alterCtx)
 
     // Iterate
 
-    HashTable_each(&alterCtx->pNewClassDef->propMap, (void *) _validateProp, &params);
+    HashTable_each(&alterCtx->pNewClassDef->propsByName, (void *) _validateProp, &params);
 
 
     return result;
@@ -516,11 +516,11 @@ _copyExistingProp(const char *zPropName, int idx, struct flexi_PropDef_t *prop, 
     UNUSED_PARAM(idx);
     UNUSED_PARAM(propMap);
 
-    struct flexi_PropDef_t *pNewProp = HashTable_get(&alterCtx->pNewClassDef->propMap,
+    struct flexi_PropDef_t *pNewProp = HashTable_get(&alterCtx->pNewClassDef->propsByName,
                                                      (DictionaryKey_t) {.pKey = zPropName});
     if (!pNewProp)
     {
-        HashTable_set(&alterCtx->pNewClassDef->propMap, (DictionaryKey_t) {.pKey=zPropName}, prop);
+        HashTable_set(&alterCtx->pNewClassDef->propsByName, (DictionaryKey_t) {.pKey=zPropName}, prop);
         prop->eChangeStatus = CHNG_STATUS_NOT_MODIFIED;
         prop->nRefCount++;
     }
@@ -594,10 +594,10 @@ _findPropByMetadataRef(struct flexi_ClassDef_t *pClassDef, flexi_metadata_ref *p
 {
     if (pRef->id != 0)
     {
-        *pProp = HashTable_each(&pClassDef->propMap, (void *) _compPropByIdAndName, pRef);
+        *pProp = HashTable_each(&pClassDef->propsByName, (void *) _compPropByIdAndName, pRef);
     }
     else
-        *pProp = HashTable_get(&pClassDef->propMap, (DictionaryKey_t) {.pKey=pRef->name});
+        *pProp = HashTable_get(&pClassDef->propsByName, (DictionaryKey_t) {.pKey=pRef->name});
 
     return *pProp != NULL;
 }
@@ -691,12 +691,12 @@ _mergeClassSchemas(_ClassAlterContext_t *alterCtx)
 
     // Copy existing properties if they are not defined in new schema
     // These properties will get eChangeStatus NONMODIFIED
-    HashTable_each(&alterCtx->pExistingClassDef->propMap, (void *) _copyExistingProp, alterCtx);
+    HashTable_each(&alterCtx->pExistingClassDef->propsByName, (void *) _copyExistingProp, alterCtx);
     if (*alterCtx->pzErr)
         goto ONERROR;
 
     // Iterate through properties. Find props: to be renamed, to be deleted, to be updated, to be added
-    HashTable_each(&alterCtx->pNewClassDef->propMap, (void *) _validatePropChange, alterCtx);
+    HashTable_each(&alterCtx->pNewClassDef->propsByName, (void *) _validatePropChange, alterCtx);
     if (*alterCtx->pzErr)
         goto ONERROR;
 
@@ -810,7 +810,7 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     List_each(&alterCtx->preActions, (void *) _processAction, alterCtx);
 
     // Ensure properties exist and updated
-    if (HashTable_each(&alterCtx->pNewClassDef->propMap, (void *) _upsertPropDef, alterCtx) != NULL)
+    if (HashTable_each(&alterCtx->pNewClassDef->propsByName, (void *) _upsertPropDef, alterCtx) != NULL)
     {
         result = alterCtx->nSqlResult;
         goto ONERROR;

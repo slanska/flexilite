@@ -484,7 +484,6 @@ static int _rename(sqlite3_vtab *pVtab, const char *zNew)
 /* The methods of the flexi virtual table */
 static sqlite3_module flexi_data_module = {
         0,                              /* iVersion */
-        //        flexi_data_create,              /* xCreate */
         _createOrConnect,             /* xCreate */
         _createOrConnect,             /* xConnect */
         _bestIndex,          /* xBestIndex */

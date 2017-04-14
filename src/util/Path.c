@@ -49,7 +49,7 @@ _processSegment(const char *zKey, const sqlite3_int64 idx, Token_t *pToken, Arra
 }
 
 static void
-_concatenateSegment(const char *zKey, const sqlite3_int64 idx, Token_t *pToken, Array_t *self, StringBuilder *sb,
+_concatenateSegment(const char *zKey, const sqlite3_int64 idx, Token_t *pToken, Array_t *self, StringBuilder_t *sb,
                     bool *bStop)
 {
     UNUSED_PARAM(zKey);
@@ -58,13 +58,13 @@ _concatenateSegment(const char *zKey, const sqlite3_int64 idx, Token_t *pToken, 
 
     if (pToken->len == 0 && idx == 0)
     {
-        StringBuilder_appendRaw(sb, PATH_SEPARATOR, (uint32_t) strlen(PATH_SEPARATOR));
+        StringBuilder_appendRaw(sb, PATH_SEPARATOR, (int32_t) strlen(PATH_SEPARATOR));
     }
     else
     {
         StringBuilder_appendRaw(sb, pToken->zValue, (int32_t) pToken->len);
         if (idx != self->iCnt - 1)
-            StringBuilder_appendRaw(sb, PATH_SEPARATOR, (uint32_t) strlen(PATH_SEPARATOR));
+            StringBuilder_appendRaw(sb, PATH_SEPARATOR, (int32_t) strlen(PATH_SEPARATOR));
     }
 }
 
@@ -108,7 +108,7 @@ void Path_join(char **pzResult, const char *zBase, const char *zAddPath)
     Array_t newSegs;
     Array_init(&newSegs, sizeof(Token_t), NULL);
 
-    StringBuilder strBuf;
+    StringBuilder_t strBuf;
     StringBuilder_init(&strBuf);
 
     Array_each(&segments, (void *) _processSegment, &newSegs);

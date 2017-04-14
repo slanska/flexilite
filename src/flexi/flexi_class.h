@@ -73,6 +73,8 @@ typedef struct flexi_ClassDef_t
 {
     /*
      * Should be first field. Used for virtual table initialization
+     *
+     * TODO needed ?
      */
     sqlite3_vtab base;
 
@@ -129,10 +131,18 @@ typedef struct flexi_ClassDef_t
     flexi_metadata_ref aRangeProps[RTREE_PROP_COUNT];
 
     /*
-     * Dictionary of properties by their names
+     * Dictionary of properties by name
      */
-    Hash propMap;
+    Hash propsByName;
 
+    /*
+     * Dictionary of properties by ID
+     */
+    Hash propsByID;
+
+    /*
+     * Array of flexi_class_ref_def
+     */
     Array_t *aMixins;
 
     /*
