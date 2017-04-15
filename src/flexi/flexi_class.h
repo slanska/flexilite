@@ -80,9 +80,6 @@ typedef struct flexi_ClassDef_t
 
     sqlite3_int64 lClassID;
 
-    // Array of property metadata, by column index
-    struct flexi_PropDef_t *pProps;
-
     /*
      * Class definition hash
      *
@@ -93,7 +90,7 @@ typedef struct flexi_ClassDef_t
     /*
      * Class name definition
      */
-    flexi_metadata_ref name;
+    flexi_MetadataRef_t name;
 
     /*
      * This class is a system one, so that it cannot be removed
@@ -118,27 +115,27 @@ typedef struct flexi_ClassDef_t
     /*
      * Special property definitions
      */
-    flexi_metadata_ref aSpecProps[SPCL_PROP_COUNT];
+    flexi_MetadataRef_t aSpecProps[SPCL_PROP_COUNT];
 
     /*
      * Full text index property mapping
      */
-    flexi_metadata_ref aFtsProps[FTS_PROP_COUNT];
+    flexi_MetadataRef_t aFtsProps[FTS_PROP_COUNT];
 
     /*
      * Rtree index property mapping
      */
-    flexi_metadata_ref aRangeProps[RTREE_PROP_COUNT];
+    flexi_MetadataRef_t aRangeProps[RTREE_PROP_COUNT];
 
     /*
-     * Dictionary of properties by name
+     * Class properties can be accessed via name, ID or column number.
+     * The following fields provide fast access, respectively.
+     * propsByName is considered as principal container
+     *
      */
     Hash propsByName;
-
-    /*
-     * Dictionary of properties by ID
-     */
     Hash propsByID;
+    struct flexi_PropDef_t *pProps;
 
     /*
      * Array of flexi_class_ref_def

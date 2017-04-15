@@ -15,84 +15,84 @@ declare type PropertyType =
      */
     'text' |
 
-        /*
-         Property is stored as integer value pointing to row in .names table.
-         This type is compatible with 'text' type and gives the following advantages:
-         a) more compact storage
-         b) automatic full text indexing
-         c) i18n support. Queries will return text data translated based on cultural context.
+    /*
+     Property is stored as integer value pointing to row in .names table.
+     This type is compatible with 'text' type and gives the following advantages:
+     a) more compact storage
+     b) automatic full text indexing
+     c) i18n support. Queries will return text data translated based on cultural context.
 
-         Regular indexing is also available, though only unique indexing is what really makes sense for 'name' type (as values are full-text indexed anyway)
-         */
-        'name' |
+     Regular indexing is also available, though only unique indexing is what really makes sense for 'name' type (as values are full-text indexed anyway)
+     */
+    'name' |
 
-        /*
-         Up to 64 bit integer
-         */
-        'integer' |
+    /*
+     Up to 64 bit integer
+     */
+    'integer' |
 
-        /*
-         Double precision float
-         */
-        'number' |
+    /*
+     Double precision float
+     */
+    'number' |
 
-        /*
-         true or false, obviously
-         */
-        'boolean' |
+    /*
+     true or false, obviously
+     */
+    'boolean' |
 
-        /*
-         Stored as Julian double value. Integer part - number of days, fractional - time of day
-         Precision is
-         */
-        'date' |
-        'timespan' |
-        'datetime' |
+    /*
+     Stored as Julian double value. Integer part - number of days, fractional - time of day
+     Precision is
+     */
+    'date' |
+    'timespan' |
+    'datetime' |
 
-        /*
-         BLOB
-         */
-        'binary' |
-        'uuid' |
+    /*
+     BLOB
+     */
+    'binary' |
+    'uuid' |
 
-        /*
-         Enumerated value. If property type is 'enum', property definition must have enumDef filled.
-         enumDef can have either list of values or enum name or enum ID. When processing ID takes
-         precedence, then name, then list of values.
-         If list is passed, it will be processed and saved in .enums table.
-         */
-        'enum' |
+    /*
+     Enumerated value. If property type is 'enum', property definition must have enumDef filled.
+     enumDef can have either list of values or enum name or enum ID. When processing ID takes
+     precedence, then name, then list of values.
+     If list is passed, it will be processed and saved in .enums table.
+     */
+    'enum' |
 
-        /*
-         Property is a relation and references another object(s). If this property type is set,
-         property definition must have refDef filled (IReferencePropertyDefinition).
-         Usually reference properties are defined in both related classes. One class is master,
-         second is linked.
-         */
-        'reference' |
+    /*
+     Property is a relation and references another object(s). If this property type is set,
+     property definition must have refDef filled (IReferencePropertyDefinition).
+     Usually reference properties are defined in both related classes. One class is master,
+     second is linked.
+     */
+    'reference' |
 
-        /*
-         Property can be of any type. No validation or additional processing is applied.
-         Property can be still indexed.
-         */
-        'any' |
+    /*
+     Property can be of any type. No validation or additional processing is applied.
+     Property can be still indexed.
+     */
+    'any' |
 
-        /*
-         JSON type
-         */
-        'json' |
+    /*
+     JSON type
+     */
+    'json' |
 
-        /*
-         Stored as integer with 4 decimal places.
-         For example, $100.39 will be stored as 1003900
-         (the same storage format used by Visual Basic script - 4 decimal point accuracy)
-         */
-        'money' |
+    /*
+     Stored as integer with 4 decimal places.
+     For example, $100.39 will be stored as 1003900
+     (the same storage format used by Visual Basic script - 4 decimal point accuracy)
+     */
+    'money' |
 
-        /*
-         Volatile, not stored property. Accepted on input but ignored
-         */
-        'computed';
+    /*
+     Volatile, not stored property. Accepted on input but ignored
+     */
+    'computed';
 
 declare type PropertyIndexMode =
     /*
@@ -100,32 +100,32 @@ declare type PropertyIndexMode =
      */
     'none'
 
-        /*
-         Property is indexed for fast lookup. Duplicates are allowed. Applied for text(up to 255),
-         blob (up to 255), date*, integer and float values
-         */
-        | 'index'
+    /*
+     Property is indexed for fast lookup. Duplicates are allowed. Applied for text(up to 255),
+     blob (up to 255), date*, integer and float values
+     */
+    | 'index'
 
-        /*
-         This property is unique among all class objects. Note: properties with role ID or Code are assumed to be unique
-         Data types supported are the same as for 'index'
-         */
-        | 'unique'
+    /*
+     This property is unique among all class objects. Note: properties with role ID or Code are assumed to be unique
+     Data types supported are the same as for 'index'
+     */
+    | 'unique'
 
-        /*
-         This property is part of range definition (together with another property), either as low bound or high bound.
-         SQLite RTree is used for range index and up to 4 pairs of properties can be indexed.
-         Only numeric, integer or date properties can be indexed using RTRee.
-         Actual mapping between properties and RTRee columns is done in IClassDefinition.rangeIndexing
-         Attempt to apply range index for other property types will result in an error.
-         */
-        | 'range'
+    /*
+     This property is part of range definition (together with another property), either as low bound or high bound.
+     SQLite RTree is used for range index and up to 4 pairs of properties can be indexed.
+     Only numeric, integer or date properties can be indexed using RTRee.
+     Actual mapping between properties and RTRee columns is done in IClassDefinition.rangeIndexing
+     Attempt to apply range index for other property types will result in an error.
+     */
+    | 'range'
 
-        /*
-         Content will be indexed for full text search. Applicable to text values only.
-         Name type will be indexed by default
-         */
-        | 'fulltext';
+    /*
+     Content will be indexed for full text search. Applicable to text values only.
+     Name type will be indexed by default
+     */
+    | 'fulltext';
 
 /*
  Type of relationship between objects.
@@ -137,21 +137,21 @@ declare type RelationRule =
      */
     'master' |
 
-        /*
-         Loose association between 2 objects. When object gets deleted, references are deleted too.
-         Equivalent of DELETE SET NULL
-         */
-        'link' |
+    /*
+     Loose association between 2 objects. When object gets deleted, references are deleted too.
+     Equivalent of DELETE SET NULL
+     */
+    'link' |
 
-        /*
-         Similar to master but referenced objects are treated as part of master object
-         */
-        'nested' |
+    /*
+     Similar to master but referenced objects are treated as part of master object
+     */
+    'nested' |
 
-        /*
-         Object cannot be deleted if there are references. Equivalent of DELETE RESTRICT
-         */
-        'dependent' ;
+    /*
+     Object cannot be deleted if there are references. Equivalent of DELETE RESTRICT
+     */
+    'dependent' ;
 
 /*
  User-friendly and internal way to specify class, property or name
@@ -204,6 +204,11 @@ declare interface IReferencePropertyDef extends TMixinClassDef {
 
 /*
  Enum definition: either $id or $name or items
+ Possible scenarios:
+ a) $id > 0, items must be null, $name is ignored: existing enum def by $id will be used
+ b) $name is set, $id is null or 0, items are null: existing enum def by $name will be used
+ c) items are not null. New enum will be created. If $name is set, it will be its new name, otherwise name
+  will be composed from class name and property name
  */
 declare interface IEnumPropertyDef extends IMetadataRef {
     items?: IEnumItem[];
@@ -211,13 +216,13 @@ declare interface IEnumPropertyDef extends IMetadataRef {
 
 declare type PropertySubType =
     'text'
-        | 'email'
-        | 'ip'
-        | 'password'
-        | 'ip6v'
-        | 'url'
-        | 'image'
-        | 'html';
+    | 'email'
+    | 'ip'
+    | 'password'
+    | 'ip6v'
+    | 'url'
+    | 'image'
+    | 'html';
 // TODO To be extended
 
 /*
@@ -361,7 +366,7 @@ declare interface IQueryDef {
     skip?: number;
     bookmark?: string;
     user?: IUserContext;
-    fetchDepth?:number;
+    fetchDepth?: number;
 }
 
 /*
@@ -408,7 +413,7 @@ declare type QueryWhereOperator = '$eq' | '$ne' | '$lt' | '$gt' | '$le' | '$ge' 
      */
     '$difference';
 
-type IClassPropertyDictionary = {[propID: string]: IClassPropertyDef};
+type IClassPropertyDictionary = { [propID: string]: IClassPropertyDef };
 
 /*
  /*
@@ -586,4 +591,4 @@ interface IStorageFlexiRelProperty {
     refProperty: IMetadataRef;
 }
 
-type IClassPropertyDictionaryByName = {[propName: string]: IClassPropertyDef};
+type IClassPropertyDictionaryByName = { [propName: string]: IClassPropertyDef };

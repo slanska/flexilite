@@ -156,7 +156,7 @@ int flexi_prop_def_parse(struct flexi_PropDef_t *pProp, const char *zPropName, c
         // Check enumDef
         if (pProp->zEnumDef)
         {
-            flexi_metadata_ref enumName;
+            flexi_MetadataRef_t enumName;
             enumName.id = sqlite3_column_int64(st, 14);
             CHECK_CALL(getColumnAsText(&enumName.name, st, 15));
 

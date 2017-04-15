@@ -40,7 +40,7 @@ struct _ClassAlterAction_t
     /*
      * Class or property reference
      */
-    flexi_metadata_ref *ref;
+    flexi_MetadataRef_t *ref;
 
     /*
      * Action function
@@ -58,7 +58,7 @@ struct _ClassAlterAction_t
     var params;
 };
 
-_ClassAlterAction_t *_ClassAlterAction_new(flexi_metadata_ref *ref,
+_ClassAlterAction_t *_ClassAlterAction_new(flexi_MetadataRef_t *ref,
                                            int (*action)(_ClassAlterAction_t *self, _ClassAlterContext_t *pCtx),
                                            void (*disposeParams)(_ClassAlterAction_t *self),
                                            var params)
@@ -572,7 +572,7 @@ _processSpecialProps(_ClassAlterContext_t *alterCtx)
 }
 
 static void
-_compPropByIdAndName(const char *zKey, u32 idx, struct flexi_PropDef_t *pProp, Hash *pPropMap, flexi_metadata_ref *pRef,
+_compPropByIdAndName(const char *zKey, u32 idx, struct flexi_PropDef_t *pProp, Hash *pPropMap, flexi_MetadataRef_t *pRef,
                      bool *bStop)
 {
     UNUSED_PARAM(zKey);
@@ -590,7 +590,7 @@ _compPropByIdAndName(const char *zKey, u32 idx, struct flexi_PropDef_t *pProp, H
  * TODO Use RB tree or Hash for search
  */
 static bool
-_findPropByMetadataRef(struct flexi_ClassDef_t *pClassDef, flexi_metadata_ref *pRef, struct flexi_PropDef_t **pProp)
+_findPropByMetadataRef(struct flexi_ClassDef_t *pClassDef, flexi_MetadataRef_t *pRef, struct flexi_PropDef_t **pProp)
 {
     if (pRef->id != 0)
     {

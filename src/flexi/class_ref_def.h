@@ -13,7 +13,7 @@
  * Used for user-friendly way of specifying classes, properties, enums, names.
  * Holder of this struct is responsible for freeing name
  */
-struct flexi_metadata_ref
+struct flexi_MetadataRef_t
 {
     char *name;
     sqlite3_int64 id;
@@ -27,9 +27,9 @@ struct flexi_metadata_ref
     bool bOwnName;
 };
 
-typedef struct flexi_metadata_ref flexi_metadata_ref;
+typedef struct flexi_MetadataRef_t flexi_MetadataRef_t;
 
-void flexi_metadata_ref_free(flexi_metadata_ref *);
+void flexi_metadata_ref_free(flexi_MetadataRef_t *);
 
 /*
  * Compares 2 arrays of metadata_ref structs.
@@ -37,19 +37,19 @@ void flexi_metadata_ref_free(flexi_metadata_ref *);
  * Performs sort on r1 for faster processing
  * cnt - number of entries in the array
  */
-bool flexi_metadata_ref_compare_n(flexi_metadata_ref *r1, flexi_metadata_ref *r2, int cnt);
+bool flexi_metadata_ref_compare_n(flexi_MetadataRef_t *r1, flexi_MetadataRef_t *r2, int cnt);
 
 /*
  * Compare 2 metadata ref definitions
  * name maybe missing in either one, then comparison by id would be performed
  * It is valid situation when either ref is not initialized (id == 0)
  */
-int flexi_metadata_ref_compare(const flexi_metadata_ref *r1, const flexi_metadata_ref *r2);
+int flexi_metadata_ref_compare(const flexi_MetadataRef_t *r1, const flexi_MetadataRef_t *r2);
 
 struct flexi_class_ref_rule
 {
     char *regex;
-    flexi_metadata_ref classRef;
+    flexi_MetadataRef_t classRef;
 };
 
 bool flexi_class_ref_rule_compare(const struct flexi_class_ref_rule *p1, const struct flexi_class_ref_rule *p2);
@@ -64,8 +64,8 @@ bool flexi_class_ref_rule_compare(const struct flexi_class_ref_rule *p1, const s
 
 typedef struct flexi_class_ref_def
 {
-    flexi_metadata_ref classRef;
-    flexi_metadata_ref dynSelectorProp;
+    flexi_MetadataRef_t classRef;
+    flexi_MetadataRef_t dynSelectorProp;
 
     /*
      * Array of flexi_class_ref_rule

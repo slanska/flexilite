@@ -32,7 +32,7 @@ struct flexi_PropDef_t
     // Attributes that need to be explicitly disposed
     char *zType;
 
-    flexi_metadata_ref name;
+    flexi_MetadataRef_t name;
     short int type;
     short int xRole;
     char bIndexed;
@@ -75,7 +75,7 @@ struct flexi_PropDef_t
     double maxValue;
     double minValue;
 
-    flexi_metadata_ref enumDef;
+    flexi_MetadataRef_t enumDef;
 
     int maxLength;
     int minOccurences;
@@ -200,7 +200,7 @@ void flexi_prop_def_free(struct flexi_PropDef_t *prop);
 struct flexi_ref_def
 {
     struct flexi_class_ref_def base;
-    flexi_metadata_ref reverseProperty;
+    flexi_MetadataRef_t reverseProperty;
     int autoFetchLimit;
     int autoFetchDepth;
     enum REF_PROP_ROLE rule;

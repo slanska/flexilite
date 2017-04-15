@@ -9,7 +9,7 @@
 
 SQLITE_EXTENSION_INIT3
 
-void flexi_metadata_ref_free(flexi_metadata_ref *pp)
+void flexi_metadata_ref_free(flexi_MetadataRef_t *pp)
 {
     if (pp && pp->bOwnName)
         sqlite3_free(pp->name);
@@ -82,7 +82,7 @@ flexi_class_ref_def_compare(const struct flexi_class_ref_def *pDef1, const struc
     return result;
 }
 
-int flexi_metadata_ref_compare(const flexi_metadata_ref *r1, const flexi_metadata_ref *r2)
+int flexi_metadata_ref_compare(const flexi_MetadataRef_t *r1, const flexi_MetadataRef_t *r2)
 {
     if (r1->name && r2->name)
     {
@@ -104,7 +104,7 @@ bool flexi_class_ref_rule_compare(const struct flexi_class_ref_rule *p1, const s
     return false;
 }
 
-bool flexi_metadata_ref_compare_n(flexi_metadata_ref *r1, flexi_metadata_ref *r2, int cnt)
+bool flexi_metadata_ref_compare_n(flexi_MetadataRef_t *r1, flexi_MetadataRef_t *r2, int cnt)
 {
     int found = 0;
     qsort(r1, (size_t) cnt, sizeof(*r1), (void *) flexi_metadata_ref_compare);

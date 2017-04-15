@@ -8,28 +8,37 @@
 
 #include "flexi_class.h"
 #include "../util/StringBuilder.h"
+#include <inttypes.h>
 
+struct _BuildInternalClassDefJSON_Ctx
+{
+    struct flexi_ClassDef_t *pClassDef;
+    StringBuilder_t sb;
+};
+
+/*
+ * Appends class data reference definition to the given JSON string builder sb
+ */
 static void
-_buildClassDefRef(StringBuilder_t *sb, flexi_metadata_ref *ref, const char *zName, bool *appendComma)
+_buildMetadataRef(StringBuilder_t *sb, const char *zName, flexi_MetadataRef_t *ref, bool *appendComma)
 {
     char zID[30];
 
     if (ref->id != 0 || ref->name != NULL)
     {
-        if (appendComma != NULL)
+        if (appendComma != NULL && *appendComma)
         {
-            if (*appendComma)
-                StringBuilder_appendRaw(sb, ",", 1);
-            else *appendComma = true;
+            StringBuilder_appendRaw(sb, ",", 1);
         }
         StringBuilder_appendJsonElem(sb, zName, -1);
         StringBuilder_appendRaw(sb, ":{", 2);
 
         StringBuilder_appendJsonElem(sb, "$id", -1);
         StringBuilder_appendRaw(sb, ":", 1);
-        sprintf(zID, "%d", ref->id);
+        sprintf(zID, "%" PRId64, ref->id);
         StringBuilder_appendJsonElem(sb, zID, -1);
 
+        // If ID is 0, it means that name is not yet resolved. Store name too for future processing
         if (ref->id == 0)
         {
             StringBuilder_appendRaw(sb, ",", 1);
@@ -42,9 +51,27 @@ _buildClassDefRef(StringBuilder_t *sb, flexi_metadata_ref *ref, const char *zNam
     }
 }
 
+static void _appendClassRefDynRule(const char *zKey, const sqlite3_int64 index,
+                                   struct flexi_class_ref_rule *pData,
+                                   const var collection, StringBuilder_t *sb, bool *bStop)
+{
+    UNUSED_PARAM(zKey);
+    UNUSED_PARAM(collection);
+    UNUSED_PARAM(bStop);
+
+    if (index > 0)
+        StringBuilder_appendRaw(sb, ",", 1);
+    StringBuilder_appendRaw(sb, "{", 1);
+    StringBuilder_appendJsonElem(sb, "regex", -1);
+    StringBuilder_appendJsonElem(sb, pData->regex, -1);
+    StringBuilder_appendRaw(sb, ",", 1);
+    _buildMetadataRef(sb, "classRef", &pData->classRef, NULL);
+    StringBuilder_appendRaw(sb, "}", 1);
+}
+
 /*
- * Appends class ref def (mixin class ref)
- * declare interface TMixinClassDef {
+ * Internal function to serialize class ref def data to JSON
+ *  * declare interface TMixinClassDef {
     classRef?: IMetadataRef | IMetadataRef[],
     dynamic?: {
         selectorProp: IMetadataRef;
@@ -56,10 +83,42 @@ _buildClassDefRef(StringBuilder_t *sb, flexi_metadata_ref *ref, const char *zNam
 }
  */
 static void
-_buildMixinClassDef(StringBuilder_t *sb, const char *zPropName, struct flexi_class_ref_def *classRefDef,
-                    bool *appendComma)
+_internalAppendClassDefRef(StringBuilder_t *sb, Flexi_ClassRefDef_t *classRefDef)
 {
+    bool appendComma = true;
+    _buildMetadataRef(sb, "classRef", &classRefDef->classRef, NULL);
 
+    if (classRefDef->dynSelectorProp.id != 0 || classRefDef->dynSelectorProp.name != NULL)
+    {
+        StringBuilder_appendRaw(sb, ",", 1);
+        StringBuilder_appendJsonElem(sb, "dynamic", -1);
+        StringBuilder_appendRaw(sb, ":{", 2);
+        _buildMetadataRef(sb, "selectorProp", &classRefDef->dynSelectorProp, NULL);
+
+        StringBuilder_appendRaw(sb, ",{", 2);
+        StringBuilder_appendJsonElem(sb, "rules", -1);
+        Array_each(&classRefDef->rules, (void *) _appendClassRefDynRule, sb);
+
+        StringBuilder_appendRaw(sb, "}}", 2);
+    }
+}
+
+/*
+ * Appends class ref def (mixin class ref)
+
+ */
+static void
+_buildClassDefRef(StringBuilder_t *sb, const char *zPropName, Flexi_ClassRefDef_t *classRefDef,
+                  bool *appendComma)
+{
+    if (appendComma != NULL && *appendComma)
+    {
+        StringBuilder_appendRaw(sb, ",", 1);
+    }
+
+    StringBuilder_appendRaw(sb, "{", 1);
+    _internalAppendClassDefRef(sb, classRefDef);
+    StringBuilder_appendRaw(sb, "}", 1);
 }
 
 /*
@@ -84,6 +143,16 @@ _buildPropDefJSON(const char *zKey, const sqlite3_int64 index, void *pData,
      *
      * defaultValue
      */
+
+    // rules - as is
+
+    // index - as is
+
+    // refDef - use $id
+
+    // enumDef - ???
+
+    // defaultValue - as is
 }
 
 /*
@@ -93,7 +162,7 @@ _buildPropDefJSON(const char *zKey, const sqlite3_int64 index, void *pData,
  * zProps - names for items (number should be equal to len)
  */
 static void
-_buildMetaDataRefArray(StringBuilder_t *sb, const char *zPropName, flexi_metadata_ref *aMeta, const char *zProps[],
+_buildMetaDataRefArray(StringBuilder_t *sb, const char *zPropName, flexi_MetadataRef_t *aMeta, const char *zProps[],
                        int len)
 {
     StringBuilder_appendJsonElem(sb, zPropName, -1);
@@ -103,22 +172,29 @@ _buildMetaDataRefArray(StringBuilder_t *sb, const char *zPropName, flexi_metadat
     bool appendComma = false;
     for (i = 0; i < len; i++)
     {
-        _buildClassDefRef(sb, &aMeta[i], zProps[i], &appendComma);
+        _buildMetadataRef(sb, zProps[i], &aMeta[i], &appendComma);
+        appendComma = true;
     }
 
     StringBuilder_appendRaw(sb, "}", 1);
 }
 
 static void
-_buildMixinRef(const char *zKey, const sqlite3_int64 index, void *pData,
+_buildMixinRef(const char *zKey, const sqlite3_int64 index, struct flexi_class_ref_def *pRef,
                const var collection, struct _BuildInternalClassDefJSON_Ctx *ctx, bool *bStop)
-{}
-
-struct _BuildInternalClassDefJSON_Ctx
 {
-    struct flexi_ClassDef_t *pClassDef;
-    StringBuilder_t sb;
-};
+    UNUSED_PARAM(zKey);
+    UNUSED_PARAM(bStop);
+    UNUSED_PARAM(collection);
+
+    if (index > 0)
+        StringBuilder_appendRaw(&ctx->sb, ",", 1);
+    StringBuilder_appendRaw(&ctx->sb, "{", 1);
+
+    _internalAppendClassDefRef(&ctx->sb, pRef);
+
+    StringBuilder_appendRaw(&ctx->sb, "}", 1);
+}
 
 /*
  * Build class definition JSON from pClassDef.
@@ -237,7 +313,7 @@ static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const cha
     {
         for (int ii = 0; ii < ARRAY_LEN(pClassDef->aSpecProps); ii++)
         {
-            flexi_metadata_ref *specProp = &pClassDef->aSpecProps[ii];
+            flexi_MetadataRef_t *specProp = &pClassDef->aSpecProps[ii];
             CHECK_CALL(getColumnAsText(&specProp->name, pStmt, ii * 3 + 1));
             specProp->bOwnName = specProp->name != NULL;
             specProp->id = sqlite3_column_int64(pStmt, ii * 3);
