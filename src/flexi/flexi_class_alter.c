@@ -10,6 +10,8 @@
 #include "flexi_class.h"
 #include "../util/List.h"
 
+int flexi_buildInternalClassDefJSON(struct flexi_ClassDef_t *pClassDef, const char *zClassDef, char **pzOutput);
+
 /*
  * Global mapping of type names between Flexilite and SQLite
  */
@@ -572,7 +574,8 @@ _processSpecialProps(_ClassAlterContext_t *alterCtx)
 }
 
 static void
-_compPropByIdAndName(const char *zKey, u32 idx, struct flexi_PropDef_t *pProp, Hash *pPropMap, flexi_MetadataRef_t *pRef,
+_compPropByIdAndName(const char *zKey, u32 idx, struct flexi_PropDef_t *pProp, Hash *pPropMap,
+                     flexi_MetadataRef_t *pRef,
                      bool *bStop)
 {
     UNUSED_PARAM(zKey);
@@ -760,20 +763,46 @@ static void
 _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_PropDef_t *propDef,
                const Hash *propMap, _ClassAlterContext_t *alterCtx, bool *bStop)
 {
+    UNUSED_PARAM(zPropName);
+    UNUSED_PARAM(propMap);
     UNUSED_PARAM(index);
-    sqlite3_reset(alterCtx->pUpsertPropDefStmt);
+
+    int result;
+
+    CHECK_CALL(sqlite3_reset(alterCtx->pUpsertPropDefStmt));
     sqlite3_bind_int64(alterCtx->pUpsertPropDefStmt, 1, propDef->name.id);
     sqlite3_bind_int64(alterCtx->pUpsertPropDefStmt, 2, alterCtx->pNewClassDef->lClassID);
     sqlite3_bind_int(alterCtx->pUpsertPropDefStmt, 3, propDef->xCtlv);
     sqlite3_bind_int(alterCtx->pUpsertPropDefStmt, 4, propDef->xCtlvPlan);
 
-    int result = sqlite3_step(alterCtx->pUpsertPropDefStmt);
-    if (result != SQLITE_DONE)
+    CHECK_STMT_STEP(alterCtx->pUpsertPropDefStmt);
+    if (result == SQLITE_DONE)
     {
-        *bStop = true;
-        alterCtx->nSqlResult = result;
-        *alterCtx->pzErr = sqlite3_errmsg(alterCtx->pCtx->db);
+        // Retrieve ID of property
+        if (propDef->iPropID == 0)
+        {
+            if (alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME] == NULL)
+            {
+                CHECK_STMT_PREPARE(alterCtx->pCtx->db, "select ID from [.names_props] where "
+                        "PropNameID = (select ID from [.names_props] where Value = :1);", &alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME]);
+            }
+            sqlite3_stmt* pGetPropIDStmt = alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME];
+            CHECK_CALL(sqlite3_reset(pGetPropIDStmt));
+            sqlite3_bind_text(pGetPropIDStmt, 1, zPropName, -1, NULL);
+            CHECK_STMT_STEP(pGetPropIDStmt);
+            propDef->iPropID = sqlite3_column_int64(pGetPropIDStmt, 0);
+        }
     }
+
+    goto EXIT;
+
+    ONERROR:
+    *bStop = true;
+    alterCtx->nSqlResult = result;
+    *alterCtx->pzErr = sqlite3_errmsg(alterCtx->pCtx->db);
+
+    EXIT:
+    return;
 }
 
 static void
@@ -788,6 +817,48 @@ _processAction(const char *zKey, const sqlite3_int64 index, _ClassAlterAction_t 
         actionDef->action(actionDef, alterCtx);
 }
 
+static void
+_fixupPropName(_ClassAlterContext_t *alterCtx, flexi_MetadataRef_t *pRef)
+{
+    if (pRef->id == 0 && pRef->name != NULL)
+    {
+        struct flexi_PropDef_t *prop = HashTable_get(&alterCtx->pNewClassDef->propsByName,
+                                                     (DictionaryKey_t) {.pKey = pRef->name});
+        if (prop != NULL)
+        {
+            pRef->id = prop->iPropID;
+        }
+    }
+}
+
+static void
+_fixupPropNames(_ClassAlterContext_t *alterCtx)
+{
+    int i;
+    flexi_MetadataRef_t *pRef;
+
+    // FullText props
+    for (i = 0; i < ARRAY_LEN(alterCtx->pNewClassDef->aFtsProps); i++)
+    {
+        _fixupPropName(alterCtx, &alterCtx->pNewClassDef->aFtsProps[i]);
+    }
+
+    // Special props
+    for (i = 0; i < ARRAY_LEN(alterCtx->pNewClassDef->aSpecProps); i++)
+    {
+        _fixupPropName(alterCtx, &alterCtx->pNewClassDef->aSpecProps[i]);
+    }
+
+    // Range props
+    for (i = 0; i < ARRAY_LEN(alterCtx->pNewClassDef->aRangeProps); i++)
+    {
+        _fixupPropName(alterCtx, &alterCtx->pNewClassDef->aRangeProps[i]);
+    }
+
+    // Mixins
+    // TODO
+}
+
 /*
  * Physically saves class definition changes to the Flexilite database
  */
@@ -796,12 +867,12 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
 {
     int result;
 
-    //    int xCtloMask = 0;
+    char *zInternalJSON = NULL;
 
     if (alterCtx->pUpsertPropDefStmt == NULL)
     {
         // TODO Use context statement
-        const char *zInsPropSQL = "insert into [flexi_prop] (NameID, ClassID, ctlv, ctlvPlan)"
+        const char *zInsPropSQL = "insert or replace into [flexi_prop] (NameID, ClassID, ctlv, ctlvPlan)"
                 " values (:1, :2, :3, :4);";
         CHECK_STMT_PREPARE(alterCtx->pCtx->db, zInsPropSQL, &alterCtx->pUpsertPropDefStmt);
     }
@@ -815,6 +886,9 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
         result = alterCtx->nSqlResult;
         goto ONERROR;
     }
+
+    // Use IDs of newly created properties
+    _fixupPropNames(alterCtx);
 
     // Iterate through existing objects and run property level actions
 
@@ -830,9 +904,12 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
                            &alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF]);
     }
 
+    // Build internal class definition, using property IDs etc.
+    flexi_buildInternalClassDefJSON(alterCtx->pNewClassDef, zNewClassDef, &zInternalJSON);
+
     sqlite3_stmt *pUpdClsStmt = alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF];
     CHECK_CALL(sqlite3_reset(pUpdClsStmt));
-    CHECK_CALL(sqlite3_bind_text(pUpdClsStmt, 1, zNewClassDef, -1, NULL));
+    CHECK_CALL(sqlite3_bind_text(pUpdClsStmt, 1, zInternalJSON, -1, NULL));
     CHECK_CALL(sqlite3_bind_int64(pUpdClsStmt, 2, alterCtx->pNewClassDef->lClassID));
 
     CHECK_STMT_STEP(pUpdClsStmt);
@@ -843,7 +920,7 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     ONERROR:
 
     EXIT:
-
+    sqlite3_free(zInternalJSON);
     return result;
 }
 

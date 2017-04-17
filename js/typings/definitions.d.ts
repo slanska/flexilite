@@ -239,7 +239,7 @@ declare interface IPropertyRulesSettings {
      For regular optional properties, 0 and 1 respectively
      For arrays, minOccurences must be non negative value and maxOccurences must be not smaller than minOccurences
      */
-    minOccurences?: number; // default: 0
+    minOccurences?: number; // default: 0!
     maxOccurences?: number; // default: 1
 
     /*

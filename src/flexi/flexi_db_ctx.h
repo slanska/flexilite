@@ -80,7 +80,7 @@ enum FLEXI_CTX_STMT
     // Insert into .classes
             STMT_INS_CLS = 17,
 
-    // Check if class has data (objects)
+    // TODO Check if class has data (objects)
             STMT_CLS_HAS_DATA = 18,
 
     // Parse property JSON definition
@@ -91,6 +91,9 @@ enum FLEXI_CTX_STMT
 
     // Updates .classes
             STMT_UPDATE_CLS_DEF = 21,
+
+    // Get property ID by its name
+            STMT_SEL_PROP_ID_BY_NAME = 22,
 
     // Should be last one in the list
             STMT_DEL_FTS = 30

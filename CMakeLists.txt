@@ -125,7 +125,7 @@ set(EXT_FILES
         src/util/Path.c
         src/util/Path.h
         src/util/StringBuilder.c
-        src/util/StringBuilder.h src/flexi/flexi_data_adhoc.c src/flexi/flexi_data_vtable.c)
+        src/util/StringBuilder.h src/flexi/flexi_data_adhoc.c src/flexi/flexi_data_vtable.c src/flexi/class_build_json.c)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
