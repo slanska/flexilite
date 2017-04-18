@@ -10,8 +10,6 @@
 /*
  * Forward declarations
  */
-//static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx);
-
 struct flexi_Context_t *flexi_Context_new(sqlite3 *db)
 {
     struct flexi_Context_t *result = sqlite3_malloc(sizeof(struct flexi_Context_t));

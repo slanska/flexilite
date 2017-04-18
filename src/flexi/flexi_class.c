@@ -892,9 +892,13 @@ _getPropNameID(const char *zKey, const sqlite3_int64 index, struct flexi_PropDef
     UNUSED_PARAM(zKey);
     UNUSED_PARAM(index);
     UNUSED_PARAM(collection);
-    UNUSED_PARAM(bStop);
 
-    flexi_Context_getNameId(pClassDef->pCtx, prop->name.name, &prop->name.id);
+    int result = flexi_Context_insertName(pClassDef->pCtx, prop->name.name, &prop->name.id);
+    if (result != SQLITE_OK)
+    {
+        // TODO use alter context and set error
+        *bStop = true;
+    }
 }
 
 /*
