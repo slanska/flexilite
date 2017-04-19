@@ -770,7 +770,7 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
     int result;
 
     CHECK_CALL(sqlite3_reset(alterCtx->pUpsertPropDefStmt));
-    sqlite3_bind_int64(alterCtx->pUpsertPropDefStmt, 1, propDef->name.id);
+    sqlite3_bind_text(alterCtx->pUpsertPropDefStmt, 1, zPropName, -1, NULL);
     sqlite3_bind_int64(alterCtx->pUpsertPropDefStmt, 2, alterCtx->pNewClassDef->lClassID);
     sqlite3_bind_int(alterCtx->pUpsertPropDefStmt, 3, propDef->xCtlv);
     sqlite3_bind_int(alterCtx->pUpsertPropDefStmt, 4, propDef->xCtlvPlan);
@@ -784,7 +784,7 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
             if (alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME] == NULL)
             {
                 CHECK_STMT_PREPARE(alterCtx->pCtx->db, "select ID from [.names_props] where "
-                        "PropNameID = (select ID from [.names_props] where Value = :1);", &alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME]);
+                        "PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1) limit 1;", &alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME]);
             }
             sqlite3_stmt* pGetPropIDStmt = alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME];
             CHECK_CALL(sqlite3_reset(pGetPropIDStmt));
@@ -872,7 +872,7 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     if (alterCtx->pUpsertPropDefStmt == NULL)
     {
         // TODO Use context statement
-        const char *zInsPropSQL = "insert or replace into [flexi_prop] (NameID, ClassID, ctlv, ctlvPlan)"
+        const char *zInsPropSQL = "insert or replace into [flexi_prop] (Property, ClassID, ctlv, ctlvPlan)"
                 " values (:1, :2, :3, :4);";
         CHECK_STMT_PREPARE(alterCtx->pCtx->db, zInsPropSQL, &alterCtx->pUpsertPropDefStmt);
     }

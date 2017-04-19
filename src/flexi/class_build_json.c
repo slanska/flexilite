@@ -200,7 +200,9 @@ _buildPropDefJSON(const char *zPropName, const sqlite3_int64 index, struct flexi
     {
         StringBuilder_appendRaw(&ctx->sb, ",", 1);
     }
-    StringBuilder_appendJsonElem(&ctx->sb, zPropName, -1);
+    char zPropID[30];
+    sprintf(zPropID, "%" PRId64, prop->iPropID);
+    StringBuilder_appendJsonElem(&ctx->sb, zPropID, -1);
     StringBuilder_appendRaw(&ctx->sb, ":{", 2);
 
     if (ctx->pParsePropStmt == NULL)
@@ -326,13 +328,13 @@ int flexi_buildInternalClassDefJSON(struct flexi_ClassDef_t *pClassDef, const ch
     }
 
     // 'rangeIndexing'
-    StringBuilder_appendRaw(&ctx.sb, "},", -1);
+    StringBuilder_appendRaw(&ctx.sb, ",", 1);
     const char *azRngNames[] = {"A0", "A1", "B0", "B1", "C0", "C1", "D0", "D1", "E0", "E1"};
     _buildMetaDataRefArray(&ctx.sb, "rangeIndexing", pClassDef->aRangeProps, azRngNames,
                            ARRAY_LEN(pClassDef->aRangeProps));
 
     // 'specialProperties'
-    StringBuilder_appendRaw(&ctx.sb, "},", -1);
+    StringBuilder_appendRaw(&ctx.sb, ",", 1);
     const char *azSpecNames[] = {"uid", "name", "description", "code", "nonUniqueId", "createTime", "updateTime",
                                  "autoUuid", "autoShortId"};
     _buildMetaDataRefArray(&ctx.sb, "specialProperties", pClassDef->aSpecProps, azSpecNames,

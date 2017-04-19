@@ -990,7 +990,19 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
     char *zClassDef = NULL;
     getColumnAsText(&zClassDef, pGetClassStmt, 5);
 
-    //    CHECK_CALL(getColumnAsText(&(*pClassDef)->zHash, pGetClassStmt, 4));
+    // TODO temp
+    sqlite3_stmt *pNames;
+    CHECK_STMT_PREPARE(pCtx->db, "select ID, [Value], [Type], PropNameID, ClassID from [.names_props];", &pNames);
+    while ((result = sqlite3_step(pNames)) == SQLITE_ROW)
+    {
+        printf("\n%d, %s, %d, %d, %d", sqlite3_column_int(pNames, 0),
+               sqlite3_column_text(pNames, 1),
+               sqlite3_column_int(pNames, 2),
+               sqlite3_column_int(pNames, 3),
+               sqlite3_column_int(pNames, 4)
+        );
+    }
+    CHECK_CALL(sqlite3_finalize(pNames));
 
     // Load properties from flexi_prop
     if (!pCtx->pStmts[STMT_LOAD_CLS_PROP])

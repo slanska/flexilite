@@ -82,16 +82,7 @@ void StringBuilder_appendRaw(StringBuilder_t *self, const char *zInStr, int32_t 
         return;
     memcpy(self->zBuf + self->nUsed, zInStr, nInStrLen);
     self->nUsed += nInStrLen;
-}
-
-/* Append a single character
-*/
-static void
-_appendChar(StringBuilder_t *p, char c)
-{
-    if (p->nUsed >= p->nAlloc && _grow(p, 1) != 0)
-        return;
-    p->zBuf[p->nUsed++] = c;
+    self->zBuf[self->nUsed] = 0;
 }
 
 /* Free all allocated memory and reset the StringBuilder_t object back to its
@@ -110,23 +101,23 @@ void StringBuilder_clear(StringBuilder_t *self)
 ** string.
 ** If N < 0, number of characters to take will be determined by strlen(zIn)
 */
-void StringBuilder_appendJsonElem(StringBuilder_t *p, const char *zIn, int32_t N)
+void StringBuilder_appendJsonElem(StringBuilder_t *self, const char *zIn, int32_t N)
 {
     uint32_t i;
 
     if (N < 0)
-        N = strlen(zIn);
+        N = (int32_t) strlen(zIn);
 
-    if ((N + p->nUsed + 2 >= p->nAlloc) && _grow(p, N + 2) != 0) return;
-    p->zBuf[p->nUsed++] = '"';
+    if ((N + self->nUsed + 2 >= self->nAlloc) && _grow(self, N + 2) != 0) return;
+    self->zBuf[self->nUsed++] = '"';
     for (i = 0; i < N; i++)
     {
         unsigned char c = ((unsigned const char *) zIn)[i];
         if (c == '"' || c == '\\')
         {
             json_simple_escape:
-            if ((p->nUsed + N + 3 - i > p->nAlloc) && _grow(p, N + 3 - i) != 0) return;
-            p->zBuf[p->nUsed++] = '\\';
+            if ((self->nUsed + N + 3 - i > self->nAlloc) && _grow(self, N + 3 - i) != 0) return;
+            self->zBuf[self->nUsed++] = '\\';
         }
         else
             if (c <= 0x1f)
@@ -146,16 +137,17 @@ void StringBuilder_appendJsonElem(StringBuilder_t *p, const char *zIn, int32_t N
                     c = (unsigned char) aSpecial[c];
                     goto json_simple_escape;
                 }
-                if ((p->nUsed + N + 7 + i > p->nAlloc) && _grow(p, N + 7 - i) != 0) return;
-                p->zBuf[p->nUsed++] = '\\';
-                p->zBuf[p->nUsed++] = 'u';
-                p->zBuf[p->nUsed++] = '0';
-                p->zBuf[p->nUsed++] = '0';
-                p->zBuf[p->nUsed++] = (char) ('0' + (c >> 4));
+                if ((self->nUsed + N + 7 + i > self->nAlloc) && _grow(self, N + 7 - i) != 0) return;
+                self->zBuf[self->nUsed++] = '\\';
+                self->zBuf[self->nUsed++] = 'u';
+                self->zBuf[self->nUsed++] = '0';
+                self->zBuf[self->nUsed++] = '0';
+                self->zBuf[self->nUsed++] = (char) ('0' + (c >> 4));
                 c = (unsigned char) ("0123456789abcdef"[c & 0xf]);
             }
-        p->zBuf[p->nUsed++] = c;
+        self->zBuf[self->nUsed++] = c;
     }
-    p->zBuf[p->nUsed++] = '"';
-    assert(p->nUsed < p->nAlloc);
+    self->zBuf[self->nUsed++] = '"';
+    self->zBuf[self->nUsed] = 0;
+    assert(self->nUsed < self->nAlloc);
 }

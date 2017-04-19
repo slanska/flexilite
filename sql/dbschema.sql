@@ -442,20 +442,17 @@ INSTEAD OF INSERT
   ON [flexi_prop]
 FOR EACH ROW
 BEGIN
---  SELECT flexi('create property', new.Class, new.Property, new.Definition);
+--  TODO SELECT flexi('create property', new.Class, new.Property, new.Definition);
 
-  INSERT OR IGNORE INTO [.names_props] (Value, Type) VALUES (new.Property, 0);
+  INSERT OR IGNORE INTO [.names_props] ([Value], [Type]) VALUES (new.Property, 0);
   INSERT INTO [.names_props] (Type, PropNameID, ClassID, ctlv, ctlvPlan)
-  VALUES (1, (SELECT ID
+  VALUES (1, coalesce(new.NameID, (SELECT ID
               FROM [.names_props]
-              WHERE Value = new.Property
-              LIMIT 1),
+              WHERE [Value] = new.Property
+              LIMIT 1)),
           new.ClassID, new.ctlv, new.ctlvPlan);
 
   -- TODO Fix unresolved references
-
-  --   select * from [.classes] where json_extract(Data, '$.properties')
-  --   update [.classes] set Data = json_set(Data, ) where json_extract(Data, '$.properties').
 END;
 
 CREATE TRIGGER IF NOT EXISTS trigFlexi_Prop_Update
