@@ -6,6 +6,8 @@
 /// <reference path="chai/chai.d.ts" />
 /// <reference path="faker/faker.d.ts" />
 /// <reference path="mocha/mocha.d.ts" />
+/// <reference path="modules/bluebird/index.d.ts"/>
+
 
 
 

@@ -423,7 +423,7 @@ CREATE VIEW IF NOT EXISTS [flexi_prop] AS
     c.ClassID                                                        AS ClassID,
     c.Class                                                          AS Class,
     cp.[PropNameID]                                                  AS NameID,
-    (SELECT [Value]
+    (SELECT n.[Value]
      FROM [.names_props] n
      WHERE n.ID = PropNameID
      LIMIT 1)                                                        AS Property,
