@@ -313,10 +313,13 @@ static int _createOrConnect(
  */
 static int _disconnect(sqlite3_vtab *pVTab)
 {
-    FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
-    int result = proxyVTab->pApi->xDisconnect(pVTab);
-    FlexiDataProxyVTab_free(proxyVTab);
-    return result;
+    // TODO
+//    FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
+//    int result = proxyVTab->pApi->xDisconnect(pVTab);
+//    FlexiDataProxyVTab_free(proxyVTab);
+//    return result;
+
+    return 0;
 }
 
 /*

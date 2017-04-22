@@ -425,7 +425,7 @@ CREATE VIEW IF NOT EXISTS [flexi_prop] AS
     cp.[PropNameID]                                                  AS NameID,
     (SELECT n.[Value]
      FROM [.names_props] n
-     WHERE n.ID = PropNameID
+     WHERE n.ID = cp.PropNameID
      LIMIT 1)                                                        AS Property,
     cp.ctlv                                                          AS ctlv,
     -- TODO Needed
