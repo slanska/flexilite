@@ -125,7 +125,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
     char *zError = NULL;
     char *zFullFilePath = NULL;
     sqlite3_stmt *pSubstStmt = NULL;
-    char *pzFileContent = NULL;
+    char *zFileContent = NULL;
 
     /*
     * Only first 16 substitute parameters will be processed. This is related to the fact that in C there
@@ -183,9 +183,10 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
 
             Path_join(&zFullFilePath, zEntryFilePath, (char *) sqlite3_column_text(pSubstStmt, 1));
 
-            CHECK_CALL(file_load_utf8(zFullFilePath, &pzFileContent));
+            CHECK_CALL(file_load_utf8(zFullFilePath, &zFileContent));
 
-            zz[nSubst++] = pzFileContent;
+            zz[nSubst++] = zFileContent;
+            zFileContent = NULL; // Memory will be freed by zz
         }
         if (result != SQLITE_DONE)
             goto ONERROR;
@@ -282,8 +283,8 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
     for (int i = 0; i < ARRAY_LEN(zz); i++)
         sqlite3_free((void *) zz[i]);
 
-    if (pzFileContent != NULL)
-        sqlite3_free(pzFileContent);
+    if (zFileContent != NULL)
+        sqlite3_free(zFileContent);
 
     sqlite3_free(zError);
 

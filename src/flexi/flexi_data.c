@@ -82,7 +82,7 @@ struct flexi_vtab_cursor
 static sqlite3_module _classDefProxyModule;
 static sqlite3_module _adhocQryProxyModule;
 
-static struct AdHocQryParams_t
+struct AdHocQryParams_t
 {
     char *zFilter; // JSON string
     char *zOrderBy;
@@ -113,7 +113,7 @@ static void AdHoxQryParams_free(struct AdHocQryParams_t *self)
 /*
  * Proxy virtual table module for flexi_data
  */
-static struct FlexiDataProxyVTab_t
+struct FlexiDataProxyVTab_t
 {
     /*
     * Should be first field. Used for virtual table initialization
@@ -241,6 +241,19 @@ static int _createOrConnect(
     // We expect pAux to be connection context
     proxyVTab->pCtx = pAux;
 
+    CHECK_CALL(sqlite3_declare_vtab(db, "create table x([select] JSON1 NULL,"
+            "[ClassName] TEXT NULL,"
+            "[from] TEXT NULL," // Alias to ClassName, for the sake of similarity with SQL syntax
+            "[filter] JSON1 NULL," // 'where' clause
+            "[orderBy] JSON1 NULL," // 'order by' clause
+            "[limit] INTEGER NULL," // 'limit' clause
+            "[ID] INTEGER NULL," // object ID (applicable to update and delete)
+            "[skip] INTEGER NULL," // 'skip' clause
+            "[bookmark] TEXT NULL," // opaque string used for multi-page navigation
+            "[user] JSON1 NULL," // user context: either string user ID or JSON with full user info
+            "[fetchDepth] INTEGER NULL);" // when to stop when fetching nested/referenced objects
+    ));
+
     /* Check if this is function-type call ('select * from flexi_data')
     or create-table-type call ('create virtual table T using flexi_data')
 
@@ -263,27 +276,12 @@ static int _createOrConnect(
     else
         if (argc == 3 && strcmp(argv[2], "flexi_data") == 0)
         {
-            result = sqlite3_declare_vtab(db, "create table x([select] JSON1 NULL,"
-                    "[ClassName] TEXT NULL,"
-                    "[from] TEXT NULL," // Alias to ClassName, for the sake of similarity with SQL syntax
-                    "[filter] JSON1 NULL," // 'where' clause
-                    "[orderBy] JSON1 NULL," // 'order by' clause
-                    "[limit] INTEGER NULL," // 'limit' clause
-                    "[ID] INTEGER NULL," // object ID (applicable to update and delete)
-                    "[skip] INTEGER NULL," // 'skip' clause
-                    "[bookmark] TEXT NULL," // opaque string used for multi-page navigation
-                    "[user] JSON1 NULL," // user context: either string user ID or JSON with full user info
-                    "[fetchDepth] INTEGER NULL);" // when to stop when fetching nested/referenced objects
-            );
-            if (result == SQLITE_OK)
-            {
-                proxyVTab->pApi = &_adhocQryProxyModule;
-                proxyVTab->pQry = sqlite3_malloc(sizeof(*proxyVTab->pQry));
-                CHECK_NULL(proxyVTab->pQry);
-                memset(proxyVTab->pQry, 0, sizeof(*proxyVTab->pQry));
+            proxyVTab->pApi = &_adhocQryProxyModule;
+            proxyVTab->pQry = sqlite3_malloc(sizeof(*proxyVTab->pQry));
+            CHECK_NULL(proxyVTab->pQry);
+            memset(proxyVTab->pQry, 0, sizeof(*proxyVTab->pQry));
 
-                // pClassDef is null. It will be initialized in xOpen
-            }
+            // pClassDef is null. It will be initialized in xOpen
             goto EXIT;
         }
         else
@@ -304,7 +302,7 @@ static int _createOrConnect(
         FlexiDataProxyVTab_free(proxyVTab);
 
     EXIT:
-    sqlite3_free(zClassDef);
+    sqlite3_free((void *) zClassDef);
     return result;
 }
 
@@ -314,10 +312,10 @@ static int _createOrConnect(
 static int _disconnect(sqlite3_vtab *pVTab)
 {
     // TODO
-//    FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
-//    int result = proxyVTab->pApi->xDisconnect(pVTab);
-//    FlexiDataProxyVTab_free(proxyVTab);
-//    return result;
+    //    FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
+    //    int result = proxyVTab->pApi->xDisconnect(pVTab);
+    //    FlexiDataProxyVTab_free(proxyVTab);
+    //    return result;
 
     return 0;
 }
@@ -367,7 +365,8 @@ static int _bestIndex(
  */
 static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
 {
-
+    // TODO
+    return 0;
 }
 
 /*
