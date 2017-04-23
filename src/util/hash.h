@@ -39,9 +39,30 @@ typedef void (*freeElem)(void *pElem);
 
 typedef enum DICTIONARY_TYPE
 {
-    DICT_STRING = 0,
-    DICT_STRING_IGNORE_CASE = 1,
-    DICT_INT = 2
+    /*
+     * Keys are case sensitive strings that will be disposed by HashTable
+     */
+            DICT_STRING = 0,
+
+    /*
+     * Keys are case insensitive strings that will be disposed by HashTable
+     */
+            DICT_STRING_IGNORE_CASE = 1,
+
+    /*
+    * Keys are integers
+    */
+            DICT_INT = 2,
+
+    /*
+    * Keys are case sensitive strings that will NOT be disposed by HashTable
+    */
+            DICT_STRING_NO_FREE = 3,
+
+    /*
+    * Keys are case insensitive strings that will NOT be disposed by HashTable
+    */
+            DICT_STRING_IGNORE_CASE_NO_FREE = 3
 } DICTIONARY_TYPE;
 
 /*

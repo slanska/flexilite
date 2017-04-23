@@ -12,17 +12,20 @@
 /*
  * Create new class record in the database. Data field is not saved at this point yet
  */
-static int _create_class_record(struct flexi_Context_t *pCtx, const char *zClassName, sqlite3_int64 *plClassID)
+static int _create_class_record(struct flexi_Context_t *pCtx, const char *zClassName, const char *zOriginalClassDef,
+                                sqlite3_int64 *plClassID)
 {
     int result;
     if (!pCtx->pStmts[STMT_INS_CLS])
     {
-        CHECK_STMT_PREPARE(pCtx->db, "insert into [.classes] (NameID) values (:1);", &pCtx->pStmts[STMT_INS_CLS]);
+        CHECK_STMT_PREPARE(pCtx->db, "insert into [.classes] (NameID, OriginalData) values (:1, :2);",
+                           &pCtx->pStmts[STMT_INS_CLS]);
     }
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_INS_CLS]));
     sqlite3_int64 lClassNameID;
     CHECK_CALL(flexi_Context_insertName(pCtx, zClassName, &lClassNameID));
     CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_INS_CLS], 1, lClassNameID));
+    CHECK_CALL(sqlite3_bind_text(pCtx->pStmts[STMT_INS_CLS], 2, zOriginalClassDef, -1, NULL));
     CHECK_STMT_STEP(pCtx->pStmts[STMT_INS_CLS]);
     if (result != SQLITE_DONE)
         goto ONERROR;
@@ -320,8 +323,6 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
             pProp->xCtlvPlan = sqlite3_column_int(pStmt, ictlvPlanCol);
         }
 
-        assert(pProp->name.name != NULL);
-
         HashTable_set(&pClassDef->propsByName, (DictionaryKey_t) {.pKey=pProp->name.name}, pProp);
         //  TODO      Array_setNth(&pClassDef->pProps, pClassDef->propsByName.count, pProp);
     }
@@ -365,19 +366,19 @@ struct flexi_ClassDef_t *flexi_class_def_new(struct flexi_Context_t *pCtx)
     memset(result, 0, sizeof(*result));
 
     result->pCtx = pCtx;
-    HashTable_init(&result->propsByName, DICT_STRING, (void *) flexi_prop_def_free);
+    HashTable_init(&result->propsByName, DICT_STRING_NO_FREE, (void *) flexi_prop_def_free);
     return result;
 }
 
 /// @brief Creates a new Flexilite class, based on name and JSON definition.
 /// Class must not exist
 /// @param zClassName
-/// @param zClassDef
+/// @param zOriginalClassDef
 /// @param bCreateVTable
 /// @param pzError
 /// @return
 int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName,
-                          const char *zClassDef, bool bCreateVTable,
+                          const char *zOriginalClassDef, bool bCreateVTable,
                           const char **pzError)
 {
     int result;
@@ -410,9 +411,9 @@ int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName,
     }
 
     // Create (non-complete) record in .classes table
-    CHECK_CALL(_create_class_record(pCtx, zClassName, &lClassID));
+    CHECK_CALL(_create_class_record(pCtx, zClassName, zOriginalClassDef, &lClassID));
 
-    CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zClassDef, bCreateVTable, INVALID_DATA_ABORT, pzError));
+    CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zOriginalClassDef, bCreateVTable, INVALID_DATA_ABORT, pzError));
 
     result = SQLITE_OK;
 

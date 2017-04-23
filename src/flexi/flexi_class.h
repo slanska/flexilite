@@ -148,7 +148,7 @@ typedef struct flexi_ClassDef_t
     int nRefCount;
 } flexi_ClassDef_t;
 
-int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName, const char *zClassDef,
+int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName, const char *zOriginalClassDef,
                           bool bCreateVTable,
                           const char **pzError);
 

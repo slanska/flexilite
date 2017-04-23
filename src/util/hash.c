@@ -55,8 +55,9 @@ void HashTable_clear(Hash *self)
     {
         HashElem *next_elem = elem->next;
         self->freeElemFunc(elem->data);
-        if (self->eDictType != DICT_INT)
+        if (self->eDictType == DICT_STRING || self->eDictType == DICT_STRING_IGNORE_CASE)
             sqlite3_free((void *) elem->key.pKey);
+
         sqlite3_free(elem);
         elem = next_elem;
     }

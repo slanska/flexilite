@@ -272,9 +272,15 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   AccessRules   JSON1   NULL,
 
   /*
-  IClassDefinition. Can be set to null for a newly created class
+  Normalized IClassDefinition. Can be set to null for a newly created class.
+  Properties and referenced classes are defined by IDs
   */
   Data          JSON1   NULL,
+
+  /*
+  Class definition as it was provided by user (properties and class references are defined by names)
+  */
+  OriginalData  JSON1 NOT NULL,
 
   /*
   Whether to create corresponding virtual table or not
@@ -446,13 +452,13 @@ BEGIN
 
   INSERT OR IGNORE INTO [.names_props] ([Value], [Type]) VALUES (new.Property, 0);
   INSERT INTO [.names_props] (Type, PropNameID, ClassID, ctlv, ctlvPlan)
-  VALUES (1, coalesce(new.NameID, (SELECT ID
-              FROM [.names_props]
-              WHERE [Value] = new.Property
+  VALUES (1, coalesce(new.NameID, (SELECT n.ID
+              FROM [.names_props] n
+              WHERE n.[Value] = new.Property
               LIMIT 1)),
           new.ClassID, new.ctlv, new.ctlvPlan);
 
-  -- TODO Fix unresolved references
+  -- TODO Fix unresolved references??? (needed?)
 END;
 
 CREATE TRIGGER IF NOT EXISTS trigFlexi_Prop_Update

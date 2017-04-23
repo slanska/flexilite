@@ -68,7 +68,7 @@ struct flexi_PropDef_t
     flexi_enum_def *pEnumDef;
 
     char *zRefDef;
-    flexi_ref_def *pRefDef;
+    Flexi_ClassRefDef_t *pRefDef;
 
     sqlite3_value *defaultValue;
 

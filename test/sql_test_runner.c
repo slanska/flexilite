@@ -286,7 +286,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
     if (zFileContent != NULL)
         sqlite3_free(zFileContent);
 
-    sqlite3_free(zError);
+    // TODO    sqlite3_free(zError);
 
     return result;
 }

@@ -9,7 +9,7 @@ SQLITE_EXTENSION_INIT3
 #include "../misc/regexp.h"
 #include "flexi_class.h"
 
-static struct flexi_vtab_cursor
+struct flexi_vtab_cursor
 {
     struct sqlite3_vtab_cursor base;
 
@@ -1080,7 +1080,7 @@ connect
                        void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
                        void **ppArg);
   int (*xRename)(sqlite3_vtab *pVtab, const char *zNew);
-  /* The methods above are in version 1 of the sqlite_module object. Those
+   The methods above are in version 1 of the sqlite_module object. Those
   ** below are for version 2 and greater.
 int (*xSavepoint)(sqlite3_vtab *pVTab, int);
 
@@ -1111,6 +1111,5 @@ static sqlite3_module _classDefProxyModule = {
         .xFindFunction = _find_method,
         .xRename = _rename,
         .xSavepoint = NULL,
-        .xRelease = NULL,
-        .xRollback = NULL
+        .xRelease = NULL
 };

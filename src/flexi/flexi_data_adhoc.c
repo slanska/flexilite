@@ -58,7 +58,10 @@ static int _disconnect(sqlite3_vtab *pVTab)
  * Starts SELECT on a Flexilite class
  */
 static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
-{}
+{
+    // TODO
+    return 0;
+}
 
 /*
  * Delete class and all its object data
@@ -200,7 +203,6 @@ static sqlite3_module _adhocQryProxyModule = {
         .xFindFunction = _find_method,
         .xRename = _rename,
         .xSavepoint = NULL,
-        .xRelease = NULL,
-        .xRollback = NULL
+        .xRelease = NULL
 };
 

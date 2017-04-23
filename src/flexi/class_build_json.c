@@ -66,9 +66,16 @@ _buildMetadataRef(StringBuilder_t *sb, const char *zAttrName, flexi_MetadataRef_
     if (ref->id != 0 || ref->name != NULL)
     {
         if (pbPrependComma != NULL)
+        {
             if (*pbPrependComma)
+            {
                 StringBuilder_appendRaw(sb, ",", 1);
-            else *pbPrependComma = true;
+            }
+            else
+            {
+                *pbPrependComma = true;
+            }
+        }
         StringBuilder_appendJsonElem(sb, zAttrName, -1);
         StringBuilder_appendRaw(sb, ":{", 2);
 
@@ -143,25 +150,36 @@ _buildClassDefRef(StringBuilder_t *sb, const char *RefPropName, Flexi_ClassRefDe
     UNUSED_PARAM(RefPropName);
 
     if (pbPrependComma != NULL)
+    {
         if (*pbPrependComma)
+        {
             StringBuilder_appendRaw(sb, ",", 1);
-        else *pbPrependComma = true;
+        }
+        else
+        {
+            *pbPrependComma = true;
+        }
+    }
 
     StringBuilder_appendRaw(sb, "{", 1);
     _internalAppendClassDefRef(sb, classRefDef);
     StringBuilder_appendRaw(sb, "}", 1);
 }
 
-static void
+static int
 _copyPropJsonAttr(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *zPropName, const char *zAttr,
                   bool *pbPrependComma)
 {
+    int result;
     char *zPath = NULL;
     zPath = sqlite3_mprintf("$.properties.%s.%s", zPropName, zAttr);
-    sqlite3_bind_text(ctx->pParsePropStmt, 2, zPath, -1, NULL);
-    int result = sqlite3_step(ctx->pParsePropStmt);
+    CHECK_CALL(sqlite3_reset(ctx->pParsePropStmt));
+    CHECK_CALL(sqlite3_bind_text(ctx->pParsePropStmt, 1, ctx->zInClassDef, -1, NULL));
+    CHECK_CALL(sqlite3_bind_text(ctx->pParsePropStmt, 2, zPath, -1, NULL));
+    result = sqlite3_step(ctx->pParsePropStmt);
     if (result == SQLITE_ROW)
     {
+        result = SQLITE_OK;
         if (sqlite3_column_type(ctx->pParsePropStmt, 0) != SQLITE_NULL)
         {
             if (pbPrependComma != NULL)
@@ -180,7 +198,13 @@ _copyPropJsonAttr(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *zPropN
         if (result != SQLITE_DONE)
             ctx->result = result;
 
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
     sqlite3_free(zPath);
+    return result;
 }
 
 /*
@@ -201,7 +225,8 @@ _buildPropDefJSON(const char *zPropName, const sqlite3_int64 index, struct flexi
         StringBuilder_appendRaw(&ctx->sb, ",", 1);
     }
     char zPropID[30];
-    sprintf(zPropID, "%" PRId64, prop->iPropID);
+    sprintf(zPropID, "%"
+            PRId64, prop->iPropID);
     StringBuilder_appendJsonElem(&ctx->sb, zPropID, -1);
     StringBuilder_appendRaw(&ctx->sb, ":{", 2);
 
@@ -209,12 +234,11 @@ _buildPropDefJSON(const char *zPropName, const sqlite3_int64 index, struct flexi
     {
         CHECK_STMT_PREPARE(ctx->pClassDef->pCtx->db, "select json_extract(:1, :2) as val;", &ctx->pParsePropStmt);
     }
-    CHECK_CALL(sqlite3_reset(ctx->pParsePropStmt));
-    sqlite3_bind_text(ctx->pParsePropStmt, 1, ctx->zInClassDef, -1, NULL);
-    _copyPropJsonAttr(ctx, zPropName, "rules", &bPrependComma);
-    _copyPropJsonAttr(ctx, zPropName, "index", &bPrependComma);
-    _copyPropJsonAttr(ctx, zPropName, "defaultValue", &bPrependComma);
-    _copyPropJsonAttr(ctx, zPropName, "noTrackChanges", &bPrependComma);
+
+    CHECK_CALL(_copyPropJsonAttr(ctx, zPropName, "rules", &bPrependComma));
+    CHECK_CALL(_copyPropJsonAttr(ctx, zPropName, "index", &bPrependComma));
+    CHECK_CALL(_copyPropJsonAttr(ctx, zPropName, "defaultValue", &bPrependComma));
+    CHECK_CALL(_copyPropJsonAttr(ctx, zPropName, "noTrackChanges", &bPrependComma));
 
     // refDef
     if (strcmp(prop->zType, "reference") == 0)
@@ -245,6 +269,9 @@ _buildPropDefJSON(const char *zPropName, const sqlite3_int64 index, struct flexi
     ONERROR:
     *bStop = false;
     ctx->result = result;
+
+    // TODO temp
+    printf("Error: %s\n", sqlite3_errmsg(ctx->pClassDef->pCtx->db));
 
     EXIT:
 

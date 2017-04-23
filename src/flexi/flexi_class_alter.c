@@ -784,9 +784,10 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
             if (alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME] == NULL)
             {
                 CHECK_STMT_PREPARE(alterCtx->pCtx->db, "select ID from [.names_props] where "
-                        "PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1) limit 1;", &alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME]);
+                        "PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1) limit 1;",
+                                   &alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME]);
             }
-            sqlite3_stmt* pGetPropIDStmt = alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME];
+            sqlite3_stmt *pGetPropIDStmt = alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME];
             CHECK_CALL(sqlite3_reset(pGetPropIDStmt));
             sqlite3_bind_text(pGetPropIDStmt, 1, zPropName, -1, NULL);
             CHECK_STMT_STEP(pGetPropIDStmt);
@@ -884,7 +885,7 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     if (HashTable_each(&alterCtx->pNewClassDef->propsByName, (void *) _upsertPropDef, alterCtx) != NULL)
     {
         result = alterCtx->nSqlResult;
-        goto ONERROR;
+        CHECK_CALL(result);
     }
 
     // Use IDs of newly created properties
@@ -994,15 +995,15 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
 
     CHECK_CALL(_applyClassSchema(&alterCtx, zNewClassDef));
 
-    // Last step - replace existing class definition in pCtx
-    // TODO
-
     goto EXIT;
 
     ONERROR:
     if (alterCtx.pNewClassDef)
         flexi_ClassDef_free(alterCtx.pNewClassDef);
     *pzErr = *alterCtx.pzErr;
+
+    // TODO temp
+    printf("Error %s in %" PRId64 "\n", *pzErr, lClassID);
 
     EXIT:
 

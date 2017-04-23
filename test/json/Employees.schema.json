@@ -1,0 +1,146 @@
+{
+  "properties": {
+    "EmployeeID": {
+      "rules": {
+        "type": "integer",
+        "maxOccurences": 1,
+        "minOccurences": 1
+      },
+      "index": "unique"
+    },
+    "LastName": {
+      "rules": {
+        "type": "text",
+        "maxLength": 20,
+        "maxOccurences": 1,
+        "minOccurences": 1
+      },
+      "index": "fulltext"
+    },
+    "FirstName": {
+      "rules": {
+        "type": "text",
+        "maxLength": 10,
+        "maxOccurences": 1,
+        "minOccurences": 1
+      }
+    },
+    "Title": {
+      "rules": {
+        "type": "text",
+        "maxLength": 30,
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "TitleOfCourtesy": {
+      "rules": {
+        "type": "text",
+        "maxLength": 25,
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "BirthDate": {
+      "rules": {
+        "type": "datetime",
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "HireDate": {
+      "rules": {
+        "type": "datetime",
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "Address": {
+      "rules": {
+        "type": "text",
+        "maxLength": 60,
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "City": {
+      "rules": {
+        "type": "text",
+        "maxLength": 15,
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "Region": {
+      "rules": {
+        "type": "text",
+        "maxLength": 15,
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "PostalCode": {
+      "rules": {
+        "type": "text",
+        "maxLength": 10,
+        "maxOccurences": 1,
+        "minOccurences": 0
+      },
+      "index": "fulltext"
+    },
+    "Country": {
+      "rules": {
+        "type": "text",
+        "maxLength": 15,
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "HomePhone": {
+      "rules": {
+        "type": "text",
+        "maxLength": 24,
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "Extension": {
+      "rules": {
+        "type": "text",
+        "maxLength": 4,
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "Photo": {
+      "rules": {
+        "type": "binary",
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "Notes": {
+      "rules": {
+        "type": "text",
+        "maxLength": 1073741824,
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    },
+    "PhotoPath": {
+      "rules": {
+        "type": "text",
+        "maxLength": 255,
+        "maxOccurences": 1,
+        "minOccurences": 0
+      }
+    }
+  },
+  "specialProperties": {
+    "uid": "EmployeeID"
+  },
+  "fullTextIndexing": {
+    "X1": "PostalCode",
+    "X2": "LastName"
+  }
+}
