@@ -12,7 +12,7 @@
   {
     "describe": "Schema init",
     "it": "Create entire Northwind schema",
-    "inDb": "../../data/Northwind.test.db",
+    "inDb": ":memory:",
     "inSql": "select flexi('schema', :1);",
     "inArgs": [
       "Northwind.db3.schema.json"
@@ -25,7 +25,7 @@
   {
     "describe": "Schema init",
     "it": "Creates Regions table using flexi_data",
-    "inDb": "../../data/Northwind.test.db",
+    "inDb": ":memory:",
     "inSql": "create virtual table if not exists [Regions] using flexi_data(%Q);",
     "inSubst": [
       "Regions.schema.json"

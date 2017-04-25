@@ -54,7 +54,7 @@ static int flexi_init_func(sqlite3_context *context,
     sqlite3 *db = sqlite3_context_db_handle(context);
     char *zError = NULL;
     int result;
-    CHECK_CALL(sqlite3_exec(db, zSQL, NULL, NULL, &zError));
+    CHECK_SQLITE(db, sqlite3_exec(db, zSQL, NULL, NULL, &zError));
     goto EXIT;
 
     ONERROR:
@@ -87,24 +87,24 @@ static void flexi_func(sqlite3_context *context,
 
         int trn;
     } methods[] = {
-            {"create class",          flexi_class_create_func,   1},
-            {"alter class",           flexi_class_alter_func,    1},
-            {"drop class",            flexi_class_drop_func,     1},
-            {"rename class",          flexi_class_rename_func,   1},
-            {"create property",       flexi_prop_create_func,    1},
-            {"alter property",        flexi_prop_alter_func,     1},
-            {"drop property",         flexi_prop_drop_func,      1},
-            {"rename property",       flexi_prop_rename_func,    1},
-            {"merge property",        flexi_prop_merge_func,     1},
-            {"split property",        flexi_prop_split_func,     1},
+            {"create class",          flexi_class_create_func,        1},
+            {"alter class",           flexi_class_alter_func,         1},
+            {"drop class",            flexi_class_drop_func,          1},
+            {"rename class",          flexi_class_rename_func,        1},
+            {"create property",       flexi_prop_create_func,         1},
+            {"alter property",        flexi_prop_alter_func,          1},
+            {"drop property",         flexi_prop_drop_func,           1},
+            {"rename property",       flexi_prop_rename_func,         1},
+            {"merge property",        flexi_prop_merge_func,          1},
+            {"split property",        flexi_prop_split_func,          1},
 
-            {"properties to object",  flexi_prop_to_obj_func,    1},
-            {"object to properties",  flexi_obj_to_props_func,   1},
-            {"property to reference", flexi_prop_to_ref_func,    1},
-            {"reference to property", flexi_ref_to_prop_func,    1},
+            {"properties to object",  flexi_prop_to_obj_func,         1},
+            {"object to properties",  flexi_obj_to_props_func,        1},
+            {"property to reference", flexi_prop_to_ref_func,         1},
+            {"reference to property", flexi_ref_to_prop_func,         1},
             {"change object class",   flexi_change_object_class_func, 1},
 
-            {"schema",   flexi_schema_func, 1},
+            {"schema",                flexi_schema_func,              1},
 
             /*
              * "structural merge" -- join 2+ objects to 1 object
@@ -113,11 +113,11 @@ static void flexi_func(sqlite3_context *context,
              *
              */
 
-            {"init",                  flexi_init_func,           1},
-            {"help",                  flexi_help_func,           0},
+            {"init",                  flexi_init_func,                1},
+            {"help",                  flexi_help_func,                0},
 
             // TODO
-            {"validate data", NULL,                              1},
+            {"validate data", NULL,                                   1},
     };
 
     char *zMethodName = (char *) sqlite3_value_text(argv[0]);
@@ -131,8 +131,9 @@ static void flexi_func(sqlite3_context *context,
             if (methods[ii].trn)
             {
                 db = sqlite3_context_db_handle(context);
+
                 result = sqlite3_exec(db, "savepoint flexi1;", NULL, NULL, &zError);
-                if (result)
+                if (result != SQLITE_OK)
                 {
                     sqlite3_result_error(context, zError, -1);
                     return;
@@ -144,15 +145,18 @@ static void flexi_func(sqlite3_context *context,
             if (methods[ii].trn)
             {
                 // Check if call finished with error
-                if (result != SQLITE_OK)
-                {
-                    sqlite3_exec(db, "rollback to savepoint flexi1;", NULL, NULL, &zError);
-                }
-                else
+                // TODO
+                //                if (result != SQLITE_OK)
+                //                {
+                //                    // Dump database
+                //                    sqlite3_exec(db, "rollback to savepoint flexi1;", NULL, NULL, &zError);
+                //                }
+                //                else
                 {
                     result = sqlite3_exec(db, "release flexi1;", NULL, NULL, &zError);
                 }
-                if (result)
+
+                if (result != SQLITE_OK)
                 {
                     sqlite3_result_error(context, zError, -1);
                 }

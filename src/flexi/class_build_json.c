@@ -173,9 +173,9 @@ _copyPropJsonAttr(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *zPropN
     int result;
     char *zPath = NULL;
     zPath = sqlite3_mprintf("$.properties.%s.%s", zPropName, zAttr);
-    CHECK_CALL(sqlite3_reset(ctx->pParsePropStmt));
-    CHECK_CALL(sqlite3_bind_text(ctx->pParsePropStmt, 1, ctx->zInClassDef, -1, NULL));
-    CHECK_CALL(sqlite3_bind_text(ctx->pParsePropStmt, 2, zPath, -1, NULL));
+    CHECK_SQLITE(ctx->pClassDef->pCtx->db, sqlite3_reset(ctx->pParsePropStmt));
+    CHECK_SQLITE(ctx->pClassDef->pCtx->db, sqlite3_bind_text(ctx->pParsePropStmt, 1, ctx->zInClassDef, -1, NULL));
+    CHECK_SQLITE(ctx->pClassDef->pCtx->db, sqlite3_bind_text(ctx->pParsePropStmt, 2, zPath, -1, NULL));
     result = sqlite3_step(ctx->pParsePropStmt);
     if (result == SQLITE_ROW)
     {

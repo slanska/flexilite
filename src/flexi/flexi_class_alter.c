@@ -769,7 +769,7 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
 
     int result;
 
-    CHECK_CALL(sqlite3_reset(alterCtx->pUpsertPropDefStmt));
+    CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_reset(alterCtx->pUpsertPropDefStmt));
     sqlite3_bind_text(alterCtx->pUpsertPropDefStmt, 1, zPropName, -1, NULL);
     sqlite3_bind_int64(alterCtx->pUpsertPropDefStmt, 2, alterCtx->pNewClassDef->lClassID);
     sqlite3_bind_int(alterCtx->pUpsertPropDefStmt, 3, propDef->xCtlv);
@@ -788,7 +788,7 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
                                    &alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME]);
             }
             sqlite3_stmt *pGetPropIDStmt = alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME];
-            CHECK_CALL(sqlite3_reset(pGetPropIDStmt));
+            CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_reset(pGetPropIDStmt));
             sqlite3_bind_text(pGetPropIDStmt, 1, zPropName, -1, NULL);
             CHECK_STMT_STEP(pGetPropIDStmt);
             propDef->iPropID = sqlite3_column_int64(pGetPropIDStmt, 0);
@@ -909,9 +909,9 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     flexi_buildInternalClassDefJSON(alterCtx->pNewClassDef, zNewClassDef, &zInternalJSON);
 
     sqlite3_stmt *pUpdClsStmt = alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF];
-    CHECK_CALL(sqlite3_reset(pUpdClsStmt));
-    CHECK_CALL(sqlite3_bind_text(pUpdClsStmt, 1, zInternalJSON, -1, NULL));
-    CHECK_CALL(sqlite3_bind_int64(pUpdClsStmt, 2, alterCtx->pNewClassDef->lClassID));
+    CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_reset(pUpdClsStmt));
+    CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_bind_text(pUpdClsStmt, 1, zInternalJSON, -1, NULL));
+    CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_bind_int64(pUpdClsStmt, 2, alterCtx->pNewClassDef->lClassID));
 
     CHECK_STMT_STEP(pUpdClsStmt);
 

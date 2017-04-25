@@ -241,7 +241,7 @@ static int _createOrConnect(
     // We expect pAux to be connection context
     proxyVTab->pCtx = pAux;
 
-    CHECK_CALL(sqlite3_declare_vtab(db, "create table x([select] JSON1 NULL,"
+    CHECK_SQLITE(db, sqlite3_declare_vtab(db, "create table x([select] JSON1 NULL,"
             "[ClassName] TEXT NULL,"
             "[from] TEXT NULL," // Alias to ClassName, for the sake of similarity with SQL syntax
             "[filter] JSON1 NULL," // 'where' clause
@@ -534,9 +534,9 @@ static void _matchTextFunction(sqlite3_context *context, int argc, sqlite3_value
 
     if (pDBEnv->pMemDB == NULL)
     {
-        CHECK_CALL(sqlite3_open_v2(":memory:", &pDBEnv->pMemDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL));
+        CHECK_CALL( sqlite3_open_v2(":memory:", &pDBEnv->pMemDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL));
 
-        CHECK_CALL(sqlite3_exec(pDBEnv->pMemDB, "PRAGMA journal_mode = OFF;"
+        CHECK_SQLITE(pDBEnv->pMemDB, sqlite3_exec(pDBEnv->pMemDB, "PRAGMA journal_mode = OFF;"
                                         "create virtual table if not exists [.match_func] using 'fts4' (txt, tokenize=unicode61);", NULL,
                                 NULL,
                                 NULL));

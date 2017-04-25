@@ -21,15 +21,12 @@ static int _create_class_record(struct flexi_Context_t *pCtx, const char *zClass
         CHECK_STMT_PREPARE(pCtx->db, "insert into [.classes] (NameID, OriginalData) values (:1, :2);",
                            &pCtx->pStmts[STMT_INS_CLS]);
     }
-    CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_INS_CLS]));
+    CHECK_SQLITE(pCtx->db, sqlite3_reset(pCtx->pStmts[STMT_INS_CLS]));
     sqlite3_int64 lClassNameID;
     CHECK_CALL(flexi_Context_insertName(pCtx, zClassName, &lClassNameID));
-    CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_INS_CLS], 1, lClassNameID));
-    CHECK_CALL(sqlite3_bind_text(pCtx->pStmts[STMT_INS_CLS], 2, zOriginalClassDef, -1, NULL));
+    CHECK_SQLITE(pCtx->db, sqlite3_bind_int64(pCtx->pStmts[STMT_INS_CLS], 1, lClassNameID));
+    CHECK_SQLITE(pCtx->db, sqlite3_bind_text(pCtx->pStmts[STMT_INS_CLS], 2, zOriginalClassDef, -1, NULL));
     CHECK_STMT_STEP(pCtx->pStmts[STMT_INS_CLS]);
-    if (result != SQLITE_DONE)
-        goto ONERROR;
-
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, plClassID));
 
     goto EXIT;
@@ -71,7 +68,7 @@ static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const cha
     }
 
     CHECK_STMT_PREPARE(pClassDef->pCtx->db, zSql, &pStmt);
-    CHECK_CALL(sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
+    CHECK_SQLITE(pClassDef->pCtx->db, sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
     CHECK_STMT_STEP(pStmt);
     if (result == SQLITE_ROW)
     {
@@ -121,7 +118,7 @@ static int _parseRangeProperties(struct flexi_ClassDef_t *pClassDef, const char 
     }
 
     CHECK_STMT_PREPARE(pClassDef->pCtx->db, zSql, &pStmt);
-    CHECK_CALL(sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
+    CHECK_SQLITE(pClassDef->pCtx->db, sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
     CHECK_STMT_STEP(pStmt);
     if (result == SQLITE_ROW)
     {
@@ -165,7 +162,7 @@ static int _parseFullTextProperties(struct flexi_ClassDef_t *pClassDef, const ch
 
     sqlite3_stmt *pStmt = NULL;
     CHECK_STMT_PREPARE(pClassDef->pCtx->db, zSql, &pStmt);
-    CHECK_CALL(sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
+    CHECK_SQLITE(pClassDef->pCtx->db, sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
     CHECK_STMT_STEP(pStmt);
     if (result == SQLITE_ROW)
     {
@@ -336,6 +333,9 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
     ONERROR:
     sqlite3_free(zPropDefJson);
 
+    // TODO
+    printf("Err: %s\n", sqlite3_errmsg(pClassDef->pCtx->db));
+
     EXIT:
 
     return result;
@@ -413,7 +413,8 @@ int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName,
     // Create (non-complete) record in .classes table
     CHECK_CALL(_create_class_record(pCtx, zClassName, zOriginalClassDef, &lClassID));
 
-    CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zOriginalClassDef, bCreateVTable, INVALID_DATA_ABORT, pzError));
+    CHECK_CALL(
+            _flexi_ClassDef_applyNewDef(pCtx, lClassID, zOriginalClassDef, bCreateVTable, INVALID_DATA_ABORT, pzError));
 
     result = SQLITE_OK;
 
@@ -483,7 +484,7 @@ int flexi_class_create_func(
     if (bCreateVTable)
     {
         zSQL = sqlite3_mprintf("create virtual table [%s] using flexi ('%s')", zClassName, zClassDef);
-        CHECK_CALL(sqlite3_exec(db, zSQL, NULL, NULL, (char **) &zError));
+        CHECK_SQLITE(db, sqlite3_exec(db, zSQL, NULL, NULL, (char **) &zError));
     }
     else
     {
@@ -682,7 +683,7 @@ int flexi_class_rename(struct flexi_Context_t *pCtx, sqlite3_int64 iOldClassID, 
         CHECK_STMT_PREPARE(pCtx->db, "update [.classes] set NameID = :1 "
                 "where ClassID = :2;", &pCtx->pStmts[STMT_CLS_RENAME]);
     }
-    CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_RENAME]));
+    CHECK_SQLITE(pCtx->db, sqlite3_reset(pCtx->pStmts[STMT_CLS_RENAME]));
     sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_RENAME], 1, lNewNameID);
     sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_RENAME], 2, iOldClassID);
     CHECK_STMT_STEP(pCtx->pStmts[STMT_CLS_RENAME]);
@@ -870,7 +871,7 @@ int flexi_ClassDef_generateVtableSql(struct flexi_ClassDef_t *pClassDef, char **
     }
 
     // Fix strange issue with misplaced terminating zero
-    CHECK_CALL(sqlite3_declare_vtab(pClassDef->pCtx->db, sbClassDef));
+    CHECK_SQLITE(pClassDef->pCtx->db, sqlite3_declare_vtab(pClassDef->pCtx->db, sbClassDef));
 
     result = SQLITE_OK;
     goto EXIT;
@@ -917,8 +918,8 @@ int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef,
     // Load properties
     char *zPropSql = "select key as Name, value as Definition from json_each(:1, '$.properties');";
     CHECK_STMT_PREPARE(pClassDef->pCtx->db, zPropSql, &pStmt);
-    CHECK_CALL(sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
-    CHECK_CALL(_parseProperties(pClassDef, pStmt, 0, 1, -1, -1, -1));
+    CHECK_SQLITE(pClassDef->pCtx->db, sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
+    CHECK_SQLITE(pClassDef->pCtx->db, _parseProperties(pClassDef, pStmt, 0, 1, -1, -1, -1));
 
     // Get property name IDs
     HashTable_each(&pClassDef->propsByName, (void *) _getPropNameID, pClassDef);
@@ -1005,8 +1006,8 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
                 " from [flexi_prop] where ClassID=:1",
                            &pCtx->pStmts[STMT_LOAD_CLS_PROP]);
     }
-    CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_LOAD_CLS_PROP]));
-    CHECK_CALL(sqlite3_bind_int64(pCtx->pStmts[STMT_LOAD_CLS_PROP], 1, lClassID));
+    CHECK_SQLITE(pCtx->db, sqlite3_reset(pCtx->pStmts[STMT_LOAD_CLS_PROP]));
+    CHECK_SQLITE(pCtx->db, sqlite3_bind_int64(pCtx->pStmts[STMT_LOAD_CLS_PROP], 1, lClassID));
     CHECK_CALL(_parseProperties(*pClassDef, pCtx->pStmts[STMT_LOAD_CLS_PROP], 3, 6, 2, 4, 5));
 
     CHECK_CALL(getColumnAsText(&zClassDefJson, pGetClassStmt, 5));
@@ -1059,7 +1060,7 @@ int flexi_schema_func(sqlite3_context *context,
             bCreateVTable = sqlite3_value_int(argv[1]) != 0;
         void *pCtx = sqlite3_user_data(context);
         CHECK_STMT_PREPARE(db, "select value, key from json_each(:1)", &pStmt);
-        CHECK_CALL(sqlite3_bind_value(pStmt, 1, sqlite3_value_dup(argv[0])));
+        CHECK_SQLITE(db, sqlite3_bind_value(pStmt, 1, sqlite3_value_dup(argv[0])));
 
         while ((result = sqlite3_step(pStmt)) == SQLITE_ROW)
         {

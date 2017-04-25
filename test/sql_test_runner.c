@@ -139,7 +139,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
 
     *pColCnt = 0;
 
-    Array_init(pData, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
+//    Array_init(pData, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
 
     /*
     * Open database (use :memory: if not defined)
@@ -334,6 +334,7 @@ static void _run_sql_test(void **state)
     int result;
 
     Array_t testData;
+    Array_init(&testData, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
     int nInColCnt;
     CHECK_CALL(
             _runSql(tt->props[TEST_DEF_PROP_IN_DB], tt->props[TEST_DEF_PROP_IN_SQL], tt->props[TEST_DEF_PROP_IN_ARGS],
@@ -341,6 +342,7 @@ static void _run_sql_test(void **state)
                     tt->props[TEST_DEF_PROP_IN_SUBST]));
 
     Array_t chkData;
+    Array_init(&chkData, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
     int nChkColCnt;
     //    CHECK_CALL(_runSql(tt->props[TEST_DEF_PROP_CHK_DB], tt->props[TEST_DEF_PROP_CHK_SQL],
     //                       tt->props[TEST_DEF_PROP_CHK_ARGS], tt->props[TEST_DEF_PROP_CHK_FILE_ARGS], &chkData, &nChkColCnt,

@@ -76,12 +76,19 @@ enum REF_PROP_ROLE
             goto ONERROR; \
         }
 
+#define CHECK_SQLITE(db, call) \
+        result = (call); \
+        if (result != SQLITE_OK) \
+        { \
+            const char *zErrStr = sqlite3_errmsg(db); \
+            printf("\nError %d:%s in \"%s:%d\", function %s", result, zErrStr, __FILE__, __LINE__, __func__); \
+            goto ONERROR; \
+        }
+
 #define CHECK_STMT_PREPARE(db, zSQL, stmt) \
     result = sqlite3_prepare_v2(db, zSQL, -1, stmt, NULL); \
     if (result != SQLITE_OK) \
     { \
-            const char *zErrStr = sqlite3_errmsg(db); \
-            printf("\nError %d:%s in \"%s:%d\", function %s", result, zErrStr, __FILE__, __LINE__, __func__); \
             goto ONERROR; \
     }
 
