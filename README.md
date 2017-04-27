@@ -1,7 +1,7 @@
 **This project is at early development phase!**
 
 Developed with JetBrains tools:
-![CLion logo](./logo/icon_CLion.png "CLion")
+![https://www.jetbrains.com/clion/?fromMenu](./logo/icon_CLion.png "CLion")
 
 # flexilite
 
