@@ -333,9 +333,6 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
     ONERROR:
     sqlite3_free(zPropDefJson);
 
-    // TODO
-    printf("Err: %s\n", sqlite3_errmsg(pClassDef->pCtx->db));
-
     EXIT:
 
     return result;
