@@ -1,5 +1,8 @@
 **This project is at early development phase!**
 
+Developed with JetBrains tools:
+![CLion logo](./logo/icon_CLion.png "CLion")
+
 # flexilite
 
 > "Smart data structures and dumb code works a lot better than the other way around." 
@@ -27,7 +30,6 @@ The goal of this project is to provide proof of concept and at the same time pro
 feature rich and flexible solution to deal with uncertainties of database schema design.
 Flexilite is based on SQLite as a storage engine and thus is usable in any type of application where SQLite 
 is a good fit (from embedded systems, to smartphones, to desktop apps, to small-to-medium websites).
-Flexilite is based on node-orm2 library for node.js and implements custom DB driver compatible with node-orm.
 
 ## Short introduction
 
