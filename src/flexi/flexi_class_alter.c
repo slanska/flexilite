@@ -893,7 +893,6 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
 
     // Iterate through existing objects and run property level actions
 
-
     // Post-actions
     List_each(&alterCtx->postActions, (void *) _processAction, alterCtx);
 
@@ -908,7 +907,7 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     // Build internal class definition, using property IDs etc.
     flexi_buildInternalClassDefJSON(alterCtx->pNewClassDef, zNewClassDef, &zInternalJSON);
 
-    printf("%s\n", zInternalJSON);
+//    printf("%s\n", zInternalJSON);
 
     sqlite3_stmt *pUpdClsStmt = alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF];
     CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_reset(pUpdClsStmt));
