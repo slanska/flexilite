@@ -908,6 +908,8 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     // Build internal class definition, using property IDs etc.
     flexi_buildInternalClassDefJSON(alterCtx->pNewClassDef, zNewClassDef, &zInternalJSON);
 
+    printf("%s\n", zInternalJSON);
+
     sqlite3_stmt *pUpdClsStmt = alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF];
     CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_reset(pUpdClsStmt));
     CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_bind_text(pUpdClsStmt, 1, zInternalJSON, -1, NULL));
@@ -1001,9 +1003,6 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
     if (alterCtx.pNewClassDef)
         flexi_ClassDef_free(alterCtx.pNewClassDef);
     *pzErr = *alterCtx.pzErr;
-
-    // TODO temp
-    printf("Error %s in %" PRId64 "\n", *pzErr, lClassID);
 
     EXIT:
 

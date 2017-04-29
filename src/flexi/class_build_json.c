@@ -172,6 +172,8 @@ _copyPropJsonAttr(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *zPropN
 {
     int result;
     char *zPath = NULL;
+    char *zVal = NULL;
+
     zPath = sqlite3_mprintf("$.properties.%s.%s", zPropName, zAttr);
     CHECK_SQLITE(ctx->pClassDef->pCtx->db, sqlite3_reset(ctx->pParsePropStmt));
     CHECK_SQLITE(ctx->pClassDef->pCtx->db, sqlite3_bind_text(ctx->pParsePropStmt, 1, ctx->zInClassDef, -1, NULL));
@@ -191,7 +193,11 @@ _copyPropJsonAttr(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *zPropN
 
             StringBuilder_appendJsonElem(&ctx->sb, zAttr, -1);
             StringBuilder_appendRaw(&ctx->sb, ":", 1);
-            StringBuilder_appendRaw(&ctx->sb, (const char *) sqlite3_column_text(ctx->pParsePropStmt, 0), -1);
+
+            CHECK_CALL(getColumnAsText(&zVal, ctx->pParsePropStmt, 0));
+            if (strlen(zVal) > 0 && (*zVal == '{' || *zVal == '['))
+                StringBuilder_appendRaw(&ctx->sb, zVal, -1);
+            else StringBuilder_appendJsonElem(&ctx->sb, zVal, -1);
         }
     }
     else
@@ -203,6 +209,7 @@ _copyPropJsonAttr(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *zPropN
     ONERROR:
 
     EXIT:
+    sqlite3_free(zVal);
     sqlite3_free(zPath);
     return result;
 }
