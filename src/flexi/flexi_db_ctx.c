@@ -59,6 +59,32 @@ int flexi_Context_getNameId(struct flexi_Context_t *pCtx,
     return result;
 }
 
+int flexi_Context_getPropIdByClassIdAndName(struct flexi_Context_t *pCtx,
+                                            sqlite3_int64 lClassID, const char *zPropName,
+                                            sqlite3_int64 *plPropID)
+{
+    int result;
+    if (pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME] == NULL)
+    {
+        CHECK_STMT_PREPARE(pCtx->db, "select ID from [.names_props] where "
+                "PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1) limit 1;",
+                           &pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME]);
+    }
+    sqlite3_stmt *pGetPropIDStmt = pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME];
+    CHECK_SQLITE(pCtx->db, sqlite3_reset(pGetPropIDStmt));
+    sqlite3_bind_text(pGetPropIDStmt, 1, zPropName, -1, NULL);
+    CHECK_STMT_STEP(pGetPropIDStmt);
+    *plPropID = sqlite3_column_int64(pGetPropIDStmt, 0);
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    return result;
+}
+
 /*
  * Finds property ID by its class ID and name ID
  */

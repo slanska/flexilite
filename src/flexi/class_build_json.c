@@ -41,7 +41,8 @@ struct _BuildInternalClassDefJSON_Ctx
  * Append a metadata ref to JSON
  */
 static void
-_internalAppendMetaDataRef(struct _BuildInternalClassDefJSON_Ctx *ctx, flexi_MetadataRef_t *ref)
+_internalAppendMetaDataRef(struct _BuildInternalClassDefJSON_Ctx *ctx,
+                           flexi_MetadataRef_t *ref, bool bProp)
 {
     char zID[30];
 
@@ -49,6 +50,15 @@ _internalAppendMetaDataRef(struct _BuildInternalClassDefJSON_Ctx *ctx, flexi_Met
 
     if (ref->id == 0 && ref->name != NULL)
     {
+        if (bProp)
+        {
+            flexi_Context_getPropIdByClassIdAndName(ctx->pClassDef->pCtx, ctx->pClassDef->lClassID, ref->name,
+                                                    &ref->id);
+        }
+        else
+        {
+            flexi_Context_getClassIdByName(ctx->pClassDef->pCtx, ref->name, &ref->id);
+        }
         int result = flexi_Context_getNameId(ctx->pClassDef->pCtx, ref->name, &ref->id);
         assert(result == SQLITE_OK && result != SQLITE_DONE);
     }
@@ -74,7 +84,7 @@ _internalAppendMetaDataRef(struct _BuildInternalClassDefJSON_Ctx *ctx, flexi_Met
  */
 static void
 _buildMetadataRef(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *zAttrName, flexi_MetadataRef_t *ref,
-                  bool *pbPrependComma)
+                  bool *pbPrependComma, bool bProp)
 {
     StringBuilder_t *sb = &ctx->sb;
 
@@ -94,7 +104,7 @@ _buildMetadataRef(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *zAttrN
         StringBuilder_appendJsonElem(sb, zAttrName, -1);
         StringBuilder_appendRaw(sb, ":{", 2);
 
-        _internalAppendMetaDataRef(ctx, ref);
+        _internalAppendMetaDataRef(ctx, ref, bProp);
 
         StringBuilder_appendRaw(sb, "}", 1);
     }
@@ -119,7 +129,7 @@ static void _appendClassRefDynRule(const char *zKey, const sqlite3_int64 index,
     StringBuilder_appendJsonElem(sb, "regex", -1);
     StringBuilder_appendJsonElem(sb, pData->regex, -1);
     StringBuilder_appendRaw(sb, ",", 1);
-    _buildMetadataRef(ctx, "classRef", &pData->classRef, NULL);
+    _buildMetadataRef(ctx, "classRef", &pData->classRef, NULL, false);
     StringBuilder_appendRaw(sb, "}", 1);
 }
 
@@ -140,14 +150,14 @@ static void
 _internalAppendClassDefRef(struct _BuildInternalClassDefJSON_Ctx *ctx, Flexi_ClassRefDef_t *classRefDef)
 {
     StringBuilder_t *sb = &ctx->sb;
-    _buildMetadataRef(ctx, "classRef", &classRefDef->classRef, NULL);
+    _buildMetadataRef(ctx, "classRef", &classRefDef->classRef, NULL, NULL);
 
     if (classRefDef->dynSelectorProp.id != 0 || classRefDef->dynSelectorProp.name != NULL)
     {
         StringBuilder_appendRaw(sb, ",", 1);
         StringBuilder_appendJsonElem(sb, "dynamic", -1);
         StringBuilder_appendRaw(sb, ":{", 2);
-        _buildMetadataRef(ctx, "selectorProp", &classRefDef->dynSelectorProp, NULL);
+        _buildMetadataRef(ctx, "selectorProp", &classRefDef->dynSelectorProp, NULL, NULL);
 
         StringBuilder_appendRaw(sb, ",{", 2);
         StringBuilder_appendJsonElem(sb, "rules", -1);
@@ -283,7 +293,7 @@ _buildPropDefJSON(const char *zPropName, const sqlite3_int64 index, struct flexi
         StringBuilder_appendRaw(&ctx->sb, ",", 1);
         StringBuilder_appendJsonElem(&ctx->sb, "enumDef", -1);
         StringBuilder_appendRaw(&ctx->sb, ":", 1);
-        _internalAppendMetaDataRef(ctx, &prop->enumDef);
+        _internalAppendMetaDataRef(ctx, &prop->enumDef, false);
 
         // TODO enum items
 
@@ -313,8 +323,7 @@ _buildPropDefJSON(const char *zPropName, const sqlite3_int64 index, struct flexi
  */
 static void
 _buildMetaDataRefArray(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *zPropName, flexi_MetadataRef_t *aMeta,
-                       const char *zProps[],
-                       int len)
+                       const char *zProps[], int len, bool bProp)
 {
     StringBuilder_t *sb = &ctx->sb;
     if (len > 0)
@@ -325,7 +334,7 @@ _buildMetaDataRefArray(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *z
         int i;
         bool bPrependComma = false;
         for (i = 0; i < len; i++)
-            _buildMetadataRef(ctx, zProps[i], &aMeta[i], &bPrependComma);
+            _buildMetadataRef(ctx, zProps[i], &aMeta[i], &bPrependComma, bProp);
 
         StringBuilder_appendRaw(sb, "}", 1);
     }
@@ -373,8 +382,8 @@ int flexi_buildInternalClassDefJSON(struct flexi_ClassDef_t *pClassDef, const ch
     // 'fullTextIndexing'
     StringBuilder_appendRaw(&ctx.sb, "},", -1);
     const char *azFtsNames[] = {"X1", "X2", "X3", "X4", "X5"};
-    _buildMetaDataRefArray(&ctx, "fullTextIndexing", pClassDef->aFtsProps, azFtsNames,
-                           ARRAY_LEN(pClassDef->aFtsProps));
+    _buildMetaDataRefArray(&ctx, "fullTextIndexing", pClassDef->aFtsProps, azFtsNames, ARRAY_LEN(pClassDef->aFtsProps),
+                           true);
 
     // 'mixins'
     if (pClassDef->aMixins != NULL)
@@ -386,15 +395,15 @@ int flexi_buildInternalClassDefJSON(struct flexi_ClassDef_t *pClassDef, const ch
     // 'rangeIndexing'
     StringBuilder_appendRaw(&ctx.sb, ",", 1);
     const char *azRngNames[] = {"A0", "A1", "B0", "B1", "C0", "C1", "D0", "D1", "E0", "E1"};
-    _buildMetaDataRefArray(&ctx, "rangeIndexing", pClassDef->aRangeProps, azRngNames,
-                           ARRAY_LEN(pClassDef->aRangeProps));
+    _buildMetaDataRefArray(&ctx, "rangeIndexing", pClassDef->aRangeProps, azRngNames, ARRAY_LEN(pClassDef->aRangeProps),
+                           true);
 
     // 'specialProperties'
     StringBuilder_appendRaw(&ctx.sb, ",", 1);
     const char *azSpecNames[] = {"uid", "name", "description", "code", "nonUniqueId", "createTime", "updateTime",
                                  "autoUuid", "autoShortId"};
     _buildMetaDataRefArray(&ctx, "specialProperties", pClassDef->aSpecProps, azSpecNames,
-                           ARRAY_LEN(pClassDef->aSpecProps));
+                           ARRAY_LEN(pClassDef->aSpecProps), true);
 
     StringBuilder_appendRaw(&ctx.sb, "}", 1);
 

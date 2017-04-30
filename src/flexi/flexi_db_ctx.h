@@ -201,4 +201,12 @@ int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol);
 
 char *String_substr(const char *zSource, intptr_t start, intptr_t len);
 
+/*
+ * Find property ID by class ID and property name
+ * Return SQLite result
+ */
+int flexi_Context_getPropIdByClassIdAndName(struct flexi_Context_t *pCtx,
+                                            sqlite3_int64 lClassID, const char *zPropName,
+                                            sqlite3_int64 *plPropID);
+
 #endif //FLEXILITE_FLEXI_ENV_H
