@@ -45,6 +45,7 @@ _internalAppendMetaDataRef(struct _BuildInternalClassDefJSON_Ctx *ctx,
                            flexi_MetadataRef_t *ref, bool bProp)
 {
     char zID[30];
+    int result;
 
     StringBuilder_t *sb = &ctx->sb;
 
@@ -52,15 +53,16 @@ _internalAppendMetaDataRef(struct _BuildInternalClassDefJSON_Ctx *ctx,
     {
         if (bProp)
         {
-            flexi_Context_getPropIdByClassIdAndName(ctx->pClassDef->pCtx, ctx->pClassDef->lClassID, ref->name,
-                                                    &ref->id);
+            result = flexi_Context_getPropIdByClassIdAndName(ctx->pClassDef->pCtx, ctx->pClassDef->lClassID, ref->name,
+                                                             &ref->id);
         }
         else
         {
-            flexi_Context_getClassIdByName(ctx->pClassDef->pCtx, ref->name, &ref->id);
+            result = flexi_Context_getClassIdByName(ctx->pClassDef->pCtx, ref->name, &ref->id);
         }
-        int result = flexi_Context_getNameId(ctx->pClassDef->pCtx, ref->name, &ref->id);
-        assert(result == SQLITE_OK && result != SQLITE_DONE);
+
+        // TODO Temp
+        assert(result == SQLITE_OK);
     }
 
     StringBuilder_appendJsonElem(sb, "$id", -1);

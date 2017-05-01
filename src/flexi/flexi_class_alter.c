@@ -794,6 +794,7 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
             propDef->iPropID = sqlite3_column_int64(pGetPropIDStmt, 0);
         }
     }
+    result = SQLITE_OK;
 
     goto EXIT;
 
@@ -803,6 +804,10 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
     *alterCtx->pzErr = sqlite3_errmsg(alterCtx->pCtx->db);
 
     EXIT:
+
+    printf("_upsertPropDef: %d.%s. Result=%d\n",
+           (int) alterCtx->pNewClassDef->name.id, zPropName, result);
+
     return;
 }
 

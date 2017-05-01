@@ -410,6 +410,9 @@ int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName,
     // Create (non-complete) record in .classes table
     CHECK_CALL(_create_class_record(pCtx, zClassName, zOriginalClassDef, &lClassID));
 
+    // TODO
+    printf("Creating class %s...\n", zClassName);
+
     CHECK_CALL(
             _flexi_ClassDef_applyNewDef(pCtx, lClassID, zOriginalClassDef, bCreateVTable, INVALID_DATA_ABORT, pzError));
 

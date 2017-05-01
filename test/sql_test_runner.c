@@ -11,6 +11,25 @@
 #include "definitions.h"
 
 /*
+ * Creates exact copy of original string zSrc.
+ * New string has to be disposed by caller
+ * Returns pointer to a new string or NULL if allocation failed
+ */
+static char *strCopy(const char *zSrc, int len)
+{
+    if (len < 0)
+        len = (int)strlen(zSrc);
+
+    char *result = sqlite3_malloc(len + 1);
+    if (result != NULL)
+    {
+        strncpy(result, zSrc, len);
+        result[len] = 0;
+    }
+    return result;
+}
+
+/*
  * Column indexes in JSON test def
  */
 enum TEST_DEF_PROP
@@ -50,6 +69,7 @@ static void SqlTestData_clear(SqlTestData_t *self)
     {
         for (int ii = 0; ii < ARRAY_LEN(self->props); ii++)
         {
+            printf("Disposing test prop: %d\n", ii);
             sqlite3_free(self->props[ii]);
         }
     }
@@ -113,7 +133,7 @@ static void _bindSqlArg(const char *zKey, const sqlite3_int64 index, SqlArg_t *p
  * number of columns in the row. Total number of items in pData will be nRowCnt * nColCnt
  */
 static int
-_runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pData, int *pColCnt, char *zEntryFilePath,
+_runSql(char *zDatabase, char *zSrcSql, char *zArgs, char *zFileArgs, Array_t *pData, int *pColCnt, char *zEntryFilePath,
         char *zSubstFileNames)
 {
     int result;
@@ -127,6 +147,8 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
     sqlite3_stmt *pSubstStmt = NULL;
     char *zFileContent = NULL;
 
+    char *zSql = strCopy(zSrcSql, -1);
+
     /*
     * Only first 16 substitute parameters will be processed. This is related to the fact that in C there
     * is no non-hacking way to dynamically build variadic arguments. So, to support list of values we just
@@ -139,7 +161,7 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
 
     *pColCnt = 0;
 
-//    Array_init(pData, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
+    //    Array_init(pData, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
 
     /*
     * Open database (use :memory: if not defined)
@@ -279,14 +301,13 @@ _runSql(char *zDatabase, char *zSql, char *zArgs, char *zFileArgs, Array_t *pDat
     sqlite3_close(pDB);
     Array_clear(&sqlArgs);
     sqlite3_free(zFullFilePath);
+    sqlite3_free(zSql);
 
     for (int i = 0; i < ARRAY_LEN(zz); i++)
         sqlite3_free((void *) zz[i]);
 
     if (zFileContent != NULL)
         sqlite3_free(zFileContent);
-
-    // TODO    sqlite3_free(zError);
 
     return result;
 }
@@ -343,7 +364,7 @@ static void _run_sql_test(void **state)
 
     Array_t chkData;
     Array_init(&chkData, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
-    int nChkColCnt;
+    int nChkColCnt = 0;
     //    CHECK_CALL(_runSql(tt->props[TEST_DEF_PROP_CHK_DB], tt->props[TEST_DEF_PROP_CHK_SQL],
     //                       tt->props[TEST_DEF_PROP_CHK_ARGS], tt->props[TEST_DEF_PROP_CHK_FILE_ARGS], &chkData, &nChkColCnt,
     //                       tt->props[TEST_DEF_ENTRY_FILE_PATH], tt->props[TEST_DEF_PROP_CHK_SUBST]));
@@ -503,7 +524,7 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
         }
 
         size_t nDirLen = strlen(zJsonBasePath) + 1;
-        testData->props[TEST_DEF_ENTRY_FILE_PATH] = sqlite3_malloc(nDirLen);
+        testData->props[TEST_DEF_ENTRY_FILE_PATH] = sqlite3_malloc((int) nDirLen);
         CHECK_NULL(testData->props[TEST_DEF_ENTRY_FILE_PATH]);
         strncpy(testData->props[TEST_DEF_ENTRY_FILE_PATH], zJsonBasePath, nDirLen);
 
