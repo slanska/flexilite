@@ -73,7 +73,7 @@ int flexi_Context_getPropIdByClassIdAndName(struct flexi_Context_t *pCtx,
     sqlite3_stmt *pGetPropIDStmt = pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME];
     CHECK_SQLITE(pCtx->db, sqlite3_reset(pGetPropIDStmt));
     sqlite3_bind_text(pGetPropIDStmt, 1, zPropName, -1, NULL);
-    CHECK_STMT_STEP(pGetPropIDStmt);
+    CHECK_STMT_STEP(pGetPropIDStmt, pCtx->db);
     *plPropID = sqlite3_column_int64(pGetPropIDStmt, 0);
 
     result = SQLITE_OK;
@@ -214,7 +214,7 @@ int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
     }
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_ID_BY_NAME]));
     CHECK_CALL(sqlite3_bind_text(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 1, zClassName, -1, NULL));
-    CHECK_STMT_STEP(pCtx->pStmts[STMT_CLS_ID_BY_NAME]);
+    CHECK_STMT_STEP(pCtx->pStmts[STMT_CLS_ID_BY_NAME], pCtx->db);
     if (result == SQLITE_ROW)
     {
         *pClassID = sqlite3_column_int64(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 0);

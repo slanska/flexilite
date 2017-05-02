@@ -775,7 +775,7 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
     sqlite3_bind_int(alterCtx->pUpsertPropDefStmt, 3, propDef->xCtlv);
     sqlite3_bind_int(alterCtx->pUpsertPropDefStmt, 4, propDef->xCtlvPlan);
 
-    CHECK_STMT_STEP(alterCtx->pUpsertPropDefStmt);
+    CHECK_STMT_STEP(alterCtx->pUpsertPropDefStmt, alterCtx->pCtx->db);
     if (result == SQLITE_DONE)
     {
         // Retrieve ID of property
@@ -790,7 +790,7 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
             sqlite3_stmt *pGetPropIDStmt = alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME];
             CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_reset(pGetPropIDStmt));
             sqlite3_bind_text(pGetPropIDStmt, 1, zPropName, -1, NULL);
-            CHECK_STMT_STEP(pGetPropIDStmt);
+            CHECK_STMT_STEP(pGetPropIDStmt, alterCtx->pCtx->db);
             propDef->iPropID = sqlite3_column_int64(pGetPropIDStmt, 0);
         }
     }
@@ -919,7 +919,7 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_bind_text(pUpdClsStmt, 1, zInternalJSON, -1, NULL));
     CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_bind_int64(pUpdClsStmt, 2, alterCtx->pNewClassDef->lClassID));
 
-    CHECK_STMT_STEP(pUpdClsStmt);
+    CHECK_STMT_STEP(pUpdClsStmt, alterCtx->pCtx->db);
 
     result = SQLITE_OK;
     goto EXIT;

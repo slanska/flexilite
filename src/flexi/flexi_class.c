@@ -26,7 +26,7 @@ static int _create_class_record(struct flexi_Context_t *pCtx, const char *zClass
     CHECK_CALL(flexi_Context_insertName(pCtx, zClassName, &lClassNameID));
     CHECK_SQLITE(pCtx->db, sqlite3_bind_int64(pCtx->pStmts[STMT_INS_CLS], 1, lClassNameID));
     CHECK_SQLITE(pCtx->db, sqlite3_bind_text(pCtx->pStmts[STMT_INS_CLS], 2, zOriginalClassDef, -1, NULL));
-    CHECK_STMT_STEP(pCtx->pStmts[STMT_INS_CLS]);
+    CHECK_STMT_STEP(pCtx->pStmts[STMT_INS_CLS], pCtx->db);
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, plClassID));
 
     goto EXIT;
@@ -69,7 +69,7 @@ static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const cha
 
     CHECK_STMT_PREPARE(pClassDef->pCtx->db, zSql, &pStmt);
     CHECK_SQLITE(pClassDef->pCtx->db, sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
-    CHECK_STMT_STEP(pStmt);
+    CHECK_STMT_STEP(pStmt, pClassDef->pCtx->db);
     if (result == SQLITE_ROW)
     {
         for (int ii = 0; ii < ARRAY_LEN(pClassDef->aSpecProps); ii++)
@@ -119,7 +119,7 @@ static int _parseRangeProperties(struct flexi_ClassDef_t *pClassDef, const char 
 
     CHECK_STMT_PREPARE(pClassDef->pCtx->db, zSql, &pStmt);
     CHECK_SQLITE(pClassDef->pCtx->db, sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
-    CHECK_STMT_STEP(pStmt);
+    CHECK_STMT_STEP(pStmt, pClassDef->pCtx->db);
     if (result == SQLITE_ROW)
     {
         for (int ii = 0; ii < ARRAY_LEN(pClassDef->aRangeProps); ii += 2)
@@ -163,7 +163,7 @@ static int _parseFullTextProperties(struct flexi_ClassDef_t *pClassDef, const ch
     sqlite3_stmt *pStmt = NULL;
     CHECK_STMT_PREPARE(pClassDef->pCtx->db, zSql, &pStmt);
     CHECK_SQLITE(pClassDef->pCtx->db, sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
-    CHECK_STMT_STEP(pStmt);
+    CHECK_STMT_STEP(pStmt, pClassDef->pCtx->db);
     if (result == SQLITE_ROW)
     {
         for (int ii = 0; ii < ARRAY_LEN(pClassDef->aFtsProps); ii++)
@@ -204,7 +204,7 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
     CHECK_CALL(sqlite3_bind_text(pStmt, 1, zClassDefJson, -1, NULL));
     while (true)
     {
-        CHECK_STMT_STEP(pStmt);
+        CHECK_STMT_STEP(pStmt, pClassDef->pCtx->db);
         if (result == SQLITE_DONE)
             break;
 
@@ -237,7 +237,7 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
         CHECK_CALL(sqlite3_bind_text(pRulesStmt, 1, zRulesJson, -1, NULL));
         while (true)
         {
-            CHECK_STMT_STEP(pRulesStmt);
+            CHECK_STMT_STEP(pRulesStmt, pClassDef->pCtx->db);
             if (result != SQLITE_ROW)
                 break;
 
@@ -686,7 +686,7 @@ int flexi_class_rename(struct flexi_Context_t *pCtx, sqlite3_int64 iOldClassID, 
     CHECK_SQLITE(pCtx->db, sqlite3_reset(pCtx->pStmts[STMT_CLS_RENAME]));
     sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_RENAME], 1, lNewNameID);
     sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_RENAME], 2, iOldClassID);
-    CHECK_STMT_STEP(pCtx->pStmts[STMT_CLS_RENAME]);
+    CHECK_STMT_STEP(pCtx->pStmts[STMT_CLS_RENAME], pCtx->db);
     result = SQLITE_OK;
     goto EXIT;
 

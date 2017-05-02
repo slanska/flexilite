@@ -221,10 +221,12 @@ static HashElem *_findElementWithHash(
         switch (self->eDictType)
         {
             case DICT_STRING:
+            case DICT_STRING_NO_FREE:
                 if (strcmp(elem->key.pKey, key.pKey) == 0)
                 {
                     return elem;
                 }
+                break;
 
             case DICT_INT:
                 if (elem->key.iKey == key.iKey)
@@ -233,10 +235,12 @@ static HashElem *_findElementWithHash(
                 }
 
             case DICT_STRING_IGNORE_CASE:
+            case DICT_STRING_IGNORE_CASE_NO_FREE:
                 if (sqlite3_stricmp(elem->key.pKey, key.pKey) == 0)
                 {
                     return elem;
                 }
+                break;
         }
 
         elem = elem->next;

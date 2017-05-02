@@ -261,6 +261,7 @@ void flexi_prop_def_free(struct flexi_PropDef_t *prop)
         if (prop->pRegexCompiled)
             re_free(prop->pRegexCompiled);
 
+        // TODO
         flexi_ref_def_free(prop->pRefDef);
         flexi_enum_def_free(prop->pEnumDef);
 

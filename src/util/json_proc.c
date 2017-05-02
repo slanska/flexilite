@@ -58,21 +58,7 @@ JsonNode *json_n_get(JSON_Processor *json, JsonNode *pRoot, const char *zPath) {
     return result;
 }
 
-//JsonNode *json_set(JSON_Processor *json, const char *zPath, sqlite3_value *val) {
-//    int iApnd = 1;
-//    JsonNode *result = jsonLookup(&json->parser, zPath, &iApnd, json->out.pCtx);
-//    int len = sqlite3_value_bytes(val);
-//    char *zText = sqlite3_malloc(len);
-//    strncpy(zText, sqlite3_value_text(val), len - 1);
-//    // TODO When zText will be disposed?
-//    sqlite3_value
-//    result->u.zJContent = zText;
-//    result->jnFlags |= JNODE_REPLACE;
-//    result->n = json->nodeValues.
-//    return result;
+//void json_dispose(JSON_Processor *json) {
+//    jsonReset(&json->out);
+//    jsonParseReset(&json->parser);
 //}
-
-void json_dispose(JSON_Processor *json) {
-    StringBuilder_clear(&json->out);
-    jsonParseReset(&json->parser);
-}

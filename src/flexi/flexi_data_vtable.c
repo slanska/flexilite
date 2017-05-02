@@ -280,7 +280,7 @@ static int _next(sqlite3_vtab_cursor *pCursor)
  * <SQL for argv == 0> intersect <SQL for argv == 1>...
  */
 static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
-                             int argc, sqlite3_value **argv)
+                   int argc, sqlite3_value **argv)
 {
     static char *range_columns[] = {"A0", "A1", "B0", "B1", "C0", "C1", "D0", "D1"};
 
@@ -851,7 +851,7 @@ static int flexi_upsert_props(struct flexi_ClassDef_t *pVTab, sqlite3_int64 lObj
                 //                ii += 2;
             }
 
-            CHECK_STMT_STEP(pStmt);
+            CHECK_STMT_STEP(pStmt,pVTab->pCtx->db);
         }
         else
         {
@@ -871,7 +871,7 @@ static int flexi_upsert_props(struct flexi_ClassDef_t *pVTab, sqlite3_int64 lObj
                 sqlite3_bind_int64(pDelProp, 1, lObjectID);
                 sqlite3_bind_int64(pDelProp, 2, pProp->iPropID);
                 sqlite3_bind_int(pDelProp, 3, 0);
-                CHECK_STMT_STEP(pDelProp);
+                CHECK_STMT_STEP(pDelProp,pVTab->pCtx->db);
             }
         }
     }
@@ -942,13 +942,13 @@ static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_i
         assert(pDel);
         CHECK_CALL(sqlite3_reset(pDel));
         sqlite3_bind_int64(pDel, 1, lOldID);
-        CHECK_STMT_STEP(pDel);
+        CHECK_STMT_STEP(pDel, vtab->pCtx->db);
 
         sqlite3_stmt *pDelRtree = vtab->pCtx->pStmts[STMT_DEL_RTREE];
         assert(pDelRtree);
         CHECK_CALL(sqlite3_reset(pDelRtree));
         sqlite3_bind_int64(pDelRtree, 1, lOldID);
-        CHECK_STMT_STEP(pDelRtree);
+        CHECK_STMT_STEP(pDelRtree, vtab->pCtx->db);
     }
     else
     {
@@ -971,7 +971,7 @@ static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_i
             sqlite3_bind_int64(pInsObj, 2, vtab->lClassID);
             sqlite3_bind_int(pInsObj, 3, vtab->xCtloMask);
 
-            CHECK_STMT_STEP(pInsObj);
+            CHECK_STMT_STEP(pInsObj, vtab->pCtx->db);
 
             if (sqlite3_value_type(argv[1]) == SQLITE_NULL)
             {
@@ -1003,7 +1003,7 @@ static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_i
                 sqlite3_bind_int64(pUpdObjID, 1, lNewID);
                 sqlite3_bind_int64(pUpdObjID, 2, vtab->lClassID);
                 sqlite3_bind_int64(pUpdObjID, 3, lOldID);
-                CHECK_STMT_STEP(pUpdObjID);
+                CHECK_STMT_STEP(pUpdObjID, vtab->pCtx->db);
             }
 
             if (vtab->pCtx->pStmts[STMT_UPD_PROP] == NULL)

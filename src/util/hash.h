@@ -62,7 +62,7 @@ typedef enum DICTIONARY_TYPE
     /*
     * Keys are case insensitive strings that will NOT be disposed by HashTable
     */
-            DICT_STRING_IGNORE_CASE_NO_FREE = 3
+            DICT_STRING_IGNORE_CASE_NO_FREE = 4
 } DICTIONARY_TYPE;
 
 /*

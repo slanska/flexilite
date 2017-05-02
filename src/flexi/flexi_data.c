@@ -552,11 +552,11 @@ static void _matchTextFunction(sqlite3_context *context, int argc, sqlite3_value
     sqlite3_reset(pDBEnv->pMatchFuncInsStmt);
 
     sqlite3_bind_value(pDBEnv->pMatchFuncInsStmt, 1, argv[1]);
-    CHECK_STMT_STEP(pDBEnv->pMatchFuncInsStmt);
+    CHECK_STMT_STEP(pDBEnv->pMatchFuncInsStmt, pDBEnv->pMemDB);
 
     sqlite3_reset(pDBEnv->pMatchFuncSelStmt);
     sqlite3_bind_value(pDBEnv->pMatchFuncSelStmt, 1, argv[0]);
-    CHECK_STMT_STEP(pDBEnv->pMatchFuncSelStmt);
+    CHECK_STMT_STEP(pDBEnv->pMatchFuncSelStmt, pDBEnv->pMemDB);
     sqlite3_int64 lDocID = sqlite3_column_int64(pDBEnv->pMatchFuncSelStmt, 0);
     if (lDocID == 1)
         sqlite3_result_int(context, 1);

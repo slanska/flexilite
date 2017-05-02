@@ -71,8 +71,6 @@ enum REF_PROP_ROLE
         result = (call); \
         if (result != SQLITE_OK) \
         { \
-            const char *zErrStr = sqlite3_errstr(result); \
-            printf("\nError %d:%s in \"%s:%d\", function %s", result, zErrStr, __FILE__, __LINE__, __func__); \
             goto ONERROR; \
         }
 
@@ -96,8 +94,11 @@ enum REF_PROP_ROLE
  * Checks result of sqlite3_step. SQLITE_DONE and SQLITE_ROW are ok.
  * Other codes are treated as error
  */
-#define CHECK_STMT_STEP(stmt)       result = sqlite3_step(stmt); \
-        if (result != SQLITE_DONE && result != SQLITE_ROW) goto ONERROR;
+#define CHECK_STMT_STEP(stmt, db)       result = sqlite3_step(stmt); \
+        if (result != SQLITE_DONE && result != SQLITE_ROW) \
+        { \
+            CHECK_SQLITE(db, result); \
+        }
 
 #define CHECK_NULL(v) if (v == NULL) { result = SQLITE_NOMEM; goto ONERROR;}
 

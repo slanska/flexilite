@@ -69,7 +69,6 @@ static void SqlTestData_clear(SqlTestData_t *self)
     {
         for (int ii = 0; ii < ARRAY_LEN(self->props); ii++)
         {
-            printf("Disposing test prop: %d\n", ii);
             sqlite3_free(self->props[ii]);
         }
     }
