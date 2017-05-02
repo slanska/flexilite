@@ -805,8 +805,8 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
 
     EXIT:
 
-    printf("_upsertPropDef: %d.%s. Result=%d\n",
-           (int) alterCtx->pNewClassDef->name.id, zPropName, result);
+    printf("_upsertPropDef: %s. Result=%d\n",
+           zPropName, result);
 
     return;
 }
@@ -878,7 +878,9 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     if (alterCtx->pUpsertPropDefStmt == NULL)
     {
         // TODO Use context statement
-        const char *zInsPropSQL = "insert or replace into [flexi_prop] (Property, ClassID, ctlv, ctlvPlan)"
+//        const char *zInsPropSQL = "insert or replace into [flexi_prop] (Property, ClassID, ctlv, ctlvPlan)"
+//                " values (:1, :2, :3, :4);";
+        const char *zInsPropSQL = "insert  into [flexi_prop] (Property, ClassID, ctlv, ctlvPlan)"
                 " values (:1, :2, :3, :4);";
         CHECK_STMT_PREPARE(alterCtx->pCtx->db, zInsPropSQL, &alterCtx->pUpsertPropDefStmt);
     }

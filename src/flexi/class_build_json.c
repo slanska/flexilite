@@ -281,13 +281,15 @@ _buildPropDefJSON(const char *zPropName, const sqlite3_int64 index, struct flexi
 
     // refDef
     if (strcmp(prop->zType, "reference") == 0)
-    {
-        StringBuilder_appendRaw(&ctx->sb, ",", 1);
-        StringBuilder_appendJsonElem(&ctx->sb, "enumDef", -1);
-        StringBuilder_appendRaw(&ctx->sb, ":", 1);
-        _internalAppendClassDefRef(ctx, prop->pRefDef);
+        // TODO
+        if (prop->pRefDef != NULL)
+        {
+            StringBuilder_appendRaw(&ctx->sb, ",", 1);
+            StringBuilder_appendJsonElem(&ctx->sb, "refDef", -1);
+            StringBuilder_appendRaw(&ctx->sb, ":", 1);
+            _internalAppendClassDefRef(ctx, prop->pRefDef);
 
-    }
+        }
 
     // enumDef
     if (strcmp(prop->zType, "enum") == 0)
