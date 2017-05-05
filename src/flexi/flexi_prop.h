@@ -206,7 +206,7 @@ struct flexi_ref_def
     enum REF_PROP_ROLE rule;
 };
 
-void flexi_ref_def_free(flexi_ref_def *);
+void flexi_ref_def_free(Flexi_ClassRefDef_t *);
 
 struct flexi_enum_def
 {

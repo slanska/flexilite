@@ -68,6 +68,9 @@ static int flexi_init_func(sqlite3_context *context,
 
 }
 
+/*
+ * Central gateway to all Flexilite API
+ */
 static void flexi_func(sqlite3_context *context,
                        int argc,
                        sqlite3_value **argv)
@@ -140,18 +143,24 @@ static void flexi_func(sqlite3_context *context,
                 }
             }
 
-            result = methods[ii].func(context, argc - 1, &argv[1]);
+            // Check user_version
+            struct flexi_Context_t *pCtx = sqlite3_user_data(context);
+            result = flexi_Context_checkMetaDataCache(pCtx);
+            if (result == SQLITE_OK)
+            {
+                result = methods[ii].func(context, argc - 1, &argv[1]);
+            }
 
             if (methods[ii].trn)
             {
                 // Check if call finished with error
                 // TODO
-                //                if (result != SQLITE_OK)
-                //                {
-                //                    // Dump database
-                //                    sqlite3_exec(db, "rollback to savepoint flexi1;", NULL, NULL, &zError);
-                //                }
-                //                else
+                if (result != SQLITE_OK)
+                {
+                    // Dump database
+                    result = sqlite3_exec(db, "rollback to savepoint flexi1;", NULL, NULL, &zError);
+                }
+                else
                 {
                     result = sqlite3_exec(db, "release flexi1;", NULL, NULL, &zError);
                 }
@@ -161,6 +170,14 @@ static void flexi_func(sqlite3_context *context,
                     sqlite3_result_error(context, zError, -1);
                 }
             }
+
+            if (result != SQLITE_OK)
+            {
+                sqlite3 *db = sqlite3_context_db_handle(context);
+                zError = (char *)sqlite3_errmsg(db);
+                sqlite3_result_error(context, zError, -1);
+            }
+
             return;
         }
     }

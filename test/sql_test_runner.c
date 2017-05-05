@@ -18,7 +18,7 @@
 static char *strCopy(const char *zSrc, int len)
 {
     if (len < 0)
-        len = (int)strlen(zSrc);
+        len = (int) strlen(zSrc);
 
     char *result = sqlite3_malloc(len + 1);
     if (result != NULL)
@@ -132,7 +132,8 @@ static void _bindSqlArg(const char *zKey, const sqlite3_int64 index, SqlArg_t *p
  * number of columns in the row. Total number of items in pData will be nRowCnt * nColCnt
  */
 static int
-_runSql(char *zDatabase, char *zSrcSql, char *zArgs, char *zFileArgs, Array_t *pData, int *pColCnt, char *zEntryFilePath,
+_runSql(char *zDatabase, char *zSrcSql, char *zArgs, char *zFileArgs, Array_t *pData, int *pColCnt,
+        char *zEntryFilePath,
         char *zSubstFileNames)
 {
     int result;
@@ -442,7 +443,7 @@ _disposeCMUnitTest(struct CMUnitTest *ut)
  */
 void run_sql_tests(char *zBaseDir, const char *zJsonFile)
 {
-    int result = SQLITE_OK;
+    int result;
 
     struct CMUnitTest *pTests = NULL;
     const char *zError = NULL;

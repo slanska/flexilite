@@ -95,6 +95,9 @@ enum FLEXI_CTX_STMT
     // Get property ID by its name
             STMT_SEL_PROP_ID_BY_NAME = 22,
 
+    // Get current user version
+    STMT_USER_VERSION_GET = 24,
+
     // Should be last one in the list
             STMT_DEL_FTS = 30
 };
@@ -146,6 +149,10 @@ struct flexi_Context_t
 
     // TODO Init and use
     Hash classDefsById;
+
+    char*zError;
+
+    sqlite3_int64 lUserVersion;
 };
 
 struct flexi_Context_t *flexi_Context_new(sqlite3 *db);
@@ -208,5 +215,18 @@ char *String_substr(const char *zSource, intptr_t start, intptr_t len);
 int flexi_Context_getPropIdByClassIdAndName(struct flexi_Context_t *pCtx,
                                             sqlite3_int64 lClassID, const char *zPropName,
                                             sqlite3_int64 *plPropID);
+
+/*
+ * Returns current user version value in plUserVersion
+ * If bIncrement == true, increments user version value
+ */
+int flexi_Context_userVersion(struct flexi_Context_t *pCtx, sqlite3_int64* plUserVersion, bool bIncrement);
+
+/*
+ * Checks if class definitions and other metadata loaded into context is still valid.
+ * Verification is made based on PRAGMA USER_VERSION
+ * If changes are detected, loaded classes and other metadata will be reset
+ */
+int flexi_Context_checkMetaDataCache(struct flexi_Context_t *pCtx);
 
 #endif //FLEXILITE_FLEXI_ENV_H

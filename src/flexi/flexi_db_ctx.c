@@ -158,6 +158,13 @@ int flexi_Context_insertName(struct flexi_Context_t *pCtx, const char *zName, sq
     return result;
 }
 
+static void
+_freeMetadata(struct flexi_Context_t* pCtx)
+{
+    HashTable_clear(&pCtx->classDefsByName);
+    HashTable_clear(&pCtx->classDefsById);
+}
+
 void flexi_Context_free(struct flexi_Context_t *pCtx)
 {
     // Release prepared SQL statements
@@ -187,14 +194,15 @@ void flexi_Context_free(struct flexi_Context_t *pCtx)
 
     flexi_UserInfo_free(pCtx->pCurrentUser);
 
-    HashTable_clear(&pCtx->classDefsByName);
-    HashTable_clear(&pCtx->classDefsById);
+    _freeMetadata(pCtx);
 
     /*
      *TODO Check 2nd param
      */
     if (pCtx->pDuk)
         duk_free(pCtx->pDuk, NULL);
+
+    sqlite3_free(pCtx->zError);
 
     sqlite3_free(pCtx);
 }
@@ -349,6 +357,62 @@ char *String_substr(const char *zSource, intptr_t start, intptr_t len)
 
     strncpy(result, zSource + start, len);
     result[len] = 0;
+
+    return result;
+}
+
+int flexi_Context_userVersion(struct flexi_Context_t *pCtx, sqlite3_int64 *plUserVersion, bool bIncrement)
+{
+    int result;
+
+    char*zSetUserVersion = NULL;
+
+    if (pCtx->pStmts[STMT_USER_VERSION_GET] == NULL)
+    {
+        CHECK_STMT_PREPARE(pCtx->db, "pragma user_version;", &pCtx->pStmts[STMT_USER_VERSION_GET]);
+    }
+    CHECK_STMT_STEP(pCtx->pStmts[STMT_USER_VERSION_GET], pCtx->db);
+    if (result == SQLITE_ROW)
+    {
+        *plUserVersion = sqlite3_column_int64(pCtx->pStmts[STMT_USER_VERSION_GET], 0);
+
+        if (true == bIncrement)
+        {
+            (*plUserVersion)++;
+            zSetUserVersion = sqlite3_mprintf("pragma user_version=%" PRId64, plUserVersion);
+            CHECK_CALL(sqlite3_exec(pCtx->db, zSetUserVersion, NULL, NULL, &pCtx->zError));
+        }
+
+        result = SQLITE_OK;
+    }
+
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    sqlite3_free(zSetUserVersion);
+    return result;
+}
+
+int flexi_Context_checkMetaDataCache(struct flexi_Context_t *pCtx)
+{
+    int result;
+
+    sqlite3_int64 lNewUserVersion;
+    CHECK_CALL(flexi_Context_userVersion(pCtx, &lNewUserVersion, false));
+    if (lNewUserVersion != pCtx->lUserVersion)
+    {
+        _freeMetadata(pCtx);
+        pCtx->lUserVersion = lNewUserVersion;
+    }
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
 
     return result;
 }

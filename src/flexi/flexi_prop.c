@@ -271,12 +271,12 @@ void flexi_prop_def_free(struct flexi_PropDef_t *prop)
     }
 }
 
-void flexi_ref_def_free(flexi_ref_def *p)
+void flexi_ref_def_free(Flexi_ClassRefDef_t *self)
 {
-    if (p)
+    if (self)
     {
         // TODO
-        sqlite3_free(p);
+        sqlite3_free(self);
     }
 }
 
