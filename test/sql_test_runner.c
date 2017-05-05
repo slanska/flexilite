@@ -298,7 +298,14 @@ _runSql(char *zDatabase, char *zSrcSql, char *zArgs, char *zFileArgs, Array_t *p
     sqlite3_finalize(pStmt);
     sqlite3_finalize(pArgsStmt);
     sqlite3_finalize(pSubstStmt);
-    sqlite3_close(pDB);
+    if (pDB != NULL)
+    {
+        result = sqlite3_close(pDB);
+        if (result != SQLITE_OK)
+        {
+            printf("DB Close Error %d. %s", result, sqlite3_errmsg(pDB));
+        }
+    }
     Array_clear(&sqlArgs);
     sqlite3_free(zFullFilePath);
     sqlite3_free(zSql);
@@ -567,10 +574,15 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
 
     EXIT:
 
-    if (pJsonStmt != NULL)
-        result = sqlite3_finalize(pJsonStmt);
+    result = sqlite3_finalize(pJsonStmt);
     if (db != NULL)
+    {
         result = sqlite3_close(db);
+        if (result != SQLITE_OK)
+        {
+            printf("DB Close Error %d. %s", result, sqlite3_errmsg(db));
+        }
+    }
     Array_clear(&tests);
     SqlTestData_clear(testData);
     sqlite3_free(testData);

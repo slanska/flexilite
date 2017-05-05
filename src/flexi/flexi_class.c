@@ -1025,8 +1025,7 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
     *pzErr = sqlite3_errmsg(pCtx->db);
 
     EXIT:
-    if (pGetClassStmt)
-        sqlite3_finalize(pGetClassStmt);
+    sqlite3_finalize(pGetClassStmt);
     sqlite3_free(zClassDefJson);
 
     sqlite3_free(zClassDef);
