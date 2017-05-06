@@ -299,8 +299,8 @@ int flexi_Context_addClassDef(struct flexi_Context_t *self, flexi_ClassDef_t *pC
 {
     int result;
 
-    HashTable_set(&self->classDefsByName, (DictionaryKey_t) {.pKey =  pClassDef->name.name}, pClassDef);
-    HashTable_set(&self->classDefsById, (DictionaryKey_t) {.iKey =  pClassDef->lClassID}, pClassDef);
+    HashTable_set(&self->classDefsByName, (DictionaryKey_t) {.pKey = pClassDef->name.name}, pClassDef);
+    HashTable_set(&self->classDefsById, (DictionaryKey_t) {.iKey = pClassDef->lClassID}, pClassDef);
     pClassDef->nRefCount++;
 
     result = SQLITE_OK;

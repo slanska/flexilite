@@ -1003,6 +1003,9 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
 
     CHECK_CALL(_applyClassSchema(&alterCtx, zNewClassDef));
 
+    flexi_Context_addClassDef(pCtx, alterCtx.pNewClassDef);
+    alterCtx.pNewClassDef = NULL;
+
     goto EXIT;
 
     ONERROR:
