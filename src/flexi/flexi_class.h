@@ -149,8 +149,7 @@ typedef struct flexi_ClassDef_t
 } flexi_ClassDef_t;
 
 int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName, const char *zOriginalClassDef,
-                          bool bCreateVTable,
-                          const char **pzError);
+                          bool bCreateVTable);
 
 int flexi_class_create_func(
         sqlite3_context *context,
@@ -196,8 +195,7 @@ int flexi_prop_to_obj_func(
  * have any data (so no data refactoring would be required)
  */
 int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
-                                bool bCreateVTable, enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
-                                const char **pzErr);
+                                bool bCreateVTable, enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode);
 
 ///
 /// \param pCtx
@@ -206,20 +204,15 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
 /// \param bCreateVTable
 /// \param pzError
 /// \return
-int flexi_class_alter(struct flexi_Context_t *pCtx,
-                      const char *zClassName,
-                      const char *zNewClassDefJson,
-                      enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
-                      bool bCreateVTable,
-                      const char **pzError
-);
+int flexi_class_alter(struct flexi_Context_t *pCtx, const char *zClassName, const char *zNewClassDefJson,
+                      enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode, bool bCreateVTable);
 
 ///
 /// \param pCtx
 /// \param lClassID
 /// \param softDelete
 /// \return
-int flexi_class_drop(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, int softDelete, const char **pzError);
+int flexi_class_drop(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, int softDelete);
 
 void flexi_props_to_obj_func(
         sqlite3_context *context,
@@ -240,8 +233,7 @@ void flexi_ClassDef_free(struct flexi_ClassDef_t *self);
  * into ppVTab (casted to flexi_vtab).
  * Used by Create and Connect methods
  */
-int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef,
-                        const char **pzErr);
+int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef);
 
 /*
  * Generates SQL to create Flexilite virtual table from class definition
@@ -250,7 +242,7 @@ int flexi_ClassDef_generateVtableSql(struct flexi_ClassDef_t *pClassDef, char **
 
 struct flexi_ClassDef_t *flexi_class_def_new(struct flexi_Context_t *pCtx);
 
-int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson, const char **pzErr);
+int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson);
 
 int flexi_schema_func(sqlite3_context *context,
                       int argc,

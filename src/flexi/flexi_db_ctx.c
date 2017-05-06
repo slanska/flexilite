@@ -202,7 +202,7 @@ void flexi_Context_free(struct flexi_Context_t *pCtx)
     if (pCtx->pDuk)
         duk_free(pCtx->pDuk, NULL);
 
-    sqlite3_free(pCtx->zError);
+    sqlite3_free(pCtx->zLastErrorMessage);
 
     sqlite3_free(pCtx);
 }
@@ -380,7 +380,7 @@ int flexi_Context_userVersion(struct flexi_Context_t *pCtx, sqlite3_int64 *plUse
         {
             (*plUserVersion)++;
             zSetUserVersion = sqlite3_mprintf("pragma user_version=%" PRId64, plUserVersion);
-            CHECK_CALL(sqlite3_exec(pCtx->db, zSetUserVersion, NULL, NULL, &pCtx->zError));
+            CHECK_CALL(sqlite3_exec(pCtx->db, zSetUserVersion, NULL, NULL, &pCtx->zLastErrorMessage));
         }
 
         result = SQLITE_OK;
@@ -415,4 +415,16 @@ int flexi_Context_checkMetaDataCache(struct flexi_Context_t *pCtx)
     EXIT:
 
     return result;
+}
+
+void flexi_Context_setError(struct flexi_Context_t* pCtx, int iErrorCode, char *zErrorMessage)
+{
+    sqlite3_free(pCtx->zLastErrorMessage);
+    pCtx->zLastErrorMessage = NULL;
+    if (zErrorMessage != NULL) {
+        pCtx->zLastErrorMessage = zErrorMessage;
+    } else{
+        pCtx->zLastErrorMessage = sqlite3_mprintf("DB error: %s", sqlite3_errmsg(pCtx->db));
+    }
+    pCtx->iLastErrorCode = iErrorCode;
 }

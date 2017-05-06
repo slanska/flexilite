@@ -7,7 +7,6 @@
  */
 
 #include "flexi_class.h"
-#include "../util/StringBuilder.h"
 
 /*
  * Create new class record in the database. Data field is not saved at this point yet
@@ -374,9 +373,8 @@ struct flexi_ClassDef_t *flexi_class_def_new(struct flexi_Context_t *pCtx)
 /// @param bCreateVTable
 /// @param pzError
 /// @return
-int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName,
-                          const char *zOriginalClassDef, bool bCreateVTable,
-                          const char **pzError)
+int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName, const char *zOriginalClassDef,
+                          bool bCreateVTable)
 {
     int result;
 
@@ -396,14 +394,14 @@ int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName,
     if (lClassID > 0)
     {
         result = SQLITE_ERROR;
-        *pzError = sqlite3_mprintf("Class [%s] already exists", zClassName);
+        flexi_Context_setError(pCtx, result, sqlite3_mprintf("Class [%s] already exists", zClassName));
         goto ONERROR;
     }
 
     if (!db_validate_name(zClassName))
     {
         result = SQLITE_ERROR;
-        *pzError = sqlite3_mprintf("Invalid class name [%s]", zClassName);
+        flexi_Context_setError(pCtx, result, sqlite3_mprintf("Invalid class name [%s]", zClassName));
         goto ONERROR;
     }
 
@@ -414,7 +412,7 @@ int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName,
     printf("Creating class %s...\n", zClassName);
 
     CHECK_CALL(
-            _flexi_ClassDef_applyNewDef(pCtx, lClassID, zOriginalClassDef, bCreateVTable, INVALID_DATA_ABORT, pzError));
+            _flexi_ClassDef_applyNewDef(pCtx, lClassID, zOriginalClassDef, bCreateVTable, INVALID_DATA_ABORT));
 
     result = SQLITE_OK;
 
@@ -489,7 +487,7 @@ int flexi_class_create_func(
     else
     {
         void *pCtx = sqlite3_user_data(context);
-        CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, bCreateVTable, &zError));
+        CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, bCreateVTable));
     }
 
     result = SQLITE_OK;
@@ -578,7 +576,7 @@ int flexi_class_alter_func(
         }
     }
     struct flexi_Context_t *pCtx = sqlite3_user_data(context);
-    CHECK_CALL(flexi_class_alter(pCtx, zClassName, zNewClassDef, eValidationMode, bCreateVTable, &zError));
+    CHECK_CALL(flexi_class_alter(pCtx, zClassName, zNewClassDef, eValidationMode, bCreateVTable));
 
     goto EXIT;
 
@@ -595,8 +593,7 @@ int flexi_class_alter_func(
     return result;
 }
 
-int flexi_class_drop(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, int softDelete,
-                     const char **pzError)
+int flexi_class_drop(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, int softDelete)
 {
     // TODO
 
@@ -647,7 +644,7 @@ int flexi_class_drop_func(
     struct flexi_Context_t *pCtx = sqlite3_user_data(context);
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
 
-    CHECK_CALL(flexi_class_drop(pCtx, lClassID, softDel, &zError));
+    CHECK_CALL(flexi_class_drop(pCtx, lClassID, softDel));
     goto EXIT;
 
     ONERROR:
@@ -906,11 +903,8 @@ _getPropNameID(const char *zKey, const sqlite3_int64 index, struct flexi_PropDef
 /*
  * Parses class definition JSON into classDef structure (which is supposed to be already allocated and zeroed)
  */
-int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef,
-                         const char *zClassDefJson, const char **pzErr)
+int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson)
 {
-    UNUSED_PARAM(pzErr);
-
     int result;
 
     sqlite3_stmt *pStmt = NULL;
@@ -941,8 +935,7 @@ int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef,
  * into ppVTab (casted to flexi_ClassDef_t).
  * Used by Create and Connect methods
  */
-int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef,
-                        const char **pzErr)
+int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef)
 {
     int result;
     char *zClassDefJson = NULL;
@@ -975,8 +968,7 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
         // No class found. Return error
     {
         result = SQLITE_NOTFOUND;
-        if (pzErr)
-            *pzErr = sqlite3_mprintf("Cannot find Flexilite class with ID [%ld]", lClassID);
+            flexi_Context_setError(pCtx, result, sqlite3_mprintf("Cannot find Flexilite class with ID [%ld]", lClassID));
         goto ONERROR;
     }
 
@@ -1022,7 +1014,7 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
         flexi_ClassDef_free(*pClassDef);
         *pClassDef = NULL;
     }
-    *pzErr = sqlite3_errmsg(pCtx->db);
+    flexi_Context_setError(pCtx, result, NULL);
 
     EXIT:
     sqlite3_finalize(pGetClassStmt);
@@ -1072,7 +1064,7 @@ int flexi_schema_func(sqlite3_context *context,
             CHECK_CALL(getColumnAsText(&zClassDef, pStmt, 0));
             CHECK_CALL(getColumnAsText(&zClassName, pStmt, 1));
 
-            CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, bCreateVTable, &zErr));
+            CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, bCreateVTable));
         }
 
         if (result != SQLITE_DONE)

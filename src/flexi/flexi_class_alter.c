@@ -84,7 +84,6 @@ struct _ClassAlterContext_t
     struct flexi_Context_t *pCtx;
     struct flexi_ClassDef_t *pNewClassDef;
     struct flexi_ClassDef_t *pExistingClassDef;
-    const char **pzErr;
 
     /*
      * List of actions to be executed before scanning existing data
@@ -327,7 +326,7 @@ _validatePropChange(const char *zPropName, int index, struct flexi_PropDef_t *p,
 #define CHECK_ERROR(condition, errorMessage) \
             if (condition) \
     { \
-        *alterCtx->pzErr = errorMessage; \
+        flexi_Context_setError(alterCtx->pCtx, condition, errorMessage); \
         *bStop = true; \
         return; \
     }
@@ -695,12 +694,12 @@ _mergeClassSchemas(_ClassAlterContext_t *alterCtx)
     // Copy existing properties if they are not defined in new schema
     // These properties will get eChangeStatus NONMODIFIED
     HashTable_each(&alterCtx->pExistingClassDef->propsByName, (void *) _copyExistingProp, alterCtx);
-    if (*alterCtx->pzErr)
+    if (alterCtx->pCtx->iLastErrorCode != SQLITE_OK)
         goto ONERROR;
 
     // Iterate through properties. Find props: to be renamed, to be deleted, to be updated, to be added
     HashTable_each(&alterCtx->pNewClassDef->propsByName, (void *) _validatePropChange, alterCtx);
-    if (*alterCtx->pzErr)
+    if (alterCtx->pCtx->iLastErrorCode != SQLITE_OK)
         goto ONERROR;
 
     // Process mixins
@@ -745,7 +744,7 @@ _createClassDefFromDefJSON(struct flexi_Context_t *pCtx, const char *zClassDefJs
 
     (*pClassDef)->lClassID = lClassID;
     (*pClassDef)->bAsTable = bAsTable;
-    CHECK_CALL(flexi_ClassDef_parse(*pClassDef, zClassDefJson, &zErr));
+    CHECK_CALL(flexi_ClassDef_parse(*pClassDef, zClassDefJson));
 
     result = SQLITE_OK;
     goto EXIT;
@@ -801,7 +800,7 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
     ONERROR:
     *bStop = true;
     alterCtx->nSqlResult = result;
-    *alterCtx->pzErr = sqlite3_errmsg(alterCtx->pCtx->db);
+    flexi_Context_setError(alterCtx->pCtx, result, NULL);
 
     EXIT:
 
@@ -938,13 +937,8 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
  * Ensures that class already exists and calls _flexi_ClassDef_applyNewDef
  */
 int
-flexi_class_alter(struct flexi_Context_t *pCtx,
-                  const char *zClassName,
-                  const char *zNewClassDefJson,
-                  enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
-                  bool bCreateVTable,
-                  const char **pzError
-)
+flexi_class_alter(struct flexi_Context_t *pCtx, const char *zClassName, const char *zNewClassDefJson,
+                  enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode, bool bCreateVTable)
 {
     int result;
 
@@ -955,17 +949,17 @@ flexi_class_alter(struct flexi_Context_t *pCtx,
     if (lClassID <= 0)
     {
         result = SQLITE_ERROR;
-        *pzError = sqlite3_mprintf("Class [%s] is not found", zClassName);
+        flexi_Context_setError(pCtx, result, sqlite3_mprintf("Class [%s] is not found", zClassName));
         goto ONERROR;
     }
 
-    CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zNewClassDefJson, bCreateVTable, eValidateMode, pzError));
+    CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zNewClassDefJson, bCreateVTable, eValidateMode));
 
     goto EXIT;
 
     ONERROR:
-    if (!*pzError)
-        *pzError = sqlite3_errstr(result);
+    if (pCtx->iLastErrorCode != SQLITE_OK)
+        flexi_Context_setError(pCtx, result, NULL);
 
     EXIT:
     return result;
@@ -976,8 +970,7 @@ flexi_class_alter(struct flexi_Context_t *pCtx,
  * Applies new definition to the class which does not yet have data
  */
 int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
-                                bool bCreateVTable, enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode,
-                                const char **pzErr)
+                                bool bCreateVTable, enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode)
 {
     int result;
 
@@ -991,10 +984,9 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
     List_init(&alterCtx.postActions, 0, NULL);
     List_init(&alterCtx.propActions, 0, NULL);
     alterCtx.eValidateMode = eValidateMode;
-    alterCtx.pzErr = pzErr;
 
     // Load existing class def
-    CHECK_CALL(flexi_ClassDef_load(pCtx, lClassID, &alterCtx.pExistingClassDef, pzErr));
+    CHECK_CALL(flexi_ClassDef_load(pCtx, lClassID, &alterCtx.pExistingClassDef));
 
     // Parse new definition
     CHECK_CALL(_createClassDefFromDefJSON(pCtx, zNewClassDef, &alterCtx.pNewClassDef, lClassID, bCreateVTable));
@@ -1011,7 +1003,7 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
     ONERROR:
     if (alterCtx.pNewClassDef)
         flexi_ClassDef_free(alterCtx.pNewClassDef);
-    *pzErr = *alterCtx.pzErr;
+    flexi_Context_setError(pCtx, result, NULL);
 
     EXIT:
 

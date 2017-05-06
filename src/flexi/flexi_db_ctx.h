@@ -150,7 +150,11 @@ struct flexi_Context_t
     // TODO Init and use
     Hash classDefsById;
 
-    char*zError;
+    /*
+     * Last error
+     */
+    char *zLastErrorMessage;
+    int iLastErrorCode;
 
     sqlite3_int64 lUserVersion;
 };
@@ -228,5 +232,12 @@ int flexi_Context_userVersion(struct flexi_Context_t *pCtx, sqlite3_int64* plUse
  * If changes are detected, loaded classes and other metadata will be reset
  */
 int flexi_Context_checkMetaDataCache(struct flexi_Context_t *pCtx);
+
+/*
+ * Sets error message and code to context.
+ * If zErrorMessage is not NULL, it is expected to allocated by sqlite3_mprintf or sqlite3_malloc
+ * If it is NULL, then sqlite3_errmsg will be used to get error message from database context
+ */
+void flexi_Context_setError(struct flexi_Context_t* pCtx, int iErrorCode, char *zErrorMessage);
 
 #endif //FLEXILITE_FLEXI_ENV_H

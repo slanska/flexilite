@@ -181,9 +181,9 @@ static int _createNewClass(struct flexi_Context_t *pCtx, const char *zClassName,
     // TODO Begin trn
     sqlite3_int64 lClassID;
 
-    CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, 1, pzErr));
+    CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, 1));
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
-    CHECK_CALL(flexi_ClassDef_load(pCtx, lClassID, ppClassDef, pzErr));
+    CHECK_CALL(flexi_ClassDef_load(pCtx, lClassID, ppClassDef));
 
     // TODO Rollback/commit
 
