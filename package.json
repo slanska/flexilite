@@ -19,7 +19,7 @@
     "url": "git://github.com/slanska/flexilite.git"
   },
   "scripts": {
-    "valgrind": "valgrind --leak-check=full --track-origins=yes ./cmake-build-debug/bin/flexilite_test"
+    "valgrind": "cd ./cmake-build-debug/bin && valgrind --leak-check=full --track-origins=yes ./flexilite_test"
   },
   "main": "lib/index.js",
   "engines": {

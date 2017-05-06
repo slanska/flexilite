@@ -295,6 +295,7 @@ _runSql(char *zDatabase, char *zSrcSql, char *zArgs, char *zFileArgs, Array_t *p
 
     EXIT:
 
+    sqlite3_free(zSchemaSql);
     sqlite3_finalize(pStmt);
     sqlite3_finalize(pArgsStmt);
     sqlite3_finalize(pSubstStmt);
@@ -452,6 +453,8 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
 {
     int result;
 
+    printf("###1");
+
     struct CMUnitTest *pTests = NULL;
     const char *zError = NULL;
     SqlTestData_t *testData = NULL;
@@ -470,8 +473,14 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     Path_join(&zJsonFileFull, zBaseDir, zJsonFile);
     Path_dirname(&zJsonBasePath, zJsonFileFull);
 
+    printf("###2");
+
+    printf("zJsonFileFull: %s", zJsonFileFull);
+
     // Read JSON file
     CHECK_CALL(file_load_utf8(zJsonFileFull, &zJson));
+
+    printf("###3");
 
     // Open memory database
     CHECK_CALL(sqlite3_open(":memory:", &db));
@@ -513,6 +522,9 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
 
     SqlTestData_init(&prevTestData);
 
+    printf("###4");
+
+
     CHECK_STMT_PREPARE(db, zSelJSON, &pJsonStmt);
     CHECK_CALL(sqlite3_bind_text(pJsonStmt, 1, zJson, -1, NULL));
 
@@ -531,6 +543,8 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
         }
 
         size_t nDirLen = strlen(zJsonBasePath) + 1;
+
+        sqlite3_free(testData->props[TEST_DEF_ENTRY_FILE_PATH]);
         testData->props[TEST_DEF_ENTRY_FILE_PATH] = sqlite3_malloc((int) nDirLen);
         CHECK_NULL(testData->props[TEST_DEF_ENTRY_FILE_PATH]);
         strncpy(testData->props[TEST_DEF_ENTRY_FILE_PATH], zJsonBasePath, nDirLen);
@@ -560,7 +574,13 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     if (result != SQLITE_DONE)
         goto ONERROR;
 
+    printf("###5");
+
+
     CHECK_CALL(_runTestGroup(&zGroupTitle, &tests));
+
+    printf("###6");
+
 
     goto EXIT;
 
@@ -571,6 +591,7 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
         zError = sqlite3_errmsg(db);
         printf("Error: %s", zError);
     }
+    else print_error("Non-db error: %d", result);
 
     EXIT:
 

@@ -331,9 +331,9 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
     goto EXIT;
 
     ONERROR:
-    sqlite3_free(zPropDefJson);
 
     EXIT:
+    sqlite3_free(zPropDefJson);
 
     return result;
 }
@@ -1059,7 +1059,8 @@ int flexi_schema_func(sqlite3_context *context,
             bCreateVTable = sqlite3_value_int(argv[1]) != 0;
         void *pCtx = sqlite3_user_data(context);
         CHECK_STMT_PREPARE(db, "select value, key from json_each(:1)", &pStmt);
-        CHECK_SQLITE(db, sqlite3_bind_value(pStmt, 1, sqlite3_value_dup(argv[0])));
+        CHECK_SQLITE(db, sqlite3_bind_value(pStmt, 1, argv[0]));
+//        CHECK_SQLITE(db, sqlite3_bind_value(pStmt, 1, sqlite3_value_dup(argv[0])));
 
         while ((result = sqlite3_step(pStmt)) == SQLITE_ROW)
         {
