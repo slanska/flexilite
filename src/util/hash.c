@@ -233,6 +233,7 @@ static HashElem *_findElementWithHash(
                 {
                     return elem;
                 }
+                break;
 
             case DICT_STRING_IGNORE_CASE:
             case DICT_STRING_IGNORE_CASE_NO_FREE:
