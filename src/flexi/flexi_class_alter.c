@@ -744,6 +744,7 @@ _createClassDefFromDefJSON(struct flexi_Context_t *pCtx, const char *zClassDefJs
 
     (*pClassDef)->lClassID = lClassID;
     (*pClassDef)->bAsTable = bAsTable;
+
     CHECK_CALL(flexi_ClassDef_parse(*pClassDef, zClassDefJson));
 
     result = SQLITE_OK;
@@ -953,6 +954,9 @@ flexi_class_alter(struct flexi_Context_t *pCtx, const char *zClassName, const ch
         goto ONERROR;
     }
 
+    // TODO temp
+    printf("Altering class [%s]\n", zClassName);
+
     CHECK_CALL(_flexi_ClassDef_applyNewDef(pCtx, lClassID, zNewClassDefJson, bCreateVTable, eValidateMode));
 
     goto EXIT;
@@ -968,6 +972,9 @@ flexi_class_alter(struct flexi_Context_t *pCtx, const char *zClassName, const ch
 /*
  * Internal function to handle 'alter class' and 'create class' calls
  * Applies new definition to the class which does not yet have data
+ * Loads class definition (if already exists) into temporary structure
+ * Once new definition gets successfully applied, removes previous definition (if it was cached)
+ * and sets new definition instead
  */
 int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, const char *zNewClassDef,
                                 bool bCreateVTable, enum ALTER_CLASS_DATA_VALIDATION_MODE eValidateMode)
@@ -990,6 +997,11 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
 
     // Parse new definition
     CHECK_CALL(_createClassDefFromDefJSON(pCtx, zNewClassDef, &alterCtx.pNewClassDef, lClassID, bCreateVTable));
+
+    // Sets other class properties
+    alterCtx.pNewClassDef->name.id = alterCtx.pExistingClassDef->name.id;
+    alterCtx.pNewClassDef->name.name = sqlite3_mprintf("%s", alterCtx.pExistingClassDef->name.name);
+    alterCtx.pNewClassDef->name.bOwnName = true;
 
     CHECK_CALL(_mergeClassSchemas(&alterCtx));
 

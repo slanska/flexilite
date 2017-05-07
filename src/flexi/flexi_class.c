@@ -958,7 +958,8 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
             "SystemClass, " // 2
             "ctloMask, " // 3
             "VirtualTable, " // 4
-            "Data as Definition " // 5
+            "Data as Definition, " // 5
+            "(select [Value] from [.names_props] np where np.ID = [.classes].NameID limit 1) as Name " // 6
             "from [.classes] "
             "where ClassID = :1;";
     CHECK_STMT_PREPARE(pCtx->db, zGetClassSQL, &pGetClassStmt);
@@ -977,6 +978,9 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
 
     (*pClassDef)->lClassID = sqlite3_column_int64(pGetClassStmt, 0);
     (*pClassDef)->name.id = sqlite3_column_int64(pGetClassStmt, 1);
+    getColumnAsText(&(*pClassDef)->name.name, pGetClassStmt, 6);
+    (*pClassDef)->name.bOwnName = true;
+
     (*pClassDef)->bSystemClass = (bool) sqlite3_column_int(pGetClassStmt, 2);
     (*pClassDef)->xCtloMask = sqlite3_column_int(pGetClassStmt, 3);
 

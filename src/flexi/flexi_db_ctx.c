@@ -428,3 +428,33 @@ void flexi_Context_setError(struct flexi_Context_t* pCtx, int iErrorCode, char *
     }
     pCtx->iLastErrorCode = iErrorCode;
 }
+
+int flexi_Context_getNameValueByID(struct flexi_Context_t*pCtx, sqlite3_int64 lNameID, char**pzName)
+{
+    int result;
+    if (pCtx->pStmts[STMT_GET_NAME_BY_ID] == NULL)
+    {
+        CHECK_STMT_PREPARE(pCtx->db, "select [Value] from [.names_props] where ID = :1 limit 1;", &pCtx->pStmts[STMT_GET_NAME_BY_ID]);
+    }
+    sqlite3_stmt*pStmt = pCtx->pStmts[STMT_GET_NAME_BY_ID];
+    CHECK_CALL(sqlite3_reset(pStmt));
+    sqlite3_bind_int64(pStmt, 1, lNameID);
+    result = sqlite3_step(pStmt);
+    if (result == SQLITE_ROW)
+    {
+        CHECK_CALL(getColumnAsText(pzName, pStmt, 1));
+        result = SQLITE_OK;
+    }
+    else
+        if (result == SQLITE_DONE)
+        {
+            result = SQLITE_NOTFOUND;
+        }
+
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    return result;
+}
