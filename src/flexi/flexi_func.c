@@ -82,6 +82,9 @@ static void flexi_func(sqlite3_context *context,
         return;
     }
 
+    /*
+     * TODO description
+     */
     struct
     {
         const char *zMethod;
