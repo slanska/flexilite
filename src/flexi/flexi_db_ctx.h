@@ -98,6 +98,9 @@ enum FLEXI_CTX_STMT
     // Get current user version
     STMT_USER_VERSION_GET = 24,
 
+    // Get name text value by its ID
+    STMT_GET_NAME_BY_ID = 25,
+
     // Should be last one in the list
             STMT_DEL_FTS = 30
 };
@@ -239,5 +242,10 @@ int flexi_Context_checkMetaDataCache(struct flexi_Context_t *pCtx);
  * If it is NULL, then sqlite3_errmsg will be used to get error message from database context
  */
 void flexi_Context_setError(struct flexi_Context_t* pCtx, int iErrorCode, char *zErrorMessage);
+
+/*
+ * Retrieved name text value by its ID. Returns SQLite code (SQLITE_OK if found, SQLITE_NOT_FOUND if name does not exist)
+ */
+int flexi_Context_getNameValueByID(struct flexi_Context_t*pCtx, sqlite3_int64 lNameID, char**pzName);
 
 #endif //FLEXILITE_FLEXI_ENV_H

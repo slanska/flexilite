@@ -110,6 +110,7 @@ typedef struct SqlArg_t
 static void
 _freeSqlArg(SqlArg_t *p)
 {
+    printf(">>>>> _freeSqlArg\n");
     sqlite3_value_free(p->pValue);
     sqlite3_free(p->zText);
 }
