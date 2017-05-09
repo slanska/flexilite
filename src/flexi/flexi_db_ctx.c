@@ -159,8 +159,10 @@ _freeMetadata(struct flexi_Context_t *pCtx) {
 void flexi_Context_free(struct flexi_Context_t *pCtx) {
     // Release prepared SQL statements
     for (int ii = 0; ii <= STMT_DEL_FTS; ii++) {
-        if (pCtx->pStmts[ii])
+        if (pCtx->pStmts[ii]) {
             sqlite3_finalize(pCtx->pStmts[ii]);
+            pCtx->pStmts[ii] = NULL;
+        }
     }
 
     if (pCtx->pMatchFuncSelStmt != NULL) {

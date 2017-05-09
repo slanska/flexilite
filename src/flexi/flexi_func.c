@@ -15,8 +15,7 @@ SQLITE_EXTENSION_INIT3
 
 static int flexi_help_func(sqlite3_context *context,
                            int argc,
-                           sqlite3_value **argv)
-{
+                           sqlite3_value **argv) {
     (void) argc;
     (void) argv;
 
@@ -39,8 +38,7 @@ static int flexi_help_func(sqlite3_context *context,
 
 static int flexi_init_func(sqlite3_context *context,
                            int argc,
-                           sqlite3_value **argv)
-{
+                           sqlite3_value **argv) {
     (void) argc;
     (void) argv;
 
@@ -73,11 +71,9 @@ static int flexi_init_func(sqlite3_context *context,
  */
 static void flexi_func(sqlite3_context *context,
                        int argc,
-                       sqlite3_value **argv)
-{
+                       sqlite3_value **argv) {
 
-    if (argc == 0)
-    {
+    if (argc == 0) {
         flexi_help_func(context, 0, NULL);
         return;
     }
@@ -85,8 +81,7 @@ static void flexi_func(sqlite3_context *context,
     /*
      * TODO description
      */
-    struct
-    {
+    struct {
         const char *zMethod;
 
         int (*func)(sqlite3_context *, int, sqlite3_value **);
@@ -129,18 +124,14 @@ static void flexi_func(sqlite3_context *context,
     char *zMethodName = (char *) sqlite3_value_text(argv[0]);
     char *zError = NULL;
     int result;
-    for (int ii = 0; ii < sizeof(methods) / sizeof(methods[0]); ii++)
-    {
-        if (sqlite3_stricmp(methods[ii].zMethod, zMethodName) == 0)
-        {
+    for (int ii = 0; ii < sizeof(methods) / sizeof(methods[0]); ii++) {
+        if (sqlite3_stricmp(methods[ii].zMethod, zMethodName) == 0) {
             sqlite3 *db = NULL;
-            if (methods[ii].trn)
-            {
+            if (methods[ii].trn) {
                 db = sqlite3_context_db_handle(context);
 
                 result = sqlite3_exec(db, "savepoint flexi1;", NULL, NULL, &zError);
-                if (result != SQLITE_OK)
-                {
+                if (result != SQLITE_OK) {
                     sqlite3_result_error(context, zError, -1);
                     return;
                 }
@@ -149,35 +140,28 @@ static void flexi_func(sqlite3_context *context,
             // Check user_version
             struct flexi_Context_t *pCtx = sqlite3_user_data(context);
             result = flexi_Context_checkMetaDataCache(pCtx);
-            if (result == SQLITE_OK)
-            {
+            if (result == SQLITE_OK) {
                 result = methods[ii].func(context, argc - 1, &argv[1]);
             }
 
-            if (methods[ii].trn)
-            {
+            if (methods[ii].trn) {
                 // Check if call finished with error
                 // TODO
-                if (result != SQLITE_OK)
-                {
+                if (result != SQLITE_OK) {
                     // Dump database
                     result = sqlite3_exec(db, "rollback to savepoint flexi1;", NULL, NULL, &zError);
-                }
-                else
-                {
+                } else {
                     result = sqlite3_exec(db, "release flexi1;", NULL, NULL, &zError);
                 }
 
-                if (result != SQLITE_OK)
-                {
+                if (result != SQLITE_OK) {
                     sqlite3_result_error(context, zError, -1);
                 }
             }
 
-            if (result != SQLITE_OK)
-            {
+            if (result != SQLITE_OK) {
                 sqlite3 *db = sqlite3_context_db_handle(context);
-                zError = (char *)sqlite3_errmsg(db);
+                zError = (char *) sqlite3_errmsg(db);
                 sqlite3_result_error(context, zError, -1);
             }
 
@@ -198,18 +182,24 @@ int flexi_data_init(
 
 int flexi_init(sqlite3 *db,
                char **pzErrMsg,
-               const sqlite3_api_routines *pApi)
-{
+               const sqlite3_api_routines *pApi) {
     int result;
+    sqlite3_stmt *pDummy = NULL;
+
     struct flexi_Context_t *pCtx = flexi_Context_new(db);
-    if (!pCtx)
-    {
+    if (!pCtx) {
         result = SQLITE_NOMEM;
         goto ONERROR;
     }
 
     CHECK_CALL(sqlite3_create_function_v2(db, "flexi", -1, SQLITE_UTF8, pCtx,
                                           flexi_func, 0, 0, (void *) flexi_Context_free));
+
+    // Execute 'flexi' with dummy call to enable finalization
+    CHECK_STMT_PREPARE(db, "select flexi();", &pDummy);
+    result = sqlite3_step(pDummy);
+    if (result != SQLITE_ROW)
+        goto ONERROR;
 
     CHECK_CALL(flexi_data_init(db, pzErrMsg, pApi, pCtx));
     goto EXIT;
@@ -218,6 +208,6 @@ int flexi_init(sqlite3 *db,
     flexi_Context_free(pCtx);
 
     EXIT:
-
+    sqlite3_finalize(pDummy);
     return result;
 }

@@ -512,7 +512,7 @@ static sqlite3_module flexi_data_module = {
 
 static void _flexi_Data_destroy(void *pCtx)
 {
-
+printf("_flexi_Data_destroy\n");
 }
 
 /*
