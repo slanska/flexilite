@@ -105,7 +105,11 @@ struct Hash
     /* Number of entries in this table */
     HashElem *first;
 
-    /* The first element of the array */
+    /*
+     * Pointer to array of hash buckets. Every element in the array has pointer to
+     * the first element in the bucket and number of elements in the bucket
+     * The first element of the array
+     * */
     struct _ht
     {
         /* the hash table */

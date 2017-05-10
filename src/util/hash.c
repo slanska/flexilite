@@ -65,6 +65,7 @@ void HashTable_clear(Hash *self)
 }
 
 /*
+ * Returns hash value for int64 key
  */
 static unsigned int _getHashForInt64(sqlite3_int64 key)
 {
@@ -84,7 +85,7 @@ unsigned int HashTable_getStringHash(const char *key)
 {
     unsigned int h = 0;
     unsigned char c;
-    // TODO
+
     while ((c = (unsigned char) *key++) != 0)
     {
         h = (h << 3) ^ h ^ c;
@@ -104,13 +105,13 @@ static void _insertElement(
     HashElem *pHead;       /* First element already in pEntry */
     if (pEntry)
     {
-        pHead = pEntry->count ? pEntry->chain : 0;
+        pHead = pEntry->count ? pEntry->chain : NULL;
         pEntry->count++;
         pEntry->chain = pNew;
     }
     else
     {
-        pHead = 0;
+        pHead = NULL;
     }
     if (pHead)
     {
@@ -127,7 +128,7 @@ static void _insertElement(
         pNew->next = self->first;
         if (self->first)
         { self->first->prev = pNew; }
-        pNew->prev = 0;
+        pNew->prev = NULL;
         self->first = pNew;
     }
 }
@@ -138,7 +139,7 @@ static void _insertElement(
 ** if the new size is the same as the prior size.
 ** Return TRUE if the resize occurs and false if not.
 */
-static int _rehash(Hash *self, unsigned int new_size)
+static bool _rehash(Hash *self, unsigned int new_size)
 {
     struct _ht *new_ht;            /* The new hash table */
     HashElem *elem, *next_elem;    /* For looping over existing elements */
@@ -161,7 +162,8 @@ static int _rehash(Hash *self, unsigned int new_size)
 
     new_ht = (struct _ht *) sqlite3_malloc(new_size * sizeof(struct _ht));
 
-    if (new_ht == 0) return 0;
+    if (new_ht == 0)
+        return false;
     sqlite3_free(self->ht);
     self->ht = (void *) new_ht;
 
@@ -169,13 +171,14 @@ static int _rehash(Hash *self, unsigned int new_size)
     memset(new_ht, 0, new_size * sizeof(struct _ht));
     for (elem = self->first, self->first = 0; elem; elem = next_elem)
     {
-        unsigned int h = self->eDictType == DICT_INT
+        // Calc bucket number as modulo of key hash and new number of buckets
+        unsigned int h = (self->eDictType == DICT_INT
                          ? _getHashForInt64(elem->key.iKey)
-                         : HashTable_getStringHash(elem->key.pKey) % new_size;
+                         : HashTable_getStringHash(elem->key.pKey)) % new_size;
         next_elem = elem->next;
         _insertElement(self, &new_ht[h], elem);
     }
-    return 1;
+    return true;
 }
 
 /* This function (for internal use only) locates an element in an
@@ -197,7 +200,7 @@ static HashElem *_findElementWithHash(
         struct _ht *pEntry;
         if (self->eDictType == DICT_INT)
         {
-            h = _getHashForInt64(key.iKey);
+            h = _getHashForInt64(key.iKey) % self->htsize;
         }
         else
         {
@@ -382,9 +385,9 @@ void HashTable_set(Hash *self, DictionaryKey_t key, void *data)
         if (_rehash(self, self->count * 2))
         {
             assert(self->htsize > 0);
-            h = self->eDictType == DICT_INT
+            h = (self->eDictType == DICT_INT
                 ? _getHashForInt64(key.iKey)
-                : HashTable_getStringHash(key.pKey) % self->htsize;
+                : HashTable_getStringHash(key.pKey)) % self->htsize;
         }
     }
     _insertElement(self, (void *) (self->ht ? &self->ht[h] : 0), new_elem);
