@@ -83,7 +83,7 @@ int flexi_prop_rename_func(
  * Allocates new instance of class prop definition
  * Sets class ID, ref count to 1 and status 'ADDED'
  */
-struct flexi_PropDef_t *flexi_prop_def_new(sqlite3_int64 lClassID)
+struct flexi_PropDef_t *flexi_PropDef_new(sqlite3_int64 lClassID)
 {
     struct flexi_PropDef_t *result = sqlite3_malloc(sizeof(struct flexi_PropDef_t));
     if (result)
@@ -145,6 +145,7 @@ int flexi_prop_def_parse(struct flexi_PropDef_t *pProp, const char *zPropName, c
         pProp->bNoTrackChanges = (bool) sqlite3_column_int(st, 5);
         CHECK_CALL(getColumnAsText(&pProp->zEnumDef, st, 6));
         CHECK_CALL(getColumnAsText(&pProp->zRefDef, st, 7));
+
         CHECK_CALL(getColumnAsText(&pProp->zRenameTo, st, 8));
         if (sqlite3_column_int(st, 9) == 1)
             pProp->eChangeStatus = CHNG_STATUS_DELETED;
@@ -248,34 +249,39 @@ int flexi_ref_to_prop_func(
 /*
  *
  */
-void flexi_prop_def_free(struct flexi_PropDef_t *prop)
+void flexi_PropDef_free(struct flexi_PropDef_t *prop)
 {
     assert(prop);
 
     if (--prop->nRefCount == 0)
     {
         sqlite3_value_free(prop->defaultValue);
-        sqlite3_free(prop->name.name);
 
         sqlite3_free(prop->regex);
         if (prop->pRegexCompiled)
             re_free(prop->pRegexCompiled);
 
-        // TODO
-        flexi_ref_def_free(prop->pRefDef);
+        sqlite3_free(prop->name.name);
+        flexi_RefDef_free(prop->pRefDef);
         flexi_enum_def_free(prop->pEnumDef);
 
+        sqlite3_free(prop->zRefDef);
         sqlite3_free(prop->zIndex);
         sqlite3_free(prop->zSubType);
         sqlite3_free(prop->zRenameTo);
+        sqlite3_free(prop->zType);
+
+        sqlite3_free(prop);
     }
 }
 
-void flexi_ref_def_free(Flexi_ClassRefDef_t *self)
+void flexi_RefDef_free(Flexi_ClassRefDef_t *self)
 {
     if (self)
     {
-        // TODO
+        Array_clear(&self->rules);
+        flexi_MetadataRef_free(&self->classRef);
+        flexi_MetadataRef_free(&self->dynSelectorProp);
         sqlite3_free(self);
     }
 }

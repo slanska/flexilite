@@ -138,7 +138,7 @@ typedef struct flexi_ClassDef_t
     struct flexi_PropDef_t *pProps;
 
     /*
-     * Array of flexi_class_ref_def
+     * Array of flexi_ClassRefDef
      */
     Array_t *aMixins;
 

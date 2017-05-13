@@ -29,7 +29,7 @@ struct flexi_MetadataRef_t
 
 typedef struct flexi_MetadataRef_t flexi_MetadataRef_t;
 
-void flexi_metadata_ref_free(flexi_MetadataRef_t *);
+void flexi_MetadataRef_free(flexi_MetadataRef_t *);
 
 /*
  * Compares 2 arrays of metadata_ref structs.
@@ -46,13 +46,13 @@ bool flexi_metadata_ref_compare_n(flexi_MetadataRef_t *r1, flexi_MetadataRef_t *
  */
 int flexi_metadata_ref_compare(const flexi_MetadataRef_t *r1, const flexi_MetadataRef_t *r2);
 
-struct flexi_class_ref_rule
+struct flexi_ClassRefRule
 {
     char *regex;
     flexi_MetadataRef_t classRef;
 };
 
-bool flexi_class_ref_rule_compare(const struct flexi_class_ref_rule *p1, const struct flexi_class_ref_rule *p2);
+bool flexi_class_ref_rule_compare(const struct flexi_ClassRefRule *p1, const struct flexi_ClassRefRule *p2);
 
 /*
  * Class ref definition type.
@@ -62,22 +62,22 @@ bool flexi_class_ref_rule_compare(const struct flexi_class_ref_rule *p1, const s
  * class reference
  */
 
-typedef struct flexi_class_ref_def
+typedef struct flexi_ClassRefDef
 {
     flexi_MetadataRef_t classRef;
     flexi_MetadataRef_t dynSelectorProp;
 
     /*
-     * Array of flexi_class_ref_rule
+     * Array of flexi_ClassRefRule
      */
     Array_t rules;
     CHANGE_STATUS eChangeStatus;
     int nRefCount;
 } Flexi_ClassRefDef_t;
 
-void flexi_class_ref_def_init(struct flexi_class_ref_def *p);
+void flexi_ClassRefDef_init(struct flexi_ClassRefDef *p);
 
-void flexi_class_ref_def_dispose(struct flexi_class_ref_def *p);
+void flexi_ClassRefDef_dispose(struct flexi_ClassRefDef *p);
 
 /*
  * Result of comparing 2 class ref definitions
@@ -109,7 +109,7 @@ typedef enum ClassRefDef_Compare_Result
  * Compares 2 class ref definitions
  */
 ClassRefDef_Compare_Result
-flexi_class_ref_def_compare(const struct flexi_class_ref_def *pDef1, const struct flexi_class_ref_def *pDef2);
+flexi_ClassRefDef_compare(const struct flexi_ClassRefDef *pDef1, const struct flexi_ClassRefDef *pDef2);
 
 
 #endif //CLASS_REF_DEF_H

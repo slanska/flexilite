@@ -8,7 +8,7 @@
  * as well as for CRUD operations on Flexilite classes without corresponding virtual tables.
  *
  * Example of actual virtual table creation:
- * create virtual table if not exists Orders using flexi_data ('Orders', '{"... class definition JSON ..."}');
+ * create virtual table if not exists Orders using flexi_data ('{"... class definition JSON ..."}');
  * This will create a new class called 'Orders' as well as corresponding permanent virtual table also called
  * Orders. This table can be accessed as regular SQLite table, with direct access to all
  * rows and columns
@@ -38,8 +38,6 @@ SQLITE_EXTENSION_INIT3
 
 #include "../misc/regexp.h"
 #include "flexi_class.h"
-#include "flexi_data.h"
-
 
 /*
  * Forward declarations
@@ -93,10 +91,10 @@ struct FlexiDataProxyVTab_t
     struct flexi_Context_t *pCtx;
 
     /*
-     * reference Flexi class definition.
+     * Class is defined by its ID. When class definition object is needed, pCtx is used to get it by ID
      * Applicable to both AdHoc and virtual table
      */
-    flexi_ClassDef_t *pClassDef;
+    sqlite3_int64 lClassID;
 
     /*
      * These fields are applicable to ad-hoc
@@ -111,7 +109,6 @@ static void FlexiDataProxyVTab_free(struct FlexiDataProxyVTab_t *self)
     if (self != NULL)
     {
         AdHoxQryParams_free(self->pQry);
-        flexi_ClassDef_free(self->pClassDef);
         sqlite3_free(self);
     }
 }
@@ -139,18 +136,15 @@ static void init_range_column(struct flexi_PropDef_t *pRngProp, unsigned char cB
  * Creates new class in transaction
  */
 static int _createNewClass(struct flexi_Context_t *pCtx, const char *zClassName, const char *zClassDef,
-                           struct flexi_ClassDef_t **ppClassDef, const char **pzErr)
+                           struct flexi_ClassDef_t **ppClassDef)
 {
     int result;
 
-    // TODO Begin trn
     sqlite3_int64 lClassID;
 
     CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, 1));
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
     CHECK_CALL(flexi_ClassDef_load(pCtx, lClassID, ppClassDef));
-
-    // TODO Rollback/commit
 
     result = SQLITE_OK;
     goto EXIT;
@@ -199,6 +193,8 @@ static int _createOrConnect(
 
     struct FlexiDataProxyVTab_t *proxyVTab = NULL;
 
+    struct flexi_ClassDef_t *pClassDef = NULL;
+
     proxyVTab = sqlite3_malloc(sizeof(struct FlexiDataProxyVTab_t));
     CHECK_NULL(proxyVTab);
     memset(proxyVTab, 0, sizeof(struct FlexiDataProxyVTab_t));
@@ -236,8 +232,8 @@ static int _createOrConnect(
 
         proxyVTab->pApi = &_classDefProxyModule;
 
-        CHECK_CALL(
-                _createNewClass(proxyVTab->pCtx, zClassName, zClassDef, &proxyVTab->pClassDef, (const char **) pzErr));
+        CHECK_CALL(_createNewClass(proxyVTab->pCtx, zClassName, zClassDef, &pClassDef));
+        proxyVTab->lClassID = pClassDef->lClassID;
     } else if (argc == 3 && strcmp(argv[2], "flexi_data") == 0)
     {
         proxyVTab->pApi = &_adhocQryProxyModule;
@@ -368,7 +364,7 @@ static int _close(sqlite3_vtab_cursor *pCursor)
 }
 
 static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
-                                     int argc, sqlite3_value **argv)
+                   int argc, sqlite3_value **argv)
 {
     struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
     int result = proxyVTab->pApi->xFilter(pCursor, idxNum, idxStr, argc, argv);

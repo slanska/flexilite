@@ -351,7 +351,7 @@ int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol)
     *pzDest = sqlite3_malloc((int) len + 1);
     if (*pzDest == NULL)
         return SQLITE_NOMEM;
-    strncpy(*pzDest, (char *) sqlite3_column_text(pStmt, iCol), len);
+    strncpy(*pzDest, zSrc, len);
     (*pzDest)[len] = 0;
 
     return SQLITE_OK;
