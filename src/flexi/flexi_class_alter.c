@@ -114,13 +114,18 @@ struct _ClassAlterContext_t
 };
 
 static void
-_ClassAlterContext_clear(_ClassAlterContext_t *alterCtx)
+_ClassAlterContext_clear(_ClassAlterContext_t *self)
 {
-    List_clear(&alterCtx->propActions);
-    List_clear(&alterCtx->preActions);
-    List_clear(&alterCtx->postActions);
+    List_clear(&self->propActions);
+    List_clear(&self->preActions);
+    List_clear(&self->postActions);
 
-    sqlite3_finalize(alterCtx->pUpsertPropDefStmt);
+    if (self->pNewClassDef != NULL)
+    {
+        flexi_ClassDef_free(self->pNewClassDef);
+    }
+
+    sqlite3_finalize(self->pUpsertPropDefStmt);
 }
 
 /*

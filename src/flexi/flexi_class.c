@@ -1090,6 +1090,7 @@ int flexi_schema_func(sqlite3_context *context,
     EXIT:
     sqlite3_finalize(pStmt);
     sqlite3_free(zClassDef);
+    sqlite3_free(zClassName);
     return result;
 }
 

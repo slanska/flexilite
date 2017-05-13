@@ -38,49 +38,14 @@ SQLITE_EXTENSION_INIT3
 
 #include "../misc/regexp.h"
 #include "flexi_class.h"
+#include "flexi_data.h"
 
-struct flexi_vtab_cursor
-{
-    struct sqlite3_vtab_cursor base;
-
-    /*
-     * This statement will be used for navigating through object list.
-     * Depending on filter, query may vary
-     */
-    sqlite3_stmt *pObjectIterator;
-
-    /*
-     * This statement will be used to iterating through properties of object (by its ID)
-     */
-    sqlite3_stmt *pPropertyIterator;
-    sqlite3_int64 lObjectID;
-
-    /*
-     * Actually fetched number of column values.
-     * Reset to 0 on every next object fetch
-     */
-    int iReadCol;
-
-    /*
-     * Array of retrieved column data, by column index as it is defined in pVTab->pProps
-     */
-    sqlite3_value **pCols;
-
-    /*
-     * Indicator of end of file
-     * May have 3 values:
-     * -1: Next was never called. Assume Eof not reached
-     * 0: Next was called, not Eof reached
-     * 1: Next was called and Eof was reached
-     */
-    short iEof;
-};
 
 /*
  * Forward declarations
  */
-static sqlite3_module _classDefProxyModule;
-static sqlite3_module _adhocQryProxyModule;
+extern sqlite3_module _classDefProxyModule;
+extern sqlite3_module _adhocQryProxyModule;
 
 struct AdHocQryParams_t
 {
@@ -240,6 +205,7 @@ static int _createOrConnect(
 
     // We expect pAux to be connection context
     proxyVTab->pCtx = pAux;
+    proxyVTab->pCtx->nRefCount++;
 
     CHECK_SQLITE(db, sqlite3_declare_vtab(db, "create table x([select] JSON1 NULL,"
             "[ClassName] TEXT NULL,"
@@ -254,7 +220,7 @@ static int _createOrConnect(
             "[fetchDepth] INTEGER NULL);" // when to stop when fetching nested/referenced objects
     ));
 
-    /* Check if this is function-type call ('select * from flexi_data')
+    /* Check if this is function-type call ('select * from flexi_data()')
     or create-table-type call ('create virtual table T using flexi_data')
 
      Function-type call will have argv[2] == 'flexi_data' and argc == 3
@@ -272,25 +238,21 @@ static int _createOrConnect(
 
         CHECK_CALL(
                 _createNewClass(proxyVTab->pCtx, zClassName, zClassDef, &proxyVTab->pClassDef, (const char **) pzErr));
-    }
-    else
-        if (argc == 3 && strcmp(argv[2], "flexi_data") == 0)
-        {
-            proxyVTab->pApi = &_adhocQryProxyModule;
-            proxyVTab->pQry = sqlite3_malloc(sizeof(*proxyVTab->pQry));
-            CHECK_NULL(proxyVTab->pQry);
-            memset(proxyVTab->pQry, 0, sizeof(*proxyVTab->pQry));
+    } else if (argc == 3 && strcmp(argv[2], "flexi_data") == 0)
+    {
+        proxyVTab->pApi = &_adhocQryProxyModule;
+        proxyVTab->pQry = sqlite3_malloc(sizeof(*proxyVTab->pQry));
+        CHECK_NULL(proxyVTab->pQry);
+        memset(proxyVTab->pQry, 0, sizeof(*proxyVTab->pQry));
 
-            // pClassDef is null. It will be initialized in xOpen
-            goto EXIT;
-        }
-        else
-        {
-            *pzErr = "Invalid arguments. Expected class name and class definition JSON"
-                    " for virtual table creation or 'flexi_data' for eponymous table";
-            result = SQLITE_ERROR;
-            goto ONERROR;
-        }
+        // TODO ??? pClassDef is null. It will be initialized in xOpen
+    } else
+    {
+        *pzErr = "Invalid arguments. Expected class name and class definition JSON"
+                " for virtual table creation or 'flexi_data' for eponymous table";
+        result = SQLITE_ERROR;
+        goto ONERROR;
+    }
 
 
     result = SQLITE_OK;
@@ -317,7 +279,18 @@ static int _disconnect(sqlite3_vtab *pVTab)
     //    FlexiDataProxyVTab_free(proxyVTab);
     //    return result;
 
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
+    int result = proxyVTab->pApi->xDisconnect(pVTab);
+
+    // Check if this was the last connected vtable. If so, free db context
+    if (--proxyVTab->pCtx->nRefCount == 0)
+    {
+        flexi_Context_free(proxyVTab->pCtx);
+    }
+
+    FlexiDataProxyVTab_free(proxyVTab);
+
+    return result;
 }
 
 /*
@@ -357,7 +330,9 @@ static int _bestIndex(
         sqlite3_index_info *pIdxInfo
 )
 {
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) tab;
+    int result = proxyVTab->pApi->xBestIndex(tab, pIdxInfo);
+    return result;
 }
 
 /*
@@ -365,8 +340,9 @@ static int _bestIndex(
  */
 static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
 {
-    // TODO
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
+    int result = proxyVTab->pApi->xOpen(pVTab, ppCursor);
+    return result;
 }
 
 /*
@@ -374,10 +350,11 @@ static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
  */
 static int _destroy(sqlite3_vtab *pVTab)
 {
-    //pVTab->pModule
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
+    int result = proxyVTab->pApi->xDestroy(pVTab);
 
     // TODO "delete from [.classes] where NameID = (select NameID from [.names] where Value = :name limit 1);"
-    return SQLITE_OK;
+    return result;
 }
 
 /*
@@ -385,13 +362,17 @@ static int _destroy(sqlite3_vtab *pVTab)
  */
 static int _close(sqlite3_vtab_cursor *pCursor)
 {
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    int result = proxyVTab->pApi->xClose(pCursor);
+    return result;
 }
 
 static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
-                   int argc, sqlite3_value **argv)
+                                     int argc, sqlite3_value **argv)
 {
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    int result = proxyVTab->pApi->xFilter(pCursor, idxNum, idxStr, argc, argv);
+    return result;
 }
 
 /*
@@ -399,7 +380,9 @@ static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
  */
 static int _next(sqlite3_vtab_cursor *pCursor)
 {
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    int result = proxyVTab->pApi->xNext(pCursor);
+    return result;
 }
 
 /*
@@ -407,7 +390,9 @@ static int _next(sqlite3_vtab_cursor *pCursor)
  */
 static int _eof(sqlite3_vtab_cursor *pCursor)
 {
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    int result = proxyVTab->pApi->xEof(pCursor);
+    return result;
 }
 
 /*
@@ -418,7 +403,9 @@ static int _eof(sqlite3_vtab_cursor *pCursor)
  */
 static int _column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int iCol)
 {
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    int result = proxyVTab->pApi->xColumn(pCursor, pContext, iCol);
+    return result;
 }
 
 /*
@@ -426,7 +413,9 @@ static int _column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int 
  */
 static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
 {
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    int result = proxyVTab->pApi->xRowid(pCursor, pRowid);
+    return result;
 }
 
 /*
@@ -457,7 +446,9 @@ UPDATE table SET rowid=rowid+1 WHERE ...;
  */
 static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid)
 {
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
+    int result = proxyVTab->pApi->xUpdate(pVTab, argc, argv, pRowid);
+    return result;
 }
 
 /*
@@ -471,7 +462,9 @@ static int _find_method(
         void **ppArg
 )
 {
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVtab;
+    int result = proxyVTab->pApi->xFindFunction(pVtab, nArg, zName, pxFunc, ppArg);
+    return result;
 }
 
 /*
@@ -480,40 +473,37 @@ static int _find_method(
  */
 static int _rename(sqlite3_vtab *pVtab, const char *zNew)
 {
-    return 0;
+    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVtab;
+    int result = proxyVTab->pApi->xRename(pVtab, zNew);
+    return result;
 }
 
 /* The methods of the flexi virtual table */
 static sqlite3_module flexi_data_module = {
-        0,                              /* iVersion */
-        _createOrConnect,             /* xCreate */
-        _createOrConnect,             /* xConnect */
-        _bestIndex,          /* xBestIndex */
-        _disconnect,          /* xDisconnect */
-        _destroy,             /* xDestroy */
-        _open,                /* xOpen - open a cursor */
-        _close,               /* xClose - close a cursor */
-        _filter,              /* xFilter - configure scan constraints */
-        _next,                /* xNext - advance a cursor */
-        _eof,                 /* xEof - check for end of scan */
-        _column,              /* xColumn - read data */
-        _row_id,              /* xRowid - read data */
-        _update,              /* xUpdate */
-        0,                              /* xBegin */
-        0,                              /* xSync */
-        0,                              /* xCommit */
-        0,                              /* xRollback */
-        _find_method,         /* xFindMethod */
-        _rename,              /* xRename */
-        0,                              /* xSavepoint */
-        0,                              /* xRelease */
-        0                               /* xRollbackTo */
+        .iVersion = 0,
+        .xCreate = _createOrConnect,
+        .xConnect =_createOrConnect,
+        .xBestIndex = _bestIndex,
+        .xDisconnect = _disconnect,
+        .xDestroy = _destroy,
+        .xOpen =_open,
+        .xClose = _close,
+        .xFilter = _filter,
+        .xNext = _next,
+        .xEof= _eof,
+        .xColumn = _column,
+        .xRowid = _row_id,
+        .xUpdate = _update,
+        .xBegin = 0,
+        .xSync =0,
+        .xCommit = 0,
+        .xRollback =0,
+        .xFindFunction = _find_method,
+        .xRename = _rename,
+        .xSavepoint = 0,
+        .xRelease = 0,
+        .xRollbackTo = 0
 };
-
-static void _flexi_Data_destroy(void *pCtx)
-{
-printf("_flexi_Data_destroy\n");
-}
 
 /*
  * Implementation of MATCH function for non-FTS-indexed columns.
@@ -533,12 +523,12 @@ static void _matchTextFunction(sqlite3_context *context, int argc, sqlite3_value
 
     if (pDBEnv->pMemDB == NULL)
     {
-        CHECK_CALL( sqlite3_open_v2(":memory:", &pDBEnv->pMemDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL));
+        CHECK_CALL(sqlite3_open_v2(":memory:", &pDBEnv->pMemDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL));
 
         CHECK_SQLITE(pDBEnv->pMemDB, sqlite3_exec(pDBEnv->pMemDB, "PRAGMA journal_mode = OFF;"
-                                        "create virtual table if not exists [.match_func] using 'fts4' (txt, tokenize=unicode61);", NULL,
-                                NULL,
-                                NULL));
+                                                          "create virtual table if not exists [.match_func] using 'fts4' (txt, tokenize=unicode61);", NULL,
+                                                  NULL,
+                                                  NULL));
 
         CHECK_STMT_PREPARE(pDBEnv->pMemDB, "insert or replace into [.match_func] (docid, txt) values (1, :1);",
                            &pDBEnv->pMatchFuncInsStmt);
@@ -577,7 +567,7 @@ int flexi_data_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi,
-        struct flexi_Context_t *pEnv
+        struct flexi_Context_t *pCtx
 )
 {
     (void) pApi;
@@ -585,14 +575,15 @@ int flexi_data_init(
     int result;
 
     // Init module
-    CHECK_CALL(sqlite3_create_module_v2(db, "flexi_data", &flexi_data_module, pEnv, _flexi_Data_destroy));
+    CHECK_CALL(sqlite3_create_module_v2(db, "flexi_data", &flexi_data_module, pCtx, NULL));
+//    CHECK_CALL(sqlite3_create_module_v2(db, "flexi_data", &flexi_data_module, pCtx, (void *) flexi_Context_free));
 
     /*
      * TODO move to general functions
      * Register match_text function, used for searching on non-FTS indexed columns
      */
-    CHECK_CALL(sqlite3_create_function_v2(db, "match_text", 2, SQLITE_UTF8, pEnv,
-                                          _matchTextFunction, 0, 0, _flexi_Data_destroy));
+    CHECK_CALL(sqlite3_create_function_v2(db, "match_text", 2, SQLITE_UTF8, pCtx,
+                                          _matchTextFunction, 0, 0, NULL));
 
     result = SQLITE_OK;
     goto EXIT;
