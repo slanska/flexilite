@@ -116,7 +116,7 @@ _buildMetadataRef(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *zAttrN
  * Appends individual dynamic rule to JSON
  */
 static void _appendClassRefDynRule(const char *zKey, const sqlite3_int64 index,
-                                   struct flexi_class_ref_rule *pData,
+                                   struct flexi_ClassRefRule *pData,
                                    const var collection, struct _BuildInternalClassDefJSON_Ctx *ctx, bool *bStop)
 {
     UNUSED_PARAM(zKey);
@@ -345,7 +345,7 @@ _buildMetaDataRefArray(struct _BuildInternalClassDefJSON_Ctx *ctx, const char *z
 }
 
 static void
-_buildMixinRef(const char *zKey, const sqlite3_int64 index, struct flexi_class_ref_def *pRef,
+_buildMixinRef(const char *zKey, const sqlite3_int64 index, struct flexi_ClassRefDef *pRef,
                const var collection, struct _BuildInternalClassDefJSON_Ctx *ctx, bool *bStop)
 {
     UNUSED_PARAM(zKey);

@@ -160,6 +160,11 @@ struct flexi_Context_t
     int iLastErrorCode;
 
     sqlite3_int64 lUserVersion;
+
+    /*
+     * Number of open vtables.
+     */
+    sqlite3_int64 nRefCount;
 };
 
 struct flexi_Context_t *flexi_Context_new(sqlite3 *db);

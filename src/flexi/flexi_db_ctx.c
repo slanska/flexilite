@@ -8,16 +8,26 @@
 #include "../misc/regexp.h"
 
 /*
+ * Dummy no-op function. To be used as replacement for default free item
+ * callback in hash table
+ */
+static void _dummy_ptr(void* ptr)
+{
+    UNUSED_PARAM(ptr);
+}
+
+/*
  * Forward declarations
  */
-struct flexi_Context_t *flexi_Context_new(sqlite3 *db) {
+struct flexi_Context_t *flexi_Context_new(sqlite3 *db)
+{
     struct flexi_Context_t *result = sqlite3_malloc(sizeof(struct flexi_Context_t));
     if (!result)
         return NULL;
     memset(result, 0, sizeof(struct flexi_Context_t));
     result->db = db;
     HashTable_init(&result->classDefsByName, DICT_STRING, (void *) flexi_ClassDef_free);
-    HashTable_init(&result->classDefsById, DICT_INT, NULL);
+    HashTable_init(&result->classDefsById, DICT_INT, _dummy_ptr);
     return result;
 }
 
@@ -25,10 +35,13 @@ struct flexi_Context_t *flexi_Context_new(sqlite3 *db) {
  * Gets name ID by value. Name is expected to exist
  */
 int flexi_Context_getNameId(struct flexi_Context_t *pCtx,
-                            const char *zName, sqlite3_int64 *pNameID) {
+                            const char *zName, sqlite3_int64 *pNameID)
+{
     int result;
-    if (pNameID) {
-        if (pCtx->pStmts[STMT_SEL_NAME_ID] == NULL) {
+    if (pNameID)
+    {
+        if (pCtx->pStmts[STMT_SEL_NAME_ID] == NULL)
+        {
             CHECK_STMT_PREPARE(
                     pCtx->db,
                     "select NameID from [.names] where [Value] = :1;",
@@ -57,9 +70,11 @@ int flexi_Context_getNameId(struct flexi_Context_t *pCtx,
 
 int flexi_Context_getPropIdByClassIdAndName(struct flexi_Context_t *pCtx,
                                             sqlite3_int64 lClassID, const char *zPropName,
-                                            sqlite3_int64 *plPropID) {
+                                            sqlite3_int64 *plPropID)
+{
     int result;
-    if (pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME] == NULL) {
+    if (pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME] == NULL)
+    {
         CHECK_STMT_PREPARE(pCtx->db, "select ID from [.names_props] where "
                 "PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1)"
                 " and ClassID = :2 limit 1;",
@@ -86,12 +101,14 @@ int flexi_Context_getPropIdByClassIdAndName(struct flexi_Context_t *pCtx,
  */
 int flexi_Context_getPropIdByClassAndNameIds
         (struct flexi_Context_t *pCtx,
-         sqlite3_int64 lClassID, sqlite3_int64 lPropNameID, sqlite3_int64 *plPropID) {
+         sqlite3_int64 lClassID, sqlite3_int64 lPropNameID, sqlite3_int64 *plPropID)
+{
     assert(plPropID);
 
     int result;
 
-    if (pCtx->pStmts[STMT_SEL_PROP_ID] == NULL) {
+    if (pCtx->pStmts[STMT_SEL_PROP_ID] == NULL)
+    {
         CHECK_STMT_PREPARE(
                 pCtx->db,
                 "select PropertyID from [flexi_prop] where ClassID = :1 and NameID = :2;",
@@ -122,11 +139,13 @@ int flexi_Context_getPropIdByClassAndNameIds
  * Ensures that there is given Name in [.names] table.
  * Returns name id in pNameID (if not null)
  */
-int flexi_Context_insertName(struct flexi_Context_t *pCtx, const char *zName, sqlite3_int64 *pNameID) {
+int flexi_Context_insertName(struct flexi_Context_t *pCtx, const char *zName, sqlite3_int64 *pNameID)
+{
     int result;
     assert(zName);
     {
-        if (pCtx->pStmts[STMT_INS_NAME] == NULL) {
+        if (pCtx->pStmts[STMT_INS_NAME] == NULL)
+        {
             const char *zInsNameSQL = "insert or replace into [.names] ([Value], NameID)"
                     " values (:1, (select ID from [.names_props] where Value = :1 limit 1));";
             CHECK_STMT_PREPARE(pCtx->db, zInsNameSQL, &pCtx->pStmts[STMT_INS_NAME]);
@@ -151,31 +170,38 @@ int flexi_Context_insertName(struct flexi_Context_t *pCtx, const char *zName, sq
 }
 
 static void
-_freeMetadata(struct flexi_Context_t *pCtx) {
+_freeMetadata(struct flexi_Context_t *pCtx)
+{
     HashTable_clear(&pCtx->classDefsByName);
     HashTable_clear(&pCtx->classDefsById);
 }
 
-void flexi_Context_free(struct flexi_Context_t *pCtx) {
+void flexi_Context_free(struct flexi_Context_t *pCtx)
+{
     // Release prepared SQL statements
-    for (int ii = 0; ii <= STMT_DEL_FTS; ii++) {
-        if (pCtx->pStmts[ii]) {
+    for (int ii = 0; ii <= STMT_DEL_FTS; ii++)
+    {
+        if (pCtx->pStmts[ii])
+        {
             sqlite3_finalize(pCtx->pStmts[ii]);
             pCtx->pStmts[ii] = NULL;
         }
     }
 
-    if (pCtx->pMatchFuncSelStmt != NULL) {
+    if (pCtx->pMatchFuncSelStmt != NULL)
+    {
         sqlite3_finalize(pCtx->pMatchFuncSelStmt);
         pCtx->pMatchFuncSelStmt = NULL;
     }
 
-    if (pCtx->pMatchFuncInsStmt != NULL) {
+    if (pCtx->pMatchFuncInsStmt != NULL)
+    {
         sqlite3_finalize(pCtx->pMatchFuncInsStmt);
         pCtx->pMatchFuncInsStmt = NULL;
     }
 
-    if (pCtx->pMemDB != NULL) {
+    if (pCtx->pMemDB != NULL)
+    {
         sqlite3_close(pCtx->pMemDB);
         pCtx->pMemDB = NULL;
     }
@@ -196,11 +222,13 @@ void flexi_Context_free(struct flexi_Context_t *pCtx) {
 }
 
 int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
-                                   const char *zClassName, sqlite3_int64 *pClassID) {
+                                   const char *zClassName, sqlite3_int64 *pClassID)
+{
     assert(pCtx);
 
     int result;
-    if (!pCtx->pStmts[STMT_CLS_ID_BY_NAME]) {
+    if (!pCtx->pStmts[STMT_CLS_ID_BY_NAME])
+    {
         CHECK_STMT_PREPARE(pCtx->db,
                            "select ClassID from [.classes] "
                                    "where NameID = (select ID from [.names_props] where Value = :1 limit 1);",
@@ -209,9 +237,11 @@ int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
     CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_ID_BY_NAME]));
     CHECK_CALL(sqlite3_bind_text(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 1, zClassName, -1, NULL));
     CHECK_STMT_STEP(pCtx->pStmts[STMT_CLS_ID_BY_NAME], pCtx->db);
-    if (result == SQLITE_ROW) {
+    if (result == SQLITE_ROW)
+    {
         *pClassID = sqlite3_column_int64(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 0);
-    } else { *pClassID = -1; }
+    } else
+    { *pClassID = -1; }
     result = SQLITE_OK;
 
     goto EXIT;
@@ -225,7 +255,8 @@ int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
 /*
  * Initializes database connection wide SQL statements
  */
-static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx) {
+static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx)
+{
     int result;
     sqlite3 *db = pCtx->db;
 
@@ -257,16 +288,19 @@ static int flexi_prepare_db_statements(struct flexi_Context_t *pCtx) {
 
 static ReCompiled *pNameRegex = NULL;
 
-static void NameRegex_free() {
+static void NameRegex_free()
+{
     re_free(pNameRegex);
 }
 
-bool db_validate_name(const char *zName) {
+bool db_validate_name(const char *zName)
+{
     if (!zName)
         return false;
 
     const char *zNameRegex = "[_a-zA-Z][\\-_a-zA-Z0-9]{1,128}";
-    if (!pNameRegex) {
+    if (!pNameRegex)
+    {
         re_compile(&pNameRegex, zNameRegex, 1);
         atexit(NameRegex_free);
     }
@@ -274,7 +308,8 @@ bool db_validate_name(const char *zName) {
     return result != 0;
 }
 
-int flexi_Context_addClassDef(struct flexi_Context_t *self, flexi_ClassDef_t *pClassDef) {
+int flexi_Context_addClassDef(struct flexi_Context_t *self, flexi_ClassDef_t *pClassDef)
+{
     int result;
 
     HashTable_set(&self->classDefsByName, (DictionaryKey_t) {.pKey = pClassDef->name.name}, pClassDef);
@@ -291,17 +326,20 @@ int flexi_Context_addClassDef(struct flexi_Context_t *self, flexi_ClassDef_t *pC
     return result;
 }
 
-int flexi_Context_getClassByName(struct flexi_Context_t *self, const char *zClassName, flexi_ClassDef_t **ppClassDef) {
+int flexi_Context_getClassByName(struct flexi_Context_t *self, const char *zClassName, flexi_ClassDef_t **ppClassDef)
+{
     *ppClassDef = HashTable_get(&self->classDefsByName, (DictionaryKey_t) {.pKey = zClassName});
     return *ppClassDef != NULL;
 }
 
-int flexi_Context_getClassById(struct flexi_Context_t *self, sqlite3_int64 lClassId, flexi_ClassDef_t **ppClassDef) {
+int flexi_Context_getClassById(struct flexi_Context_t *self, sqlite3_int64 lClassId, flexi_ClassDef_t **ppClassDef)
+{
     *ppClassDef = HashTable_get(&self->classDefsByName, (DictionaryKey_t) {.iKey = lClassId});
     return *ppClassDef != NULL;
 }
 
-int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol) {
+int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol)
+{
     *pzDest = NULL;
     char *zSrc = (char *) sqlite3_column_text(pStmt, iCol);
     if (zSrc == NULL)
@@ -313,13 +351,14 @@ int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol) {
     *pzDest = sqlite3_malloc((int) len + 1);
     if (*pzDest == NULL)
         return SQLITE_NOMEM;
-    strncpy(*pzDest, (char *) sqlite3_column_text(pStmt, iCol), len);
+    strncpy(*pzDest, zSrc, len);
     (*pzDest)[len] = 0;
 
     return SQLITE_OK;
 }
 
-char *String_substr(const char *zSource, intptr_t start, intptr_t len) {
+char *String_substr(const char *zSource, intptr_t start, intptr_t len)
+{
     if (len == 0)
         return NULL;
 
@@ -335,19 +374,23 @@ char *String_substr(const char *zSource, intptr_t start, intptr_t len) {
     return result;
 }
 
-int flexi_Context_userVersion(struct flexi_Context_t *pCtx, sqlite3_int64 *plUserVersion, bool bIncrement) {
+int flexi_Context_userVersion(struct flexi_Context_t *pCtx, sqlite3_int64 *plUserVersion, bool bIncrement)
+{
     int result;
 
     char *zSetUserVersion = NULL;
 
-    if (pCtx->pStmts[STMT_USER_VERSION_GET] == NULL) {
+    if (pCtx->pStmts[STMT_USER_VERSION_GET] == NULL)
+    {
         CHECK_STMT_PREPARE(pCtx->db, "pragma user_version;", &pCtx->pStmts[STMT_USER_VERSION_GET]);
     }
     CHECK_STMT_STEP(pCtx->pStmts[STMT_USER_VERSION_GET], pCtx->db);
-    if (result == SQLITE_ROW) {
+    if (result == SQLITE_ROW)
+    {
         *plUserVersion = sqlite3_column_int64(pCtx->pStmts[STMT_USER_VERSION_GET], 0);
 
-        if (true == bIncrement) {
+        if (true == bIncrement)
+        {
             (*plUserVersion)++;
             zSetUserVersion = sqlite3_mprintf("pragma user_version=%" PRId64, plUserVersion);
             CHECK_CALL(sqlite3_exec(pCtx->db, zSetUserVersion, NULL, NULL, &pCtx->zLastErrorMessage));
@@ -365,12 +408,14 @@ int flexi_Context_userVersion(struct flexi_Context_t *pCtx, sqlite3_int64 *plUse
     return result;
 }
 
-int flexi_Context_checkMetaDataCache(struct flexi_Context_t *pCtx) {
+int flexi_Context_checkMetaDataCache(struct flexi_Context_t *pCtx)
+{
     int result;
 
     sqlite3_int64 lNewUserVersion;
     CHECK_CALL(flexi_Context_userVersion(pCtx, &lNewUserVersion, false));
-    if (lNewUserVersion != pCtx->lUserVersion) {
+    if (lNewUserVersion != pCtx->lUserVersion)
+    {
         _freeMetadata(pCtx);
         pCtx->lUserVersion = lNewUserVersion;
     }
@@ -385,20 +430,25 @@ int flexi_Context_checkMetaDataCache(struct flexi_Context_t *pCtx) {
     return result;
 }
 
-void flexi_Context_setError(struct flexi_Context_t *pCtx, int iErrorCode, char *zErrorMessage) {
+void flexi_Context_setError(struct flexi_Context_t *pCtx, int iErrorCode, char *zErrorMessage)
+{
     sqlite3_free(pCtx->zLastErrorMessage);
     pCtx->zLastErrorMessage = NULL;
-    if (zErrorMessage != NULL) {
+    if (zErrorMessage != NULL)
+    {
         pCtx->zLastErrorMessage = zErrorMessage;
-    } else {
+    } else
+    {
         pCtx->zLastErrorMessage = sqlite3_mprintf("DB error: %s", sqlite3_errmsg(pCtx->db));
     }
     pCtx->iLastErrorCode = iErrorCode;
 }
 
-int flexi_Context_getNameValueByID(struct flexi_Context_t *pCtx, sqlite3_int64 lNameID, char **pzName) {
+int flexi_Context_getNameValueByID(struct flexi_Context_t *pCtx, sqlite3_int64 lNameID, char **pzName)
+{
     int result;
-    if (pCtx->pStmts[STMT_GET_NAME_BY_ID] == NULL) {
+    if (pCtx->pStmts[STMT_GET_NAME_BY_ID] == NULL)
+    {
         CHECK_STMT_PREPARE(pCtx->db, "select [Value] from [.names_props] where ID = :1 limit 1;",
                            &pCtx->pStmts[STMT_GET_NAME_BY_ID]);
     }
@@ -406,10 +456,12 @@ int flexi_Context_getNameValueByID(struct flexi_Context_t *pCtx, sqlite3_int64 l
     CHECK_CALL(sqlite3_reset(pStmt));
     sqlite3_bind_int64(pStmt, 1, lNameID);
     result = sqlite3_step(pStmt);
-    if (result == SQLITE_ROW) {
+    if (result == SQLITE_ROW)
+    {
         CHECK_CALL(getColumnAsText(pzName, pStmt, 1));
         result = SQLITE_OK;
-    } else if (result == SQLITE_DONE) {
+    } else if (result == SQLITE_DONE)
+    {
         result = SQLITE_NOTFOUND;
     }
 

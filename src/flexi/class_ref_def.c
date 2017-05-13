@@ -9,13 +9,13 @@
 
 SQLITE_EXTENSION_INIT3
 
-void flexi_metadata_ref_free(flexi_MetadataRef_t *pp)
+void flexi_MetadataRef_free(flexi_MetadataRef_t *pp)
 {
     if (pp && pp->bOwnName)
         sqlite3_free(pp->name);
 }
 
-void flexi_class_ref_def_dispose(struct flexi_class_ref_def *p)
+void flexi_ClassRefDef_dispose(struct flexi_ClassRefDef *p)
 {
     if (p)
     {
@@ -25,24 +25,24 @@ void flexi_class_ref_def_dispose(struct flexi_class_ref_def *p)
     }
 }
 
-static void _disposeMixinRuleItem(struct flexi_class_ref_rule *rr)
+static void _disposeMixinRuleItem(struct flexi_ClassRefRule *rr)
 {
     sqlite3_free(rr->classRef.name);
     sqlite3_free(rr->regex);
 }
 
-void flexi_class_ref_def_init(struct flexi_class_ref_def *p)
+void flexi_ClassRefDef_init(struct flexi_ClassRefDef *p)
 {
     memset(p, 0, sizeof(*p));
-    Array_init(&p->rules, sizeof(struct flexi_class_ref_rule), (void *) _disposeMixinRuleItem);
+    Array_init(&p->rules, sizeof(struct flexi_ClassRefRule), (void *) _disposeMixinRuleItem);
 }
 
 static void
-_compareRefRules(const char *zUnused, u32 idx, const struct flexi_class_ref_rule *item, Array_t *pBuf, Array_t *pBuf2,
+_compareRefRules(const char *zUnused, u32 idx, const struct flexi_ClassRefRule *item, Array_t *pBuf, Array_t *pBuf2,
                  bool *bStop)
 {
     UNUSED_PARAM(zUnused);
-    const struct flexi_class_ref_rule *pItem2;
+    const struct flexi_ClassRefRule *pItem2;
     pItem2 = Array_getNth(pBuf2, idx);
     if (!flexi_class_ref_rule_compare(item, pItem2))
     {
@@ -51,7 +51,7 @@ _compareRefRules(const char *zUnused, u32 idx, const struct flexi_class_ref_rule
 }
 
 ClassRefDef_Compare_Result
-flexi_class_ref_def_compare(const struct flexi_class_ref_def *pDef1, const struct flexi_class_ref_def *pDef2)
+flexi_ClassRefDef_compare(const struct flexi_ClassRefDef *pDef1, const struct flexi_ClassRefDef *pDef2)
 {
     if (flexi_metadata_ref_compare(&pDef1->classRef, &pDef2->classRef) != 0 &
         flexi_metadata_ref_compare(&pDef1->dynSelectorProp, &pDef2->dynSelectorProp) != 0)
@@ -93,7 +93,7 @@ int flexi_metadata_ref_compare(const flexi_MetadataRef_t *r1, const flexi_Metada
     return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
 }
 
-bool flexi_class_ref_rule_compare(const struct flexi_class_ref_rule *p1, const struct flexi_class_ref_rule *p2)
+bool flexi_class_ref_rule_compare(const struct flexi_ClassRefRule *p1, const struct flexi_ClassRefRule *p2)
 {
     int result = strcmp(p1->regex, p2->regex);
     if (result == 0)
@@ -119,7 +119,3 @@ bool flexi_metadata_ref_compare_n(flexi_MetadataRef_t *r1, flexi_MetadataRef_t *
 
     return found == cnt;
 }
-
-
-
-

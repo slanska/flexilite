@@ -114,13 +114,18 @@ struct _ClassAlterContext_t
 };
 
 static void
-_ClassAlterContext_clear(_ClassAlterContext_t *alterCtx)
+_ClassAlterContext_clear(_ClassAlterContext_t *self)
 {
-    List_clear(&alterCtx->propActions);
-    List_clear(&alterCtx->preActions);
-    List_clear(&alterCtx->postActions);
+    List_clear(&self->propActions);
+    List_clear(&self->preActions);
+    List_clear(&self->postActions);
 
-    sqlite3_finalize(alterCtx->pUpsertPropDefStmt);
+    if (self->pNewClassDef != NULL)
+    {
+        flexi_ClassDef_free(self->pNewClassDef);
+    }
+
+    sqlite3_finalize(self->pUpsertPropDefStmt);
 }
 
 /*
@@ -1006,6 +1011,9 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
     CHECK_CALL(_mergeClassSchemas(&alterCtx));
 
     CHECK_CALL(_applyClassSchema(&alterCtx, zNewClassDef));
+
+//    flexi_ClassDef_free(alterCtx.pExistingClassDef);
+    alterCtx.pExistingClassDef = NULL;
 
     flexi_Context_addClassDef(pCtx, alterCtx.pNewClassDef);
     alterCtx.pNewClassDef = NULL;

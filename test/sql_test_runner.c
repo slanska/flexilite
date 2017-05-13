@@ -147,6 +147,7 @@ _runSql(char *zDatabase, char *zSrcSql, char *zArgs, char *zFileArgs, Array_t *p
     char *zFullFilePath = NULL;
     sqlite3_stmt *pSubstStmt = NULL;
     char *zFileContent = NULL;
+    char *zSchemaSql = NULL;
 
     char *zSql = strCopy(zSrcSql, -1);
 
@@ -181,7 +182,6 @@ _runSql(char *zDatabase, char *zSrcSql, char *zArgs, char *zFileArgs, Array_t *p
     CHECK_CALL(sqlite3_load_extension(pDB, "../../bin/libFlexilite", NULL, &zError));
 
     // load and run db schema
-    char *zSchemaSql = NULL;
     CHECK_CALL(file_load_utf8("../../sql/dbschema.sql", &zSchemaSql));
     CHECK_CALL(sqlite3_exec(pDB, (const char *) zSchemaSql, NULL, NULL, &zError));
 
@@ -365,14 +365,16 @@ static void _run_sql_test(void **state)
 
     Array_t testData;
     Array_init(&testData, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
+
+    Array_t chkData;
+    Array_init(&chkData, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
+
     int nInColCnt;
     CHECK_CALL(
             _runSql(tt->props[TEST_DEF_PROP_IN_DB], tt->props[TEST_DEF_PROP_IN_SQL], tt->props[TEST_DEF_PROP_IN_ARGS],
                     tt->props[TEST_DEF_PROP_IN_FILE_ARGS], &testData, &nInColCnt, tt->props[TEST_DEF_ENTRY_FILE_PATH],
                     tt->props[TEST_DEF_PROP_IN_SUBST]));
 
-    Array_t chkData;
-    Array_init(&chkData, sizeof(sqlite3_value *), (void *) _freeSqliteValue);
     int nChkColCnt = 0;
     //    CHECK_CALL(_runSql(tt->props[TEST_DEF_PROP_CHK_DB], tt->props[TEST_DEF_PROP_CHK_SQL],
     //                       tt->props[TEST_DEF_PROP_CHK_ARGS], tt->props[TEST_DEF_PROP_CHK_FILE_ARGS], &chkData, &nChkColCnt,
@@ -591,8 +593,7 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     {
         zError = sqlite3_errmsg(db);
         printf("Error: %s", zError);
-    }
-    else print_error("Non-db error: %d", result);
+    } else print_error("Non-db error: %d", result);
 
     EXIT:
 

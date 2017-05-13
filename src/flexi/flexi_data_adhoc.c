@@ -3,6 +3,7 @@
 //
 
 #include "../project_defs.h"
+#include "flexi_data.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -44,30 +45,35 @@ SQLITE_EXTENSION_INIT3
 static int _bestIndex(
         sqlite3_vtab *tab,
         sqlite3_index_info *pIdxInfo
-)
-{
+) {
     return 0;
 }
 
-static int _disconnect(sqlite3_vtab *pVTab)
-{
+static int _disconnect(sqlite3_vtab *pVTab) {
     return SQLITE_OK;
 }
 
 /*
  * Starts SELECT on a Flexilite class
  */
-static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
-{
+static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
     // TODO
-    return 0;
+    *ppCursor = sqlite3_malloc(sizeof(struct flexi_VTabCursor));
+    if (*ppCursor == NULL)
+        return SQLITE_NOMEM;
+
+    memset(*ppCursor, 0, sizeof(struct flexi_VTabCursor));
+    struct flexi_VTabCursor *cur = (void *) *ppCursor;
+    cur->iEof = -1;
+    cur->lObjectID = -1;
+
+    return SQLITE_OK;
 }
 
 /*
  * Delete class and all its object data
  */
-static int _destroy(sqlite3_vtab *pVTab)
-{
+static int _destroy(sqlite3_vtab *pVTab) {
     //pVTab->pModule
 
     // TODO "delete from [.classes] where NameID = (select NameID from [.names] where Value = :name limit 1);"
@@ -77,31 +83,34 @@ static int _destroy(sqlite3_vtab *pVTab)
 /*
  * Finishes SELECT
  */
-static int _close(sqlite3_vtab_cursor *pCursor)
-{
+static int _close(sqlite3_vtab_cursor *pCursor) {
+
+    // TODO Dispose cursor
+
+    struct flexi_VTabCursor *cur = (void *) pCursor;
+
+    flexi_VTabCursor_free(cur);
     return 0;
 }
 
 static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
-                   int argc, sqlite3_value **argv)
-{
+                   int argc, sqlite3_value **argv) {
     return 0;
 }
 
 /*
  * Advances to the next found object
  */
-static int _next(sqlite3_vtab_cursor *pCursor)
-{
+static int _next(sqlite3_vtab_cursor *pCursor) {
     return 0;
 }
 
 /*
  * Returns 0 if EOF is not reached yet. 1 - if EOF (all rows processed)
  */
-static int _eof(sqlite3_vtab_cursor *pCursor)
-{
-    return 0;
+static int _eof(sqlite3_vtab_cursor *pCursor) {
+    // TODO
+    return 1;
 }
 
 /*
@@ -110,16 +119,14 @@ static int _eof(sqlite3_vtab_cursor *pCursor)
  * For the sake of better performance, fetches required columns on demand, sequentially.
  *
  */
-static int _column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int iCol)
-{
+static int _column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int iCol) {
     return 0;
 }
 
 /*
  * Returns object ID into pRowID
  */
-static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
-{
+static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid) {
     return 0;
 }
 
@@ -149,8 +156,7 @@ The row with rowid argv[0] is updated with rowid argv[1] and new values in argv[
 
 UPDATE table SET rowid=rowid+1 WHERE ...;
  */
-static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid)
-{
+static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid) {
     return 0;
 }
 
@@ -163,8 +169,7 @@ static int _find_method(
         const char *zName,
         void (**pxFunc)(sqlite3_context *, int, sqlite3_value **),
         void **ppArg
-)
-{
+) {
     return 0;
 }
 
@@ -172,8 +177,7 @@ static int _find_method(
  * Renames class to a new name (zNew)
  * TODO use flexi_class_rename
  */
-static int _rename(sqlite3_vtab *pVtab, const char *zNew)
-{
+static int _rename(sqlite3_vtab *pVtab, const char *zNew) {
     return 0;
 }
 
@@ -181,7 +185,7 @@ static int _rename(sqlite3_vtab *pVtab, const char *zNew)
  * Eponymous table proxy module.
  * Used when flexi_data is accessed directly, not via virtual table
  */
-static sqlite3_module _adhocQryProxyModule = {
+sqlite3_module _adhocQryProxyModule = {
         .iVersion = 0,
         .xCreate = NULL,
         .xConnect = NULL,
