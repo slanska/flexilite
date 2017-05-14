@@ -110,7 +110,6 @@ typedef struct SqlArg_t
 static void
 _freeSqlArg(SqlArg_t *p)
 {
-    printf(">>>>> _freeSqlArg\n");
     sqlite3_value_free(p->pValue);
     sqlite3_free(p->zText);
 }
@@ -456,8 +455,6 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
 {
     int result;
 
-    printf("###1");
-
     struct CMUnitTest *pTests = NULL;
     const char *zError = NULL;
     SqlTestData_t *testData = NULL;
@@ -476,14 +473,8 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     Path_join(&zJsonFileFull, zBaseDir, zJsonFile);
     Path_dirname(&zJsonBasePath, zJsonFileFull);
 
-    printf("###2");
-
-    printf("zJsonFileFull: %s", zJsonFileFull);
-
     // Read JSON file
     CHECK_CALL(file_load_utf8(zJsonFileFull, &zJson));
-
-    printf("###3");
 
     // Open memory database
     CHECK_CALL(sqlite3_open(":memory:", &db));
@@ -524,9 +515,6 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
             "from json_each(:1);";
 
     SqlTestData_init(&prevTestData);
-
-    printf("###4");
-
 
     CHECK_STMT_PREPARE(db, zSelJSON, &pJsonStmt);
     CHECK_CALL(sqlite3_bind_text(pJsonStmt, 1, zJson, -1, NULL));
@@ -577,13 +565,7 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile)
     if (result != SQLITE_DONE)
         goto ONERROR;
 
-    printf("###5");
-
-
     CHECK_CALL(_runTestGroup(&zGroupTitle, &tests));
-
-    printf("###6");
-
 
     goto EXIT;
 

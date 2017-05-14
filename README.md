@@ -20,6 +20,14 @@ and their relations, with highly dynamic and flexible structure. Flexilite inten
 evolutional design of relational databases. "F" covers most of known db schema refactoring patterns. Not only that,
 "F" also provides few useful and highly demanded features out of box. We will list them later in this document.
 
+### Install
+
+* Use git clone to get local copy
+* Flexilite uses CMake for project organization and has been developed
+ using JetBrains' CLion C/C++ IDE. Refer to CLion documentation
+ to install all necessary prerequisites depending of operating system of your choice
+* Run 'npm install' 
+
 *Main idea*
 In few sentences:
 Traditional way to design db schema becomes noticeably outdated in the modern ever-changing world. What was good 

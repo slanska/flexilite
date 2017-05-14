@@ -11,6 +11,7 @@
     "lodash": "^3.10.1",
     "object-hash": "^1.1.2",
     "pluralize": "^3.1.0",
+
     "shortid": "^2.2.2",
     "sqlite3": "^3.1.1"
   },
@@ -19,6 +20,7 @@
     "url": "git://github.com/slanska/flexilite.git"
   },
   "scripts": {
+    "postinstall": "git submodule init & git submodule update",
     "valgrind": "cd ./cmake-build-debug/bin && valgrind --leak-check=full --track-origins=yes ./flexilite_test"
   },
   "main": "lib/index.js",
