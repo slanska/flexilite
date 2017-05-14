@@ -291,7 +291,7 @@ _runSql(char *zDatabase, char *zSrcSql, char *zArgs, char *zFileArgs, Array_t *p
         zError = (char *) sqlite3_errmsg(pDB);
     }
     if (zError != NULL)
-        printf("Error: %s", zError);
+        printf("Error: %s\n", zError);
 
     EXIT:
 
@@ -304,7 +304,7 @@ _runSql(char *zDatabase, char *zSrcSql, char *zArgs, char *zFileArgs, Array_t *p
         result = sqlite3_close(pDB);
         if (result != SQLITE_OK)
         {
-            printf("DB Close Error %d. %s", result, sqlite3_errmsg(pDB));
+            printf("DB Close Error %d. %s\n", result, sqlite3_errmsg(pDB));
         }
     }
     Array_clear(&sqlArgs);

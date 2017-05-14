@@ -201,7 +201,6 @@ static int _createOrConnect(
 
     // We expect pAux to be connection context
     proxyVTab->pCtx = pAux;
-    proxyVTab->pCtx->nRefCount++;
 
     CHECK_SQLITE(db, sqlite3_declare_vtab(db, "create table x([select] JSON1 NULL,"
             "[ClassName] TEXT NULL,"
@@ -250,7 +249,7 @@ static int _createOrConnect(
         goto ONERROR;
     }
 
-
+    proxyVTab->pCtx->nRefCount++;
     result = SQLITE_OK;
     *ppVtab = (void *) proxyVTab;
     goto EXIT;
@@ -258,6 +257,8 @@ static int _createOrConnect(
     ONERROR:
     if (proxyVTab != NULL)
         FlexiDataProxyVTab_free(proxyVTab);
+    *pzErr = proxyVTab->pCtx->zLastErrorMessage;
+    proxyVTab->pCtx->zLastErrorMessage = NULL;
 
     EXIT:
     sqlite3_free((void *) zClassDef);
