@@ -320,7 +320,7 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
         }
 
         HashTable_set(&pClassDef->propsByName, (DictionaryKey_t) {.pKey=pProp->name.name}, pProp);
-        //  TODO      Array_setNth(&pClassDef->pProps, pClassDef->propsByName.count, pProp);
+        HashTable_set(&pClassDef->propsByID, (DictionaryKey_t) {.iKey = pProp->iPropID}, pProp);
     }
 
     if (result != SQLITE_DONE)
@@ -340,15 +340,40 @@ static int _parseProperties(struct flexi_ClassDef_t *pClassDef, sqlite3_stmt *pS
 static int _parseClassDefAux(struct flexi_ClassDef_t *pClassDef, const char *zClassDefJson)
 {
     int result;
+    sqlite3_stmt *pAuxAttrs = NULL;
+
     CHECK_CALL(_parseFullTextProperties(pClassDef, zClassDefJson));
     CHECK_CALL(_parseMixins(pClassDef, zClassDefJson));
     CHECK_CALL(_parseRangeProperties(pClassDef, zClassDefJson));
     CHECK_CALL(_parseSpecialProperties(pClassDef, zClassDefJson));
 
+    // Get other properties
+    CHECK_STMT_PREPARE(pClassDef->pCtx->db, "select "
+            "json_extract(:1, '$.allowAnyProps') as allowAnyProps", // 0
+                       &pAuxAttrs);
+    CHECK_CALL(sqlite3_bind_text(pAuxAttrs, 1, zClassDefJson, -1, NULL));
+    result = sqlite3_step(pAuxAttrs);
+    if (result == SQLITE_ROW)
+    {
+        pClassDef->bAllowAnyProps = sqlite3_column_int(pAuxAttrs, 0) != 0;
+    }
+
+    result = SQLITE_OK;
+
     goto EXIT;
     ONERROR:
     EXIT:
+    sqlite3_finalize(pAuxAttrs);
     return result;
+}
+
+/*
+ * Dummy no-op function. To be used as replacement for default free item
+ * callback in hash table
+ */
+static void _dummy_ptr(void *ptr)
+{
+    UNUSED_PARAM(ptr);
 }
 
 /*
@@ -363,6 +388,7 @@ struct flexi_ClassDef_t *flexi_class_def_new(struct flexi_Context_t *pCtx)
 
     result->pCtx = pCtx;
     HashTable_init(&result->propsByName, DICT_STRING_NO_FREE, (void *) flexi_PropDef_free);
+    HashTable_init(&result->propsByID, DICT_INT, (void *) _dummy_ptr);
     return result;
 }
 
@@ -474,7 +500,8 @@ int flexi_class_create_func(
     {
         zSQL = sqlite3_mprintf("create virtual table [%s] using flexi ('%s')", zClassName, zClassDef);
         CHECK_SQLITE(db, sqlite3_exec(db, zSQL, NULL, NULL, (char **) &zError));
-    } else
+    }
+    else
     {
         void *pCtx = sqlite3_user_data(context);
         CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, bCreateVTable));
@@ -640,8 +667,9 @@ int flexi_class_drop_func(
     ONERROR:
     if (!zError)
         sqlite3_result_error(context, zError, -1);
-    else if (result != SQLITE_OK)
-        sqlite3_result_error(context, sqlite3_errstr(result), -1);
+    else
+        if (result != SQLITE_OK)
+            sqlite3_result_error(context, sqlite3_errstr(result), -1);
 
     EXIT:
     return result;
@@ -793,6 +821,7 @@ void flexi_ClassDef_free(struct flexi_ClassDef_t *self)
             sqlite3_free((void *) self->zHash);
 
             HashTable_clear(&self->propsByName);
+            HashTable_clear(&self->propsByID);
 
             Array_dispose(self->aMixins);
 
@@ -919,7 +948,9 @@ int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassD
 
 /*
  * Loads class definition (as defined in [.classes] and [flexi_prop] tables)
- * First checks if class def is already loaded
+ * First checks if class def has been already loaded, and if so, simply returns it
+ * Otherwise, will load class definition from database and add it to the context class def collection
+ * If class is not found, will return the error
  */
 int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef)
 {
@@ -1048,7 +1079,7 @@ int flexi_schema_func(sqlite3_context *context,
         void *pCtx = sqlite3_user_data(context);
         CHECK_STMT_PREPARE(db, "select value, key from json_each(:1)", &pStmt);
         CHECK_SQLITE(db, sqlite3_bind_value(pStmt, 1, argv[0]));
-//        CHECK_SQLITE(db, sqlite3_bind_value(pStmt, 1, sqlite3_value_dup(argv[0])));
+        //        CHECK_SQLITE(db, sqlite3_bind_value(pStmt, 1, sqlite3_value_dup(argv[0])));
 
         while ((result = sqlite3_step(pStmt)) == SQLITE_ROW)
         {
@@ -1086,3 +1117,22 @@ int flexi_schema_func(sqlite3_context *context,
     return result;
 }
 
+/*
+ * Finds property definition by its ID
+ */
+bool flexi_ClassDef_getPropDefById(struct flexi_ClassDef_t *pClassDef,
+                                   sqlite3_int64 lPropID, struct flexi_PropDef_t **propDef)
+{
+    *propDef = HashTable_get(&pClassDef->propsByID, (DictionaryKey_t) {.iKey = lPropID});
+    return *propDef != NULL;
+}
+
+/*
+ * Finds property definition by its name
+ */
+bool flexi_ClassDef_getPropDefByName(struct flexi_ClassDef_t *pClassDef,
+                                     const char *zPropName, struct flexi_PropDef_t **propDef)
+{
+    *propDef = HashTable_get(&pClassDef->propsByName, (DictionaryKey_t) {.pKey = zPropName});
+    return *propDef != NULL;
+}

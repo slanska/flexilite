@@ -222,6 +222,7 @@ char *String_substr(const char *zSource, intptr_t start, intptr_t len);
 
 /*
  * Find property ID by class ID and property name
+ * if property is not found, plPropID is set to -1
  * Return SQLite result
  */
 int flexi_Context_getPropIdByClassIdAndName(struct flexi_Context_t *pCtx,
@@ -243,7 +244,7 @@ int flexi_Context_checkMetaDataCache(struct flexi_Context_t *pCtx);
 
 /*
  * Sets error message and code to context.
- * If zErrorMessage is not NULL, it is expected to allocated by sqlite3_mprintf or sqlite3_malloc
+ * If zErrorMessage is not NULL, it is expected to be allocated by sqlite3_mprintf or sqlite3_malloc
  * If it is NULL, then sqlite3_errmsg will be used to get error message from database context
  */
 void flexi_Context_setError(struct flexi_Context_t* pCtx, int iErrorCode, char *zErrorMessage);

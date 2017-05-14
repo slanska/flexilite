@@ -11,7 +11,7 @@
  * Dummy no-op function. To be used as replacement for default free item
  * callback in hash table
  */
-static void _dummy_ptr(void* ptr)
+static void _dummy_ptr(void *ptr)
 {
     UNUSED_PARAM(ptr);
 }
@@ -85,7 +85,9 @@ int flexi_Context_getPropIdByClassIdAndName(struct flexi_Context_t *pCtx,
     sqlite3_bind_text(pGetPropIDStmt, 1, zPropName, -1, NULL);
     sqlite3_bind_int64(pGetPropIDStmt, 2, lClassID);
     CHECK_STMT_STEP(pGetPropIDStmt, pCtx->db);
-    *plPropID = sqlite3_column_int64(pGetPropIDStmt, 0);
+    if (result == SQLITE_ROW)
+        *plPropID = sqlite3_column_int64(pGetPropIDStmt, 0);
+    else *plPropID = -1;
 
     result = SQLITE_OK;
     goto EXIT;
@@ -240,7 +242,8 @@ int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
     if (result == SQLITE_ROW)
     {
         *pClassID = sqlite3_column_int64(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 0);
-    } else
+    }
+    else
     { *pClassID = -1; }
     result = SQLITE_OK;
 
@@ -437,7 +440,8 @@ void flexi_Context_setError(struct flexi_Context_t *pCtx, int iErrorCode, char *
     if (zErrorMessage != NULL)
     {
         pCtx->zLastErrorMessage = zErrorMessage;
-    } else
+    }
+    else
     {
         pCtx->zLastErrorMessage = sqlite3_mprintf("DB error: %s", sqlite3_errmsg(pCtx->db));
     }
@@ -460,10 +464,12 @@ int flexi_Context_getNameValueByID(struct flexi_Context_t *pCtx, sqlite3_int64 l
     {
         CHECK_CALL(getColumnAsText(pzName, pStmt, 1));
         result = SQLITE_OK;
-    } else if (result == SQLITE_DONE)
-    {
-        result = SQLITE_NOTFOUND;
     }
+    else
+        if (result == SQLITE_DONE)
+        {
+            result = SQLITE_NOTFOUND;
+        }
 
     goto EXIT;
 

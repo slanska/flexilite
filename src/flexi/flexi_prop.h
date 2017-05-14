@@ -41,7 +41,7 @@ struct flexi_PropDef_t
     bool bNoTrackChanges;
 
     /*
-     * If true, marks this property as potentially having invalid existing data and
+     * If true, marks this property as the one that potentially has invalid existing data and
      * a candidate to run validation process. Flag is cleared after validation scan is done and no
      * invalid data was found.
      * Invalid data = does not pass property rules (type, maxLength, regex etc.)
@@ -213,5 +213,12 @@ struct flexi_enum_def
 };
 
 void flexi_enum_def_free(flexi_enum_def *);
+
+/*
+ * Validates value against property rules
+ * Returns SQLITE_OK if validation was passed
+ * Otherwise, SQLITE_ERROR and sets context's error to a specific error message
+ */
+int flexi_PropDef_validateValue(struct flexi_PropDef_t *prop, flexi_ClassDef_t *pClassDef, sqlite3_value *value);
 
 #endif //FLEXILITE_FLEXI_PROP_C_H

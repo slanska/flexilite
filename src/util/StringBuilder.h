@@ -59,4 +59,10 @@ void StringBuilder_appendRaw(StringBuilder_t *self, const char *zInStr, int32_t 
 */
 void StringBuilder_clear(StringBuilder_t *self);
 
+/*
+ * Calculates number of UTF-8 characters in the string.
+ * Source: http://stackoverflow.com/questions/5117393/utf-8-strings-length-in-linux-c
+ */
+int get_utf8_len(const unsigned char *s);
+
 #endif //FLEXILITE_STRINGBUILDER_H

@@ -36,8 +36,8 @@
 
 SQLITE_EXTENSION_INIT3
 
-#include "../misc/regexp.h"
 #include "flexi_class.h"
+#include "flexi_data.h"
 
 /*
  * Forward declarations
@@ -72,37 +72,6 @@ static void AdHoxQryParams_free(struct AdHocQryParams_t *self)
         sqlite3_free(self);
     }
 }
-
-/*
- * Proxy virtual table module for flexi_data
- */
-struct FlexiDataProxyVTab_t
-{
-    /*
-    * Should be first field. Used for virtual table initialization
-    */
-    sqlite3_vtab base;
-
-    /*
-     * Real implementation
-     */
-    sqlite3_module *pApi;
-
-    struct flexi_Context_t *pCtx;
-
-    /*
-     * Class is defined by its ID. When class definition object is needed, pCtx is used to get it by ID
-     * Applicable to both AdHoc and virtual table
-     */
-    sqlite3_int64 lClassID;
-
-    /*
-     * These fields are applicable to ad-hoc
-     */
-    struct AdHocQryParams_t *pQry;
-};
-
-typedef struct FlexiDataProxyVTab_t FlexiDataProxyVTab_t;
 
 static void FlexiDataProxyVTab_free(struct FlexiDataProxyVTab_t *self)
 {

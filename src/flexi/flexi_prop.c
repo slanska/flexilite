@@ -3,11 +3,10 @@
 //
 
 #include <sqlite3ext.h>
-#include <assert.h>
 #include "flexi_prop.h"
-#include "flexi_db_ctx.h"
-#include "../common/common.h"
 #include "../misc/regexp.h"
+#include "../typings/DBDefinitions.h"
+#include "../util/StringBuilder.h"
 
 int flexi_prop_create_func(
         sqlite3_context *context,
@@ -293,4 +292,117 @@ void flexi_enum_def_free(flexi_enum_def *p)
         // TODO
         sqlite3_free(p);
     }
+}
+
+int flexi_PropDef_validateValue(struct flexi_PropDef_t *prop, flexi_ClassDef_t *pClassDef, sqlite3_value *value)
+{
+    int result = SQLITE_ERROR;
+
+    // Required
+    if (prop->minOccurences > 0 && sqlite3_value_type(value) == SQLITE_NULL)
+    {
+        flexi_Context_setError(pClassDef->pCtx, result,
+                               sqlite3_mprintf("Column %s is required", prop->name.name));
+        pClassDef->base.zErrMsg = pClassDef->pCtx->zLastErrorMessage;
+        goto ONERROR;
+    }
+
+    int t = sqlite3_value_type(value);
+    switch (prop->type)
+    {
+        case PROP_TYPE_BINARY:
+            // Do nothing?
+            break;
+
+        case PROP_TYPE_DATETIME:
+        {
+            // Convert from string?
+            break;
+        }
+
+        case PROP_TYPE_ENUM:
+        {
+            // Check if value is in the list
+            // TODO
+            break;
+        }
+
+        case PROP_TYPE_DECIMAL:
+        case PROP_TYPE_INTEGER:
+        {
+            // Check range
+            sqlite3_int64 i = sqlite3_value_int64(value);
+            double d = (double) i;
+
+            // Check minValue, maxValue
+            if (d < prop->minValue || d > prop->maxValue)
+            {
+                pClassDef->base.zErrMsg = "Value is not within range";
+                goto ONERROR;
+            }
+
+            break;
+        }
+
+        case PROP_TYPE_NUMBER:
+        {
+            double d = sqlite3_value_double(value);
+            if (t != SQLITE_FLOAT)
+            {
+                // TODO
+                t = sqlite3_value_numeric_type(value);
+
+            }
+
+            // Check minValue, maxValue
+            if (d < prop->minValue || d > prop->maxValue)
+            {
+                pClassDef->base.zErrMsg = "Value is not within range";
+                goto ONERROR;
+            }
+        }
+            break;
+
+        case PROP_TYPE_NAME:
+        case PROP_TYPE_TEXT:
+        {
+            const unsigned char *str = NULL;
+
+            // for NAME, check if value type is integer and there is name in database
+            // with matching NameID. In this case,
+
+            // maxLength, if applicable
+            if (prop->maxLength > 0)
+            {
+                // TODO For NAME get actual value and compare
+                str = sqlite3_value_text(value);
+                int len = get_utf8_len(str);
+                if (len > prop->maxLength)
+                {
+                    pClassDef->base.zErrMsg = "Too long value for column %s";
+                    goto ONERROR;
+                }
+            }
+
+            // regex, if applicable
+            if (prop->regex)
+            {
+                if (str == NULL)
+                    str = sqlite3_value_text(value);
+                CHECK_CALL(re_match(prop->pRegexCompiled, str, -1));
+            }
+        }
+
+            break;
+
+        default:
+            break;
+    }
+
+    result = SQLITE_OK;
+    goto EXIT;
+    ONERROR:
+
+    EXIT:
+    return result;
 }

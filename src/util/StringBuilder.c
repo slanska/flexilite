@@ -151,3 +151,18 @@ void StringBuilder_appendJsonElem(StringBuilder_t *self, const char *zIn, int32_
     self->zBuf[self->nUsed] = 0;
     assert(self->nUsed < self->nAlloc);
 }
+
+/*
+ * Calculates number of UTF-8 characters in the string.
+ * Source: http://stackoverflow.com/questions/5117393/utf-8-strings-length-in-linux-c
+ */
+int get_utf8_len(const unsigned char *s)
+{
+    int i = 0, j = 0;
+    while (s[i])
+    {
+        if ((s[i] & 0xc0) != 0x80) j++;
+        i++;
+    }
+    return j;
+}

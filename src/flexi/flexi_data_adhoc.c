@@ -45,18 +45,21 @@ SQLITE_EXTENSION_INIT3
 static int _bestIndex(
         sqlite3_vtab *tab,
         sqlite3_index_info *pIdxInfo
-) {
+)
+{
     return 0;
 }
 
-static int _disconnect(sqlite3_vtab *pVTab) {
+static int _disconnect(sqlite3_vtab *pVTab)
+{
     return SQLITE_OK;
 }
 
 /*
  * Starts SELECT on a Flexilite class
  */
-static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
+static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
+{
     // TODO
     *ppCursor = sqlite3_malloc(sizeof(struct flexi_VTabCursor));
     if (*ppCursor == NULL)
@@ -73,7 +76,8 @@ static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
 /*
  * Delete class and all its object data
  */
-static int _destroy(sqlite3_vtab *pVTab) {
+static int _destroy(sqlite3_vtab *pVTab)
+{
     //pVTab->pModule
 
     // TODO "delete from [.classes] where NameID = (select NameID from [.names] where Value = :name limit 1);"
@@ -83,7 +87,8 @@ static int _destroy(sqlite3_vtab *pVTab) {
 /*
  * Finishes SELECT
  */
-static int _close(sqlite3_vtab_cursor *pCursor) {
+static int _close(sqlite3_vtab_cursor *pCursor)
+{
 
     // TODO Dispose cursor
 
@@ -94,21 +99,24 @@ static int _close(sqlite3_vtab_cursor *pCursor) {
 }
 
 static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
-                   int argc, sqlite3_value **argv) {
+                   int argc, sqlite3_value **argv)
+{
     return 0;
 }
 
 /*
  * Advances to the next found object
  */
-static int _next(sqlite3_vtab_cursor *pCursor) {
+static int _next(sqlite3_vtab_cursor *pCursor)
+{
     return 0;
 }
 
 /*
  * Returns 0 if EOF is not reached yet. 1 - if EOF (all rows processed)
  */
-static int _eof(sqlite3_vtab_cursor *pCursor) {
+static int _eof(sqlite3_vtab_cursor *pCursor)
+{
     // TODO
     return 1;
 }
@@ -119,15 +127,86 @@ static int _eof(sqlite3_vtab_cursor *pCursor) {
  * For the sake of better performance, fetches required columns on demand, sequentially.
  *
  */
-static int _column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int iCol) {
+static int _column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int iCol)
+{
     return 0;
 }
 
 /*
  * Returns object ID into pRowID
  */
-static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid) {
+static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
+{
     return 0;
+}
+
+/*
+ * Inserts or update data into single object
+ */
+static int
+_upsertObjectData(struct FlexiDataProxyVTab_t *dataVTab,
+                  sqlite3_stmt *pDataSource, bool insert, int parent,
+                  sqlite3_int64 lClassID)
+{
+    int result;
+    char *zPropName = NULL;
+    flexi_ClassDef_t *pClassDef;
+
+    CHECK_CALL(flexi_ClassDef_load(dataVTab->pCtx, lClassID, &pClassDef));
+
+    int thisParent = sqlite3_column_int(pDataSource, 5);
+    if (thisParent != parent)
+        goto EXIT;
+
+    sqlite3_free(zPropName);
+    getColumnAsText(&zPropName, pDataSource, 0);
+
+    sqlite3_int64 lPropID;
+    CHECK_CALL(flexi_Context_getPropIdByClassIdAndName(dataVTab->pCtx, lClassID, zPropName, &lPropID));
+    if (lPropID == -1)
+        // Property not found
+    {
+        if (!pClassDef->bAllowAnyProps)
+        {
+            flexi_Context_setError(dataVTab->pCtx, SQLITE_ERROR,
+                                   sqlite3_mprintf("Property %s is not defined in class %s", zPropName,
+                                                   pClassDef->name.name));
+            result = SQLITE_ERROR;
+            goto ONERROR;
+        }
+
+        // Use name instead
+
+    }
+    else
+        // Property found. Validate and process
+    {
+        struct flexi_PropDef_t *prop;
+        flexi_ClassDef_getPropDefById(pClassDef, lPropID, &prop);
+
+        // Check if this is an atomic value
+        bool bAtom = sqlite3_column_int(pDataSource, 0) == 0;
+        if (bAtom)
+        {
+            sqlite3_value *vv = sqlite3_column_value(pDataSource, 1);
+            CHECK_CALL(flexi_PropDef_validateValue(prop, pClassDef, vv));
+        }
+        else
+            // Possibly, array of values or nested object
+        {
+
+        }
+
+    }
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    sqlite3_free(zPropName);
+    return result;
 }
 
 /*
@@ -151,13 +230,95 @@ The row with rowid argv[0] is updated with new values in argv[2] and following p
 argc > 1
 argv[0] ≠ NULL
 argv[0] ≠ argv[1]
-The row with rowid argv[0] is updated with rowid argv[1] and new values in argv[2] and following parameters.
+The row with rowid argv[0] is updated with rowid argv[1] and new values in argv[2+] parameters.
  This will occur when an SQL statement updates a rowid, as in the statement:
 
 UPDATE table SET rowid=rowid+1 WHERE ...;
+
+    FLEXI_DATA_COL_SELECT = 0,
+    FLEXI_DATA_COL_CLASS_NAME = 1,
+    FLEXI_DATA_COL_FILTER = 2,
+    FLEXI_DATA_COL_ORDER_BY = 3,
+    FLEXI_DATA_COL_LIMIT = 4,
+    FLEXI_DATA_COL_ID = 5,
+    FLEXI_DATA_COL_SKIP = 6,
+    FLEXI_DATA_COL_DATA = 7,
+    FLEXI_DATA_COL_BOOKMARK = 8,
+    FLEXI_DATA_COL_USER = 9,
+    FLEXI_DATA_COL_FETCH_DEPTH = 10
  */
-static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid) {
-    return 0;
+static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid)
+{
+    int result;
+
+    sqlite3_stmt *pDataSource = NULL; // Parsed JSON data
+
+    struct FlexiDataProxyVTab_t *dataVTab = (void *) pVTab;
+    if (argc == 1)
+        // Delete
+    {}
+    else
+    {
+
+        /*
+        * Parse data JSON
+        */
+        CHECK_STMT_PREPARE(dataVTab->pCtx->db,
+                           "select "
+                                   "key, " // 0
+                                   "value, " // 1
+                                   "type, " // 2
+                                   "atom, " // 3
+                                   "id, " // 4
+                                   "parent, " // 5
+                                   "fullkey, " // 6
+                                   "path " // 7
+                                   "from json_tree(:1);", &pDataSource);
+        CHECK_CALL(sqlite3_bind_text(pDataSource, 1,
+                                     (const char *) sqlite3_value_text(argv[FLEXI_DATA_COL_DATA + 2]), -1,
+                                     NULL));
+
+        while ((result = sqlite3_step(pDataSource)) == SQLITE_ROW)
+        {
+            // Check if array
+            // Check if object
+            // Check if atom
+            int atom = sqlite3_column_int(pDataSource, 3);
+            if (atom)
+            {
+                // get attribute name and find property
+            }
+            else
+            {
+
+            }
+        }
+
+        if (result != SQLITE_DONE)
+            goto ONERROR;
+
+        // Data will be in argv[9]
+        // Class name will be in argv[3]
+        if (argv[0] == NULL)
+            // Insert
+        {
+
+        }
+        else
+            // Update
+        {
+
+        }
+    }
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    sqlite3_finalize(pDataSource);
+    return result;
 }
 
 /*
@@ -169,7 +330,8 @@ static int _find_method(
         const char *zName,
         void (**pxFunc)(sqlite3_context *, int, sqlite3_value **),
         void **ppArg
-) {
+)
+{
     return 0;
 }
 
@@ -177,13 +339,14 @@ static int _find_method(
  * Renames class to a new name (zNew)
  * TODO use flexi_class_rename
  */
-static int _rename(sqlite3_vtab *pVtab, const char *zNew) {
+static int _rename(sqlite3_vtab *pVtab, const char *zNew)
+{
     return 0;
 }
 
 /*
- * Eponymous table proxy module.
- * Used when flexi_data is accessed directly, not via virtual table
+ * Eponymous table module.
+ * Used when flexi_data is accessed directly (select * from flexi_data), not via virtual table
  */
 sqlite3_module _adhocQryProxyModule = {
         .iVersion = 0,

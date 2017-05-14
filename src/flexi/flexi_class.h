@@ -146,6 +146,11 @@ typedef struct flexi_ClassDef_t
      * Number of references to this class def
      */
     int nRefCount;
+
+    /*
+     * If true, any JSON is allowed to be inserted/updated
+     */
+    bool bAllowAnyProps;
 } flexi_ClassDef_t;
 
 int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName, const char *zOriginalClassDef,
@@ -247,5 +252,17 @@ int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassD
 int flexi_schema_func(sqlite3_context *context,
                       int argc,
                       sqlite3_value **argv);
+
+/*
+ * Finds property definition by its ID
+ */
+bool flexi_ClassDef_getPropDefById(struct flexi_ClassDef_t *pClassDef,
+                                   sqlite3_int64 lPropID, struct flexi_PropDef_t **propDef);
+
+/*
+ * Finds property definition by its name
+ */
+bool flexi_ClassDef_getPropDefByName(struct flexi_ClassDef_t *pClassDef,
+                                   const char *zPropName, struct flexi_PropDef_t **propDef);
 
 #endif //FLEXILITE_FLEXI_CLASS_H

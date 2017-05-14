@@ -441,7 +441,7 @@ interface IClassDefinition {
      If true, any non defined properties are allowed. Any properties in payload, that are not
      in the "properties" attribute, will be processed as names, and their name IDs will be used instead
      of property IDs. Such properties :
-     a) indexed based on .names ctlv definition
+     a) will be indexed based on .names ctlv definition
      b) are not validated
      c) can be included into select or where clause
      d) will be included into query result, if their names are specified explicitly in "select" clause
