@@ -209,6 +209,7 @@ int flexi_init(sqlite3 *db,
         goto ONERROR;
     }
 
+    pCtx->nRefCount++;
     CHECK_CALL(flexi_data_init(db, pzErrMsg, pApi, pCtx));
 
     CHECK_CALL(sqlite3_create_function_v2(db, "flexi", -1, SQLITE_UTF8, pCtx,
@@ -227,6 +228,7 @@ int flexi_init(sqlite3 *db,
     flexi_Context_free(pCtx);
 
     EXIT:
+    pCtx->nRefCount--;
     sqlite3_finalize(pDummy);
     return result;
 }

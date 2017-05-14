@@ -202,17 +202,19 @@ static int _createOrConnect(
     // We expect pAux to be connection context
     proxyVTab->pCtx = pAux;
 
-    CHECK_SQLITE(db, sqlite3_declare_vtab(db, "create table x([select] JSON1 NULL,"
-            "[ClassName] TEXT NULL,"
-            "[from] TEXT NULL," // Alias to ClassName, for the sake of similarity with SQL syntax
-            "[filter] JSON1 NULL," // 'where' clause
-            "[orderBy] JSON1 NULL," // 'order by' clause
-            "[limit] INTEGER NULL," // 'limit' clause
-            "[ID] INTEGER NULL," // object ID (applicable to update and delete)
-            "[skip] INTEGER NULL," // 'skip' clause
-            "[bookmark] TEXT NULL," // opaque string used for multi-page navigation
-            "[user] JSON1 NULL," // user context: either string user ID or JSON with full user info
-            "[fetchDepth] INTEGER NULL);" // when to stop when fetching nested/referenced objects
+    CHECK_SQLITE(db, sqlite3_declare_vtab(db, "create table x("
+            "[select] HIDDEN," // 0 - property list JSON1
+            "[ClassName] ," // 1 - class name TEXT
+            "[filter] HIDDEN," // 2 - 'where' clause JSON1 NULL
+            "[orderBy]  HIDDEN," // 3 - 'order by' clause JSON1 NULL
+            "[limit] HIDDEN," // 4 - 'limit' clause INTEGER NULL
+            "[ID] NULL," // 5 - object ID (applicable to update and delete) INTEGER
+            "[skip]  HIDDEN," // 6 - 'skip' clause INTEGER NULL
+            "[Data]," // 7 - object data (array or single object) JSON1 NULL
+            "[bookmark] HIDDEN," // 8 - opaque string used for multi-page navigation TEXT NULL
+            "[user] HIDDEN," // 9 - user context: either string user ID or JSON with full user info JSON1 NULL
+            "[fetchDepth] HIDDEN" //  10 - when to stop when fetching nested/referenced objects INTEGER NULL
+            ");"
     ));
 
     /* Check if this is function-type call ('select * from flexi_data()')
@@ -367,6 +369,13 @@ static int _close(sqlite3_vtab_cursor *pCursor)
 static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
                    int argc, sqlite3_value **argv)
 {
+    printf("flexi_data.xFilter\n");
+    for (int ii = 0; ii < argc; ii++)
+    {
+        sqlite3_value *v = argv[ii];
+        printf("%d: %s\n", ii, sqlite3_value_text(v));
+    }
+
     struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
     int result = proxyVTab->pApi->xFilter(pCursor, idxNum, idxStr, argc, argv);
     return result;
@@ -444,6 +453,14 @@ UPDATE table SET rowid=rowid+1 WHERE ...;
 static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid)
 {
     struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
+
+    printf("flexi_data.xUpdate\n");
+    for (int ii = 0; ii < argc; ii++)
+    {
+        sqlite3_value *v = argv[ii];
+        printf("%d: %s\n", ii, sqlite3_value_text(v));
+    }
+
     int result = proxyVTab->pApi->xUpdate(pVTab, argc, argv, pRowid);
     return result;
 }

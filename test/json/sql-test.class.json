@@ -16,9 +16,26 @@
     "describe": "Schema init",
     "it": "Creates Employees table using flexi_data",
     "inDb": "../../data/Northwind.test.db",
-    "inSql": "create virtual table if not exists [Employees] using flexi_data(%Q);",
+    "inSql": "create virtual table if not exists [Employees2] using flexi_data(%Q);",
     "inSubst": [
       "Employees.schema.json"
+    ],
+    "chkResult": null
+  },
+  {
+    "describe": "Data lpad",
+    "it": "Select from flexi_data('Regions') where ID = 100;",
+    "inDb": "../../data/Northwind.test.db",
+    "inSql": "select * from flexi_data where ClassName = 'Regions';",
+    "chkResult": null
+  },
+  {
+    "describe": "Data load",
+    "it": "Insert data into [Regions]",
+    "inDb": "../../data/Northwind.test.db",
+    "inSql": "insert into flexi_data (ClassName, Data) values ('Regions', %Q);",
+    "inSubst": [
+      "Regions.data.json"
     ],
     "chkResult": null
   }
