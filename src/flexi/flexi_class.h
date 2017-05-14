@@ -240,6 +240,8 @@ void flexi_ClassDef_free(struct flexi_ClassDef_t *self);
  */
 int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef);
 
+int flexi_ClassDef_loadByName(struct flexi_Context_t *pCtx, const char *zClassName, struct flexi_ClassDef_t **pClassDef);
+
 /*
  * Generates SQL to create Flexilite virtual table from class definition
  */
@@ -263,6 +265,6 @@ bool flexi_ClassDef_getPropDefById(struct flexi_ClassDef_t *pClassDef,
  * Finds property definition by its name
  */
 bool flexi_ClassDef_getPropDefByName(struct flexi_ClassDef_t *pClassDef,
-                                   const char *zPropName, struct flexi_PropDef_t **propDef);
+                                     const char *zPropName, struct flexi_PropDef_t **propDef);
 
 #endif //FLEXILITE_FLEXI_CLASS_H

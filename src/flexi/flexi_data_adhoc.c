@@ -141,12 +141,36 @@ static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
 }
 
 /*
- * Inserts or update data into single object
+ * Inserts or updates objects
+ * pDataSource is result of select from json_tree and is expected to be positioned on the first row with given parent
  */
 static int
-_upsertObjectData(struct FlexiDataProxyVTab_t *dataVTab,
-                  sqlite3_stmt *pDataSource, bool insert, int parent,
-                  sqlite3_int64 lClassID)
+_processObjectUpsert(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID, sqlite3_int64 lObjectID,
+                     bool insert, sqlite3_stmt *pDataSource, int parent)
+{
+    return 0;
+}
+
+/*
+ * Inserts or updates array of atoms/objects
+ * pDataSource is result of select from json_tree and is expected to be positioned on the first row with given parent
+ */
+static int
+_processPropertyArrayUpsert(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID,
+                            struct flexi_PropDef_t *propDef,
+                            bool insert, sqlite3_stmt *pDataSource, int parent)
+{
+    return 0;
+}
+
+/*
+ * Inserts or update data into single object
+ * pDataSource is result of select from json_tree and is expected to be positioned on the current row
+ */
+static int
+_upsertPropData(struct FlexiDataProxyVTab_t *dataVTab,
+                sqlite3_stmt *pDataSource, bool insert, int parent,
+                sqlite3_int64 lClassID)
 {
     int result;
     char *zPropName = NULL;
@@ -163,6 +187,9 @@ _upsertObjectData(struct FlexiDataProxyVTab_t *dataVTab,
 
     sqlite3_int64 lPropID;
     CHECK_CALL(flexi_Context_getPropIdByClassIdAndName(dataVTab->pCtx, lClassID, zPropName, &lPropID));
+    bool bAtom = sqlite3_column_int(pDataSource, 0) == 0;
+    const char *zType = (const char *) sqlite3_column_text(pDataSource, 2);
+
     if (lPropID == -1)
         // Property not found
     {
@@ -176,6 +203,10 @@ _upsertObjectData(struct FlexiDataProxyVTab_t *dataVTab,
         }
 
         // Use name instead
+        /*
+         * if atom - save individual value
+         * else process as object or array
+         */
 
     }
     else
@@ -185,16 +216,31 @@ _upsertObjectData(struct FlexiDataProxyVTab_t *dataVTab,
         flexi_ClassDef_getPropDefById(pClassDef, lPropID, &prop);
 
         // Check if this is an atomic value
-        bool bAtom = sqlite3_column_int(pDataSource, 0) == 0;
         if (bAtom)
         {
             sqlite3_value *vv = sqlite3_column_value(pDataSource, 1);
             CHECK_CALL(flexi_PropDef_validateValue(prop, pClassDef, vv));
+
+            // If property is not mapped to fixed column, save it in [.ref-values]
+
+            // otherwise, assign to object save
         }
         else
-            // Possibly, array of values or nested object
+            // Possibly, nested object or array of values or nested objects
         {
+            if (strcmp(zType, "array") == 0)
+            {
 
+            }
+            else
+                if (strcmp(zType, "object") == 0)
+                {
+
+                }
+                else
+                {
+                    // TODO Invalid element type
+                }
         }
 
     }
@@ -207,6 +253,48 @@ _upsertObjectData(struct FlexiDataProxyVTab_t *dataVTab,
     EXIT:
     sqlite3_free(zPropName);
     return result;
+}
+
+static int
+_processDataUpsert(struct FlexiDataProxyVTab_t *dataVTab,
+                   sqlite3_int64 lClassID,
+                   sqlite3_stmt *pDataSource, bool insert)
+{
+    int result;
+    int parent = sqlite3_column_int(pDataSource, 5);
+    bool bAtom = sqlite3_column_int(pDataSource, 0) == 0;
+    if (bAtom)
+    {
+
+    }
+    else
+    {
+        const char *zType = (const char *) sqlite3_column_text(pDataSource, 2);
+        if (strcmp(zType, "array") == 0)
+        {
+//_processPropertyArrayUpsert(dataVTab, lClassID, )
+        }
+        else
+            if (strcmp(zType, "object") == 0)
+            {
+
+            }
+            else
+            {
+                result = SQLITE_ERROR;
+                flexi_Context_setError(dataVTab->pCtx, result, sqlite3_mprintf("Invalid token type %s", zType));
+                goto ONERROR;
+            }
+    }
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    return result;
+
 }
 
 /*
@@ -235,6 +323,7 @@ The row with rowid argv[0] is updated with rowid argv[1] and new values in argv[
 
 UPDATE table SET rowid=rowid+1 WHERE ...;
 
+ Layout of argv (+2):
     FLEXI_DATA_COL_SELECT = 0,
     FLEXI_DATA_COL_CLASS_NAME = 1,
     FLEXI_DATA_COL_FILTER = 2,
@@ -246,6 +335,8 @@ UPDATE table SET rowid=rowid+1 WHERE ...;
     FLEXI_DATA_COL_BOOKMARK = 8,
     FLEXI_DATA_COL_USER = 9,
     FLEXI_DATA_COL_FETCH_DEPTH = 10
+
+
  */
 static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid)
 {
@@ -254,11 +345,28 @@ static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_i
     sqlite3_stmt *pDataSource = NULL; // Parsed JSON data
 
     struct FlexiDataProxyVTab_t *dataVTab = (void *) pVTab;
+
+    char *zClassName = (char *) sqlite3_value_text(argv[FLEXI_DATA_COL_CLASS_NAME + 2]);
+    if (!zClassName || strlen(zClassName) == 0)
+    {
+        result = SQLITE_NOTFOUND;
+        flexi_Context_setError(dataVTab->pCtx, result, sqlite3_mprintf("Class name is expected"));
+        goto ONERROR;
+    }
+
+    flexi_ClassDef_t *pClassDef;
+    CHECK_CALL(flexi_ClassDef_loadByName(dataVTab->pCtx, zClassName, &pClassDef));
+
     if (argc == 1)
         // Delete
     {}
     else
     {
+        // Data will be in argv[9]
+        // Class name will be in argv[3]
+        bool insert = argv[0] == NULL;
+
+        sqlite3_int64 lObjectID = sqlite3_value_int64(argv[1]);
 
         /*
         * Parse data JSON
@@ -277,38 +385,16 @@ static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_i
         CHECK_CALL(sqlite3_bind_text(pDataSource, 1,
                                      (const char *) sqlite3_value_text(argv[FLEXI_DATA_COL_DATA + 2]), -1,
                                      NULL));
-
-        while ((result = sqlite3_step(pDataSource)) == SQLITE_ROW)
+        result = sqlite3_step(pDataSource);
+        if (result == SQLITE_ROW)
         {
-            // Check if array
-            // Check if object
-            // Check if atom
-            int atom = sqlite3_column_int(pDataSource, 3);
-            if (atom)
-            {
-                // get attribute name and find property
-            }
-            else
-            {
-
-            }
-        }
-
-        if (result != SQLITE_DONE)
-            goto ONERROR;
-
-        // Data will be in argv[9]
-        // Class name will be in argv[3]
-        if (argv[0] == NULL)
-            // Insert
-        {
-
+            CHECK_CALL(_processDataUpsert(dataVTab, pClassDef->lClassID, pDataSource, insert));
         }
         else
-            // Update
-        {
+            if (result != SQLITE_DONE)
+                goto ONERROR;
 
-        }
+
     }
 
     result = SQLITE_OK;

@@ -1136,3 +1136,17 @@ bool flexi_ClassDef_getPropDefByName(struct flexi_ClassDef_t *pClassDef,
     *propDef = HashTable_get(&pClassDef->propsByName, (DictionaryKey_t) {.pKey = zPropName});
     return *propDef != NULL;
 }
+
+int flexi_ClassDef_loadByName(struct flexi_Context_t *pCtx, const char *zClassName, struct flexi_ClassDef_t **pClassDef)
+{
+    int result;
+    sqlite3_int64 lClassID;
+    CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
+    CHECK_CALL(flexi_ClassDef_load(pCtx, lClassID, pClassDef));
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    return result;
+}
