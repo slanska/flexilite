@@ -2,6 +2,33 @@
 // Created by slanska on 2017-04-08.
 //
 
+/*
+ * flexi_data eponymous virtual table for ad-hoc CRUD operations
+ * For SELECT the following columns are applicable:
+ * ClassName
+ * filter
+ * rowid
+ * bookmark
+ * user
+ *
+ * For INSERT:
+ * ClassName
+ * Data
+ * rowid
+ * user
+ *
+ * For UPDATE:
+ * ClassName
+ * Data
+ * filter or rowid
+ * user
+ *
+ * For DELETE:
+ * ClassName
+ * filter or rowid
+ * user
+ */
+
 #include "../project_defs.h"
 #include "flexi_data.h"
 
@@ -9,44 +36,68 @@ SQLITE_EXTENSION_INIT3
 
 #include "../misc/regexp.h"
 #include "flexi_class.h"
+#include "../util/StringBuilder.h"
 
 /*
- * Finds best existing index for the given criteria, based on index definition for class' properties.
- * There are few search strategies. They fall into one of following groups:
- * I) search by rowid (ObjectID)
- * II) search by indexed properties
- * III) search by rtree ranges
- * IV) full text search (via match function)
- * Due to specifics of internal storage of data (EAV store), these strategies are estimated differently
- * For strategy II every additional search constraint increases estimated cost (since query in this case would be compound from multiple
- * joins)
- * For strategies III and IV it is opposite, every additional constraint reduces estimated cost, since lookup will need
- * to be performed on more restrictive criteria
- * Inside of each strategies there is also rank depending on op code (exact comparison gives less estimated cost, range comparison gives
- * more estimated cost)
- * Here is list of sorted from most efficient to least efficient strategies:
- * 1) lookup by object ID.
- * 2) exact value by indexed or unique column (=)
- * 3) lookup in rtree (by set of fields)
- * 4) range search on indexed or unique column (>, <, >=, <=, <>)
- * 5) full text search by text column indexed for FTS
- * 6) linear scan for exact value
- * 7) linear scan for range
- * 8) linear search for MATCH/REGEX/prefixed LIKE
- *
- *  # of scenario corresponds to idxNum value in output
- *  idxNum will have best found determines format of idxStr.
- *  1) idxStr is not used (null)
- *  2-8) idxStr consists of 6 char tuples with op & column index (+1) encoded
- *  into 2 and 4 hex characters respectively
- *  (e.g. "020003" means EQ operator for column #3). Position of every tuple
- *  corresponds to argvIndex, so that tupleIndex = (argvIndex - 1) * 6
- *   */
+ * Any filtering on flexi_data's columns will be passed in aConstraints, by column indexes
+ */
 static int _bestIndex(
         sqlite3_vtab *tab,
         sqlite3_index_info *pIdxInfo
 )
 {
+    StringBuilder_t sb;
+    StringBuilder_init(&sb);
+
+    int argCount = 0;
+
+    if (pIdxInfo->nConstraint > 0)
+    {
+        for (int cc = 0; cc < pIdxInfo->nConstraint; cc++)
+        {
+            if (pIdxInfo->aConstraint[cc].usable)
+            {
+                pIdxInfo->aConstraintUsage[cc].argvIndex = ++argCount;
+                int col = pIdxInfo->aConstraint[cc].iColumn;
+                // Build WHERE part based on op codes
+
+                switch (col)
+                {
+                    case FLEXI_DATA_COL_CLASS_NAME:
+                        // Filter by class name
+                        break;
+
+                    case FLEXI_DATA_COL_ID:
+                        // TODO Filter by object ID
+                        break;
+
+                    case FLEXI_DATA_COL_BOOKMARK:
+                        // TODO Filter by bookmark
+                        break;
+
+                    case FLEXI_DATA_COL_USER:
+                        // TODO Filter by user
+                        break;
+
+                    case FLEXI_DATA_COL_FILTER:
+                        // TODO
+                        break;
+
+                    default:
+                        //                    pIdxInfo->
+                        // TODO Error
+                        break;
+                }
+            }
+        }
+
+        pIdxInfo->estimatedCost = 0; // TODO Needed?
+        pIdxInfo->idxNum = 1; // TODO
+        pIdxInfo->idxStr = sqlite3_mprintf("%s", sb.zBuf);
+        pIdxInfo->needToFreeIdxStr = true;
+    }
+
+    StringBuilder_clear(&sb);
     return 0;
 }
 
@@ -272,7 +323,7 @@ _processDataUpsert(struct FlexiDataProxyVTab_t *dataVTab,
         const char *zType = (const char *) sqlite3_column_text(pDataSource, 2);
         if (strcmp(zType, "array") == 0)
         {
-//_processPropertyArrayUpsert(dataVTab, lClassID, )
+            //_processPropertyArrayUpsert(dataVTab, lClassID, )
         }
         else
             if (strcmp(zType, "object") == 0)
@@ -336,6 +387,15 @@ UPDATE table SET rowid=rowid+1 WHERE ...;
     FLEXI_DATA_COL_USER = 9,
     FLEXI_DATA_COL_FETCH_DEPTH = 10
 
+ Iterate through all elements in data JSON
+ 1) atom - property or name
+ 2) array - of atoms, objects or references
+ 3) object (nested or referenced)
+
+ TODO
+ first item will have parent null. It can be array or object (of given class)
+ if parent = thisID - process child element
+ else if parent != thisParent - processing is done
 
  */
 static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid)

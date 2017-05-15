@@ -15,6 +15,7 @@
  *
  * Example of CRUD operations:
  * select flexi('create class', 'Orders', '{... class definition JSON ...}')
+ *
  * -- create new Flexilite class called Orders.
  * No corresponding virtual table will be created by default (unless 4th boolean parameter is passed and equal true)
  * Then this class can be accessed in the following way:
@@ -29,6 +30,12 @@
  * delete from flexi_data where ClassName = 'Orders' and id = 1
  *
  * select * from flexi_data where ClassName = 'Orders' and filter = '{... filter JSON ...}'
+ *
+ * NOTE:
+ * using flexi_data with parameters (e.g. select * from flexi_data('Class1', 123))
+ * will give unpredicted results, as for eponymous virtual tables SQLite cannot handle combination of function parameters and
+ * parameters WHERE clause.
+ * Moreover, Flexilite wouldn't be able to recognize such cases and will return random and/or incorrect results
  *
  */
 
@@ -172,16 +179,16 @@ static int _createOrConnect(
     proxyVTab->pCtx = pAux;
 
     CHECK_SQLITE(db, sqlite3_declare_vtab(db, "create table x("
-            "[select] HIDDEN," // 0 - property list JSON1
-            "[ClassName] ," // 1 - class name TEXT
-            "[filter] HIDDEN," // 2 - 'where' clause JSON1 NULL
-            "[orderBy]  HIDDEN," // 3 - 'order by' clause JSON1 NULL
-            "[limit] HIDDEN," // 4 - 'limit' clause INTEGER NULL
-            "[ID] NULL," // 5 - object ID (applicable to update and delete) INTEGER
-            "[skip]  HIDDEN," // 6 - 'skip' clause INTEGER NULL
-            "[Data]," // 7 - object data (array or single object) JSON1 NULL
-            "[bookmark] HIDDEN," // 8 - opaque string used for multi-page navigation TEXT NULL
-            "[user] HIDDEN," // 9 - user context: either string user ID or JSON with full user info JSON1 NULL
+            "[ClassName] ,"// 0 - class name TEXT
+            "[rowid]," // 1 - object ID (applicable to update and delete) INTEGER
+            "[Data]," // 2 - object data (array or single object) JSON1 NULL
+            "[filter] HIDDEN," // 3 - 'where' clause JSON1 NULL
+            "[user] HIDDEN," // 4 - user context: either string user ID or JSON with full user info JSON1 NULL
+            "[bookmark] HIDDEN," // 5 - opaque string used for multi-page navigation TEXT NULL
+            "[select] HIDDEN," // 6 - property list JSON1 (list of columns/expressions)
+            "[orderBy]  HIDDEN," // 7 - 'order by' clause JSON1 NULL
+            "[limit] HIDDEN," // 8 - 'limit' clause INTEGER NULL
+            "[skip]  HIDDEN," // 9 - 'skip' clause INTEGER NULL
             "[fetchDepth] HIDDEN" //  10 - when to stop when fetching nested/referenced objects INTEGER NULL
             ");"
     ));
@@ -204,21 +211,24 @@ static int _createOrConnect(
 
         CHECK_CALL(_createNewClass(proxyVTab->pCtx, zClassName, zClassDef, &pClassDef));
         proxyVTab->lClassID = pClassDef->lClassID;
-    } else if (argc == 3 && strcmp(argv[2], "flexi_data") == 0)
-    {
-        proxyVTab->pApi = &_adhocQryProxyModule;
-        proxyVTab->pQry = sqlite3_malloc(sizeof(*proxyVTab->pQry));
-        CHECK_NULL(proxyVTab->pQry);
-        memset(proxyVTab->pQry, 0, sizeof(*proxyVTab->pQry));
-
-        // TODO ??? pClassDef is null. It will be initialized in xOpen
-    } else
-    {
-        *pzErr = "Invalid arguments. Expected class name and class definition JSON"
-                " for virtual table creation or 'flexi_data' for eponymous table";
-        result = SQLITE_ERROR;
-        goto ONERROR;
     }
+    else
+        if (argc == 3 && strcmp(argv[2], "flexi_data") == 0)
+        {
+            proxyVTab->pApi = &_adhocQryProxyModule;
+            proxyVTab->pQry = sqlite3_malloc(sizeof(*proxyVTab->pQry));
+            CHECK_NULL(proxyVTab->pQry);
+            memset(proxyVTab->pQry, 0, sizeof(*proxyVTab->pQry));
+
+            // TODO ??? pClassDef is null. It will be initialized in xOpen
+        }
+        else
+        {
+            *pzErr = "Invalid arguments. Expected class name and class definition JSON"
+                    " for virtual table creation or 'flexi_data' for eponymous table";
+            result = SQLITE_ERROR;
+            goto ONERROR;
+        }
 
     proxyVTab->pCtx->nRefCount++;
     result = SQLITE_OK;
@@ -299,6 +309,14 @@ static int _bestIndex(
 )
 {
     struct FlexiDataProxyVTab_t *proxyVTab = (void *) tab;
+
+    if (pIdxInfo->nConstraint > 0)
+        printf("_bestIndex: nConstraints=%d\n", pIdxInfo->nConstraint);
+    for (int ii = 0; ii < pIdxInfo->nConstraint; ii++)
+    {
+        printf("_bestIndex[%d]: %d\n", ii, pIdxInfo->aConstraint[ii].iColumn
+        );
+    }
     int result = proxyVTab->pApi->xBestIndex(tab, pIdxInfo);
     return result;
 }
@@ -427,7 +445,8 @@ static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_i
     for (int ii = 0; ii < argc; ii++)
     {
         sqlite3_value *v = argv[ii];
-        printf("%d: %s\n", ii, sqlite3_value_text(v));
+        if (sqlite3_value_type(v) != SQLITE_NULL)
+            printf("%d: %s\n", ii, sqlite3_value_text(v));
     }
 
     int result = proxyVTab->pApi->xUpdate(pVTab, argc, argv, pRowid);
@@ -559,7 +578,7 @@ int flexi_data_init(
 
     // Init module
     CHECK_CALL(sqlite3_create_module_v2(db, "flexi_data", &flexi_data_module, pCtx, NULL));
-//    CHECK_CALL(sqlite3_create_module_v2(db, "flexi_data", &flexi_data_module, pCtx, (void *) flexi_Context_free));
+    //    CHECK_CALL(sqlite3_create_module_v2(db, "flexi_data", &flexi_data_module, pCtx, (void *) flexi_Context_free));
 
     /*
      * TODO move to general functions

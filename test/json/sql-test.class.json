@@ -23,10 +23,45 @@
     "chkResult": null
   },
   {
-    "describe": "Data lpad",
-    "it": "Select from flexi_data('Regions') where ID = 100;",
+    "describe": "Data load",
+    "it": "select * from flexi_data where ClassName = 'Regions'",
     "inDb": "../../data/Northwind.test.db",
     "inSql": "select * from flexi_data where ClassName = 'Regions';",
+    "chkResult": null
+  },
+  {
+    "describe": "Data load",
+    "it": "Select * from flexi_data('Regions') where filter= '{\"RegionID\": 111}';",
+    "inDb": "../../data/Northwind.test.db",
+    "inSql": "Select * from flexi_data('Regions') where filter= '{\"RegionID\": 111}';",
+    "chkResult": null
+  },
+  {
+    "describe": "Data load",
+    "it": "select * from flexi_data('Orders', 123);",
+    "inDb": "../../data/Northwind.test.db",
+    "inSql": "select * from flexi_data('Orders', 123);",
+    "chkResult": null
+  },
+  {
+    "describe": "Data load",
+    "it": "select * from flexi_data('Orders');",
+    "inDb": "../../data/Northwind.test.db",
+    "inSql": "select * from flexi_data('Orders');",
+    "chkResult": null
+  },
+  {
+    "describe": "Data load",
+    "it": "select * from flexi_data(123, 'Orders', 333, 555);",
+    "inDb": "../../data/Northwind.test.db",
+    "inSql": "select * from flexi_data(123, 'Orders', 333, 555);",
+    "chkResult": null
+  },
+  {
+    "describe": "Data load",
+    "it": "select * from flexi_data(123, 'Orders', 333, 555) where filter='{}' and ClassName='Orders';",
+    "inDb": "../../data/Northwind.test.db",
+    "inSql": "select * from flexi_data(123, 'Orders', 333, 555) where filter = '{}' and ClassName='Orders';",
     "chkResult": null
   },
   {
