@@ -151,6 +151,11 @@ typedef struct flexi_ClassDef_t
      * If true, any JSON is allowed to be inserted/updated
      */
     bool bAllowAnyProps;
+
+    /*
+     * If true, class is not completely resolved. CRUD operations are not allowed.
+     */
+    bool bUnresolved;
 } flexi_ClassDef_t;
 
 int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName, const char *zOriginalClassDef,

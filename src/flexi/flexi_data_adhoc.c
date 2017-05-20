@@ -152,6 +152,7 @@ static int _close(sqlite3_vtab_cursor *pCursor)
 static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
                    int argc, sqlite3_value **argv)
 {
+
     return 0;
 }
 
@@ -192,14 +193,38 @@ static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
 }
 
 /*
+ * Following set of _upsert* methods are to handle update/insert operations for different types of data
+ * They have similar set of arguments and all follow the same pattern of navigation over JSON tokens in json_tree output.
+ * They expect first item already positioned and when exiting, they leave position immediately after last processed item (if more items exist),
+ * thus allowing next handler to start from established position
+ *
+ * These functions are:
+ * _upsertObject - to process individual object
+ * _upsertObjectWithId - to process top level object with optional ID
+ * _upsertObjectArray - to process array of objects
+ * _upsertProperty - to process single property value (which may turn into _upsertObject or _upsertObjectArray)
+ * _upsertPropertyArray - to process array of properties
+ */
+
+/*
  * Inserts or updates objects
  * pDataSource is result of select from json_tree and is expected to be positioned on the first row with given parent
  */
 static int
-_processObjectUpsert(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID, sqlite3_int64 lObjectID,
-                     bool insert, sqlite3_stmt *pDataSource, int parent)
+_upsertObject(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID,
+              bool insert, sqlite3_stmt *pDataSource, int parent)
 {
-    return 0;
+    int result;
+
+    // Check if class is resolved and allows data modifications
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    return result;
 }
 
 /*
@@ -207,9 +232,9 @@ _processObjectUpsert(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClass
  * pDataSource is result of select from json_tree and is expected to be positioned on the first row with given parent
  */
 static int
-_processPropertyArrayUpsert(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID,
-                            struct flexi_PropDef_t *propDef,
-                            bool insert, sqlite3_stmt *pDataSource, int parent)
+_upsertPropertyArray(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID,
+                     struct flexi_PropDef_t *propDef,
+                     bool insert, sqlite3_stmt *pDataSource, int parent)
 {
     return 0;
 }
@@ -219,7 +244,7 @@ _processPropertyArrayUpsert(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64
  * pDataSource is result of select from json_tree and is expected to be positioned on the current row
  */
 static int
-_upsertPropData(struct FlexiDataProxyVTab_t *dataVTab,
+_upsertProperty(struct FlexiDataProxyVTab_t *dataVTab,
                 sqlite3_stmt *pDataSource, bool insert, int parent,
                 sqlite3_int64 lClassID)
 {
@@ -306,10 +331,79 @@ _upsertPropData(struct FlexiDataProxyVTab_t *dataVTab,
     return result;
 }
 
+/*
+ * Updates or inserts array of objects
+ * By convention, at the time of call, pDataSource is positioned at first object row (type == 'object')
+ */
 static int
-_processDataUpsert(struct FlexiDataProxyVTab_t *dataVTab,
+_upsertObjectArray(struct FlexiDataProxyVTab_t *dataVTab,
                    sqlite3_int64 lClassID,
-                   sqlite3_stmt *pDataSource, bool insert)
+                   sqlite3_stmt *pDataSource, bool insert, int parent)
+{
+    int result;
+
+    // Iterate over all items until parent == parent or parent == id
+    int currentScope = sqlite3_column_int(pDataSource, 0);
+
+    while ((result = sqlite3_step(pDataSource)) == SQLITE_ROW)
+    {
+        int currentParent = sqlite3_column_int(pDataSource, 5);
+        int currentID = sqlite3_column_int(pDataSource, 0);
+        if (currentParent != parent && currentID != currentScope)
+            break;
+        CHECK_CALL(_upsertObject(dataVTab, lClassID, insert, pDataSource, currentID));
+
+    }
+
+    if (result != SQLITE_DONE && result != SQLITE_ROW)
+        goto ONERROR;
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+    EXIT:
+    return result;
+}
+
+/*
+ * Process top level object in _upsertOrDelete function
+ */
+static int
+_upsertObjectWithId(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID, sqlite3_int64 lObjectID,
+                    bool insert, sqlite3_stmt *pDataSource, int parent)
+{
+    int result;
+
+    int objectScopeId = sqlite3_column_int(pDataSource, 0);
+
+    // Init [.objects] row
+    // TODO
+
+    while ((result = sqlite3_step(pDataSource)) == SQLITE_ROW)
+    {
+        CHECK_CALL(_upsertProperty(dataVTab, pDataSource, insert, objectScopeId, lClassID));
+    }
+
+    if (result != SQLITE_DONE)
+        goto ONERROR;
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    return result;
+}
+
+/*
+ *
+ */
+static int
+_upsertData(struct FlexiDataProxyVTab_t *dataVTab,
+            sqlite3_int64 lClassID,
+            sqlite3_stmt *pDataSource, bool insert)
 {
     int result;
     int parent = sqlite3_column_int(pDataSource, 5);
@@ -323,7 +417,7 @@ _processDataUpsert(struct FlexiDataProxyVTab_t *dataVTab,
         const char *zType = (const char *) sqlite3_column_text(pDataSource, 2);
         if (strcmp(zType, "array") == 0)
         {
-            //_processPropertyArrayUpsert(dataVTab, lClassID, )
+            CHECK_CALL(_upsertObjectArray(dataVTab, lClassID, pDataSource, insert, parent));
         }
         else
             if (strcmp(zType, "object") == 0)
@@ -392,13 +486,10 @@ UPDATE table SET rowid=rowid+1 WHERE ...;
  2) array - of atoms, objects or references
  3) object (nested or referenced)
 
- TODO
- first item will have parent null. It can be array or object (of given class)
- if parent = thisID - process child element
- else if parent != thisParent - processing is done
-
+ First row in result of json_tree will have parent null. This is specilal item.
+ It can be array or object (of given class)
  */
-static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid)
+static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid)
 {
     int result;
 
@@ -419,12 +510,23 @@ static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_i
 
     if (argc == 1)
         // Delete
-    {}
+    {
+        sqlite3_int64 lObjectID = sqlite3_value_int64(argv[1]);
+        CHECK_CALL(flexi_DataDeleteObject(dataVTab, zClassName, lObjectID));
+    }
     else
     {
         // Data will be in argv[9]
         // Class name will be in argv[3]
         bool insert = argv[0] == NULL;
+
+        if (!insert && sqlite3_value_type(argv[1]) == SQLITE_NULL)
+        {
+            result = SQLITE_ERROR;
+            flexi_Context_setError(dataVTab->pCtx, result,
+                                   sqlite3_mprintf("No object ID is passed for update operation"));
+            goto ONERROR;
+        }
 
         sqlite3_int64 lObjectID = sqlite3_value_int64(argv[1]);
 
@@ -439,7 +541,7 @@ static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_i
                                    "atom, " // 3
                                    "id, " // 4
                                    "parent, " // 5
-                                   "fullkey, " // 6
+                                   "fullkey, " // 6 todo needed?
                                    "path " // 7
                                    "from json_tree(:1);", &pDataSource);
         CHECK_CALL(sqlite3_bind_text(pDataSource, 1,
@@ -448,13 +550,38 @@ static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_i
         result = sqlite3_step(pDataSource);
         if (result == SQLITE_ROW)
         {
-            CHECK_CALL(_processDataUpsert(dataVTab, pClassDef->lClassID, pDataSource, insert));
+            int scopeID = sqlite3_column_int(pDataSource, 0);
+            // First row is only used for determining data processing flow.
+            char *zType = (char *) sqlite3_column_text(pDataSource, 2);
+            if (strcmp(zType, "object") == 0)
+            {
+                CHECK_STMT_STEP(pDataSource, dataVTab->pCtx->db);
+                CHECK_CALL(_upsertObjectWithId(dataVTab, pClassDef->lClassID, lObjectID, insert, pDataSource, scopeID));
+            }
+            else
+                if (strcmp(zType, "array") == 0)
+                {
+                    if (!insert)
+                    {
+                        result = SQLITE_ERROR;
+                        flexi_Context_setError(dataVTab->pCtx, result, sqlite3_mprintf("Cannot update array of objects"));
+                        goto ONERROR;
+                    }
+
+                    CHECK_STMT_STEP(pDataSource, dataVTab->pCtx->db);
+                    CHECK_CALL(_upsertObjectArray(dataVTab, pClassDef->lClassID, pDataSource, insert, scopeID));
+                }
+                else
+                {
+                    result = SQLITE_ERROR;
+                    flexi_Context_setError(dataVTab->pCtx, result,
+                                           sqlite3_mprintf("Data is expected to be object or array"));
+                    goto ONERROR;
+                }
         }
         else
             if (result != SQLITE_DONE)
                 goto ONERROR;
-
-
     }
 
     result = SQLITE_OK;
@@ -483,7 +610,7 @@ static int _find_method(
 
 /*
  * Renames class to a new name (zNew)
- * TODO use flexi_class_rename
+ * TODO needed?
  */
 static int _rename(sqlite3_vtab *pVtab, const char *zNew)
 {
@@ -508,7 +635,7 @@ sqlite3_module _adhocQryProxyModule = {
         .xEof = _eof,
         .xColumn = _column,
         .xRowid = _row_id,
-        .xUpdate = _update,
+        .xUpdate = _upsertOrDelete,
         .xBegin = NULL,
         .xSync = NULL,
         .xCommit= NULL,

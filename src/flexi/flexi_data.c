@@ -597,3 +597,38 @@ int flexi_data_init(
     EXIT:
     return result;
 }
+
+int flexi_DataDeleteObject(FlexiDataProxyVTab_t *vtab, const char *zClassName, sqlite3_int64 lObjectID)
+{
+    int result;
+
+    flexi_ClassDef_t* pClassDef;
+    CHECK_CALL(flexi_ClassDef_loadByName(vtab->pCtx, zClassName, &pClassDef));
+    if (pClassDef->bUnresolved)
+    {
+        result = SQLITE_ERROR;
+        flexi_Context_setError(vtab->pCtx, result, sqlite3_mprintf("Cannot modify data in unresolved class [%s]", zClassName));
+        goto ONERROR;
+    }
+
+    if (vtab->pCtx->pStmts[STMT_DEL_OBJ] == NULL)
+    {
+        CHECK_STMT_PREPARE(vtab->pCtx->db, "delete from [.objects] where ID=:1", &vtab->pCtx->pStmts[STMT_DEL_OBJ]);
+    }
+    sqlite3_stmt*pStmt = vtab->pCtx->pStmts[STMT_DEL_OBJ];
+    CHECK_CALL(sqlite3_reset(pStmt));
+    sqlite3_bind_int64(pStmt, 1, lObjectID);
+    CHECK_STMT_STEP(pStmt, vtab->pCtx->db);
+
+    // TODO Delete RTree
+    // Delete full text
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    return result;
+}
+

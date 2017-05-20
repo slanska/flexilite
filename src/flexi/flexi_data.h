@@ -96,4 +96,9 @@ struct FlexiDataProxyVTab_t
 
 typedef struct FlexiDataProxyVTab_t FlexiDataProxyVTab_t;
 
+/*
+ * Deletes object from class = zClassName, with id = lObjectID
+ */
+int flexi_DataDeleteObject(FlexiDataProxyVTab_t *vtab, const char *zClassName, sqlite3_int64 lObjectID);
+
 #endif //FLEXILITE_FLEXI_DATA_H
