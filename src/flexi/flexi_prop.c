@@ -106,33 +106,28 @@ int flexi_prop_def_parse(struct flexi_PropDef_t *pProp, const char *zPropName, c
 
     int result;
 
+    sqlite3_stmt *st;
     struct flexi_Context_t *pCtx = pProp->pCtx;
-    if (!pCtx->pStmts[STMT_PROP_PARSE])
-    {
-        const char *zPropParseSQL = "select "
-                "coalesce(json_extract(:1, '$.index'), 'none') as prop_index," // 0
-                "json_extract(:1, '$.subType') as subType," // 1
-                "coalesce(json_extract(:1, '$.minOccurences'), 0) as minOccurrences," // 2
-                "coalesce(json_extract(:1, '$.maxOccurences'), 1) as maxOccurrences," // 3
-                "coalesce(json_extract(:1, '$.rules.type'), 'text') as prop_type," // 4
-                "coalesce(json_extract(:1, '$.noTrackChanges'), 0) as noTrackChanges," // 5
-                "json_extract(:1, '$.enumDef')as enumDef," // 6
-                "json_extract(:1, '$.refDef') as refDef," // 7
-                "json_extract(:1, '$.$renameTo') as renameTo," // 8
-                "coalesce(json_extract(:1, '$.$drop'), 0) as prop_drop," // 9
-                "coalesce(json_extract(:1, '$.rules.maxLength'), 0) as maxLength," // 10
-                "coalesce(json_extract(:1, '$.rules.minValue'), 0) as minValue," // 11
-                "coalesce(json_extract(:1, '$.rules.maxValue'), 0) as maxValue," // 12
-                "coalesce(json_extract(:1, '$.rules.regex'), 0) as regex," // 13
-                "coalesce(json_extract(:1, '$.enumDef.$id'), 0) as enumDef_id," // 14
-                "json_extract(:1, '$.enumDef.$name') as enumDef_name" // 15
-        ;
-        CHECK_STMT_PREPARE(pCtx->db, zPropParseSQL, &pCtx->pStmts[STMT_PROP_PARSE]);
-    }
+    const char *zPropParseSQL = "select "
+            "coalesce(json_extract(:1, '$.index'), 'none') as prop_index," // 0
+            "json_extract(:1, '$.subType') as subType," // 1
+            "coalesce(json_extract(:1, '$.minOccurences'), 0) as minOccurrences," // 2
+            "coalesce(json_extract(:1, '$.maxOccurences'), 1) as maxOccurrences," // 3
+            "coalesce(json_extract(:1, '$.rules.type'), 'text') as prop_type," // 4
+            "coalesce(json_extract(:1, '$.noTrackChanges'), 0) as noTrackChanges," // 5
+            "json_extract(:1, '$.enumDef')as enumDef," // 6
+            "json_extract(:1, '$.refDef') as refDef," // 7
+            "json_extract(:1, '$.$renameTo') as renameTo," // 8
+            "coalesce(json_extract(:1, '$.$drop'), 0) as prop_drop," // 9
+            "coalesce(json_extract(:1, '$.rules.maxLength'), 0) as maxLength," // 10
+            "coalesce(json_extract(:1, '$.rules.minValue'), 0) as minValue," // 11
+            "coalesce(json_extract(:1, '$.rules.maxValue'), 0) as maxValue," // 12
+            "coalesce(json_extract(:1, '$.rules.regex'), 0) as regex," // 13
+            "coalesce(json_extract(:1, '$.enumDef.$id'), 0) as enumDef_id," // 14
+            "json_extract(:1, '$.enumDef.$name') as enumDef_name" // 15
+    ;
+    flexi_Context_stmtInit(pCtx, STMT_PROP_PARSE, zPropParseSQL, &st);
 
-    sqlite3_stmt *st = pCtx->pStmts[STMT_PROP_PARSE];
-
-    CHECK_CALL(sqlite3_reset(st));
     CHECK_CALL(sqlite3_bind_text(st, 1, zPropDefJson, -1, NULL));
     if ((result = sqlite3_step(st)) == SQLITE_ROW)
     {

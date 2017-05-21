@@ -96,10 +96,16 @@ enum FLEXI_CTX_STMT
             STMT_SEL_PROP_ID_BY_NAME = 22,
 
     // Get current user version
-    STMT_USER_VERSION_GET = 24,
+            STMT_USER_VERSION_GET = 24,
 
     // Get name text value by its ID
-    STMT_GET_NAME_BY_ID = 25,
+            STMT_GET_NAME_BY_ID = 25,
+
+    // Load from .objects by object ID
+            STMT_SEL_OBJ = 26,
+
+    // Load from .ref-values by object ID
+            STMT_SEL_REF_VALUES = 27,
 
     // Should be last one in the list
             STMT_DEL_FTS = 30
@@ -233,7 +239,7 @@ int flexi_Context_getPropIdByClassIdAndName(struct flexi_Context_t *pCtx,
  * Returns current user version value in plUserVersion
  * If bIncrement == true, increments user version value
  */
-int flexi_Context_userVersion(struct flexi_Context_t *pCtx, sqlite3_int64* plUserVersion, bool bIncrement);
+int flexi_Context_userVersion(struct flexi_Context_t *pCtx, sqlite3_int64 *plUserVersion, bool bIncrement);
 
 /*
  * Checks if class definitions and other metadata loaded into context is still valid.
@@ -247,11 +253,17 @@ int flexi_Context_checkMetaDataCache(struct flexi_Context_t *pCtx);
  * If zErrorMessage is not NULL, it is expected to be allocated by sqlite3_mprintf or sqlite3_malloc
  * If it is NULL, then sqlite3_errmsg will be used to get error message from database context
  */
-void flexi_Context_setError(struct flexi_Context_t* pCtx, int iErrorCode, char *zErrorMessage);
+void flexi_Context_setError(struct flexi_Context_t *pCtx, int iErrorCode, char *zErrorMessage);
 
 /*
  * Retrieved name text value by its ID. Returns SQLite code (SQLITE_OK if found, SQLITE_NOT_FOUND if name does not exist)
  */
-int flexi_Context_getNameValueByID(struct flexi_Context_t*pCtx, sqlite3_int64 lNameID, char**pzName);
+int flexi_Context_getNameValueByID(struct flexi_Context_t *pCtx, sqlite3_int64 lNameID, char **pzName);
+
+/*
+ * Ensures that SQLite statement in the context list of predefined statements is initialized/reset
+ */
+int flexi_Context_stmtInit(struct flexi_Context_t *pCtx, enum FLEXI_CTX_STMT stmt, const char *zSql,
+                           sqlite3_stmt **pStmt);
 
 #endif //FLEXILITE_FLEXI_ENV_H

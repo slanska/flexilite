@@ -15,17 +15,15 @@ static int _create_class_record(struct flexi_Context_t *pCtx, const char *zClass
                                 sqlite3_int64 *plClassID)
 {
     int result;
-    if (!pCtx->pStmts[STMT_INS_CLS])
-    {
-        CHECK_STMT_PREPARE(pCtx->db, "insert into [.classes] (NameID, OriginalData) values (:1, :2);",
-                           &pCtx->pStmts[STMT_INS_CLS]);
-    }
-    CHECK_SQLITE(pCtx->db, sqlite3_reset(pCtx->pStmts[STMT_INS_CLS]));
+    sqlite3_stmt *pStmt;
+    CHECK_CALL(
+            flexi_Context_stmtInit(pCtx, STMT_INS_CLS, "insert into [.classes] (NameID, OriginalData) values (:1, :2);",
+                                   &pStmt));
     sqlite3_int64 lClassNameID;
     CHECK_CALL(flexi_Context_insertName(pCtx, zClassName, &lClassNameID));
-    CHECK_SQLITE(pCtx->db, sqlite3_bind_int64(pCtx->pStmts[STMT_INS_CLS], 1, lClassNameID));
-    CHECK_SQLITE(pCtx->db, sqlite3_bind_text(pCtx->pStmts[STMT_INS_CLS], 2, zOriginalClassDef, -1, NULL));
-    CHECK_STMT_STEP(pCtx->pStmts[STMT_INS_CLS], pCtx->db);
+    CHECK_SQLITE(pCtx->db, sqlite3_bind_int64(pStmt, 1, lClassNameID));
+    CHECK_SQLITE(pCtx->db, sqlite3_bind_text(pStmt, 2, zOriginalClassDef, -1, NULL));
+    CHECK_STMT_STEP(pStmt, pCtx->db);
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, plClassID));
 
     goto EXIT;
@@ -687,18 +685,15 @@ int flexi_class_rename(struct flexi_Context_t *pCtx, sqlite3_int64 iOldClassID, 
     int result;
 
     sqlite3_int64 lNewNameID;
+    sqlite3_stmt *pStmt;
     CHECK_CALL(flexi_Context_insertName(pCtx, zNewName, &lNewNameID));
 
     // TODO Move to prepared statements
-    if (!pCtx->pStmts[STMT_CLS_RENAME])
-    {
-        CHECK_STMT_PREPARE(pCtx->db, "update [.classes] set NameID = :1 "
-                "where ClassID = :2;", &pCtx->pStmts[STMT_CLS_RENAME]);
-    }
-    CHECK_SQLITE(pCtx->db, sqlite3_reset(pCtx->pStmts[STMT_CLS_RENAME]));
-    sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_RENAME], 1, lNewNameID);
-    sqlite3_bind_int64(pCtx->pStmts[STMT_CLS_RENAME], 2, iOldClassID);
-    CHECK_STMT_STEP(pCtx->pStmts[STMT_CLS_RENAME], pCtx->db);
+    CHECK_CALL(flexi_Context_stmtInit(pCtx, STMT_CLS_RENAME, "update [.classes] set NameID = :1 "
+            "where ClassID = :2;", &pStmt));
+    sqlite3_bind_int64(pStmt, 1, lNewNameID);
+    sqlite3_bind_int64(pStmt, 2, iOldClassID);
+    CHECK_STMT_STEP(pStmt, pCtx->db);
     result = SQLITE_OK;
     goto EXIT;
 
@@ -1010,20 +1005,15 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
     getColumnAsText(&zClassDef, pGetClassStmt, 5);
 
     // Load properties from flexi_prop
-    if (!pCtx->pStmts[STMT_LOAD_CLS_PROP])
-    {
-        CHECK_STMT_PREPARE(pCtx->db, "select "
-                "PropertyID," // 0
-                "Class, " // 1
-                "NameID, " // 2
-                "Property," // 3
-                "ctlv," // 4
-                "ctlvPlan," // 5
-                "Definition" // 6
-                " from [flexi_prop] where ClassID=:1",
-                           &pCtx->pStmts[STMT_LOAD_CLS_PROP]);
-    }
-    CHECK_SQLITE(pCtx->db, sqlite3_reset(pCtx->pStmts[STMT_LOAD_CLS_PROP]));
+    CHECK_CALL( flexi_Context_stmtInit(pCtx, STMT_LOAD_CLS_PROP, "select "
+            "PropertyID," // 0
+            "Class, " // 1
+            "NameID, " // 2
+            "Property," // 3
+            "ctlv," // 4
+            "ctlvPlan," // 5
+            "Definition" // 6
+            " from [flexi_prop] where ClassID=:1", NULL));
     CHECK_SQLITE(pCtx->db, sqlite3_bind_int64(pCtx->pStmts[STMT_LOAD_CLS_PROP], 1, lClassID));
     CHECK_CALL(_parseProperties(*pClassDef, pCtx->pStmts[STMT_LOAD_CLS_PROP], 3, 6, 2, 4, 5));
 

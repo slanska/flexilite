@@ -38,19 +38,13 @@ int flexi_Context_getNameId(struct flexi_Context_t *pCtx,
                             const char *zName, sqlite3_int64 *pNameID)
 {
     int result;
+    sqlite3_stmt *p;
     if (pNameID)
     {
-        if (pCtx->pStmts[STMT_SEL_NAME_ID] == NULL)
-        {
-            CHECK_STMT_PREPARE(
-                    pCtx->db,
-                    "select NameID from [.names] where [Value] = :1;",
-                    &pCtx->pStmts[STMT_SEL_NAME_ID]);
-        }
+        flexi_Context_stmtInit(pCtx, STMT_SEL_NAME_ID,
+                               "select NameID from [.names] where [Value] = :1;",
+                               &p);
 
-        sqlite3_stmt *p = pCtx->pStmts[STMT_SEL_NAME_ID];
-
-        sqlite3_reset(p);
         sqlite3_bind_text(p, 1, zName, -1, NULL);
         int stepRes = sqlite3_step(p);
         if (stepRes != SQLITE_ROW)
@@ -73,15 +67,11 @@ int flexi_Context_getPropIdByClassIdAndName(struct flexi_Context_t *pCtx,
                                             sqlite3_int64 *plPropID)
 {
     int result;
-    if (pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME] == NULL)
-    {
-        CHECK_STMT_PREPARE(pCtx->db, "select ID from [.names_props] where "
-                "PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1)"
-                " and ClassID = :2 limit 1;",
-                           &pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME]);
-    }
-    sqlite3_stmt *pGetPropIDStmt = pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME];
-    CHECK_SQLITE(pCtx->db, sqlite3_reset(pGetPropIDStmt));
+    sqlite3_stmt *pGetPropIDStmt;
+    CHECK_CALL(flexi_Context_stmtInit(pCtx, STMT_SEL_PROP_ID_BY_NAME, "select ID from [.names_props] where "
+                                              "PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1)"
+                                              " and ClassID = :2 limit 1;",
+                                      &pGetPropIDStmt));
     sqlite3_bind_text(pGetPropIDStmt, 1, zPropName, -1, NULL);
     sqlite3_bind_int64(pGetPropIDStmt, 2, lClassID);
     CHECK_STMT_STEP(pGetPropIDStmt, pCtx->db);
@@ -108,18 +98,12 @@ int flexi_Context_getPropIdByClassAndNameIds
     assert(plPropID);
 
     int result;
+    sqlite3_stmt *p;
+    CHECK_CALL(flexi_Context_stmtInit(
+            pCtx, STMT_SEL_PROP_ID,
+            "select PropertyID from [flexi_prop] where ClassID = :1 and NameID = :2;",
+            &p));
 
-    if (pCtx->pStmts[STMT_SEL_PROP_ID] == NULL)
-    {
-        CHECK_STMT_PREPARE(
-                pCtx->db,
-                "select PropertyID from [flexi_prop] where ClassID = :1 and NameID = :2;",
-                &pCtx->pStmts[STMT_SEL_PROP_ID]);
-    }
-
-    sqlite3_stmt *p = pCtx->pStmts[STMT_SEL_PROP_ID];
-    assert(p);
-    sqlite3_reset(p);
     sqlite3_bind_int64(p, 1, lClassID);
     sqlite3_bind_int64(p, 2, lPropNameID);
     int stepRes = sqlite3_step(p);
@@ -146,15 +130,11 @@ int flexi_Context_insertName(struct flexi_Context_t *pCtx, const char *zName, sq
     int result;
     assert(zName);
     {
-        if (pCtx->pStmts[STMT_INS_NAME] == NULL)
-        {
-            const char *zInsNameSQL = "insert or replace into [.names] ([Value], NameID)"
-                    " values (:1, (select ID from [.names_props] where Value = :1 limit 1));";
-            CHECK_STMT_PREPARE(pCtx->db, zInsNameSQL, &pCtx->pStmts[STMT_INS_NAME]);
-        }
+        sqlite3_stmt *p;
+        const char *zInsNameSQL = "insert or replace into [.names] ([Value], NameID)"
+                " values (:1, (select ID from [.names_props] where Value = :1 limit 1));";
+        CHECK_CALL(flexi_Context_stmtInit(pCtx, STMT_INS_NAME, zInsNameSQL, &p));
 
-        sqlite3_stmt *p = pCtx->pStmts[STMT_INS_NAME];
-        sqlite3_reset(p);
         sqlite3_bind_text(p, 1, zName, -1, NULL);
         int stepRes = sqlite3_step(p);
         if (stepRes != SQLITE_DONE)
@@ -229,19 +209,16 @@ int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
     assert(pCtx);
 
     int result;
-    if (!pCtx->pStmts[STMT_CLS_ID_BY_NAME])
-    {
-        CHECK_STMT_PREPARE(pCtx->db,
-                           "select ClassID from [.classes] "
-                                   "where NameID = (select ID from [.names_props] where Value = :1 limit 1);",
-                           &pCtx->pStmts[STMT_CLS_ID_BY_NAME]);
-    }
-    CHECK_CALL(sqlite3_reset(pCtx->pStmts[STMT_CLS_ID_BY_NAME]));
-    CHECK_CALL(sqlite3_bind_text(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 1, zClassName, -1, NULL));
-    CHECK_STMT_STEP(pCtx->pStmts[STMT_CLS_ID_BY_NAME], pCtx->db);
+    sqlite3_stmt *st;
+    CHECK_CALL(flexi_Context_stmtInit(pCtx, STMT_CLS_ID_BY_NAME,
+                                      "select ClassID from [.classes] "
+                                              "where NameID = (select ID from [.names_props] where Value = :1 limit 1);",
+                                      &st));
+    CHECK_CALL(sqlite3_bind_text(st, 1, zClassName, -1, NULL));
+    CHECK_STMT_STEP(st, pCtx->db);
     if (result == SQLITE_ROW)
     {
-        *pClassID = sqlite3_column_int64(pCtx->pStmts[STMT_CLS_ID_BY_NAME], 0);
+        *pClassID = sqlite3_column_int64(st, 0);
     }
     else
     { *pClassID = -1; }
@@ -451,13 +428,9 @@ void flexi_Context_setError(struct flexi_Context_t *pCtx, int iErrorCode, char *
 int flexi_Context_getNameValueByID(struct flexi_Context_t *pCtx, sqlite3_int64 lNameID, char **pzName)
 {
     int result;
-    if (pCtx->pStmts[STMT_GET_NAME_BY_ID] == NULL)
-    {
-        CHECK_STMT_PREPARE(pCtx->db, "select [Value] from [.names_props] where ID = :1 limit 1;",
-                           &pCtx->pStmts[STMT_GET_NAME_BY_ID]);
-    }
-    sqlite3_stmt *pStmt = pCtx->pStmts[STMT_GET_NAME_BY_ID];
-    CHECK_CALL(sqlite3_reset(pStmt));
+    sqlite3_stmt *pStmt;
+    flexi_Context_stmtInit(pCtx, STMT_GET_NAME_BY_ID, "select [Value] from [.names_props] where ID = :1 limit 1;",
+                           &pStmt);
     sqlite3_bind_int64(pStmt, 1, lNameID);
     result = sqlite3_step(pStmt);
     if (result == SQLITE_ROW)
@@ -471,6 +444,33 @@ int flexi_Context_getNameValueByID(struct flexi_Context_t *pCtx, sqlite3_int64 l
             result = SQLITE_NOTFOUND;
         }
 
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    return result;
+}
+
+int flexi_Context_stmtInit(struct flexi_Context_t *pCtx, enum FLEXI_CTX_STMT stmt, const char *zSql,
+                           sqlite3_stmt **pStmt)
+{
+    int result;
+    if (pStmt != NULL)
+        *pStmt = NULL;
+
+    if (pCtx->pStmts[stmt] == NULL)
+    {
+        CHECK_STMT_PREPARE(pCtx->db, zSql, &pCtx->pStmts[stmt]);
+    }
+    else
+    {
+        CHECK_SQLITE(pCtx->db, sqlite3_reset(pCtx->pStmts[stmt]));
+    }
+
+    if (pStmt != NULL)
+        *pStmt = pCtx->pStmts[stmt];
+    result = SQLITE_OK;
     goto EXIT;
 
     ONERROR:

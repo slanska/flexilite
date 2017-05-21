@@ -773,6 +773,7 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
     UNUSED_PARAM(index);
 
     int result;
+    sqlite3_stmt *pGetPropIDStmt;
 
     CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_reset(alterCtx->pUpsertPropDefStmt));
     sqlite3_bind_text(alterCtx->pUpsertPropDefStmt, 1, zPropName, -1, NULL);
@@ -786,14 +787,8 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
         // Retrieve ID of property
         if (propDef->iPropID == 0)
         {
-            if (alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME] == NULL)
-            {
-                CHECK_STMT_PREPARE(alterCtx->pCtx->db, "select ID from [.names_props] where "
-                        "PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1) limit 1;",
-                                   &alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME]);
-            }
-            sqlite3_stmt *pGetPropIDStmt = alterCtx->pCtx->pStmts[STMT_SEL_PROP_ID_BY_NAME];
-            CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_reset(pGetPropIDStmt));
+            CHECK_CALL( flexi_Context_stmtInit(alterCtx->pCtx, STMT_SEL_PROP_ID_BY_NAME,  "select ID from [.names_props] where "
+                    "PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1) limit 1;", &pGetPropIDStmt));
             sqlite3_bind_text(pGetPropIDStmt, 1, zPropName, -1, NULL);
             CHECK_STMT_STEP(pGetPropIDStmt, alterCtx->pCtx->db);
             propDef->iPropID = sqlite3_column_int64(pGetPropIDStmt, 0);
@@ -879,6 +874,7 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     int result;
 
     char *zInternalJSON = NULL;
+    sqlite3_stmt *pUpdClsStmt;
 
     if (alterCtx->pUpsertPropDefStmt == NULL)
     {
@@ -909,19 +905,11 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     List_each(&alterCtx->postActions, (void *) _processAction, alterCtx);
 
     // Save class JSON definition
-    if (alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF] == NULL)
-    {
-        CHECK_STMT_PREPARE(alterCtx->pCtx->db,
-                           "update [.classes] set Data = :1 where ClassID = :2;",
-                           &alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF]);
-    }
+    CHECK_CALL(flexi_Context_stmtInit(alterCtx->pCtx, STMT_UPDATE_CLS_DEF, "update [.classes] set Data = :1 where ClassID = :2;", &pUpdClsStmt));
 
     // Build internal class definition, using property IDs etc.
     flexi_buildInternalClassDefJSON(alterCtx->pNewClassDef, zNewClassDef, &zInternalJSON);
 
-    printf("%s\n", zInternalJSON);
-
-    sqlite3_stmt *pUpdClsStmt = alterCtx->pCtx->pStmts[STMT_UPDATE_CLS_DEF];
     CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_reset(pUpdClsStmt));
     CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_bind_text(pUpdClsStmt, 1, zInternalJSON, -1, NULL));
     CHECK_SQLITE(alterCtx->pCtx->db, sqlite3_bind_int64(pUpdClsStmt, 2, alterCtx->pNewClassDef->lClassID));
