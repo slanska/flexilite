@@ -31,12 +31,30 @@
 
 #include "../project_defs.h"
 #include "flexi_data.h"
+#include "flexi_class.h"
+#include "../util/StringBuilder.h"
 
 SQLITE_EXTENSION_INIT3
 
-#include "../misc/regexp.h"
-#include "flexi_class.h"
-#include "../util/StringBuilder.h"
+/*
+ * Special property names (starting from '$')
+ */
+#define FLEXI_PROP_ID           "$id"
+#define FLEXI_PROP_CLASS        "$class"
+#define FLEXI_PROP_REF_ID       "$ref-id"
+#define FLEXI_PROP_REF_NAME       "$ref-name"
+#define FLEXI_PROP_REF_CODE       "$ref-code"
+#define FLEXI_PROP_CODE       "$code"
+#define FLEXI_PROP_NAME       "$name"
+
+typedef struct _UpsertParams_t
+{
+    FlexiDataProxyVTab_t *dataVTab;
+    sqlite3_int64 lClassID;
+    bool insert;
+    sqlite3_stmt *pDataSource;
+    int parent;
+} _UpsertParams_t;
 
 /*
  * Any filtering on flexi_data's columns will be passed in aConstraints, by column indexes
@@ -175,8 +193,7 @@ static int _eof(sqlite3_vtab_cursor *pCursor)
 
 /*
  * Returns value for the column at position iCol (starting from 0).
- * Reads column data from ref-values table, filtered by ObjectID and sorted by PropertyID
- * For the sake of better performance, fetches required columns on demand, sequentially.
+ * For 'Data' builds JSON
  *
  */
 static int _column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int iCol)
@@ -207,11 +224,26 @@ static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
  */
 
 /*
+ *
+ */
+static int
+_loadObjPropsFromJSON(_UpsertParams_t *p)
+{
+    int result;
+
+    //
+
+    result = SQLITE_OK;
+
+    return result;
+}
+
+/*
  * Inserts or updates objects
  * pDataSource is result of select from json_tree and is expected to be positioned on the first row with given parent
  */
 static int
-_upsertObject(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID,
+_upsertObject(FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID,
               bool insert, sqlite3_stmt *pDataSource, int parent)
 {
     int result;
@@ -232,7 +264,7 @@ _upsertObject(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID,
  * pDataSource is result of select from json_tree and is expected to be positioned on the first row with given parent
  */
 static int
-_upsertPropertyArray(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID,
+_upsertPropertyArray(FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID,
                      struct flexi_PropDef_t *propDef,
                      bool insert, sqlite3_stmt *pDataSource, int parent)
 {
@@ -244,7 +276,7 @@ _upsertPropertyArray(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClass
  * pDataSource is result of select from json_tree and is expected to be positioned on the current row
  */
 static int
-_upsertProperty(struct FlexiDataProxyVTab_t *dataVTab,
+_upsertProperty(FlexiDataProxyVTab_t *dataVTab,
                 sqlite3_stmt *pDataSource, bool insert, int parent,
                 sqlite3_int64 lClassID)
 {
@@ -336,7 +368,7 @@ _upsertProperty(struct FlexiDataProxyVTab_t *dataVTab,
  * By convention, at the time of call, pDataSource is positioned at first object row (type == 'object')
  */
 static int
-_upsertObjectArray(struct FlexiDataProxyVTab_t *dataVTab,
+_upsertObjectArray(FlexiDataProxyVTab_t *dataVTab,
                    sqlite3_int64 lClassID,
                    sqlite3_stmt *pDataSource, bool insert, int parent)
 {
@@ -370,7 +402,7 @@ _upsertObjectArray(struct FlexiDataProxyVTab_t *dataVTab,
  * Process top level object in _upsertOrDelete function
  */
 static int
-_upsertObjectWithId(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID, sqlite3_int64 lObjectID,
+_upsertObjectWithId(FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID, sqlite3_int64 lObjectID,
                     bool insert, sqlite3_stmt *pDataSource, int parent)
 {
     int result;
@@ -401,7 +433,7 @@ _upsertObjectWithId(struct FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassI
  *
  */
 static int
-_upsertData(struct FlexiDataProxyVTab_t *dataVTab,
+_upsertData(FlexiDataProxyVTab_t *dataVTab,
             sqlite3_int64 lClassID,
             sqlite3_stmt *pDataSource, bool insert)
 {
@@ -495,7 +527,7 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
 
     sqlite3_stmt *pDataSource = NULL; // Parsed JSON data
 
-    struct FlexiDataProxyVTab_t *dataVTab = (void *) pVTab;
+    FlexiDataProxyVTab_t *dataVTab = (void *) pVTab;
 
     char *zClassName = (char *) sqlite3_value_text(argv[FLEXI_DATA_COL_CLASS_NAME + 2]);
     if (!zClassName || strlen(zClassName) == 0)
@@ -564,7 +596,8 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
                     if (!insert)
                     {
                         result = SQLITE_ERROR;
-                        flexi_Context_setError(dataVTab->pCtx, result, sqlite3_mprintf("Cannot update array of objects"));
+                        flexi_Context_setError(dataVTab->pCtx, result,
+                                               sqlite3_mprintf("Cannot update array of objects"));
                         goto ONERROR;
                     }
 

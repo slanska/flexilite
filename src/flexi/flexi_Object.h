@@ -5,7 +5,8 @@
 #ifndef FLEXILITE_FLEXI_OBJECT_H
 #define FLEXILITE_FLEXI_OBJECT_H
 
-#include "../project_defs.h"
+//#include "../project_defs.h"
+#include "flexi_PropValue.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -44,11 +45,12 @@ typedef struct flexi_Object_t
     /*
      * Fixed(locked) column values
      */
+    // TODO Needed?
     sqlite3_value *fxValues[OBJ_FX_COL_LAST + 1];
 
     /*
      * Property values - dictionary by int64 : propertyIndex << 32 | propertyID
-     * to property data struct
+     * to flexi_PropValue_t
      */
     Hash propValues;
 } flexi_Object_t;

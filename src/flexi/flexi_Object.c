@@ -9,12 +9,6 @@
 #include "flexi_Object.h"
 
 static void
-_freePropValue(void *prop)
-{
-    // TODO
-}
-
-static void
 _reset(flexi_Object_t *self)
 {
     HashTable_clear(&self->propValues);
@@ -34,7 +28,7 @@ int flexi_Object_init(flexi_Object_t *self, struct flexi_Context_t *pCtx)
 
     memset(self, 0, sizeof(flexi_Object_t));
     self->pCtx = pCtx;
-    HashTable_init(&self->propValues, DICT_INT, _freePropValue);
+    HashTable_init(&self->propValues, DICT_INT, (void*)flexi_PropValue_free);
 
     return result;
 }
@@ -174,6 +168,16 @@ int flexi_Object_setProp(flexi_Object_t *self,
 int flexi_Object_save(flexi_Object_t *self)
 {
     int result;
+
+    // Validate
+
+    // Log
+
+    // .objects
+
+    // .ref-values
+
+    // .range-data
 
     result = SQLITE_OK;
     goto EXIT;

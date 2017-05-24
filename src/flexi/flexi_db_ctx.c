@@ -478,3 +478,17 @@ int flexi_Context_stmtInit(struct flexi_Context_t *pCtx, enum FLEXI_CTX_STMT stm
     EXIT:
     return result;
 }
+
+void flexi_config_func(sqlite3_context *context,
+                       int argc,
+                       sqlite3_value **argv)
+{
+    if (argc != 1 && argc !=2)
+    {
+        sqlite3_result_error(context, "Usage: flexi('config', name, value) or flexi('config', name)", -1);
+        return;
+    }
+
+    // TODO current_user
+    // TODO row_mode
+}

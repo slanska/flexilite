@@ -68,7 +68,7 @@ int flexi_VTabCursor_free(struct flexi_VTabCursor *cur);
 /*
  * Proxy virtual table module for flexi_data
  */
-struct FlexiDataProxyVTab_t
+typedef struct FlexiDataProxyVTab_t
 {
     /*
     * Should be first field. Used for virtual table initialization
@@ -92,9 +92,11 @@ struct FlexiDataProxyVTab_t
      * These fields are applicable to ad-hoc
      */
     struct AdHocQryParams_t *pQry;
-};
 
-typedef struct FlexiDataProxyVTab_t FlexiDataProxyVTab_t;
+    enum FLEXI_DATA_LOAD_ROW_MODES eLoadRowMode;
+} FlexiDataProxyVTab_t;
+
+//typedef struct FlexiDataProxyVTab_t FlexiDataProxyVTab_t;
 
 /*
  * Deletes object from class = zClassName, with id = lObjectID

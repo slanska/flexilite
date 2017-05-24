@@ -92,6 +92,10 @@ static void flexi_func(sqlite3_context *context,
         int (*func)(sqlite3_context *, int, sqlite3_value **);
 
         int trn;
+
+        const char *zDescription;
+
+        const char* zHelp;
     } methods[] = {
             {"create class",          flexi_class_create_func,        1},
             {"alter class",           flexi_class_alter_func,         1},
@@ -111,6 +115,7 @@ static void flexi_func(sqlite3_context *context,
             {"change object class",   flexi_change_object_class_func, 1},
 
             {"schema",                flexi_schema_func,              1},
+            {"config",                flexi_schema_func,              0},
 
             /*
              * "structural merge" -- join 2+ objects to 1 object

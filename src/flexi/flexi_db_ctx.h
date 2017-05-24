@@ -112,9 +112,22 @@ enum FLEXI_CTX_STMT
 };
 
 /*
+ * Modes for the content of Data column in result of select Data from flexi_data ....
+ */
+enum FLEXI_DATA_LOAD_ROW_MODES
+{
+    LOAD_ROW_MODE_ROW_PER_OBJECT = 0,
+    LOAD_ROW_MODE_SINGLE_JSON = 1,
+    LOAD_ROW_MODE_JSON_ARRAY = 2,
+    LOAD_ROW_MODE_JSON_OBJECT = 3,
+    LOAD_ROW_MODE_EMBED_NESTED = 4,
+    LOAD_ROW_MODE_EMBED_REFS = 5
+};
+
+/*
  * Connection wide data and settings
  */
-struct flexi_Context_t
+typedef struct flexi_Context_t
 {
     /*
      * Associated database connection
@@ -171,7 +184,9 @@ struct flexi_Context_t
      * Number of open vtables.
      */
     sqlite3_int64 nRefCount;
-};
+
+    enum FLEXI_DATA_LOAD_ROW_MODES eLoadRowMode;
+} flexi_Context_t;
 
 struct flexi_Context_t *flexi_Context_new(sqlite3 *db);
 
@@ -265,5 +280,12 @@ int flexi_Context_getNameValueByID(struct flexi_Context_t *pCtx, sqlite3_int64 l
  */
 int flexi_Context_stmtInit(struct flexi_Context_t *pCtx, enum FLEXI_CTX_STMT stmt, const char *zSql,
                            sqlite3_stmt **pStmt);
+
+/*
+ * flexi('config', name [, value])
+ */
+void flexi_config_func(sqlite3_context *context,
+                       int argc,
+                       sqlite3_value **argv);
 
 #endif //FLEXILITE_FLEXI_ENV_H
