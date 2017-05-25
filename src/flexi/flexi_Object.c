@@ -11,7 +11,8 @@
 static void
 _reset(flexi_Object_t *self)
 {
-    HashTable_clear(&self->propValues);
+    HashTable_clear(&self->propsByIDs);
+    HashTable_clear(&self->propsByNames);
 
     for (int ii = 0; ii < ARRAY_LEN(self->fxValues); ii++)
     {
@@ -28,7 +29,8 @@ int flexi_Object_init(flexi_Object_t *self, struct flexi_Context_t *pCtx)
 
     memset(self, 0, sizeof(flexi_Object_t));
     self->pCtx = pCtx;
-    HashTable_init(&self->propValues, DICT_INT, (void*)flexi_PropValue_free);
+    HashTable_init(&self->propsByIDs, DICT_INT, (void*)flexi_PropValue_free);
+    HashTable_init(&self->propsByNames, DICT_STRING, (void*)sqlite3_value_free);
 
     return result;
 }

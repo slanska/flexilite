@@ -52,11 +52,16 @@ typedef struct flexi_Object_t
      * Property values - dictionary by int64 : propertyIndex << 32 | propertyID
      * to flexi_PropValue_t
      */
-    Hash propValues;
+    Hash propsByIDs;
+
+    /*
+     * Raw property map - as it comes from input JSON.
+     */
+    Hash propsByNames;
 } flexi_Object_t;
 
 /*
- *
+ * Initializes object's instance
  */
 int flexi_Object_init(flexi_Object_t *self, struct flexi_Context_t *pCtx);
 

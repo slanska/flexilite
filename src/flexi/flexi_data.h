@@ -24,7 +24,7 @@ typedef enum
 
 } FLEXI_DATA_COLUMNS;
 
-struct flexi_VTabCursor
+typedef struct flexi_VTabCursor
 {
     struct sqlite3_vtab_cursor base;
 
@@ -59,7 +59,7 @@ struct flexi_VTabCursor
      * 1: Next was called and Eof was reached
      */
     short iEof;
-};
+} flexi_VTabCursor;
 
 int flexi_free_cursor_values(struct flexi_VTabCursor *cur);
 

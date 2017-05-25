@@ -33,6 +33,7 @@
 #include "flexi_data.h"
 #include "flexi_class.h"
 #include "../util/StringBuilder.h"
+#include "flexi_Object.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -46,6 +47,22 @@ SQLITE_EXTENSION_INIT3
 #define FLEXI_PROP_REF_CODE       "$ref-code"
 #define FLEXI_PROP_CODE       "$code"
 #define FLEXI_PROP_NAME       "$name"
+#define FLEXI_PROP_VERSION       "$version"
+
+/*
+ * Column numbers for result of json_tree call
+ */
+enum UPSERT_JSON_COLUMNS
+{
+    JSON_TREE_KEY = 0,
+    JSON_TREE_VALUE = 1,
+    JSON_TREE_TYPE = 2,
+    JSON_TREE_ATOM = 3,
+    JSON_TREE_ID = 4,
+    JSON_TREE_PARENT = 5,
+    JSON_TREE_FULLKEY = 6,
+    JSON_TREE_PATH = 7
+};
 
 typedef struct _UpsertParams_t
 {
@@ -55,6 +72,16 @@ typedef struct _UpsertParams_t
     sqlite3_stmt *pDataSource;
     int parent;
 } _UpsertParams_t;
+
+/*
+ * Internal structure to build data column content
+ */
+typedef struct _GetDataParams_t
+{
+    StringBuilder_t sb;
+    flexi_VTabCursor *cur;
+    enum FLEXI_DATA_LOAD_ROW_MODES eLoadRowMode;
+} _GetDataParams_t;
 
 /*
  * Any filtering on flexi_data's columns will be passed in aConstraints, by column indexes
@@ -191,6 +218,20 @@ static int _eof(sqlite3_vtab_cursor *pCursor)
     return 1;
 }
 
+static int
+_buildDataColumn(_GetDataParams_t *p)
+{
+    int result;
+
+    // Assume array of items. Depending on actual number of items and load mode, starting position may change
+    StringBuilder_appendRaw(&p->sb, "[", 1);
+
+
+    result = SQLITE_OK;
+
+    return result;
+}
+
 /*
  * Returns value for the column at position iCol (starting from 0).
  * For 'Data' builds JSON
@@ -198,7 +239,42 @@ static int _eof(sqlite3_vtab_cursor *pCursor)
  */
 static int _column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int iCol)
 {
-    return 0;
+    int result;
+
+    _GetDataParams_t p = {};
+
+    p.cur = (flexi_VTabCursor *) pCursor;
+
+    switch (iCol)
+    {
+        case FLEXI_DATA_COL_DATA:
+            StringBuilder_init(&p.sb);
+            CHECK_CALL(_buildDataColumn(&p));
+
+
+            break;
+
+        case FLEXI_DATA_COL_ID:
+            break;
+
+        case FLEXI_DATA_COL_CLASS_NAME:
+            break;
+
+        default:
+            // TODO Fail if invalid column was specified
+            sqlite3_result_null(pContext);
+            break;
+    }
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+
+    EXIT:
+
+    return result;
 }
 
 /*
@@ -219,8 +295,65 @@ static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
  * _upsertObject - to process individual object
  * _upsertObjectWithId - to process top level object with optional ID
  * _upsertObjectArray - to process array of objects
- * _upsertProperty - to process single property value (which may turn into _upsertObject or _upsertObjectArray)
- * _upsertPropertyArray - to process array of properties
+ * _upsertProperty - to process single property value (whi
+ *
+ * =================
+ * _upsertOrDelete (entry point):
+ *
+ * if array -> next, _upsertObjectArray
+ * else if object -> _upsertObject
+ * else error
+ *
+ * =================
+ * _upsertObjectArray:
+ * get id
+ * loop next, get type - if object -> _upsertObject
+ * else error
+ *
+ * =================
+ * _upsertObject:
+ * get id
+ * detect/get class id and class def
+ * check access rules for current user
+ * loop next, if registered property -> get prop def, prop ID
+ * else if allowAny == false -> error
+ * get name, name ID
+ *
+ * check prop type
+ * if atom - _processAtomProp
+ * if array - _processArrayProp
+ * if object - _processObjectProp
+ *
+ * get $id, get $class
+ * if !insert -> load existing object (skip new properties)
+ * validate object
+ * save object
+ *
+ * =================
+ * _processArrayProp:
+ * next
+ * loop next,
+ * if atom -> _processAtomProp
+ * else if object -> _processObjectProp
+ * else error
+ *
+ * =================
+ * _processAtomProp:
+ * check if value type is valid
+ * check access rules for current user
+ * add prop to object prop map
+ *
+ * =================
+ * _processObjectProp:
+ * check, guess class ID
+ * get class def
+ * _upsertObject
+ *
+ * =================
+ * _detectClass
+ * $class
+ * pp->lClassID
+ * if parentProp && it is ref -> determine class based on static/dynamic rules
  */
 
 /*
@@ -276,34 +409,32 @@ _upsertPropertyArray(FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID,
  * pDataSource is result of select from json_tree and is expected to be positioned on the current row
  */
 static int
-_upsertProperty(FlexiDataProxyVTab_t *dataVTab,
-                sqlite3_stmt *pDataSource, bool insert, int parent,
-                sqlite3_int64 lClassID)
+_upsertProperty(_UpsertParams_t *pp)
 {
     int result;
     char *zPropName = NULL;
     flexi_ClassDef_t *pClassDef;
 
-    CHECK_CALL(flexi_ClassDef_load(dataVTab->pCtx, lClassID, &pClassDef));
+    CHECK_CALL(flexi_ClassDef_load(pp->dataVTab->pCtx, pp->lClassID, &pClassDef));
 
-    int thisParent = sqlite3_column_int(pDataSource, 5);
-    if (thisParent != parent)
+    int thisParent = sqlite3_column_int(pp->pDataSource, JSON_TREE_PARENT);
+    if (thisParent != pp->parent)
         goto EXIT;
 
     sqlite3_free(zPropName);
-    getColumnAsText(&zPropName, pDataSource, 0);
+    getColumnAsText(&zPropName, pp->pDataSource, JSON_TREE_KEY);
 
     sqlite3_int64 lPropID;
-    CHECK_CALL(flexi_Context_getPropIdByClassIdAndName(dataVTab->pCtx, lClassID, zPropName, &lPropID));
-    bool bAtom = sqlite3_column_int(pDataSource, 0) == 0;
-    const char *zType = (const char *) sqlite3_column_text(pDataSource, 2);
+    CHECK_CALL(flexi_Context_getPropIdByClassIdAndName(pp->dataVTab->pCtx, pp->lClassID, zPropName, &lPropID));
+    bool bAtom = sqlite3_column_int(pp->pDataSource, JSON_TREE_ATOM) == 0;
+    const char *zType = (const char *) sqlite3_column_text(pp->pDataSource, JSON_TREE_TYPE);
 
     if (lPropID == -1)
         // Property not found
     {
         if (!pClassDef->bAllowAnyProps)
         {
-            flexi_Context_setError(dataVTab->pCtx, SQLITE_ERROR,
+            flexi_Context_setError(pp->dataVTab->pCtx, SQLITE_ERROR,
                                    sqlite3_mprintf("Property %s is not defined in class %s", zPropName,
                                                    pClassDef->name.name));
             result = SQLITE_ERROR;
@@ -316,6 +447,18 @@ _upsertProperty(FlexiDataProxyVTab_t *dataVTab,
          * else process as object or array
          */
 
+        if (bAtom)
+        {
+
+        }
+        else
+        {
+            if (strcmp(zType, "") == 0)
+            {
+
+            }
+        }
+
     }
     else
         // Property found. Validate and process
@@ -326,7 +469,7 @@ _upsertProperty(FlexiDataProxyVTab_t *dataVTab,
         // Check if this is an atomic value
         if (bAtom)
         {
-            sqlite3_value *vv = sqlite3_column_value(pDataSource, 1);
+            sqlite3_value *vv = sqlite3_column_value(pp->pDataSource, JSON_TREE_VALUE);
             CHECK_CALL(flexi_PropDef_validateValue(prop, pClassDef, vv));
 
             // If property is not mapped to fixed column, save it in [.ref-values]
@@ -368,22 +511,20 @@ _upsertProperty(FlexiDataProxyVTab_t *dataVTab,
  * By convention, at the time of call, pDataSource is positioned at first object row (type == 'object')
  */
 static int
-_upsertObjectArray(FlexiDataProxyVTab_t *dataVTab,
-                   sqlite3_int64 lClassID,
-                   sqlite3_stmt *pDataSource, bool insert, int parent)
+_upsertObjectArray(_UpsertParams_t *pp)
 {
     int result;
 
     // Iterate over all items until parent == parent or parent == id
-    int currentScope = sqlite3_column_int(pDataSource, 0);
+    int currentScope = sqlite3_column_int(pp->pDataSource, JSON_TREE_ID);
 
-    while ((result = sqlite3_step(pDataSource)) == SQLITE_ROW)
+    while ((result = sqlite3_step(pp->pDataSource)) == SQLITE_ROW)
     {
-        int currentParent = sqlite3_column_int(pDataSource, 5);
-        int currentID = sqlite3_column_int(pDataSource, 0);
-        if (currentParent != parent && currentID != currentScope)
+        int currentParent = sqlite3_column_int(pp->pDataSource, JSON_TREE_PARENT);
+        int currentID = sqlite3_column_int(pp->pDataSource, JSON_TREE_ID);
+        if (currentParent != pp->parent && currentID != currentScope)
             break;
-        CHECK_CALL(_upsertObject(dataVTab, lClassID, insert, pDataSource, currentID));
+        CHECK_CALL(_upsertObject(pp->dataVTab, pp->lClassID, pp->insert, pp->pDataSource, currentID));
 
     }
 
@@ -398,24 +539,51 @@ _upsertObjectArray(FlexiDataProxyVTab_t *dataVTab,
     return result;
 }
 
+// TODO ???
+static int
+_getProp(_UpsertParams_t *pp, flexi_Object_t *obj)
+{
+    int result;
+
+    int thisId = sqlite3_column_int(pp->pDataSource, JSON_TREE_ID);
+    int thisParent = sqlite3_column_int(pp->pDataSource, JSON_TREE_PARENT);
+
+
+    result = SQLITE_OK;
+
+    return result;
+}
+
 /*
  * Process top level object in _upsertOrDelete function
  */
 static int
-_upsertObjectWithId(FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID, sqlite3_int64 lObjectID,
-                    bool insert, sqlite3_stmt *pDataSource, int parent)
+_upsertObjectWithId(_UpsertParams_t *pp)
 {
     int result;
 
-    int objectScopeId = sqlite3_column_int(pDataSource, 0);
+    int objectScopeId = sqlite3_column_int(pp->pDataSource, JSON_TREE_ID);
+    int savedParent = pp->parent;
+    pp->parent = objectScopeId;
 
     // Init [.objects] row
     // TODO
 
-    while ((result = sqlite3_step(pDataSource)) == SQLITE_ROW)
+    flexi_Object_t obj;
+    flexi_Object_init(&obj, pp->dataVTab->pCtx);
+
+    while ((result = sqlite3_step(pp->pDataSource)) == SQLITE_ROW)
     {
-        CHECK_CALL(_upsertProperty(dataVTab, pDataSource, insert, objectScopeId, lClassID));
+        result = (_upsertProperty(pp));
+        if (result == SQLITE_DONE)
+            break;
+
+        CHECK_CALL(result);
+
+
     }
+
+    // Save object
 
     if (result != SQLITE_DONE)
         goto ONERROR;
@@ -426,6 +594,8 @@ _upsertObjectWithId(FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID, sqli
     ONERROR:
 
     EXIT:
+    flexi_Object_clear(&obj);
+    pp->parent = savedParent;
     return result;
 }
 
@@ -433,23 +603,21 @@ _upsertObjectWithId(FlexiDataProxyVTab_t *dataVTab, sqlite3_int64 lClassID, sqli
  *
  */
 static int
-_upsertData(FlexiDataProxyVTab_t *dataVTab,
-            sqlite3_int64 lClassID,
-            sqlite3_stmt *pDataSource, bool insert)
+_upsertData(_UpsertParams_t *pp)
 {
     int result;
-    int parent = sqlite3_column_int(pDataSource, 5);
-    bool bAtom = sqlite3_column_int(pDataSource, 0) == 0;
+    int parent = sqlite3_column_int(pp->pDataSource, JSON_TREE_PARENT);
+    bool bAtom = sqlite3_column_int(pp->pDataSource, JSON_TREE_ATOM) == 0;
     if (bAtom)
     {
 
     }
     else
     {
-        const char *zType = (const char *) sqlite3_column_text(pDataSource, 2);
+        const char *zType = (const char *) sqlite3_column_text(pp->pDataSource, JSON_TREE_TYPE);
         if (strcmp(zType, "array") == 0)
         {
-            CHECK_CALL(_upsertObjectArray(dataVTab, lClassID, pDataSource, insert, parent));
+            CHECK_CALL(_upsertObjectArray(pp));
         }
         else
             if (strcmp(zType, "object") == 0)
@@ -459,7 +627,7 @@ _upsertData(FlexiDataProxyVTab_t *dataVTab,
             else
             {
                 result = SQLITE_ERROR;
-                flexi_Context_setError(dataVTab->pCtx, result, sqlite3_mprintf("Invalid token type %s", zType));
+                flexi_Context_setError(pp->dataVTab->pCtx, result, sqlite3_mprintf("Invalid token type %s", zType));
                 goto ONERROR;
             }
     }
@@ -548,11 +716,17 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
     }
     else
     {
+        _UpsertParams_t pp = {};
+        pp.pDataSource = pDataSource;
+        pp.lClassID = pClassDef->lClassID;
+        pp.dataVTab = dataVTab;
+        pp.insert = argv[0] == NULL;
+
         // Data will be in argv[9]
         // Class name will be in argv[3]
         bool insert = argv[0] == NULL;
 
-        if (!insert && sqlite3_value_type(argv[1]) == SQLITE_NULL)
+        if (!pp.insert && sqlite3_value_type(argv[1]) == SQLITE_NULL)
         {
             result = SQLITE_ERROR;
             flexi_Context_setError(dataVTab->pCtx, result,
@@ -582,13 +756,16 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
         result = sqlite3_step(pDataSource);
         if (result == SQLITE_ROW)
         {
-            int scopeID = sqlite3_column_int(pDataSource, 0);
+
+            int scopeID = sqlite3_column_int(pDataSource, JSON_TREE_ID);
+            pp.parent = scopeID;
+
             // First row is only used for determining data processing flow.
-            char *zType = (char *) sqlite3_column_text(pDataSource, 2);
+            char *zType = (char *) sqlite3_column_text(pDataSource, JSON_TREE_TYPE);
             if (strcmp(zType, "object") == 0)
             {
                 CHECK_STMT_STEP(pDataSource, dataVTab->pCtx->db);
-                CHECK_CALL(_upsertObjectWithId(dataVTab, pClassDef->lClassID, lObjectID, insert, pDataSource, scopeID));
+                CHECK_CALL(_upsertObjectWithId(&pp));
             }
             else
                 if (strcmp(zType, "array") == 0)
@@ -602,7 +779,7 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
                     }
 
                     CHECK_STMT_STEP(pDataSource, dataVTab->pCtx->db);
-                    CHECK_CALL(_upsertObjectArray(dataVTab, pClassDef->lClassID, pDataSource, insert, scopeID));
+                    CHECK_CALL(_upsertObjectArray(&pp));
                 }
                 else
                 {
