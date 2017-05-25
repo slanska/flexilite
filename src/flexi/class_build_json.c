@@ -368,8 +368,6 @@ _buildMixinRef(const char *zKey, const sqlite3_int64 index, struct flexi_ClassRe
  */
 int flexi_buildInternalClassDefJSON(struct flexi_ClassDef_t *pClassDef, const char *zClassDef, char **pzOutput)
 {
-    int result;
-
     struct _BuildInternalClassDefJSON_Ctx ctx;
     memset(&ctx, 0, sizeof(ctx));
     ctx.pClassDef = pClassDef;
@@ -411,16 +409,11 @@ int flexi_buildInternalClassDefJSON(struct flexi_ClassDef_t *pClassDef, const ch
 
     StringBuilder_appendRaw(&ctx.sb, "}", 1);
 
-    result = SQLITE_OK;
     *pzOutput = ctx.sb.zBuf;
     ctx.sb.bStatic = true; // To prevent freeing result buffer
-    goto EXIT;
 
-    ONERROR:
-
-    EXIT:
     StringBuilder_clear(&ctx.sb);
     sqlite3_finalize(ctx.pParsePropStmt);
 
-    return result;
+    return SQLITE_OK;
 }
