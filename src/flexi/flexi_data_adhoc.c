@@ -66,11 +66,35 @@ enum UPSERT_JSON_COLUMNS
 
 typedef struct _UpsertParams_t
 {
+    /*
+     * virtual table for adhoc processing
+     */
     FlexiDataProxyVTab_t *dataVTab;
+
+    /*
+     * Suggested/default class ID
+     */
     sqlite3_int64 lClassID;
+
+    /*
+     * true if this is insert operation
+     */
     bool insert;
+
+    /*
+     * Cursor to get JSON values
+     */
     sqlite3_stmt *pDataSource;
+
+    /*
+     * Scope of parent ID
+     */
     int parent;
+
+    /*
+     * Recursion level when processing nested objects
+     */
+    int level;
 } _UpsertParams_t;
 
 /*

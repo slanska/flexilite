@@ -24,11 +24,6 @@ typedef struct Array_t
     u32 iCnt;
 
     /*
-     * Item size
-     */
-    size_t iElemSize;
-
-    /*
      * Allocated number of items
      */
     u32 iCapacity;
@@ -39,13 +34,21 @@ typedef struct Array_t
     void (*disposeElem)(void *pElem);
 
     /*
+    * Item size
+    */
+    size_t iElemSize;
+
+    /*
      * Number of references to this array
      */
     int nRefCount;
 
+    /*
+     * If true, items are in staticData. No additional memory was allocated
+     */
     bool bStatic;
 
-    char staticData[128];
+    char staticData[64];
 } Array_t;
 
 extern Array_t *Array_new(size_t elemSize, void (*disposeElem)(void *pElem));
