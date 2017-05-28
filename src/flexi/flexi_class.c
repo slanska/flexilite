@@ -258,7 +258,7 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
     ONERROR:
     if (pClassDef->aMixins)
     {
-        Array_dispose(pClassDef->aMixins);
+        Array_free(pClassDef->aMixins);
         pClassDef->aMixins = NULL;
     }
 
@@ -818,7 +818,7 @@ void flexi_ClassDef_free(struct flexi_ClassDef_t *self)
             HashTable_clear(&self->propsByName);
             HashTable_clear(&self->propsByID);
 
-            Array_dispose(self->aMixins);
+            Array_free(self->aMixins);
 
             for (int ii = 0; ii < ARRAY_LEN(self->aSpecProps); ii++)
             {

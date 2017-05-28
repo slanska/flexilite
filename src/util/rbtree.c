@@ -929,3 +929,21 @@ rb_tree_debug_print(RBTree *rb, rb_sprintfunc sprintfunc)
     }
 }
 
+static void
+_freeNode(RBTree *self, RBNode *node)
+{
+    if (node == RBNIL || node == NULL)
+        return;
+
+    _freeNode(self, node->left);
+    _freeNode(self, node->right);
+
+    if (self->freefunc)
+        self->freefunc(node, self->arg);
+}
+
+void rb_clear(RBTree *self)
+{
+    _freeNode(self, self->root);
+    self->root = RBNIL;
+}

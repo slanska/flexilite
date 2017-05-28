@@ -16,6 +16,48 @@ static void _dummy_ptr(void *ptr)
     UNUSED_PARAM(ptr);
 }
 
+static int
+_RefValue_comparer(const RBNode *a, const RBNode *b, void *arg)
+{
+    UNUSED_PARAM(arg);
+
+    flexi_RefValue_t* aNode = (void*)a;
+    flexi_RefValue_t* bNode = (void*)b;
+    sqlite3_int64 diff = aNode->lObjectID - bNode->lObjectID;
+    if (diff == 0)
+    {
+        diff = aNode->lPropID - bNode->lPropID;
+        if (diff ==0)
+        {
+            diff = aNode->lPropIndex -  bNode->lPropIndex;
+        }
+    }
+
+    if (diff < 0)
+        return -1;
+
+    if (diff > 0)
+        return 1;
+
+    return 0;
+}
+
+static void
+_RefValue_combiner(RBNode *existing, const RBNode *newdata, void *arg)
+{}
+
+static RBNode *
+_RefValue_alloc(void *arg)
+{
+    return sqlite3_malloc(sizeof(flexi_RefValue_t));
+}
+
+static void
+_RefValue_free(RBNode *x, void *arg)
+{
+    sqlite3_free(x);
+}
+
 /*
  * Forward declarations
  */
@@ -28,6 +70,9 @@ struct flexi_Context_t *flexi_Context_new(sqlite3 *db)
     result->db = db;
     HashTable_init(&result->classDefsByName, DICT_STRING, (void *) flexi_ClassDef_free);
     HashTable_init(&result->classDefsById, DICT_INT, _dummy_ptr);
+
+    rb_create(&result->refValueCache, sizeof(flexi_RefValue_t),
+              _RefValue_comparer, _RefValue_combiner, _RefValue_alloc, _RefValue_free, result);
     return result;
 }
 
@@ -199,6 +244,8 @@ void flexi_Context_free(struct flexi_Context_t *pCtx)
         duk_free(pCtx->pDuk, NULL);
 
     sqlite3_free(pCtx->zLastErrorMessage);
+
+    // TODO rb_delete(&pCtx->refValueCache);
 
     sqlite3_free(pCtx);
 }
@@ -483,7 +530,7 @@ void flexi_config_func(sqlite3_context *context,
                        int argc,
                        sqlite3_value **argv)
 {
-    if (argc != 1 && argc !=2)
+    if (argc != 1 && argc != 2)
     {
         sqlite3_result_error(context, "Usage: flexi('config', name, value) or flexi('config', name)", -1);
         return;

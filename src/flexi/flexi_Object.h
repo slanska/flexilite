@@ -10,28 +10,10 @@
 
 SQLITE_EXTENSION_INIT3
 
-enum OBJ_FIXED_COLS
-{
-    OBJ_FX_COL_A = 0,
-    OBJ_FX_COL_B = 1,
-    OBJ_FX_COL_C = 2,
-    OBJ_FX_COL_D = 3,
-    OBJ_FX_COL_E = 4,
-    OBJ_FX_COL_F = 5,
-    OBJ_FX_COL_G = 6,
-    OBJ_FX_COL_H = 7,
-    OBJ_FX_COL_I = 8,
-    OBJ_FX_COL_J = 9,
-    OBJ_FX_COL_K = 10,
-    OBJ_FX_COL_L = 11,
-    OBJ_FX_COL_M = 12,
-    OBJ_FX_COL_N = 13,
-    OBJ_FX_COL_O = 14,
-    OBJ_FX_COL_P = 15,
-
-    OBJ_FX_COL_LAST = 15
-};
-
+/*
+ * Structure for individual object data
+ *
+ */
 typedef struct flexi_Object_t
 {
     struct flexi_Context_t *pCtx;
@@ -43,21 +25,15 @@ typedef struct flexi_Object_t
     bool insert;
 
     /*
-     * Fixed(locked) column values
-     */
-    // TODO Needed?
-    sqlite3_value *fxValues[OBJ_FX_COL_LAST + 1];
-
-    /*
      * Property values - dictionary by int64 : propertyIndex << 32 | propertyID
      * to flexi_PropValue_t
      */
-    Hash propsByIDs;
+    Hash existingPropsByIDs;
 
     /*
      * Raw property map - as it comes from input JSON.
      */
-    Hash propsByNames;
+    Hash newPropsByNames;
 } flexi_Object_t;
 
 /*
@@ -68,7 +44,7 @@ int flexi_Object_init(flexi_Object_t *self, struct flexi_Context_t *pCtx);
 /*
  *
  */
-flexi_Object_t*  flexi_Object_new(struct flexi_Context_t *pCtx);
+flexi_Object_t *flexi_Object_new(struct flexi_Context_t *pCtx);
 
 /*
  *
@@ -92,11 +68,14 @@ int flexi_Object_load(flexi_Object_t *self, sqlite3_int64 lObjectID);
  */
 int flexi_Object_validate(flexi_Object_t *self, char **pzError);
 
-int flexi_Object_getProp(flexi_Object_t *self,
-                         int32_t iPropID, int32_t iPropIndex, sqlite3_value** pValue);
+int flexi_Object_getExistingPropByID(flexi_Object_t *self,
+                                     int32_t iPropID, u32 iPropIndex, sqlite3_value **pValue);
+
+int flexi_Object_getNewPropByName(flexi_Object_t *self,
+                                  const char *zPropName, u32 iPropIndex, sqlite3_value **pValue);
 
 int flexi_Object_setProp(flexi_Object_t *self,
-                         int32_t iPropID, int32_t iPropIndex, sqlite3_value* pValue);
+                         int32_t iPropID, int32_t iPropIndex, sqlite3_value *pValue);
 
 /*
  * Validates data and inserts or updates object data in database

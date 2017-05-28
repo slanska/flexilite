@@ -10,6 +10,7 @@
 #include "../util/hash.h"
 #include "flexi_UserInfo_t.h"
 #include "../util/Array.h"
+#include "../util/rbtree.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -124,6 +125,16 @@ enum FLEXI_DATA_LOAD_ROW_MODES
     LOAD_ROW_MODE_EMBED_REFS = 5
 };
 
+typedef struct flexi_RefValue_t
+{
+    RBNode base;
+    sqlite3_int64 lObjectID;
+    sqlite3_int64 lPropID;
+    sqlite3_int64 lPropIndex;
+    int ctlv;
+    sqlite3_value* pValue;
+} flexi_RefValue_t;
+
 /*
  * Connection wide data and settings
  */
@@ -186,6 +197,14 @@ typedef struct flexi_Context_t
     sqlite3_int64 nRefCount;
 
     enum FLEXI_DATA_LOAD_ROW_MODES eLoadRowMode;
+
+    /*
+     * RB tree of existing ref-values rows processed during current request (flexi and flexi_data calls)
+     * Tree is ordered by objectID, propertyID, property index
+     * Items in tree are flexi_RefValue_t
+     * Cache gets cleared on every exit
+     */
+    struct RBTree refValueCache;
 } flexi_Context_t;
 
 struct flexi_Context_t *flexi_Context_new(sqlite3 *db);

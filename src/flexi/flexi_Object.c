@@ -11,13 +11,8 @@
 static void
 _reset(flexi_Object_t *self)
 {
-    HashTable_clear(&self->propsByIDs);
-    HashTable_clear(&self->propsByNames);
-
-    for (int ii = 0; ii < ARRAY_LEN(self->fxValues); ii++)
-    {
-        sqlite3_value_free(self->fxValues[ii]);
-    }
+    HashTable_clear(&self->existingPropsByIDs);
+    HashTable_clear(&self->newPropsByNames);
 }
 
 /*
@@ -29,8 +24,8 @@ int flexi_Object_init(flexi_Object_t *self, struct flexi_Context_t *pCtx)
 
     memset(self, 0, sizeof(flexi_Object_t));
     self->pCtx = pCtx;
-    HashTable_init(&self->propsByIDs, DICT_INT, (void*)flexi_PropValue_free);
-    HashTable_init(&self->propsByNames, DICT_STRING, (void*)sqlite3_value_free);
+    HashTable_init(&self->existingPropsByIDs, DICT_INT, (void *) sqlite3_value_free);
+    HashTable_init(&self->newPropsByNames, DICT_STRING, (void *) flexi_PropValue_free);
 
     return result;
 }
@@ -134,8 +129,24 @@ int flexi_Object_validate(flexi_Object_t *self, char **pzError)
     return result;
 }
 
-int flexi_Object_getProp(flexi_Object_t *self,
-                         int32_t iPropID, int32_t iPropIndex, sqlite3_value **pValue)
+int flexi_Object_getNewPropByName(flexi_Object_t *self,
+                                  const char *zPropName, u32 iPropIndex, sqlite3_value **pValue)
+{
+    int result;
+
+    flexi_PropValue_t *prop = HashTable_get(&self->newPropsByNames, (DictionaryKey_t) {.pKey = zPropName});
+    if (prop == NULL)
+        return SQLITE_NOTFOUND;
+
+    flexi_PropValue_getNth(prop, iPropIndex);
+
+    result = SQLITE_OK;
+
+    return result;
+}
+
+int flexi_Object_getExistingPropByID(flexi_Object_t *self,
+                                     int32_t iPropID, u32 iPropIndex, sqlite3_value **pValue)
 {
     int result;
 

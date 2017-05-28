@@ -138,4 +138,6 @@ extern void rb_begin_inverted_walk(RBTree *rb, RBTreeInvertedWalk *dw);
 
 extern RBNode *rb_inverted_walk(RBTreeInvertedWalk *dw);
 
+extern void rb_clear(RBTree *self);
+
 #endif   /* RBTREE_H */

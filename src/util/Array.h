@@ -53,7 +53,7 @@ typedef struct Array_t
 
 extern Array_t *Array_new(size_t elemSize, void (*disposeElem)(void *pElem));
 
-extern void Array_dispose(Array_t *self);
+extern void Array_free(Array_t *self);
 
 extern void Array_init(Array_t *self, size_t elemSize, void (*disposeElem)(void *pElem));
 

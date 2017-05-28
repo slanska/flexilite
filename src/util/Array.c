@@ -30,7 +30,7 @@ Array_t *Array_new(size_t elemSize, void (*disposeElem)(void *))
     return self;
 }
 
-void Array_dispose(Array_t *self)
+void Array_free(Array_t *self)
 {
     if (!self)
         return;

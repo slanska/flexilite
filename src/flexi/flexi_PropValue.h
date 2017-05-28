@@ -8,6 +8,9 @@
 #include "../project_defs.h"
 #include "flexi_Object.h"
 
+// Forward declaration
+typedef struct flexi_Object_t flexi_Object_t;
+
 enum PROP_VALUE_KIND
 {
     PV_KIND_ATOM = 0,
@@ -26,13 +29,27 @@ typedef struct flexi_PropValue_t
     sqlite3_int64 lObjectID;
     int32_t id;
     int32_t index;
+
+    // TODO remove
     Array_t pValues;
+
     char *zName;
     enum PROP_VALUE_KIND eValKind;
     union
     {
+        /*
+         * Single atom value
+         */
         sqlite3_value *pValue;
+
+        /*
+         * Atom and object values
+         */
         Array_t *pList;
+
+        /*
+         * Single object
+         */
         flexi_Object_t *pObject;
     };
 } flexi_PropValue_t;

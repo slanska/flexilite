@@ -12,7 +12,9 @@ int flexi_PropValue_init(flexi_PropValue_t *self, flexi_Context_t *pCtx, enum PR
     switch (eValKind)
     {
         case PV_KIND_ATOM:
+            self->pValue = NULL;
             break;
+
         case PV_KIND_ATOM_ARRAY:
             self->pList = Array_new(sizeof(sqlite3_value *), (void *) sqlite3_value_free);
             break;
@@ -23,6 +25,7 @@ int flexi_PropValue_init(flexi_PropValue_t *self, flexi_Context_t *pCtx, enum PR
             break;
 
         case PV_KIND_OBJECT:
+            self->pObject = NULL;
             break;
     }
     return SQLITE_OK;
@@ -30,7 +33,25 @@ int flexi_PropValue_init(flexi_PropValue_t *self, flexi_Context_t *pCtx, enum PR
 
 int flexi_PropValue_clear(flexi_PropValue_t *self)
 {
-    Array_clear(&self->pValues);
+    switch (self->eValKind)
+    {
+        case PV_KIND_OBJECT:
+            flexi_Object_free(self->pObject);
+            self->pObject = NULL;
+            break;
+
+        case PV_KIND_ATOM_ARRAY:
+        case PV_KIND_OBJECT_ARRAY:
+            Array_free(self->pList);
+            self->pList = NULL;
+            break;
+
+        case PV_KIND_ATOM:
+            sqlite3_value_free(self->pValue);
+            self->pValue = NULL;
+            break;
+    }
+
     return SQLITE_OK;
 }
 
@@ -56,7 +77,7 @@ void flexi_PropValue_free(flexi_PropValue_t *self)
 
 sqlite3_value *flexi_PropValue_getNth(flexi_PropValue_t *self, u32 index)
 {
-    if (index >= 0 && index < self->pValues.iCnt)
+    if (index < self->pValues.iCnt)
         return (sqlite3_value *) Array_getNth(&self->pValues, index);
 
     return NULL;
