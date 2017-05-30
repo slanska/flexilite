@@ -78,17 +78,6 @@ static const char jsonIsSpace[] = {
 };
 #define safe_isspace(x) (jsonIsSpace[(unsigned char)x])
 
-/* JSON type values
-*/
-#define JSON_NULL     0
-#define JSON_TRUE     1
-#define JSON_FALSE    2
-#define JSON_INT      3
-#define JSON_REAL     4
-#define JSON_STRING   5
-#define JSON_ARRAY    6
-#define JSON_OBJECT   7
-
 /* The "subtype" set for JSON values */
 #define JSON_SUBTYPE  74    /* Ascii for "J" */
 

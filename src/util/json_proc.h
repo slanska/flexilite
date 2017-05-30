@@ -8,48 +8,61 @@
 #include "../project_defs.h"
 #include "../misc/json1.h"
 #include "Array.h"
+#include "rbtree.h"
+#include "StringBuilder.h"
 
-struct JSON_Processor {
+/*
+ * JSON processor module
+ * Parses and provides fast lookup on JSON elements
+ */
+typedef struct JsonProcessor_t
+{
+    flexi_Context_t *pCtx;
     /*
-     * JSON parser. Keeps list of parsed nodes and original JSON string
+     * Nodes sorted by fullkey
      */
-    JsonParse parser;
+    RBTree nodes;
+
 
     /*
-     * JSON string builder
+     * Output JSON string builder
      */
-    StringBuilder out;
+    StringBuilder_t sb;
 
-    /*
-     * List of sqlite3_value[] - replaced/added values
-     */
-    Array_t nodeValues;
-};
+} JsonProcessor_t;
 
-typedef struct MyStruct MyType;
+typedef struct JsonNode_t
+{
+    const char *zFullKey;
+    const char *zKey;
+    const char *zPath;
+    sqlite3_value *pValue;
+    sqlite3_int64 id;
+    sqlite3_int64 parent;
+    bool atom;
+    char type; // JSON_*
+} JsonNode_t;
 
-typedef struct JSON_Processor JSON_Processor;
+typedef struct JsonIterator_t
+{
+    JsonProcessor_t *pJP;
+    JsonNode_t *pCurrent;
+    RBTreeDirectWalk dw;
+} JsonIterator_t;
 
-int json_parse(JSON_Processor *json, sqlite3_context *pCtx, const char *zJSON);
+void JsonProcessor_init(JsonProcessor_t *self, flexi_Context_t *pCtx);
 
-JsonNode *json_root(JSON_Processor *json);
+void JsonProcessor_clear(JsonProcessor_t *self);
 
-void json_stringify(JSON_Processor *json, char **pzOut);
+int JsonProcessor_parse(JsonProcessor_t *self, const char *zInJzon);
 
-void json_n_stringify(JSON_Processor *json, JsonNode *pNode, char **pzOut);
+int JsonProcessor_stringify(JsonProcessor_t *self, char **pzOutJson);
 
-JsonNode *json_get(JSON_Processor *json, const char *zPath);
+int JsonProcessor_find(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t **pIterator);
 
-//JsonNode *json_set(JSON_Processor *json, const char *zPath, sqlite3_value *val);
+int JsonProessor_first(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t **pIterator);
 
-JsonNode *json_insert(JSON_Processor *json, const char *zPath, sqlite3_value *val);
+int JsonProcessor_next(JsonIterator_t *pIterator);
 
-JsonNode *json_delete(JSON_Processor *json, const char *zPath);
-
-JsonNode *json_n_set(JSON_Processor *json, JsonNode *pBase, const char *zPath, sqlite3_value *val);
-
-int json_child_count(JsonNode *pBase);
-
-void json_dispose(JSON_Processor *json);
 
 #endif //FLEXILITE_JSON_PROC_H

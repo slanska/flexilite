@@ -9,6 +9,17 @@
 
 #include <sqlite3ext.h>
 
+/* JSON type values
+*/
+#define JSON_NULL     0
+#define JSON_TRUE     1
+#define JSON_FALSE    2
+#define JSON_INT      3
+#define JSON_REAL     4
+#define JSON_STRING   5
+#define JSON_ARRAY    6
+#define JSON_OBJECT   7
+
 typedef sqlite3_uint64 u64;
 
 /* Bit values for the JsonNode.jnFlag field

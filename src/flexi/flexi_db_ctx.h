@@ -260,6 +260,8 @@ int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol);
 
 char *String_substr(const char *zSource, intptr_t start, intptr_t len);
 
+int String_copy(const char* zIn, char**pzOut);
+
 /*
  * Find property ID by class ID and property name
  * if property is not found, plPropID is set to -1

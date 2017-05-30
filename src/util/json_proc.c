@@ -11,50 +11,156 @@
 
 SQLITE_EXTENSION_INIT3
 
-static void _free_value(void *elem) {
-    void **p = (void **)elem;
-    sqlite3_free(*p);
+typedef struct _JsonNode
+{
+    struct RBNode hdr;
+    JsonNode_t d;
+} _JsonNode;
+
+static int
+_JsonNode_comparer(const RBNode *a, const RBNode *b, void *arg)
+{
+    UNUSED_PARAM(arg);
+    _JsonNode *aa = (void *) a;
+    _JsonNode *bb = (void *) b;
+    return strcmp(aa->d.zFullKey, bb->d.zFullKey);
 }
 
-int json_parse(JSON_Processor *json, sqlite3_context *pCtx, const char *zJSON) {
-    int result = SQLITE_OK;
+static void
+_JsonNode_combiner(RBNode *existing, const RBNode *newdata, void *arg)
+{
+    _JsonNode *from = (void *) existing;
+    _JsonNode *to = (void *) newdata;
+    to->d = from->d;
+    to->d.pValue = sqlite3_value_dup(from->d.pValue);
+    String_copy(from->d.zKey, (void *) to->d.zKey);
+    String_copy(from->d.zFullKey, (void *) to->d.zFullKey);
+    String_copy(from->d.zPath, (void *) to->d.zPath);
+}
 
-    memset(json, 0, sizeof(*json));
-    jsonParse(&json->parser, pCtx, zJSON);
-    jsonInit(&json->out, pCtx);
-    Array_init(&json->nodeValues, sizeof(sqlite3_value *), _free_value);
+static RBNode *
+_JsonNode_alloc(void *arg)
+{
+    _JsonNode *result;
+    result = sqlite3_malloc(sizeof(_JsonNode));
+    memset(result, 0, sizeof(*result));
+    return &result->hdr;
+}
 
+static void
+_JsonNode_free(RBNode *x, void *arg)
+{
+    if (x == NULL)
+        return;
+
+    _JsonNode *node = (void *) x;
+    sqlite3_free((void *) node->d.zFullKey);
+    sqlite3_free((void *) node->d.zKey);
+    sqlite3_free((void *) node->d.zPath);
+    sqlite3_value_free(node->d.pValue);
+}
+
+void JsonProcessor_init(JsonProcessor_t *self, flexi_Context_t *pCtx)
+{
+    memset(self, 0, sizeof(*self));
+    self->pCtx = pCtx;
+    rb_create(&self->nodes, sizeof(_JsonNode), _JsonNode_comparer, _JsonNode_combiner, _JsonNode_alloc,
+              _JsonNode_free, self);
+    StringBuilder_init(&self->sb);
+}
+
+void JsonProcessor_clear(JsonProcessor_t *self)
+{
+    if (self != NULL)
+    {
+        rb_clear(&self->nodes);
+        StringBuilder_clear(&self->sb);
+    }
+}
+
+int JsonProcessor_parse(JsonProcessor_t *self, const char *zInJzon)
+{
+    int result;
+
+    sqlite3_stmt *pDataSource = NULL;
+    _JsonNode *node = NULL;
+
+    /*
+     * Parse data JSON
+     */
+    CHECK_STMT_PREPARE(self->pCtx->db,
+                       "select "
+                               "key, " // 0
+                               "value, " // 1
+                               "type, " // 2
+                               "atom, " // 3
+                               "id, " // 4
+                               "parent, " // 5
+                               "fullkey, " // 6
+                               "path " // 7
+                               "from json_tree(:1);", &pDataSource);
+    CHECK_CALL(sqlite3_bind_text(pDataSource, 1, zInJzon, -1, NULL));
+
+    while ((result = sqlite3_step(pDataSource) == SQLITE_ROW))
+    {
+        _JsonNode_free(&node->hdr, self);
+        node = (void *) _JsonNode_alloc(self);
+        String_copy((const char *) sqlite3_column_text(pDataSource, 0), (void *) &node->d.zKey);
+        node->d.pValue = sqlite3_value_dup(sqlite3_column_value(pDataSource, 1));
+
+        static struct
+        {
+            const char *zType;
+            char type;
+        } zJsonTypes[] = {{"object",  JSON_OBJECT},
+                          {"integer", JSON_INT},
+                          {"real",    JSON_REAL},
+                          {"text",    JSON_STRING},
+                          {"null",    JSON_NULL},
+                          {"array",   JSON_ARRAY},
+                          {"true",    JSON_TRUE},
+                          {"false",   JSON_FALSE}
+        };
+
+        const char *zType = (const char *) sqlite3_column_text(pDataSource, 2);
+        for (int ii = 0; ii < ARRAY_LEN(zJsonTypes); ii++)
+        {
+            if (strcmp(zJsonTypes[ii].zType, zType) == 0)
+            {
+                node->d.type = zJsonTypes[ii].type;
+                break;
+            }
+        }
+        node->d.atom = sqlite3_column_int(pDataSource, 3) != 0;
+        node->d.id = sqlite3_column_int64(pDataSource, 4);
+        node->d.parent = sqlite3_column_int64(pDataSource, 5);
+        String_copy((const char *) sqlite3_column_text(pDataSource, 6), (void *) &node->d.zFullKey);
+        String_copy((const char *) sqlite3_column_text(pDataSource, 7), (void *) &node->d.zPath);
+        rb_insert(&self->nodes, &node->hdr, NULL);
+    }
+
+    if (result != SQLITE_OK && result != SQLITE_DONE)
+        goto ONERROR;
+
+    result = SQLITE_OK;
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+    _JsonNode_free(&node->hdr, self);
+    sqlite3_finalize(pDataSource);
     return result;
 }
 
-JsonNode *json_root(JSON_Processor *json) {
-    return json->parser.aNode;
-}
+int JsonProcessor_stringify(JsonProcessor_t *self, char **pzOutJson)
+{}
 
-void json_stringify(JSON_Processor *json, char **pzOut) {
-    json_n_stringify(json, json->parser.aNode, pzOut);
-}
+int JsonProcessor_find(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t **pIterator)
+{}
 
-void json_n_stringify(JSON_Processor *json, JsonNode *pNode, char **pzOut) {
-    jsonRenderNode(pNode, &json->out, NULL);
-    size_t len = strlen(json->out.zBuf);
-    *pzOut = sqlite3_malloc((int) len + 1);
-    memcpy(*pzOut, json->out.zBuf, len + 1);
-}
+int JsonProessor_first(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t **pIterator)
+{}
 
-JsonNode *json_get(JSON_Processor *json, const char *zPath) {
-    int iApnd = 0;
-    JsonNode *result = jsonLookup(&json->parser, zPath, &iApnd, json->out.pCtx);
-    return result;
-}
-
-JsonNode *json_n_get(JSON_Processor *json, JsonNode *pRoot, const char *zPath) {
-    int iApnd = 0;
-    const char *pzErr;
-    JsonNode *result = jsonLookupStep(&json->parser, pRoot->n, zPath, &iApnd, &pzErr);
-    if (*pzErr)
-        return NULL;
-
-    return result;
-}
-
+int JsonProcessor_next(JsonIterator_t *pIterator)
+{}

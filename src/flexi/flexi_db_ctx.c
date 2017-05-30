@@ -384,6 +384,23 @@ int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol)
     return SQLITE_OK;
 }
 
+int String_copy(const char* zIn, char**pzOut)
+{
+    *pzOut = NULL;
+    size_t sourceLen = strlen(zIn);
+    if (sourceLen > 0)
+    {
+        *pzOut = sqlite3_malloc((int) (sourceLen + 1));
+        if (*pzOut == NULL)
+            return SQLITE_NOMEM;
+
+        strncpy(*pzOut, zIn, sourceLen);
+        (*pzOut)[sourceLen] = 0;
+    }
+
+    return SQLITE_OK;
+}
+
 char *String_substr(const char *zSource, intptr_t start, intptr_t len)
 {
     if (len == 0)
