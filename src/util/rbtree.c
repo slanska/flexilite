@@ -639,7 +639,7 @@ rb_delete(RBTree *rb, RBNode *node)
  * Begin left right walk.
  */
 void
-rb_begin_left_right_walk(RBTree *rb, RBTreeLeftRightWalk *lrw)
+rb_begin_left_right_walk(RBTree *rb, RBIterator *lrw)
 {
     lrw->rb = rb;
     lrw->last_visited = NULL;
@@ -650,7 +650,7 @@ rb_begin_left_right_walk(RBTree *rb, RBTreeLeftRightWalk *lrw)
  * Left right walk: get next node. Returns NULL if there is none.
  */
 RBNode *
-rb_left_right_walk(RBTreeLeftRightWalk *lrw)
+rb_left_right_walk(RBIterator *lrw)
 {
     if (lrw->is_over)
         return NULL;
@@ -696,7 +696,7 @@ rb_left_right_walk(RBTreeLeftRightWalk *lrw)
  * Begin right left walk.
  */
 void
-rb_begin_right_left_walk(RBTree *rb, RBTreeRightLeftWalk *rlw)
+rb_begin_right_left_walk(RBTree *rb, RBIterator *rlw)
 {
     rlw->rb = rb;
     rlw->last_visited = NULL;
@@ -707,7 +707,7 @@ rb_begin_right_left_walk(RBTree *rb, RBTreeRightLeftWalk *rlw)
  * Right left walk: get next node. Returns NULL if there is none.
  */
 RBNode *
-rb_right_left_walk(RBTreeRightLeftWalk *rlw)
+rb_right_left_walk(RBIterator *rlw)
 {
     if (rlw->is_over)
         return NULL;
@@ -760,7 +760,7 @@ rb_right_left_walk(RBTreeRightLeftWalk *rlw)
  * https://en.wikipedia.org/wiki/Tree_traversal#Applications
  */
 void
-rb_begin_direct_walk(RBTree *rb, RBTreeDirectWalk *dw)
+rb_begin_direct_walk(RBTree *rb, RBIterator *dw)
 {
     dw->rb = rb;
     dw->last_visited = NULL;
@@ -771,7 +771,7 @@ rb_begin_direct_walk(RBTree *rb, RBTreeDirectWalk *dw)
  * Direct walk: get next node. Returns NULL if there is none.
  */
 RBNode *
-rb_direct_walk(RBTreeDirectWalk *dw)
+rb_direct_walk(RBIterator *dw)
 {
     if (dw->is_over)
         return NULL;
@@ -910,15 +910,15 @@ rb_inverted_walk(RBTreeInvertedWalk *iw)
 void
 rb_tree_debug_print(RBTree *rb, rb_sprintfunc sprintfunc)
 {
-    RBTreeDirectWalk dw;
+    RBIterator rbi;
     RBNode *node;
     char buff[1024];
 
-    rb_begin_direct_walk(rb, &dw);
+    rb_begin_direct_walk(rb, &rbi);
     printf("nodes = {}\n");
     for (;;)
     {
-        node = rb_direct_walk(&dw);
+        node = rb_direct_walk(&rbi);
         if (!node)
             break;
         sprintfunc(node, buff);

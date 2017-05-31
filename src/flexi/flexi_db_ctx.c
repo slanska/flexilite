@@ -21,15 +21,15 @@ _RefValue_comparer(const RBNode *a, const RBNode *b, void *arg)
 {
     UNUSED_PARAM(arg);
 
-    flexi_RefValue_t* aNode = (void*)a;
-    flexi_RefValue_t* bNode = (void*)b;
+    flexi_RefValue_t *aNode = (void *) a;
+    flexi_RefValue_t *bNode = (void *) b;
     sqlite3_int64 diff = aNode->lObjectID - bNode->lObjectID;
     if (diff == 0)
     {
         diff = aNode->lPropID - bNode->lPropID;
-        if (diff ==0)
+        if (diff == 0)
         {
-            diff = aNode->lPropIndex -  bNode->lPropIndex;
+            diff = aNode->lPropIndex - bNode->lPropIndex;
         }
     }
 
@@ -268,7 +268,9 @@ int flexi_Context_getClassIdByName(struct flexi_Context_t *pCtx,
         *pClassID = sqlite3_column_int64(st, 0);
     }
     else
-    { *pClassID = -1; }
+    {
+        *pClassID = -1;
+    }
     result = SQLITE_OK;
 
     goto EXIT;
@@ -384,9 +386,12 @@ int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol)
     return SQLITE_OK;
 }
 
-int String_copy(const char* zIn, char**pzOut)
+int String_copy(const char *zIn, char **pzOut)
 {
     *pzOut = NULL;
+    if (zIn == NULL)
+        return SQLITE_OK;
+
     size_t sourceLen = strlen(zIn);
     if (sourceLen > 0)
     {

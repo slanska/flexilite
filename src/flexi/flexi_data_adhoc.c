@@ -34,6 +34,7 @@
 #include "flexi_class.h"
 #include "../util/StringBuilder.h"
 #include "flexi_Object.h"
+#include "../util/json_proc.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -738,6 +739,8 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
     sqlite3_stmt *pDataSource = NULL; // Parsed JSON data
 
     FlexiDataProxyVTab_t *dataVTab = (void *) pVTab;
+    JsonProcessor_t jsonProc;
+    JsonProcessor_init(&jsonProc, dataVTab->pCtx);
 
     char *zClassName = (char *) sqlite3_value_text(argv[FLEXI_DATA_COL_CLASS_NAME + 2]);
     if (!zClassName || strlen(zClassName) == 0)
@@ -758,6 +761,8 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
     }
     else
     {
+        JsonProcessor_parse(&jsonProc, (const char *) sqlite3_value_text(argv[FLEXI_DATA_COL_DATA + 2]));
+
         _UpsertParams_t pp = {};
         pp.pDataSource = pDataSource;
         pp.lExpectedClassID = pClassDef->lClassID;
@@ -843,6 +848,7 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
 
     EXIT:
     sqlite3_finalize(pDataSource);
+    JsonProcessor_clear(&jsonProc);
     return result;
 }
 

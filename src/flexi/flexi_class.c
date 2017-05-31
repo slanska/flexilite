@@ -1005,7 +1005,7 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
     getColumnAsText(&zClassDef, pGetClassStmt, 5);
 
     // Load properties from flexi_prop
-    CHECK_CALL( flexi_Context_stmtInit(pCtx, STMT_LOAD_CLS_PROP, "select "
+    CHECK_CALL(flexi_Context_stmtInit(pCtx, STMT_LOAD_CLS_PROP, "select "
             "PropertyID," // 0
             "Class, " // 1
             "NameID, " // 2
@@ -1132,6 +1132,12 @@ int flexi_ClassDef_loadByName(struct flexi_Context_t *pCtx, const char *zClassNa
     int result;
     sqlite3_int64 lClassID;
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
+    if (lClassID < 0)
+    {
+        result = SQLITE_NOTFOUND;
+        flexi_Context_setError(pCtx, result, sqlite3_mprintf("Class [%s] not found", zClassName));
+        goto ONERROR;
+    }
     CHECK_CALL(flexi_ClassDef_load(pCtx, lClassID, pClassDef));
     goto EXIT;
 

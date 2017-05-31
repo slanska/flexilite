@@ -47,7 +47,7 @@ typedef struct JsonIterator_t
 {
     JsonProcessor_t *pJP;
     JsonNode_t *pCurrent;
-    RBTreeDirectWalk dw;
+    RBIterator rbi;
 } JsonIterator_t;
 
 void JsonProcessor_init(JsonProcessor_t *self, flexi_Context_t *pCtx);
@@ -58,11 +58,10 @@ int JsonProcessor_parse(JsonProcessor_t *self, const char *zInJzon);
 
 int JsonProcessor_stringify(JsonProcessor_t *self, char **pzOutJson);
 
-int JsonProcessor_find(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t **pIterator);
+bool JsonProcessor_find(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t *pIterator);
 
-int JsonProessor_first(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t **pIterator);
+bool JsonProcessor_first(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t *pIterator);
 
-int JsonProcessor_next(JsonIterator_t *pIterator);
-
+bool JsonProcessor_next(JsonIterator_t *pIterator);
 
 #endif //FLEXILITE_JSON_PROC_H

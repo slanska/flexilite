@@ -8,6 +8,7 @@
  */
 
 #include "json_proc.h"
+#include "rbtree.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -23,7 +24,14 @@ _JsonNode_comparer(const RBNode *a, const RBNode *b, void *arg)
     UNUSED_PARAM(arg);
     _JsonNode *aa = (void *) a;
     _JsonNode *bb = (void *) b;
-    return strcmp(aa->d.zFullKey, bb->d.zFullKey);
+    sqlite3_int64 diff = aa->d.parent - bb->d.parent;
+    if (diff == 0)
+    {
+        if (aa->d.zKey == NULL || bb->d.zKey == NULL)
+            diff = strcmp(aa->d.zFullKey, bb->d.zFullKey);
+        else diff = strcmp(aa->d.zKey, bb->d.zKey);
+    }
+    return (int) diff;
 }
 
 static void
@@ -33,9 +41,9 @@ _JsonNode_combiner(RBNode *existing, const RBNode *newdata, void *arg)
     _JsonNode *to = (void *) newdata;
     to->d = from->d;
     to->d.pValue = sqlite3_value_dup(from->d.pValue);
-    String_copy(from->d.zKey, (void *) to->d.zKey);
-    String_copy(from->d.zFullKey, (void *) to->d.zFullKey);
-    String_copy(from->d.zPath, (void *) to->d.zPath);
+    String_copy(from->d.zKey, (char **) &to->d.zKey);
+    String_copy(from->d.zFullKey, (char **) &to->d.zFullKey);
+    String_copy(from->d.zPath, (char **) &to->d.zPath);
 }
 
 static RBNode *
@@ -101,7 +109,7 @@ int JsonProcessor_parse(JsonProcessor_t *self, const char *zInJzon)
                                "from json_tree(:1);", &pDataSource);
     CHECK_CALL(sqlite3_bind_text(pDataSource, 1, zInJzon, -1, NULL));
 
-    while ((result = sqlite3_step(pDataSource) == SQLITE_ROW))
+    while ((result = sqlite3_step(pDataSource)) == SQLITE_ROW)
     {
         _JsonNode_free(&node->hdr, self);
         node = (void *) _JsonNode_alloc(self);
@@ -136,10 +144,11 @@ int JsonProcessor_parse(JsonProcessor_t *self, const char *zInJzon)
         node->d.parent = sqlite3_column_int64(pDataSource, 5);
         String_copy((const char *) sqlite3_column_text(pDataSource, 6), (void *) &node->d.zFullKey);
         String_copy((const char *) sqlite3_column_text(pDataSource, 7), (void *) &node->d.zPath);
-        rb_insert(&self->nodes, &node->hdr, NULL);
+        bool isNew;
+        rb_insert(&self->nodes, &node->hdr, &isNew);
     }
 
-    if (result != SQLITE_OK && result != SQLITE_DONE)
+    if (result != SQLITE_ROW && result != SQLITE_DONE)
         goto ONERROR;
 
     result = SQLITE_OK;
@@ -154,13 +163,48 @@ int JsonProcessor_parse(JsonProcessor_t *self, const char *zInJzon)
 }
 
 int JsonProcessor_stringify(JsonProcessor_t *self, char **pzOutJson)
-{}
+{
+    // TODO
+    return SQLITE_OK;
+}
 
-int JsonProcessor_find(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t **pIterator)
-{}
+bool JsonProcessor_find(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t *pIterator)
+{
+    _JsonNode n = {.d = {}};
+    pIterator->pJP = self;
 
-int JsonProessor_first(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t **pIterator)
-{}
+    _JsonNode *result = (void *) rb_find(&self->nodes, &n.hdr);
 
-int JsonProcessor_next(JsonIterator_t *pIterator)
-{}
+    pIterator->rbi.is_over = result != NULL;
+    pIterator->rbi.last_visited = NULL;
+    pIterator->rbi.rb = &self->nodes;
+
+    if (result == NULL)
+        return false;
+
+    pIterator->pCurrent = &result->d;
+    pIterator->rbi.last_visited = &result->hdr;
+
+    return true;
+}
+
+bool JsonProcessor_first(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t *pIterator)
+{
+    rb_begin_left_right_walk(&self->nodes, &pIterator->rbi);
+    pIterator->pJP = self;
+    pIterator->pCurrent = &((_JsonNode *) pIterator->rbi.last_visited)->d;
+    return !pIterator->rbi.is_over;
+}
+
+bool JsonProcessor_next(JsonIterator_t *pIterator)
+{
+    RBNode *n = rb_right_left_walk(&pIterator->rbi);
+    if (n == NULL)
+    {
+        pIterator->pCurrent = NULL;
+        return false;
+    }
+
+    pIterator->pCurrent = &((_JsonNode *) pIterator->rbi.last_visited)->d;
+    return true;
+}

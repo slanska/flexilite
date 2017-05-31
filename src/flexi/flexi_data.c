@@ -120,6 +120,12 @@ static int _createNewClass(struct flexi_Context_t *pCtx, const char *zClassName,
 
     CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, 1));
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
+    if (lClassID == -1)
+    {
+        result = SQLITE_NOTFOUND;
+        flexi_Context_setError(pCtx, result, sqlite3_mprintf("Class [%s] not found", zClassName));
+        goto ONERROR;
+    }
     CHECK_CALL(flexi_ClassDef_load(pCtx, lClassID, ppClassDef));
 
     result = SQLITE_OK;

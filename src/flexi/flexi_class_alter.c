@@ -407,7 +407,7 @@ _validatePropChange(const char *zPropName, int index, struct flexi_PropDef_t *p,
         CHECK_ERROR (p->eChangeStatus == CHNG_STATUS_DELETED,
                      sqlite3_mprintf("Cannot drop non existing property '%s'", zPropName));
 
-        CHECK_ERROR(p->zRenameTo,
+        CHECK_ERROR(p->zRenameTo != NULL,
                     sqlite3_mprintf("Cannot rename non existing property '%s'", zPropName));
 
         CHECK_ERROR(!db_validate_name(zPropName),

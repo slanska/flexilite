@@ -66,9 +66,9 @@
   },
   {
     "describe": "Data load",
-    "it": "Insert data into [Regions]",
+    "it": "Insert data into [Employees2]",
     "inDb": "../../data/Northwind.test.db",
-    "inSql": "insert into flexi_data (ClassName, Data) values ('Regions', %Q);",
+    "inSql": "insert into flexi_data (ClassName, Data) values ('Employees2', %Q);",
     "inSubst": [
       "Regions.data.json"
     ],
