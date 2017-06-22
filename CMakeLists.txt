@@ -24,7 +24,10 @@ project(sqlite_shell)
 
 message("Building on: ${CMAKE_SYSTEM_NAME}")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     find_package(zlib REQUIRED)
@@ -68,7 +71,9 @@ add_custom_target(Generate_Resources
 
 set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TRUE)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 add_definitions(-DRESOURCES_GENERATED)
 
@@ -125,7 +130,7 @@ set(EXT_FILES
         src/util/Path.c
         src/util/Path.h
         src/util/StringBuilder.c
-        src/util/StringBuilder.h src/flexi/flexi_data_adhoc.c src/flexi/flexi_data_vtable.c src/flexi/class_build_json.c src/flexi/flexi_data.h src/flexi/flexi_Object.c src/flexi/flexi_Object.h src/flexi/flexi_PropValue.c src/flexi/flexi_PropValue.h)
+        src/util/StringBuilder.h src/flexi/flexi_data_adhoc.c src/flexi/flexi_data_vtable.c src/flexi/class_build_json.c src/flexi/flexi_data.h src/flexi/flexi_Object.c src/flexi/flexi_Object.h src/flexi/flexi_PropValue.c src/flexi/flexi_PropValue.h src/flexi/DataProcessor.cpp src/flexi/DataProcessor.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")

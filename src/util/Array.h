@@ -6,6 +6,7 @@
 #define FLEXILITE_ARRAY_H
 
 #include <stddef.h>
+#include <ntsid.h>
 #include "../common/common.h"
 
 /*
@@ -26,7 +27,7 @@ typedef struct Array_t
     /*
      * Allocated number of items
      */
-    u32 iCapacity;
+    intptr_t iCapacity;
 
     /*
      * Optional callback to dispose element
@@ -73,7 +74,7 @@ extern void *Array_getNth(Array_t *self, u32 index);
  * index: can be between 0 and iCnt
  * pElem: if NULL, new item will be filled with zeros, otherwise, pElem content will be copied to a new item
  */
-extern void Array_setNth(Array_t *self, u32 index, void *pElem);
+extern void Array_setNth(Array_t *self, intptr_t index, void *pElem);
 
 /*
  * Appends new zeroed item to the end of array.

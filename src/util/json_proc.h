@@ -23,6 +23,10 @@ typedef struct JsonProcessor_t
      */
     RBTree nodes;
 
+    /*
+     * List of parent IDs corresponding their child IDs
+     */
+    Array_t parentIds;
 
     /*
      * Output JSON string builder
@@ -63,5 +67,7 @@ bool JsonProcessor_find(JsonProcessor_t *self, const char *zFullKey, JsonIterato
 bool JsonProcessor_first(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t *pIterator);
 
 bool JsonProcessor_next(JsonIterator_t *pIterator);
+
+
 
 #endif //FLEXILITE_JSON_PROC_H

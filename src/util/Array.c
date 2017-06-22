@@ -13,6 +13,7 @@
 #else
 
 #include <sqlite3ext.h>
+#include <ntsid.h>
 
 SQLITE_EXTENSION_INIT3
 
@@ -86,15 +87,15 @@ void Array_clear(Array_t *self)
 }
 
 static int
-_array_ensure_capacity(Array_t *self, u32 newCnt)
+_array_ensure_capacity(Array_t *self, intptr_t newCnt)
 {
     if (newCnt > self->iCapacity)
     {
-        u32 newCap = (self->iCnt >> 3 > 8 ? self->iCnt >> 3 : 8) + self->iCnt;
+        intptr_t newCap = (self->iCnt >> 3 > 8 ? self->iCnt >> 3 : 8) + self->iCnt;
         if (newCap < newCnt)
             newCap = newCnt;
 
-        void *newItems = sqlite3_malloc(newCap * (int) self->iElemSize);
+        void *newItems = sqlite3_malloc64(newCap * self->iElemSize);
         if (!newItems)
             return SQLITE_NOMEM;
         memcpy(newItems, self->items, self->iElemSize * self->iCnt);
@@ -117,7 +118,7 @@ inline void *Array_getNth(Array_t *self, u32 index)
     return result;
 }
 
-void Array_setNth(Array_t *self, u32 index, void *pElem)
+void Array_setNth(Array_t *self, intptr_t index, void *pElem)
 {
     assert(index <= self->iCnt);
     bool grow = index == self->iCnt;

@@ -1,3 +1,19 @@
+Experimenting with Nim:
+
+* Link to C library
+
+* Call Nim proc from C
+
+* Pass SQLite db etc. Call DB in Nim
+
+* Test in Nim - run as a standalone
+
+* Setup vscode plugin
+
+* Build on Linux, Windows
+
+* Run with Valgrind
+
 All data and schema changes are always recorded in **[.change_log]** table. This table serves few purposes:
 
 * traceability - who did what and when

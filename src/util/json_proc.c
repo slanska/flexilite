@@ -8,7 +8,6 @@
  */
 
 #include "json_proc.h"
-#include "rbtree.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -27,9 +26,13 @@ _JsonNode_comparer(const RBNode *a, const RBNode *b, void *arg)
     sqlite3_int64 diff = aa->d.parent - bb->d.parent;
     if (diff == 0)
     {
-        if (aa->d.zKey == NULL || bb->d.zKey == NULL)
-            diff = strcmp(aa->d.zFullKey, bb->d.zFullKey);
-        else diff = strcmp(aa->d.zKey, bb->d.zKey);
+        const char *zA = aa->d.zKey;
+        const char *zB = bb->d.zKey;
+        if (zA == NULL)
+            zA = "";
+        if (zB == NULL)
+            zB = "";
+        diff = strcmp(zA, zB);
     }
     return (int) diff;
 }
@@ -75,6 +78,7 @@ void JsonProcessor_init(JsonProcessor_t *self, flexi_Context_t *pCtx)
     rb_create(&self->nodes, sizeof(_JsonNode), _JsonNode_comparer, _JsonNode_combiner, _JsonNode_alloc,
               _JsonNode_free, self);
     StringBuilder_init(&self->sb);
+    Array_init(&self->parentIds, sizeof(intptr_t), NULL);
 }
 
 void JsonProcessor_clear(JsonProcessor_t *self)
@@ -83,6 +87,7 @@ void JsonProcessor_clear(JsonProcessor_t *self)
     {
         rb_clear(&self->nodes);
         StringBuilder_clear(&self->sb);
+        Array_clear(&self->parentIds);
     }
 }
 
@@ -146,6 +151,7 @@ int JsonProcessor_parse(JsonProcessor_t *self, const char *zInJzon)
         String_copy((const char *) sqlite3_column_text(pDataSource, 7), (void *) &node->d.zPath);
         bool isNew;
         rb_insert(&self->nodes, &node->hdr, &isNew);
+        Array_setNth(&self->parentIds, (u32)node->d.id, &node->d.parent);
     }
 
     if (result != SQLITE_ROW && result != SQLITE_DONE)
@@ -168,6 +174,9 @@ int JsonProcessor_stringify(JsonProcessor_t *self, char **pzOutJson)
     return SQLITE_OK;
 }
 
+/*
+ *
+ */
 bool JsonProcessor_find(JsonProcessor_t *self, const char *zFullKey, JsonIterator_t *pIterator)
 {
     _JsonNode n = {.d = {}};
