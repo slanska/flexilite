@@ -101,6 +101,9 @@ set(EXT_FILES
 
         lib/duktape/duktape.c
 
+        lib/parson_json/parson.c
+        lib/parson_json/parson.h
+
         src/flexi/flexi_class.c
         src/flexi/flexi_class_alter.c
         src/flexi/flexi_props_to_object.c
@@ -130,7 +133,15 @@ set(EXT_FILES
         src/util/Path.c
         src/util/Path.h
         src/util/StringBuilder.c
-        src/util/StringBuilder.h src/flexi/flexi_data_adhoc.c src/flexi/flexi_data_vtable.c src/flexi/class_build_json.c src/flexi/flexi_data.h src/flexi/flexi_Object.c src/flexi/flexi_Object.h src/flexi/flexi_PropValue.c src/flexi/flexi_PropValue.h src/flexi/DataProcessor.cpp src/flexi/DataProcessor.h)
+        src/util/StringBuilder.h
+        src/flexi/flexi_data_adhoc.c
+        src/flexi/flexi_data_vtable.c
+        src/flexi/class_build_json.c
+        src/flexi/flexi_data.h
+        src/flexi/flexi_Object.c
+        src/flexi/flexi_Object.h
+        src/flexi/flexi_PropValue.c
+        src/flexi/flexi_PropValue.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")

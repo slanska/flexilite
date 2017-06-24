@@ -2,3 +2,6 @@
 	path = lib/cmocka
 	url = git://git.cryptomilk.org/projects/cmocka.git
 
+[submodule "lib/parson_json"]
+	path = lib/parson_json
+	url = https://github.com/kgabis/parson.git

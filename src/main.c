@@ -3,6 +3,7 @@
 //
 
 #include "main.h"
+#include "../lib/parson_json/parson.h"
 
 #ifdef _WIN32
 __declspec(dllexport)
@@ -14,6 +15,9 @@ int sqlite3_extension_init(
         const sqlite3_api_routines *pApi
 ) {
     SQLITE_EXTENSION_INIT2(pApi);
+
+    // Use sqlite3 memory API for JSON operations
+    json_set_allocation_functions((void*)sqlite3_malloc, sqlite3_free);
 
     int (*funcs[])(sqlite3 *, char **, const sqlite3_api_routines *) = {
             eval_func_init,
