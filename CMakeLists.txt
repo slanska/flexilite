@@ -86,7 +86,7 @@ set(EXT_FILES
         # compress.c is temporarily disabled because of the following error: Undefined symbols for architecture x86_64:
         #        "_compress", referenced from:
         #        src/misc/compress.c
-        src/misc/eval.c
+        src/misc/eval.cpp
         src/misc/fileio.c
         src/misc/regexp.c
         src/misc/totype.c
@@ -97,7 +97,7 @@ set(EXT_FILES
 
         src/misc/hash.c
 
-        src/misc/memstat.c
+        src/misc/memstat.cpp
         src/flexi/flexi_data.c
 
         lib/duktape/duktape.c
@@ -105,29 +105,29 @@ set(EXT_FILES
         lib/parson_json/parson.c
         lib/parson_json/parson.h
 
-        src/flexi/flexi_class.c
-        src/flexi/flexi_class_alter.c
-        src/flexi/flexi_props_to_object.c
+        src/flexi/flexi_class.cpp
+        src/flexi/flexi_class_alter.cpp
+        src/flexi/flexi_props_to_object.cpp
 
         src/fts/fts3_expr.c
         src/fts/fts3_tokenizer.c
         src/fts/fts3_hash.c
-        src/flexi/flexi_prop.c
-        src/flexi/flexi_prop_merge.c
-        src/flexi/flexi_query.c
+        src/flexi/flexi_prop.cpp
+        src/flexi/flexi_prop_merge.cpp
+        src/flexi/flexi_query.cpp
         src/util/json_proc.c
         src/common/common.h
         src/util/Array.c
         src/util/Array.h
-        src/flexi/flexi_func.c
+        src/flexi/flexi_func.cpp
 
         src/flexi/flexi_prop_merge.h
-        src/flexi/flexi_db_ctx.c
+        src/flexi/flexi_db_ctx.cpp
         src/flexi/flexi_db_ctx.h
-        src/flexi/flexi_UserInfo_t.c
+        src/flexi/flexi_UserInfo_t.cpp
         src/flexi/flexi_UserInfo_t.h
         src/util/rbtree.c
-        src/flexi/class_ref_def.c
+        src/flexi/class_ref_def.cpp
         src/flexi/class_ref_def.h
         src/util/List.c
         src/util/List.h
@@ -135,13 +135,13 @@ set(EXT_FILES
         src/util/Path.h
         src/util/StringBuilder.c
         src/util/StringBuilder.h
-        src/flexi/flexi_data_adhoc.c
-        src/flexi/flexi_data_vtable.c
-        src/flexi/class_build_json.c
+        src/flexi/flexi_data_adhoc.cpp
+        src/flexi/flexi_data_vtable.cpp
+        src/flexi/class_build_json.cpp
         src/flexi/flexi_data.h
-        src/flexi/flexi_Object.c
+        src/flexi/flexi_Object.cpp
         src/flexi/flexi_Object.h
-        src/flexi/flexi_PropValue.c
+        src/flexi/flexi_PropValue.cpp
         src/flexi/flexi_PropValue.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
