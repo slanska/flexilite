@@ -13,6 +13,10 @@
 
 #include <sqlite3ext.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 SQLITE_EXTENSION_INIT3
 
 #endif
@@ -27,5 +31,9 @@ SQLITE_EXTENSION_INIT3
 void Path_join(char **pzResult, const char *zBase, const char *zAddPath);
 
 void Path_dirname(char **pzResult, const char *zPath);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_PATH_H

@@ -2,8 +2,8 @@
 * test flexi_ClassDef_create
 * &#10004; add Northwind to Git
 * flexish - node.js utility (TypeScript)
-* JsonHelper
-* initialize Duktape context
+* &#10004; JsonHelper
+* &#10004; initialize Duktape context
 * generate schema from non-Flexi database
 * convert Northwind database to Flexi
 * support for indexes when saving data

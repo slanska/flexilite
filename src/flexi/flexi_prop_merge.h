@@ -7,6 +7,10 @@
 
 #include <sqlite3ext.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int flexi_prop_merge_func(
         sqlite3_context *context,
         int argc,
@@ -18,5 +22,9 @@ int flexi_prop_split_func(
         int argc,
         sqlite3_value **argv
 );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_FLEXI_PROP_MERGE_H

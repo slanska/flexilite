@@ -9,6 +9,10 @@
 #include <ntsid.h>
 #include "../common/common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Implementation of generic array with items of fixed size
  */
@@ -104,5 +108,9 @@ extern void Array_ref(Array_t *pDestArray, Array_t *pSrcBufArray);
  * Decreases iRefCount of array. If iRefCount riches 0, array will be cleaned and freed
  */
 extern void Array_unref(Array_t *self);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #endif //FLEXILITE_ARRAY_H

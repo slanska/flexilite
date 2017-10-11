@@ -7,6 +7,10 @@
 
 #include "../lib/sqlite/sqlite3ext.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 SQLITE_EXTENSION_INIT1
 
 int eval_func_init(
@@ -71,5 +75,9 @@ int flexi_class_init(
 int flexi_init(sqlite3 *db,
                char **pzErrMsg,
                const sqlite3_api_routines *pApi);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //SQLITE_EXTENSIONS_MAIN_H

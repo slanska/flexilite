@@ -8,6 +8,10 @@
 #include "../project_defs.h"
 #include "flexi_Object.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Forward declaration
 typedef struct flexi_Object_t flexi_Object_t;
 
@@ -71,5 +75,9 @@ inline sqlite3_value *flexi_PropValue_get(flexi_PropValue_t *self);
 inline void flexi_PropValue_set(flexi_PropValue_t *self, sqlite3_value *value);
 
 bool flexi_PropValue_validate(flexi_PropValue_t *self);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_FLEXI_PROPVALUE_H

@@ -11,7 +11,9 @@
 #include "flexi_class.h"
 #include "class_ref_def.h"
 
-SQLITE_EXTENSION_INIT3
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Forward declarations
@@ -220,5 +222,9 @@ void flexi_enum_def_free(flexi_enum_def *);
  * Otherwise, SQLITE_ERROR and sets context's error to a specific error message
  */
 int flexi_PropDef_validateValue(struct flexi_PropDef_t *prop, flexi_ClassDef_t *pClassDef, sqlite3_value *value);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_FLEXI_PROP_C_H

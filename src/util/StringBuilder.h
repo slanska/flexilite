@@ -9,6 +9,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* An instance of this object represents a JSON string
 ** under construction.  Really, this is a generic string accumulator
 ** that can be and is used to create strings other than JSON.
@@ -64,5 +68,9 @@ void StringBuilder_clear(StringBuilder_t *self);
  * Source: http://stackoverflow.com/questions/5117393/utf-8-strings-length-in-linux-c
  */
 int get_utf8_len(const unsigned char *s);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_STRINGBUILDER_H

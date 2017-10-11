@@ -60,6 +60,7 @@ project(Flexilite)
 include_directories(
         lib/duktape
         lib/sqlite
+        lib/parson_json
 )
 
 add_custom_target(Generate_Resources

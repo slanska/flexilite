@@ -11,6 +11,10 @@
 #include "rbtree.h"
 #include "StringBuilder.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * JSON processor module
  * Parses and provides fast lookup on JSON elements
@@ -68,6 +72,8 @@ bool JsonProcessor_first(JsonProcessor_t *self, const char *zFullKey, JsonIterat
 
 bool JsonProcessor_next(JsonIterator_t *pIterator);
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_JSON_PROC_H

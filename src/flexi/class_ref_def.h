@@ -8,6 +8,10 @@
 #include <stdbool.h>
 #include "../util/Array.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Holds entity name and corresponding ID
  * Used for user-friendly way of specifying classes, properties, enums, names.
@@ -111,5 +115,8 @@ typedef enum ClassRefDef_Compare_Result
 ClassRefDef_Compare_Result
 flexi_ClassRefDef_compare(const struct flexi_ClassRefDef *pDef1, const struct flexi_ClassRefDef *pDef2);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif //CLASS_REF_DEF_H

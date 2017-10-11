@@ -10,6 +10,10 @@
 
 #include "../../lib/sqlite/sqlite3ext.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 SQLITE_EXTENSION_INIT3
 
 /*
@@ -79,5 +83,9 @@ int re_match(ReCompiled *pRe, const unsigned char *zIn, int nIn);
 ** for every call to re_compile() to avoid memory leaks.
 */
 void re_free(ReCompiled *pRe);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //SQLITE_EXTENSIONS_REGEXP_H

@@ -11,6 +11,10 @@
 #include "flexi_prop.h"
 #include "class_ref_def.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Column numbers and array indexes for class' special properties
  */
@@ -245,7 +249,8 @@ void flexi_ClassDef_free(struct flexi_ClassDef_t *self);
  */
 int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef);
 
-int flexi_ClassDef_loadByName(struct flexi_Context_t *pCtx, const char *zClassName, struct flexi_ClassDef_t **pClassDef);
+int
+flexi_ClassDef_loadByName(struct flexi_Context_t *pCtx, const char *zClassName, struct flexi_ClassDef_t **pClassDef);
 
 /*
  * Generates SQL to create Flexilite virtual table from class definition
@@ -271,5 +276,9 @@ bool flexi_ClassDef_getPropDefById(struct flexi_ClassDef_t *pClassDef,
  */
 bool flexi_ClassDef_getPropDefByName(struct flexi_ClassDef_t *pClassDef,
                                      const char *zPropName, struct flexi_PropDef_t **propDef);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_FLEXI_CLASS_H

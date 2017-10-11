@@ -5,10 +5,11 @@
 #ifndef FLEXILITE_FLEXI_OBJECT_H
 #define FLEXILITE_FLEXI_OBJECT_H
 
-//#include "../project_defs.h"
 #include "flexi_PropValue.h"
 
-SQLITE_EXTENSION_INIT3
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Structure for individual object data
@@ -81,5 +82,9 @@ int flexi_Object_setProp(flexi_Object_t *self,
  * Validates data and inserts or updates object data in database
  */
 int flexi_Object_save(flexi_Object_t *self);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_FLEXI_OBJECT_H

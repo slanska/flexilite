@@ -5,6 +5,10 @@
 #ifndef DBDEFINITIONS_H
 #define DBDEFINITIONS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define declare
 #define const
 
@@ -12,5 +16,9 @@
 
 #undef declare
 #undef const
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

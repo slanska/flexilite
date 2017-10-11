@@ -38,6 +38,9 @@
 
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef SQLITE_AMALGAMATION
 
@@ -133,5 +136,9 @@ typedef union any
     long long int i64;
 
 } any;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_COMMON_H

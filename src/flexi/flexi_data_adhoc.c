@@ -35,6 +35,7 @@
 #include "../util/StringBuilder.h"
 #include "flexi_Object.h"
 #include "../util/json_proc.h"
+#include "parson.h"
 
 SQLITE_EXTENSION_INIT3
 
@@ -98,14 +99,24 @@ typedef struct _UpsertParams_t
     sqlite3_stmt *pDataSource;
 
     /*
+     * Root level JSON node
+     */
+    JSON_Value *pRootNode;
+
+    /*
      * Scope of parent ID
      */
     int parent;
 
     /*
+     * Parent JSON node
+     */
+    JSON_Value *pParentNode;
+
+    /*
      * Recursion level when processing nested objects
      * When 0, it is top level object (or item in array)
-     * Save operations run after full completion of item of level 0 (all nested objects/props/array
+     * Save operations which run after full completion of item of level 0 (all nested objects/props/array
      * should be loaded, validated and pre-processed already)
      */
     int level;
@@ -332,7 +343,7 @@ static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
  * These functions are:
  * _upsertObject - to process individual object
  * _upsertObjectArray - to process array of objects
- * _upsertProperty - to process single property value (whi
+ * _upsertProperty - to process single property value
  *
  * =================
  * _upsertOrDelete (entry point):
@@ -394,7 +405,7 @@ static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
  */
 
 static int
-_upsertObject(_UpsertParams_t *pp, sqlite3_int64 lExpectedObjectID);
+_upsertObject(_UpsertParams_t *pp);
 
 /*
  *
@@ -543,7 +554,7 @@ _upsertObjectArray(_UpsertParams_t *pp)
         int currentID = sqlite3_column_int(pp->pDataSource, JSON_TREE_ID);
         if (currentParent != pp->parent && currentID != currentScope)
             break;
-        CHECK_CALL(_upsertObject(pp, 0));
+        CHECK_CALL(_upsertObject(pp));
 
     }
 
@@ -574,7 +585,7 @@ _getProp(_UpsertParams_t *pp, flexi_Object_t *obj)
 }
 
 static int
-_saveObject(_UpsertParams_t *pp, sqlite3_int64 lExpectedObjectID, flexi_Object_t *obj)
+_saveObject(_UpsertParams_t *pp, flexi_Object_t *obj)
 {
     int result;
     result = SQLITE_OK;
@@ -590,7 +601,7 @@ _saveObject(_UpsertParams_t *pp, sqlite3_int64 lExpectedObjectID, flexi_Object_t
  * Process top level object in _upsertOrDelete function
  */
 static int
-_upsertObject(_UpsertParams_t *pp, sqlite3_int64 lExpectedObjectID)
+_upsertObject(_UpsertParams_t *pp)
 {
     int result;
 
@@ -619,11 +630,11 @@ _upsertObject(_UpsertParams_t *pp, sqlite3_int64 lExpectedObjectID)
     if (pp->level == 1)
     {
         // Verify $id
-        if (lExpectedObjectID != 0)
+        if (pp->lExpectedObjectID != 0)
         {
             //            flexi_Object_getExistingPropByID()
         }
-        CHECK_CALL(_saveObject(pp, lExpectedObjectID, &obj));
+        CHECK_CALL(_saveObject(pp, &obj));
     }
 
     if (result != SQLITE_DONE)
@@ -737,6 +748,7 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
     int result;
 
     sqlite3_stmt *pDataSource = NULL; // Parsed JSON data
+    JSON_Value *jsonData = NULL;
 
     FlexiDataProxyVTab_t *dataVTab = (void *) pVTab;
     JsonProcessor_t jsonProc;
@@ -761,7 +773,34 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
     }
     else
     {
-        JsonProcessor_parse(&jsonProc, (const char *) sqlite3_value_text(argv[FLEXI_DATA_COL_DATA + 2]));
+        jsonData = json_parse_string((const char *) sqlite3_value_text(argv[FLEXI_DATA_COL_DATA + 2]));
+        if (jsonData == NULL)
+        {
+            result = SQLITE_ERROR;
+            flexi_Context_setError(dataVTab->pCtx, result,
+                                   sqlite3_mprintf("Invalid or missing data JSON"));
+            goto ONERROR;
+        }
+        // Check if this is array of objects or single object
+        JSON_Value_Type jsonType = json_value_get_type(jsonData);
+        switch (jsonType)
+        {
+            case JSONError:
+                result = SQLITE_ERROR;
+                flexi_Context_setError(dataVTab->pCtx, result,
+                                       sqlite3_mprintf("Error on parsing data JSON"));
+                goto ONERROR;
+            case JSONArray:
+                break;
+            case JSONObject:
+                break;
+            default:
+                result = SQLITE_ERROR;
+                flexi_Context_setError(dataVTab->pCtx, result,
+                                       sqlite3_mprintf("Encountered invalid data JSON type"));
+                goto ONERROR;
+        }
+
 
         _UpsertParams_t pp = {};
         pp.pDataSource = pDataSource;
@@ -812,7 +851,7 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
             if (strcmp(zType, "object") == 0)
             {
                 CHECK_STMT_STEP(pDataSource, dataVTab->pCtx->db);
-                CHECK_CALL(_upsertObject(&pp, lObjectID));
+                CHECK_CALL(_upsertObject(&pp));
             }
             else
                 if (strcmp(zType, "array") == 0)
@@ -848,6 +887,9 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
 
     EXIT:
     sqlite3_finalize(pDataSource);
+    if (jsonData)
+        json_value_free(jsonData);
+
     JsonProcessor_clear(&jsonProc);
     return result;
 }

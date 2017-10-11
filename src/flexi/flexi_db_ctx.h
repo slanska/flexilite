@@ -12,7 +12,10 @@
 #include "../util/Array.h"
 #include "../util/rbtree.h"
 
-SQLITE_EXTENSION_INIT3
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /*
  * Forward declaration
@@ -132,7 +135,7 @@ typedef struct flexi_RefValue_t
     sqlite3_int64 lPropID;
     sqlite3_int64 lPropIndex;
     int ctlv;
-    sqlite3_value* pValue;
+    sqlite3_value *pValue;
 } flexi_RefValue_t;
 
 /*
@@ -260,7 +263,7 @@ int getColumnAsText(char **pzDest, sqlite3_stmt *pStmt, int iCol);
 
 char *String_substr(const char *zSource, intptr_t start, intptr_t len);
 
-int String_copy(const char* zIn, char**pzOut);
+int String_copy(const char *zIn, char **pzOut);
 
 /*
  * Find property ID by class ID and property name
@@ -308,5 +311,9 @@ int flexi_Context_stmtInit(struct flexi_Context_t *pCtx, enum FLEXI_CTX_STMT stm
 void flexi_config_func(sqlite3_context *context,
                        int argc,
                        sqlite3_value **argv);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_FLEXI_ENV_H
