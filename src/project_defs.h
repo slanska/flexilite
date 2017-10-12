@@ -11,6 +11,10 @@
 
 #include <sqlite3ext.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 SQLITE_EXTENSION_INIT3
 
 #include <assert.h>
@@ -50,5 +54,10 @@ SQLITE_EXTENSION_INIT3
 //                       int bCreateVTable,
 //                       char **pzError);
 //
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif //SQLITE_EXTENSIONS_PROJECT_DEFS_H
 

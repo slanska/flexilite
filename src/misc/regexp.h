@@ -10,11 +10,11 @@
 
 #include "../../lib/sqlite/sqlite3ext.h"
 
+SQLITE_EXTENSION_INIT3
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-SQLITE_EXTENSION_INIT3
 
 /*
 ** The following #defines change the names of some functions implemented in
