@@ -9,9 +9,12 @@
 #include <map>
 #include "../project_defs.h"
 #include "ClassDef.h"
+#include "../sqlite/Database.h"
 
 struct DBContext
 {
+    SQLite::Database *database = nullptr;
+
 public:
     explicit DBContext(sqlite3 *_db) : db(_db)
     {}
@@ -56,7 +59,7 @@ public:
      */
     //    Hash classDefsByName;
 
-    std::shared_ptr<std::map<std::string, ClassDef>> classDefsByName = std::make_shared<std::map<std::string, ClassDef>>();
+    std::map<std::string, ClassDef> classDefsByName = {};
 
     // TODO Init and use
     Hash classDefsById = {};

@@ -12,14 +12,9 @@
 
 #include "Database.h"
 #include "Assertion.h"
-#include "Exception.h"
-
-#include <sqlite3ext.h>
-
 
 namespace SQLite
 {
-
     // Compile and register the SQL query for the provided SQLite Database Connection
     Statement::Statement(Database &aDatabase, const char *apQuery) :
             mQuery(apQuery),
@@ -41,7 +36,6 @@ namespace SQLite
     {
         mColumnCount = sqlite3_column_count(mStmtPtr);
     }
-
 
     // Finalize and unregister the SQL query from the SQLite Database Connection.
     Statement::~Statement()

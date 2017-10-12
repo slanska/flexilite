@@ -15,15 +15,8 @@
 #include <string>
 #include <map>
 
-// Forward declarations to avoid inclusion of <sqlite3.h> in a header
-struct sqlite3;
-struct sqlite3_stmt;
-
-
 namespace SQLite
 {
-
-
     // Forward declaration
     class Database;
 

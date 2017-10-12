@@ -14,45 +14,12 @@
 #include <sqlite3ext.h>
 #include <cstring>
 
-SQLITE_EXTENSION_INIT3
-
-// Forward declarations to avoid inclusion of <sqlite3.h> in a header
-//struct sqlite3;
-//struct sqlite3_context;
-
-//#ifndef SQLITE_USE_LEGACY_STRUCT // Since SQLITE 3.19 (used by default since SQLiteCpp 2.1.0)
-//typedef struct sqlite3_value sqlite3_value;
-//#else // Before SQLite 3.19 (legacy struct forward declaration can be activated with CMake SQLITECPP_LEGACY_STRUCT var)
-//struct Mem;
-//typedef struct Mem sqlite3_value;
-//#endif
-
 namespace SQLite
 {
-
     // Those public constants enable most usages of SQLiteCpp without including <sqlite3.h> in the client application.
 
     /// The database is opened in read-only mode. If the database does not already exist, an error is returned.
     extern const int OPEN_READONLY;     // SQLITE_OPEN_READONLY
-    /// The database is opened for reading and writing if possible, or reading only if the file is write protected
-    /// by the operating system. In either case the database must already exist, otherwise an error is returned.
-    extern const int OPEN_READWRITE;    // SQLITE_OPEN_READWRITE
-    /// With OPEN_READWRITE: The database is opened for reading and writing, and is created if it does not already exist.
-    extern const int OPEN_CREATE;       // SQLITE_OPEN_CREATE
-
-    /// Enable URI filename interpretation, parsed according to RFC 3986 (ex. "file:data.db?mode=ro&cache=private")
-    extern const int OPEN_URI;          // SQLITE_OPEN_URI
-
-    extern const int OK;                ///< SQLITE_OK (used by inline check() bellow)
-
-    extern const char *VERSION;        ///< SQLITE_VERSION string from the sqlite3.h used at compile time
-    extern const int VERSION_NUMBER; ///< SQLITE_VERSION_NUMBER from the sqlite3.h used at compile time
-
-    /// Return SQLite version string using runtime call to the compiled library
-    const char *getLibVersion() noexcept; // nothrow
-    /// Return SQLite version number using runtime call to the compiled library
-    int getLibVersionNumber() noexcept; // nothrow
-
 
     /**
      * @brief RAII management of a SQLite Database Connection.
