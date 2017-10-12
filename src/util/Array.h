@@ -110,7 +110,7 @@ extern void Array_ref(Array_t *pDestArray, Array_t *pSrcBufArray);
 extern void Array_unref(Array_t *self);
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif //FLEXILITE_ARRAY_H

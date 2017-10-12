@@ -7,11 +7,11 @@
 
 #include <sqlite3ext.h>
 
+SQLITE_EXTENSION_INIT3
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-SQLITE_EXTENSION_INIT3
 
 typedef struct flexi_UserInfo_t flexi_UserInfo_t;
 

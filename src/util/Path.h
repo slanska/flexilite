@@ -13,14 +13,13 @@
 
 #include <sqlite3ext.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 SQLITE_EXTENSION_INIT3
 
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Path.join implementation, inspired by Node.js and ported from JavaScript code

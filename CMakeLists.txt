@@ -140,7 +140,7 @@ set(EXT_FILES
         src/flexi/flexi_Object.c
         src/flexi/flexi_Object.h
         src/flexi/flexi_PropValue.c
-        src/flexi/flexi_PropValue.h src/flexi/DBContext.cpp src/flexi/DBContext.h)
+        src/flexi/flexi_PropValue.h src/flexi/DBContext.cpp src/flexi/DBContext.h src/flexi/ClassDef.cpp src/flexi/ClassDef.h src/flexi/PropertyDef.cpp src/flexi/PropertyDef.h src/sqlite/Column.cpp src/sqlite/Column.h src/sqlite/Statement.cpp src/sqlite/Statement.h src/sqlite/Exception.cpp src/sqlite/Exception.h src/sqlite/Database.cpp src/sqlite/Database.h src/sqlite/Transaction.cpp src/sqlite/Transaction.h src/sqlite/SQLiteCpp.h src/sqlite/VariadicBind.h src/sqlite/Assertion.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")

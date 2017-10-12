@@ -32,6 +32,3 @@ int main(int argc, char **argv)
     sqlite3_free(zDir);
 }
 
-#ifdef __cplusplus
-}
-#endif
