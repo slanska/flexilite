@@ -20,6 +20,10 @@
 #include "util/file_helper.h"
 #include "../src/util/Path.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int class_tests();
 
 void run_sql_tests(char *zBaseDir, const char *zJsonFile);
@@ -27,5 +31,9 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile);
 /*
  * prop_tests();
  */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_DEFINITIONS_H

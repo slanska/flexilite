@@ -11,7 +11,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 project(flexilite_test)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_RTREE
@@ -33,7 +35,7 @@ set(TEST_FILES
         ../lib/cmocka/src/cmocka.c
         ../lib/sqlite/sqlite3.c
         fts.c
-        main.c
+        main.cpp
         fts.c
         util/db_init.c
         util/db_init.h

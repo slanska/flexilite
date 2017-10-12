@@ -6,15 +6,15 @@
 
 //#define SQLITE_CORE
 
-#include <stdint.h>
-#include <string.h>
-#include <limits.h>
+#include <cstdint>
+#include <cstring>
+#include <climits>
 #include <zconf.h>
 #include "definitions.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
-    char* zDir = NULL;
+    char *zDir = NULL;
     Path_dirname(&zDir, *argv);
 
     // TODO temp
@@ -31,3 +31,7 @@ int main(int argc, char** argv)
     run_sql_tests(zDir, "../../test/json/sql-test.class.json");
     sqlite3_free(zDir);
 }
+
+#ifdef __cplusplus
+}
+#endif

@@ -27,7 +27,6 @@ message("Building on: ${CMAKE_SYSTEM_NAME}")
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     find_package(zlib REQUIRED)
@@ -74,14 +73,13 @@ set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TR
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 add_definitions(-DRESOURCES_GENERATED)
 
 set(EXT_FILES
         src/misc/json1.c
         src/typings/DBDefinitions.h
-        src/main.c
+        src/main.cpp
 
         # compress.c is temporarily disabled because of the following error: Undefined symbols for architecture x86_64:
         #        "_compress", referenced from:
@@ -142,7 +140,7 @@ set(EXT_FILES
         src/flexi/flexi_Object.c
         src/flexi/flexi_Object.h
         src/flexi/flexi_PropValue.c
-        src/flexi/flexi_PropValue.h)
+        src/flexi/flexi_PropValue.h src/flexi/DBContext.cpp src/flexi/DBContext.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
