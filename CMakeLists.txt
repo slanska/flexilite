@@ -59,7 +59,7 @@ project(Flexilite)
 include_directories(
         lib/duktape
         lib/sqlite
-        lib/parson_json
+        lib/rapidjson/include
 )
 
 add_custom_target(Generate_Resources
@@ -99,9 +99,6 @@ set(EXT_FILES
         src/flexi/flexi_data.c
 
         lib/duktape/duktape.c
-
-        lib/parson_json/parson.c
-        lib/parson_json/parson.h
 
         src/flexi/flexi_class.c
         src/flexi/flexi_class_alter.c
@@ -163,7 +160,6 @@ set(EXT_FILES
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
-#set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
 
 add_library(Flexilite SHARED ${EXT_FILES})
 

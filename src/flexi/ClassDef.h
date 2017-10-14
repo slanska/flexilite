@@ -11,6 +11,7 @@
 #include "PropertyDef.h"
 #include "../project_defs.h"
 #include "SymbolRef.h"
+#include <rapidjson/document.h>
 
 /*
  * Column numbers and array indexes for class' special properties

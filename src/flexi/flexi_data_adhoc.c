@@ -35,7 +35,7 @@
 #include "../util/StringBuilder.h"
 #include "flexi_Object.h"
 #include "../util/json_proc.h"
-#include "parson.h"
+
 
 SQLITE_EXTENSION_INIT3
 
@@ -98,20 +98,20 @@ typedef struct _UpsertParams_t
      */
     sqlite3_stmt *pDataSource;
 
-    /*
-     * Root level JSON node
-     */
-    JSON_Value *pRootNode;
+//    /*
+//     * Root level JSON node
+//     */
+//    JSON_Value *pRootNode;
 
     /*
      * Scope of parent ID
      */
     int parent;
 
-    /*
-     * Parent JSON node
-     */
-    JSON_Value *pParentNode;
+//    /*
+//     * Parent JSON node
+//     */
+//    JSON_Value *pParentNode;
 
     /*
      * Recursion level when processing nested objects
@@ -748,7 +748,7 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
     int result;
 
     sqlite3_stmt *pDataSource = NULL; // Parsed JSON data
-    JSON_Value *jsonData = NULL;
+//    JSON_Value *jsonData = NULL;
 
     FlexiDataProxyVTab_t *dataVTab = (void *) pVTab;
     JsonProcessor_t jsonProc;
@@ -773,34 +773,34 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
     }
     else
     {
-        jsonData = json_parse_string((const char *) sqlite3_value_text(argv[FLEXI_DATA_COL_DATA + 2]));
-        if (jsonData == NULL)
-        {
-            result = SQLITE_ERROR;
-            flexi_Context_setError(dataVTab->pCtx, result,
-                                   sqlite3_mprintf("Invalid or missing data JSON"));
-            goto ONERROR;
-        }
-        // Check if this is array of objects or single object
-        JSON_Value_Type jsonType = json_value_get_type(jsonData);
-        switch (jsonType)
-        {
-            case JSONError:
-                result = SQLITE_ERROR;
-                flexi_Context_setError(dataVTab->pCtx, result,
-                                       sqlite3_mprintf("Error on parsing data JSON"));
-                goto ONERROR;
-            case JSONArray:
-                break;
-            case JSONObject:
-                break;
-            default:
-                result = SQLITE_ERROR;
-                flexi_Context_setError(dataVTab->pCtx, result,
-                                       sqlite3_mprintf("Encountered invalid data JSON type"));
-                goto ONERROR;
-        }
-
+//        jsonData = json_parse_string((const char *) sqlite3_value_text(argv[FLEXI_DATA_COL_DATA + 2]));
+//        if (jsonData == NULL)
+//        {
+//            result = SQLITE_ERROR;
+//            flexi_Context_setError(dataVTab->pCtx, result,
+//                                   sqlite3_mprintf("Invalid or missing data JSON"));
+//            goto ONERROR;
+//        }
+//        // Check if this is array of objects or single object
+//        JSON_Value_Type jsonType = json_value_get_type(jsonData);
+//        switch (jsonType)
+//        {
+//            case JSONError:
+//                result = SQLITE_ERROR;
+//                flexi_Context_setError(dataVTab->pCtx, result,
+//                                       sqlite3_mprintf("Error on parsing data JSON"));
+//                goto ONERROR;
+//            case JSONArray:
+//                break;
+//            case JSONObject:
+//                break;
+//            default:
+//                result = SQLITE_ERROR;
+//                flexi_Context_setError(dataVTab->pCtx, result,
+//                                       sqlite3_mprintf("Encountered invalid data JSON type"));
+//                goto ONERROR;
+//        }
+//
 
         _UpsertParams_t pp = {};
         pp.pDataSource = pDataSource;
@@ -887,8 +887,7 @@ static int _upsertOrDelete(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, 
 
     EXIT:
     sqlite3_finalize(pDataSource);
-    if (jsonData)
-        json_value_free(jsonData);
+
 
     JsonProcessor_clear(&jsonProc);
     return result;

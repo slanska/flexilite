@@ -53,7 +53,7 @@ struct flexi_PropDef_t
     /*
      * Existing property data need to be validated
      */
-    bool bValidateDate;
+    bool bValidateData;
 
     char *zIndex;
     char *zSubType;
