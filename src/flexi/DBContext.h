@@ -11,6 +11,8 @@
 #include "ClassDef.h"
 #include "../sqlite/Database.h"
 
+class ClassDef;
+
 struct DBContext
 {
     SQLite::Database *database = nullptr;
@@ -59,7 +61,7 @@ public:
      */
     //    Hash classDefsByName;
 
-    std::map<std::string, ClassDef> classDefsByName = {};
+    std::map<std::string, std::shared_ptr<ClassDef>> classDefsByName = {};
 
     // TODO Init and use
     Hash classDefsById = {};
@@ -86,6 +88,10 @@ public:
      * Cache gets cleared on every exit
      */
     struct RBTree refValueCache = {};
+
+public:
+    std::shared_ptr<ClassDef> getClassById(sqlite3_int64 classID);
+    std::shared_ptr<PropertyDef> getPropertyById(sqlite3_int64 propertyID);
 };
 
 #endif //FLEXILITE_DBCONTEXT_H

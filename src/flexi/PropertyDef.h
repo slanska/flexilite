@@ -5,8 +5,11 @@
 #ifndef FLEXILITE_PROPERTYDEF_H
 #define FLEXILITE_PROPERTYDEF_H
 
+#include <memory>
+#include <map>
+#include <vector>
 
-struct PropertyDef
+class PropertyDef
 {
     int d;
 

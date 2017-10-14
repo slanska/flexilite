@@ -159,7 +159,7 @@ set(EXT_FILES
         src/sqlite/Transaction.h
         src/sqlite/SQLiteCpp.h
         src/sqlite/VariadicBind.h
-        src/sqlite/Assertion.h)
+        src/sqlite/Assertion.h src/flexi/SymbolRef.cpp src/flexi/SymbolRef.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
