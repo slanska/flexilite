@@ -206,9 +206,11 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
             break;
 
         if (pClassDef->aMixins == NULL)
-            pClassDef->aMixins = Array_new(sizeof(struct flexi_ClassRefDef), (void *) flexi_ClassRefDef_dispose);
+        {
+            pClassDef->aMixins = Array_new(sizeof(struct flexi_ClassRefDef), flexi_ClassRefDef_dispose);
+        }
 
-        struct flexi_ClassRefDef *mixin = Array_append(pClassDef->aMixins);
+        auto mixin = static_cast<struct flexi_ClassRefDef *>(Array_append(pClassDef->aMixins));
         if (!mixin)
         {
             result = SQLITE_NOMEM;
@@ -238,7 +240,7 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
             if (result != SQLITE_ROW)
                 break;
 
-            struct flexi_ClassRefRule *rule = Array_append(&mixin->rules);
+            auto rule = static_cast<struct flexi_ClassRefRule *>(Array_append(&mixin->rules));
             if (!rule)
             {
                 result = SQLITE_NOMEM;
@@ -379,14 +381,15 @@ static void _dummy_ptr(void *ptr)
  */
 struct flexi_ClassDef_t *flexi_class_def_new(struct flexi_Context_t *pCtx)
 {
-    struct flexi_ClassDef_t *result = sqlite3_malloc(sizeof(struct flexi_ClassDef_t));
+    auto result = static_cast<struct flexi_ClassDef_t *>( sqlite3_malloc(sizeof(struct flexi_ClassDef_t)));
     if (!result)
         return result;
     memset(result, 0, sizeof(*result));
 
     result->pCtx = pCtx;
-    HashTable_init(&result->propsByName, DICT_STRING_NO_FREE, (void *) flexi_PropDef_free);
-    HashTable_init(&result->propsByID, DICT_INT, (void *) _dummy_ptr);
+    HashTable_init(&result->propsByName, DICT_STRING_NO_FREE,
+                   reinterpret_cast<void (*)(void *) > ( flexi_PropDef_free));
+    HashTable_init(&result->propsByID, DICT_INT, reinterpret_cast<void (*)(void *) > (_dummy_ptr));
     return result;
 }
 
@@ -433,7 +436,8 @@ int flexi_ClassDef_create(struct flexi_Context_t *pCtx, const char *zClassName, 
     CHECK_CALL(_create_class_record(pCtx, zClassName, zOriginalClassDef, &lClassID));
 
     CHECK_CALL(
-            _flexi_ClassDef_applyNewDef(pCtx, lClassID, zOriginalClassDef, bCreateVTable, INVALID_DATA_ABORT));
+            _flexi_ClassDef_applyNewDef(pCtx, lClassID, zOriginalClassDef, bCreateVTable,
+                                        ALTER_CLASS_DATA_VALIDATION_MODE::INVALID_DATA_ABORT));
 
     result = SQLITE_OK;
 
@@ -478,22 +482,22 @@ int flexi_class_create_func(
     assert(argc == 2 || argc == 3);
 
     // 1st arg: class name
-    const char *zClassName = (const char *) sqlite3_value_text(argv[0]);
+    auto zClassName = (const char *) sqlite3_value_text(argv[0]);
 
     // 2nd arg: class definition, in JSON format
-    const char *zClassDef = (const char *) sqlite3_value_text(argv[1]);
+    auto zClassDef = (const char *) sqlite3_value_text(argv[1]);
 
     // 3rd arg (optional): create virtual table
     bool bCreateVTable = false;
     if (argc == 3)
         bCreateVTable = sqlite3_value_int(argv[2]) != 0;
 
-    const char *zError = NULL;
+    const char *zError = nullptr;
 
     sqlite3 *db = sqlite3_context_db_handle(context);
 
     int result;
-    char *zSQL = NULL;
+    char *zSQL = nullptr;
     if (bCreateVTable)
     {
         zSQL = sqlite3_mprintf("create virtual table [%s] using flexi ('%s')", zClassName, zClassDef);
@@ -501,7 +505,7 @@ int flexi_class_create_func(
     }
     else
     {
-        void *pCtx = sqlite3_user_data(context);
+        auto pCtx = static_cast<struct flexi_Context_t *>( sqlite3_user_data(context));
         CHECK_CALL(flexi_ClassDef_create(pCtx, zClassName, zClassDef, bCreateVTable));
     }
 
@@ -533,7 +537,9 @@ int flexi_class_alter_func(
     assert(argc >= 2 && argc <= 4);
 
     int result = SQLITE_OK;
-    const char *zError = NULL;
+    const char *zError = nullptr;
+
+    struct flexi_Context_t *pCtx;
 
     // 1st arg: class name
     char *zClassName = (char *) sqlite3_value_text(argv[0]);
@@ -554,7 +560,7 @@ int flexi_class_alter_func(
      * This flag can be attempted to clear by flexi('validate data')
      */
     const char *zValidateMode = NULL;
-    enum ALTER_CLASS_DATA_VALIDATION_MODE eValidationMode = INVALID_DATA_ABORT;
+    enum ALTER_CLASS_DATA_VALIDATION_MODE eValidationMode = ALTER_CLASS_DATA_VALIDATION_MODE::INVALID_DATA_ABORT;
     if (argc == 4)
     {
         const static struct
@@ -563,15 +569,15 @@ int flexi_class_alter_func(
             enum ALTER_CLASS_DATA_VALIDATION_MODE opCode;
         }
                 g_DataValidationModes[] = {
-                {"ABORT",  INVALID_DATA_ABORT},
-                {"0",      INVALID_DATA_ABORT},
-                {"IGNORE", INVALID_DATA_IGNORE},
-                {"1",      INVALID_DATA_IGNORE}
+                {"ABORT",  ALTER_CLASS_DATA_VALIDATION_MODE::INVALID_DATA_ABORT},
+                {"0",      ALTER_CLASS_DATA_VALIDATION_MODE::INVALID_DATA_ABORT},
+                {"IGNORE", ALTER_CLASS_DATA_VALIDATION_MODE::INVALID_DATA_IGNORE},
+                {"1",      ALTER_CLASS_DATA_VALIDATION_MODE::INVALID_DATA_IGNORE}
         };
         zValidateMode = (char *) sqlite3_value_text(argv[3]);
         if (zValidateMode)
         {
-            eValidationMode = INVALID_DATA_ERROR;
+            eValidationMode = ALTER_CLASS_DATA_VALIDATION_MODE::INVALID_DATA_ERROR;
             for (int iValMode = 0; iValMode < ARRAY_LEN(g_DataValidationModes); iValMode++)
             {
                 if (sqlite3_stricmp(zValidateMode, g_DataValidationModes[iValMode].opName) == 0)
@@ -581,7 +587,7 @@ int flexi_class_alter_func(
                 }
             }
 
-            if (eValidationMode == INVALID_DATA_ERROR)
+            if (eValidationMode == ALTER_CLASS_DATA_VALIDATION_MODE::INVALID_DATA_ERROR)
             {
                 zError = sqlite3_mprintf(
                         "Invalid data validation mode - \"%s\". Supported values are: ABORT (default) or IGNORE",
@@ -590,7 +596,7 @@ int flexi_class_alter_func(
             }
         }
     }
-    struct flexi_Context_t *pCtx = sqlite3_user_data(context);
+    pCtx = static_cast<struct flexi_Context_t *> (sqlite3_user_data(context));
     CHECK_CALL(flexi_class_alter(pCtx, zClassName, zNewClassDef, eValidationMode, bCreateVTable));
 
     goto EXIT;
@@ -656,7 +662,7 @@ int flexi_class_drop_func(
         softDel = sqlite3_value_int(argv[1]);
 
     sqlite3_int64 lClassID;
-    struct flexi_Context_t *pCtx = sqlite3_user_data(context);
+    auto pCtx = static_cast<struct flexi_Context_t *> (sqlite3_user_data(context));
     CHECK_CALL(flexi_Context_getClassIdByName(pCtx, zClassName, &lClassID));
 
     CHECK_CALL(flexi_class_drop(pCtx, lClassID, softDel));
@@ -724,7 +730,7 @@ int flexi_class_rename_func(
     char *zNewClassName = (char *) sqlite3_value_text(argv[1]);
 
     sqlite3 *db = sqlite3_context_db_handle(context);
-    struct flexi_Context_t *pCtx = sqlite3_user_data(context);
+    auto pCtx = static_cast<struct flexi_Context_t *>( sqlite3_user_data(context));
 
     sqlite3_int64 iOldID;
     int result;
@@ -846,6 +852,9 @@ void flexi_ClassDef_free(struct flexi_ClassDef_t *self)
 int flexi_ClassDef_generateVtableSql(struct flexi_ClassDef_t *pClassDef, char **zSQL)
 {
     int result;
+    // TODO
+    int nPropIdx = 0;
+    void *pTmp;
 
     char *sbClassDef = sqlite3_mprintf("create table [%s] (", pClassDef->lClassID);
     if (!sbClassDef)
@@ -854,20 +863,17 @@ int flexi_ClassDef_generateVtableSql(struct flexi_ClassDef_t *pClassDef, char **
         goto ONERROR;
     }
 
-    // TODO
-    int nPropIdx = 0;
-
     if (nPropIdx != 0)
     {
-        void *pTmp = sbClassDef;
+        pTmp = sbClassDef;
         sbClassDef = sqlite3_mprintf("%s,", pTmp);
         sqlite3_free(pTmp);
     }
 
     {
         // TODO
-        var pPropType = NULL;
-        void *pTmp = sbClassDef;
+        var pPropType = nullptr;
+        pTmp = sbClassDef;
         sbClassDef = sqlite3_mprintf("%s[%s] %s", pTmp, pClassDef->pProps[nPropIdx].name.name, pPropType);
         sqlite3_free(pTmp);
     }
@@ -896,12 +902,15 @@ int flexi_ClassDef_generateVtableSql(struct flexi_ClassDef_t *pClassDef, char **
  * Sets property name ID
  */
 static void
-_getPropNameID(const char *zKey, const sqlite3_int64 index, struct flexi_PropDef_t *prop,
-               const var collection, flexi_ClassDef_t *pClassDef, bool *bStop)
+_getPropNameID(const char *zKey, const sqlite3_int64 index, void *pData,
+               const var collection, void *param, bool *bStop)
 {
     UNUSED_PARAM(zKey);
     UNUSED_PARAM(index);
     UNUSED_PARAM(collection);
+
+    auto prop = static_cast<struct flexi_PropDef_t *>(pData);
+    auto pClassDef = static_cast<flexi_ClassDef_t *>(param);
 
     int result = flexi_Context_insertName(pClassDef->pCtx, prop->name.name, &prop->name.id);
     if (result != SQLITE_OK)
@@ -927,7 +936,7 @@ int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassD
     CHECK_SQLITE(pClassDef->pCtx->db, _parseProperties(pClassDef, pStmt, 0, 1, -1, -1, -1));
 
     // Get property name IDs
-    HashTable_each(&pClassDef->propsByName, (void *) _getPropNameID, pClassDef);
+    HashTable_each(&pClassDef->propsByName,  _getPropNameID, pClassDef);
 
     // Process other elements of class definition
     CHECK_CALL(_parseClassDefAux(pClassDef, zClassDefJson));
@@ -950,9 +959,10 @@ int flexi_ClassDef_parse(struct flexi_ClassDef_t *pClassDef, const char *zClassD
 int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, struct flexi_ClassDef_t **pClassDef)
 {
     int result;
-    char *zClassDefJson = NULL;
+    char *zClassDefJson = nullptr;
+    char *zClassDef = nullptr;
 
-    *pClassDef = HashTable_get(&pCtx->classDefsById, (DictionaryKey_t) {.iKey = lClassID});
+    *pClassDef = static_cast<struct flexi_ClassDef_t *> (HashTable_get(&pCtx->classDefsById, (DictionaryKey_t) {.iKey = lClassID}));
     if (*pClassDef != NULL)
         return SQLITE_OK;
 
@@ -1001,7 +1011,6 @@ int flexi_ClassDef_load(struct flexi_Context_t *pCtx, sqlite3_int64 lClassID, st
     (*pClassDef)->xCtloMask = sqlite3_column_int(pGetClassStmt, 3);
 
     // TODO Temp
-    char *zClassDef = NULL;
     getColumnAsText(&zClassDef, pGetClassStmt, 5);
 
     // Load properties from flexi_prop

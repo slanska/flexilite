@@ -15,8 +15,9 @@ void flexi_MetadataRef_free(flexi_MetadataRef_t *pp)
         sqlite3_free(pp->name);
 }
 
-void flexi_ClassRefDef_dispose(struct flexi_ClassRefDef *p)
+void flexi_ClassRefDef_dispose(void *ptr)
 {
+    struct flexi_ClassRefDef *p = ptr;
     if (p)
     {
         Array_clear(&p->rules);

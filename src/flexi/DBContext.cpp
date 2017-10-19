@@ -4,6 +4,11 @@
 
 #include "DBContext.h"
 
+DBContext::DBContext(sqlite3 *_db) : db(_db)
+{
+    database = new SQLite::Database(_db);
+}
+
 std::shared_ptr<ClassDef> DBContext::getClassById(sqlite3_int64 classID)
 {
     // TODO

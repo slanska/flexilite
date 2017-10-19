@@ -9,9 +9,10 @@
 #include <map>
 #include <vector>
 #include "PropertyDef.h"
+
 #include "../project_defs.h"
 #include "SymbolRef.h"
-#include <rapidjson/document.h>
+#include <json.hpp>
 
 /*
  * Column numbers and array indexes for class' special properties

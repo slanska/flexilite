@@ -11,12 +11,6 @@
 
 #include <sqlite3ext.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-SQLITE_EXTENSION_INIT3
-
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
@@ -28,12 +22,17 @@ SQLITE_EXTENSION_INIT3
 
 #include "flexi/flexi_db_ctx.h"
 
+SQLITE_EXTENSION_INIT3
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Macro to determine if property has range type
  */
 // TODO temporary implementation
 #define IS_RANGE_PROPERTY(propType) 0
-
 
 /*
  * Internal API

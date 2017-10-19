@@ -13,3 +13,8 @@
 * flexi_prop_* (create, alter, delete)
 * flexi_relation_create
 * flexi_query - to retrieve data
+
+* create/destroy DBContext
+* Port class load to ClassDef
+* Use RapidJSON / NLohmann
+* Update - implement

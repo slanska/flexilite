@@ -47,13 +47,16 @@ namespace SQLite
         return sqlite3_libversion_number();
     }
 
+    Database::Database(sqlite3 *db) : mpSQLite(db), mFilename(sqlite3_db_filename(db, "main"))
+    {
+    }
 
     // Open the provided database UTF-8 filename with SQLite::OPEN_xxx provided flags.
     Database::Database(const char *apFilename,
                        const int aFlags         /* = SQLite::OPEN_READONLY*/,
                        const int aBusyTimeoutMs /* = 0 */,
                        const char *apVfs          /* = NULL*/) :
-            mpSQLite(NULL),
+            mpSQLite(nullptr),
             mFilename(apFilename)
     {
         const int ret = sqlite3_open_v2(apFilename, &mpSQLite, aFlags, apVfs);

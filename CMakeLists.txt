@@ -59,7 +59,7 @@ project(Flexilite)
 include_directories(
         lib/duktape
         lib/sqlite
-        lib/rapidjson/include
+        lib/nlohmann-json
 )
 
 add_custom_target(Generate_Resources
@@ -88,7 +88,7 @@ set(EXT_FILES
         src/misc/fileio.c
         src/misc/regexp.c
         src/misc/totype.c
-        src/_old_flexilite/flexi_get.c
+#        src/_old_flexilite/flexi_get.c
         src/misc/var.c
 
         src/util/hash.c
@@ -96,48 +96,49 @@ set(EXT_FILES
         src/misc/hash.c
 
         src/misc/memstat.c
-        src/flexi/flexi_data.c
+#        src/flexi/flexi_data.cpp
 
         lib/duktape/duktape.c
+        lib/nlohmann-json/json.hpp
 
-        src/flexi/flexi_class.c
-        src/flexi/flexi_class_alter.c
-        src/flexi/flexi_props_to_object.c
+#        src/flexi/flexi_class.cpp
+#        src/flexi/flexi_class_alter.cpp
+#        src/flexi/flexi_props_to_object.c
 
         src/fts/fts3_expr.c
         src/fts/fts3_tokenizer.c
         src/fts/fts3_hash.c
-        src/flexi/flexi_prop.c
-        src/flexi/flexi_prop_merge.c
-        src/flexi/flexi_query.cpp
-        src/util/json_proc.c
+#        src/flexi/flexi_prop.c
+#        src/flexi/flexi_prop_merge.c
+#        src/flexi/flexi_query.cpp
+#        src/util/json_proc.c
         src/common/common.h
         src/util/Array.c
         src/util/Array.h
-        src/flexi/flexi_func.c
+        src/flexi/flexi_func.cpp
 
-        src/flexi/flexi_prop_merge.h
-        src/flexi/flexi_db_ctx.c
-        src/flexi/flexi_db_ctx.h
-        src/flexi/flexi_UserInfo_t.c
-        src/flexi/flexi_UserInfo_t.h
-        src/util/rbtree.c
-        src/flexi/class_ref_def.c
-        src/flexi/class_ref_def.h
-        src/util/List.c
-        src/util/List.h
+#        src/flexi/flexi_prop_merge.h
+#        src/flexi/flexi_db_ctx.cpp
+#        src/flexi/flexi_db_ctx.h
+#        src/flexi/flexi_UserInfo_t.c
+#        src/flexi/flexi_UserInfo_t.h
+#        src/util/rbtree.c
+#        src/flexi/class_ref_def.c
+#        src/flexi/class_ref_def.h
+#        src/util/List.c
+#        src/util/List.h
         src/util/Path.c
         src/util/Path.h
         src/util/StringBuilder.c
         src/util/StringBuilder.h
-        src/flexi/flexi_data_adhoc.c
-        src/flexi/flexi_data_vtable.c
-        src/flexi/class_build_json.c
-        src/flexi/flexi_data.h
-        src/flexi/flexi_Object.c
-        src/flexi/flexi_Object.h
-        src/flexi/flexi_PropValue.c
-        src/flexi/flexi_PropValue.h
+#        src/flexi/flexi_data_adhoc.c
+#        src/flexi/flexi_data_vtable.c
+#        src/flexi/class_build_json.c
+#        src/flexi/flexi_data.h
+#        src/flexi/flexi_Object.c
+#        src/flexi/flexi_Object.h
+#        src/flexi/flexi_PropValue.c
+#        src/flexi/flexi_PropValue.h
         src/flexi/DBContext.cpp
         src/flexi/DBContext.h
         src/flexi/ClassDef.cpp
@@ -156,7 +157,9 @@ set(EXT_FILES
         src/sqlite/Transaction.h
         src/sqlite/SQLiteCpp.h
         src/sqlite/VariadicBind.h
-        src/sqlite/Assertion.h src/flexi/SymbolRef.cpp src/flexi/SymbolRef.h)
+        src/sqlite/Assertion.h
+        src/flexi/SymbolRef.cpp
+        src/flexi/SymbolRef.h)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")

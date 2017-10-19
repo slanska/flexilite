@@ -43,6 +43,8 @@ namespace SQLite
         friend class Statement; // Give Statement constructor access to the mpSQLite Connection Handle
 
     public:
+        explicit Database(sqlite3* db);
+
         /**
          * @brief Open the provided database UTF-8 filename.
          *
@@ -64,8 +66,6 @@ namespace SQLite
                  const int aFlags = SQLite::OPEN_READONLY,
                  const int aBusyTimeoutMs = 0,
                  const char *apVfs = NULL);
-
-        // Database(sqlite* db);
 
         /**
          * @brief Open the provided database UTF-8 filename.

@@ -5,17 +5,16 @@
 #ifndef FLEXILITE_FLEXI_ENV_H
 #define FLEXILITE_FLEXI_ENV_H
 
-#include <sqlite3ext.h>
-#include <duktape.h>
-#include "../util/hash.h"
-#include "flexi_UserInfo_t.h"
-#include "../util/Array.h"
-#include "../util/rbtree.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include <sqlite3ext.h>
+//#include <duktape.h>
+#include "../util/hash.h"
+#include "flexi_UserInfo_t.h"
+#include "../util/Array.h"
+#include "../util/rbtree.h"
 
 /*
  * Forward declaration
@@ -176,7 +175,7 @@ typedef struct flexi_Context_t
     /*
      * Duktape context. Created on demand
      */
-    duk_context *pDuk;
+// TODO   duk_context *pDuk;
 
     /*
      * Hash of loaded class definitions (by current names)

@@ -6,6 +6,11 @@
  * Implementation of class alteration
  */
 
+
+//#ifdef __cplusplus
+//extern "C" {
+//#endif
+
 #include "../project_defs.h"
 #include "flexi_class.h"
 #include "../util/List.h"
@@ -65,7 +70,7 @@ _ClassAlterAction_t *_ClassAlterAction_new(flexi_MetadataRef_t *ref,
                                            void (*disposeParams)(_ClassAlterAction_t *self),
                                            var params)
 {
-    _ClassAlterAction_t *result = sqlite3_malloc(sizeof(_ClassAlterAction_t *));
+    auto result = static_cast<_ClassAlterAction_t *>( sqlite3_malloc(sizeof(_ClassAlterAction_t *)));
     if (result)
     {
         result->action = action;
@@ -341,8 +346,8 @@ _validatePropChange(const char *zPropName, int index, struct flexi_PropDef_t *p,
         return;
 
     // Check if class2 has the same property
-    struct flexi_PropDef_t *pProp2;
-    pProp2 = HashTable_get(&alterCtx->pExistingClassDef->propsByName, (DictionaryKey_t) {.pKey= zPropName});
+    auto pProp2 = static_cast<struct flexi_PropDef_t *>( HashTable_get(&alterCtx->pExistingClassDef->propsByName,
+                                                                       (DictionaryKey_t) {.pKey= zPropName}));
 
     if (pProp2)
     {
@@ -373,7 +378,7 @@ _validatePropChange(const char *zPropName, int index, struct flexi_PropDef_t *p,
                         CHECK_ERROR(propAction == NULL, "No memory");
                         List_add(&alterCtx->propActions, propAction);
                     }
-                    else transitRule = NULL;
+                    else transitRule = nullptr;
                 }
             }
 
@@ -473,12 +478,15 @@ struct ValidateClassParams_t
 };
 
 static void
-_validateProp(const char *zPropName, int idx, struct flexi_PropDef_t *prop, var propMap,
-              struct ValidateClassParams_t *params, bool *bStop)
+_validateProp(const char *zPropName, const sqlite3_int64 idx, void *pData,
+              const var propMap, var param, bool *bStop)
 {
     UNUSED_PARAM(zPropName);
     UNUSED_PARAM(idx);
-    UNUSED_PARAM(propMap);
+
+    auto prop = static_cast<struct flexi_PropDef_t *>(pData);
+    auto params = static_cast<struct ValidateClassParams_t *>(param);
+
     if (prop->bValidate)
         // Already invalid. Nothing to do
         return;
@@ -499,13 +507,13 @@ _validateProp(const char *zPropName, int idx, struct flexi_PropDef_t *prop, var 
 static int
 _validateClassData(_ClassAlterContext_t *alterCtx)
 {
-    int result;
+    int result = SQLITE_OK;
 
     struct ValidateClassParams_t params = {};
 
     // Iterate
 
-    HashTable_each(&alterCtx->pNewClassDef->propsByName, (void *) _validateProp, &params);
+    HashTable_each(&alterCtx->pNewClassDef->propsByName, _validateProp, &params);
 
 
     return result;
@@ -522,8 +530,8 @@ _copyExistingProp(const char *zPropName, int idx, struct flexi_PropDef_t *prop, 
     UNUSED_PARAM(idx);
     UNUSED_PARAM(propMap);
 
-    struct flexi_PropDef_t *pNewProp = HashTable_get(&alterCtx->pNewClassDef->propsByName,
-                                                     (DictionaryKey_t) {.pKey = zPropName});
+    auto pNewProp = reinterpret_cast<struct flexi_PropDef_t *> (HashTable_get(&alterCtx->pNewClassDef->propsByName,
+                                                                              (DictionaryKey_t) {.pKey = zPropName}));
     if (!pNewProp)
     {
         HashTable_set(&alterCtx->pNewClassDef->propsByName, (DictionaryKey_t) {.pKey=zPropName}, prop);
@@ -578,7 +586,7 @@ _processSpecialProps(_ClassAlterContext_t *alterCtx)
 }
 
 static void
-_compPropByIdAndName(const char *zKey, u32 idx, struct flexi_PropDef_t *pProp, Hash *pPropMap,
+_compPropByIdAndName(const char *zKey, const sqlite3_int64 idx, struct flexi_PropDef_t *pProp, Hash *pPropMap,
                      flexi_MetadataRef_t *pRef,
                      bool *bStop)
 {
@@ -601,10 +609,13 @@ _findPropByMetadataRef(struct flexi_ClassDef_t *pClassDef, flexi_MetadataRef_t *
 {
     if (pRef->id != 0)
     {
-        *pProp = HashTable_each(&pClassDef->propsByName, (void *) _compPropByIdAndName, pRef);
+        *pProp = static_cast<struct flexi_PropDef_t *> (HashTable_each(&pClassDef->propsByName,
+                                                                       reinterpret_cast<iterateeFunc > (_compPropByIdAndName),
+                                                                       pRef));
     }
     else
-        *pProp = HashTable_get(&pClassDef->propsByName, (DictionaryKey_t) {.pKey=pRef->name});
+        *pProp = static_cast<struct flexi_PropDef_t *> (HashTable_get(&pClassDef->propsByName,
+                                                                      (DictionaryKey_t) {.pKey=pRef->name}));
 
     return *pProp != NULL;
 }
@@ -787,8 +798,10 @@ _upsertPropDef(const char *zPropName, const sqlite3_int64 index, struct flexi_Pr
         // Retrieve ID of property
         if (propDef->iPropID == 0)
         {
-            CHECK_CALL( flexi_Context_stmtInit(alterCtx->pCtx, STMT_SEL_PROP_ID_BY_NAME,  "select ID from [.names_props] where "
-                    "PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1) limit 1;", &pGetPropIDStmt));
+            CHECK_CALL(flexi_Context_stmtInit(alterCtx->pCtx, STMT_SEL_PROP_ID_BY_NAME,
+                                              "select ID from [.names_props] where "
+                                                      "PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1) limit 1;",
+                                              &pGetPropIDStmt));
             sqlite3_bind_text(pGetPropIDStmt, 1, zPropName, -1, NULL);
             CHECK_STMT_STEP(pGetPropIDStmt, alterCtx->pCtx->db);
             propDef->iPropID = sqlite3_column_int64(pGetPropIDStmt, 0);
@@ -879,8 +892,8 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     if (alterCtx->pUpsertPropDefStmt == NULL)
     {
         // TODO Use context statement
-//        const char *zInsPropSQL = "insert or replace into [flexi_prop] (Property, ClassID, ctlv, ctlvPlan)"
-//                " values (:1, :2, :3, :4);";
+        //        const char *zInsPropSQL = "insert or replace into [flexi_prop] (Property, ClassID, ctlv, ctlvPlan)"
+        //                " values (:1, :2, :3, :4);";
         const char *zInsPropSQL = "insert  into [flexi_prop] (Property, ClassID, ctlv, ctlvPlan)"
                 " values (:1, :2, :3, :4);";
         CHECK_STMT_PREPARE(alterCtx->pCtx->db, zInsPropSQL, &alterCtx->pUpsertPropDefStmt);
@@ -902,10 +915,11 @@ _applyClassSchema(_ClassAlterContext_t *alterCtx, const char *zNewClassDef)
     // Iterate through existing objects and run property level actions
 
     // Post-actions
-    List_each(&alterCtx->postActions, (void *) _processAction, alterCtx);
+    List_each(&alterCtx->postActions, reinterpret_cast<iterateeFunc >( _processAction), alterCtx);
 
     // Save class JSON definition
-    CHECK_CALL(flexi_Context_stmtInit(alterCtx->pCtx, STMT_UPDATE_CLS_DEF, "update [.classes] set Data = :1 where ClassID = :2;", &pUpdClsStmt));
+    CHECK_CALL(flexi_Context_stmtInit(alterCtx->pCtx, STMT_UPDATE_CLS_DEF,
+                                      "update [.classes] set Data = :1 where ClassID = :2;", &pUpdClsStmt));
 
     // Build internal class definition, using property IDs etc.
     flexi_buildInternalClassDefJSON(alterCtx->pNewClassDef, zNewClassDef, &zInternalJSON);
@@ -1000,7 +1014,7 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
 
     CHECK_CALL(_applyClassSchema(&alterCtx, zNewClassDef));
 
-//    flexi_ClassDef_free(alterCtx.pExistingClassDef);
+    //    flexi_ClassDef_free(alterCtx.pExistingClassDef);
     alterCtx.pExistingClassDef = NULL;
 
     flexi_Context_addClassDef(pCtx, alterCtx.pNewClassDef);
@@ -1019,3 +1033,7 @@ int _flexi_ClassDef_applyNewDef(struct flexi_Context_t *pCtx, sqlite3_int64 lCla
 
     return result;
 }
+
+//#ifdef __cplusplus
+//}
+//#endif

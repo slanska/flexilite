@@ -84,3 +84,4 @@ node_modules
 /js/tests/data_import.spec.js
 /js/lib/drivers/SQLite/SQLiteDataRefactor.js.map
 /js/lib/drivers/SQLite/SQLiteDataRefactor.js
+!/lib/rapidjson/

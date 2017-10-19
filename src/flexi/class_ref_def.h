@@ -81,7 +81,7 @@ typedef struct flexi_ClassRefDef
 
 void flexi_ClassRefDef_init(struct flexi_ClassRefDef *p);
 
-void flexi_ClassRefDef_dispose(struct flexi_ClassRefDef *p);
+void flexi_ClassRefDef_dispose(void *p);
 
 /*
  * Result of comparing 2 class ref definitions

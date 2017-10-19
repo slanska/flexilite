@@ -212,6 +212,8 @@ void flexi_RefDef_free(Flexi_ClassRefDef_t *);
 
 struct flexi_enum_def
 {
+    // TODO
+    char dummy;
 };
 
 void flexi_enum_def_free(flexi_enum_def *);

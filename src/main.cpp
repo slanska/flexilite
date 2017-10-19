@@ -20,7 +20,7 @@ extern "C" int sqlite3_extension_init(
 {
     SQLITE_EXTENSION_INIT2(pApi);
 
-    auto ctx = std::unique_ptr<DBContext>(new DBContext(db));
+//    auto ctx = std::unique_ptr<DBContext>(new DBContext(db));
 
     // Use sqlite3 memory API for JSON operations
     //  TODO  json_set_allocation_functions(static_cast<JSON_Malloc_Function>(sqlite3_malloc), sqlite3_free);

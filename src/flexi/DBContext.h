@@ -13,13 +13,12 @@
 
 class ClassDef;
 
-struct DBContext
+class DBContext
 {
     SQLite::Database *database = nullptr;
 
 public:
-    explicit DBContext(sqlite3 *_db) : db(_db)
-    {}
+    explicit DBContext(sqlite3 *_db);
 
     /*
    * Associated database connection
@@ -54,7 +53,7 @@ public:
     /*
      * Duktape context. Created on demand
      */
-    duk_context *pDuk = nullptr;
+//    duk_context *pDuk = nullptr;
 
     /*
      * Hash of loaded class definitions (by current names)

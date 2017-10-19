@@ -39,12 +39,14 @@
  *
  */
 
+#include "DBContext.h"
 #include "../project_defs.h"
 
-SQLITE_EXTENSION_INIT3
+//SQLITE_EXTENSION_INIT3
 
 #include "flexi_class.h"
 #include "flexi_data.h"
+
 
 /*
  * Forward declarations
@@ -66,12 +68,11 @@ struct AdHocQryParams_t
      */
     char *zUser;
     int fetchDepth;
-
 };
 
 static void AdHoxQryParams_free(struct AdHocQryParams_t *self)
 {
-    if (self != NULL)
+    if (self != nullptr)
     {
         sqlite3_free(self->zBookmark);
         sqlite3_free(self->zFilter);
@@ -82,7 +83,7 @@ static void AdHoxQryParams_free(struct AdHocQryParams_t *self)
 
 static void FlexiDataProxyVTab_free(struct FlexiDataProxyVTab_t *self)
 {
-    if (self != NULL)
+    if (self != nullptr)
     {
         AdHoxQryParams_free(self->pQry);
         sqlite3_free(self);
@@ -177,12 +178,12 @@ static int _createOrConnect(
 
     struct flexi_ClassDef_t *pClassDef = NULL;
 
-    proxyVTab = sqlite3_malloc(sizeof(struct FlexiDataProxyVTab_t));
+    proxyVTab = static_cast<FlexiDataProxyVTab_t *>(sqlite3_malloc(sizeof(struct FlexiDataProxyVTab_t)));
     CHECK_NULL(proxyVTab);
     memset(proxyVTab, 0, sizeof(struct FlexiDataProxyVTab_t));
 
     // We expect pAux to be connection context
-    proxyVTab->pCtx = pAux;
+    proxyVTab->pCtx = static_cast<flexi_Context_t *> (pAux);
 
     CHECK_SQLITE(db, sqlite3_declare_vtab(db, "create table x("
             "[ClassName] ,"// 0 - class name TEXT
@@ -222,7 +223,7 @@ static int _createOrConnect(
         if (argc == 3 && strcmp(argv[2], "flexi_data") == 0)
         {
             proxyVTab->pApi = &_adhocQryProxyModule;
-            proxyVTab->pQry = sqlite3_malloc(sizeof(*proxyVTab->pQry));
+            proxyVTab->pQry = static_cast<AdHocQryParams_t *>(sqlite3_malloc(sizeof(*proxyVTab->pQry)));
             CHECK_NULL(proxyVTab->pQry);
             memset(proxyVTab->pQry, 0, sizeof(*proxyVTab->pQry));
 
@@ -230,15 +231,16 @@ static int _createOrConnect(
         }
         else
         {
-            *pzErr = "Invalid arguments. Expected class name and class definition JSON"
+            auto z = "Invalid arguments. Expected class name and class definition JSON"
                     " for virtual table creation or 'flexi_data' for eponymous table";
+            *pzErr = (char *) z;
             result = SQLITE_ERROR;
             goto ONERROR;
         }
 
     proxyVTab->pCtx->nRefCount++;
     result = SQLITE_OK;
-    *ppVtab = (void *) proxyVTab;
+    *ppVtab = static_cast<sqlite3_vtab *>(static_cast<void *>( proxyVTab));
     goto EXIT;
 
     ONERROR:
@@ -257,7 +259,7 @@ static int _createOrConnect(
  */
 static int _disconnect(sqlite3_vtab *pVTab)
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
+    auto proxyVTab = static_cast<struct FlexiDataProxyVTab_t *>(static_cast<void *>( pVTab));
     int result = proxyVTab->pApi->xDisconnect(pVTab);
 
     // Check if this was the last connected vtable. If so, free db context
@@ -308,7 +310,7 @@ static int _bestIndex(
         sqlite3_index_info *pIdxInfo
 )
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) tab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *> (tab);
 
     if (pIdxInfo->nConstraint > 0)
         printf("_bestIndex: nConstraints=%d\n", pIdxInfo->nConstraint);
@@ -326,7 +328,7 @@ static int _bestIndex(
  */
 static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *>( pVTab);
     int result = proxyVTab->pApi->xOpen(pVTab, ppCursor);
     return result;
 }
@@ -336,7 +338,7 @@ static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
  */
 static int _destroy(sqlite3_vtab *pVTab)
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *>(pVTab);
     int result = proxyVTab->pApi->xDestroy(pVTab);
 
     // TODO "delete from [.classes] where NameID = (select NameID from [.names] where Value = :name limit 1);"
@@ -348,7 +350,7 @@ static int _destroy(sqlite3_vtab *pVTab)
  */
 static int _close(sqlite3_vtab_cursor *pCursor)
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *>(pCursor->pVtab);
     int result = proxyVTab->pApi->xClose(pCursor);
     return result;
 }
@@ -363,7 +365,7 @@ static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
         printf("%d: %s\n", ii, sqlite3_value_text(v));
     }
 
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *>( pCursor->pVtab);
     int result = proxyVTab->pApi->xFilter(pCursor, idxNum, idxStr, argc, argv);
     return result;
 }
@@ -373,7 +375,7 @@ static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
  */
 static int _next(sqlite3_vtab_cursor *pCursor)
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *>(pCursor->pVtab);
     int result = proxyVTab->pApi->xNext(pCursor);
     return result;
 }
@@ -383,7 +385,7 @@ static int _next(sqlite3_vtab_cursor *pCursor)
  */
 static int _eof(sqlite3_vtab_cursor *pCursor)
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *>( pCursor->pVtab);
     int result = proxyVTab->pApi->xEof(pCursor);
     return result;
 }
@@ -396,7 +398,7 @@ static int _eof(sqlite3_vtab_cursor *pCursor)
  */
 static int _column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int iCol)
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *>( pCursor->pVtab);
     int result = proxyVTab->pApi->xColumn(pCursor, pContext, iCol);
     return result;
 }
@@ -406,7 +408,7 @@ static int _column(sqlite3_vtab_cursor *pCursor, sqlite3_context *pContext, int 
  */
 static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pCursor->pVtab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *>( pCursor->pVtab);
     int result = proxyVTab->pApi->xRowid(pCursor, pRowid);
     return result;
 }
@@ -439,7 +441,7 @@ UPDATE table SET rowid=rowid+1 WHERE ...;
  */
 static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid)
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVTab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *>( pVTab);
 
     printf("flexi_data.xUpdate\n");
     for (int ii = 0; ii < argc; ii++)
@@ -464,7 +466,7 @@ static int _find_method(
         void **ppArg
 )
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVtab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *>( pVtab);
     int result = proxyVTab->pApi->xFindFunction(pVtab, nArg, zName, pxFunc, ppArg);
     return result;
 }
@@ -475,7 +477,7 @@ static int _find_method(
  */
 static int _rename(sqlite3_vtab *pVtab, const char *zNew)
 {
-    struct FlexiDataProxyVTab_t *proxyVTab = (void *) pVtab;
+    auto proxyVTab = reinterpret_cast<struct FlexiDataProxyVTab_t *>( pVtab);
     int result = proxyVTab->pApi->xRename(pVtab, zNew);
     return result;
 }
@@ -519,18 +521,19 @@ static void _matchTextFunction(sqlite3_context *context, int argc, sqlite3_value
 {
     // TODO Update lookup statistics
     int result;
-    struct flexi_Context_t *pDBEnv = sqlite3_user_data(context);
+    auto pDBEnv = static_cast<struct flexi_Context_t *>(sqlite3_user_data(context));
+    sqlite3_int64 lDocID;
 
     assert(pDBEnv);
 
-    if (pDBEnv->pMemDB == NULL)
+    if (pDBEnv->pMemDB == nullptr)
     {
         CHECK_CALL(sqlite3_open_v2(":memory:", &pDBEnv->pMemDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL));
 
         CHECK_SQLITE(pDBEnv->pMemDB, sqlite3_exec(pDBEnv->pMemDB, "PRAGMA journal_mode = OFF;"
                                                           "create virtual table if not exists [.match_func] using 'fts4' (txt, tokenize=unicode61);", NULL,
-                                                  NULL,
-                                                  NULL));
+                                                  nullptr,
+                                                  nullptr));
 
         CHECK_STMT_PREPARE(pDBEnv->pMemDB, "insert or replace into [.match_func] (docid, txt) values (1, :1);",
                            &pDBEnv->pMatchFuncInsStmt);
@@ -548,7 +551,7 @@ static void _matchTextFunction(sqlite3_context *context, int argc, sqlite3_value
     sqlite3_reset(pDBEnv->pMatchFuncSelStmt);
     sqlite3_bind_value(pDBEnv->pMatchFuncSelStmt, 1, argv[0]);
     CHECK_STMT_STEP(pDBEnv->pMatchFuncSelStmt, pDBEnv->pMemDB);
-    sqlite3_int64 lDocID = sqlite3_column_int64(pDBEnv->pMatchFuncSelStmt, 0);
+    lDocID = sqlite3_column_int64(pDBEnv->pMatchFuncSelStmt, 0);
     if (lDocID == 1)
         sqlite3_result_int(context, 1);
     else
@@ -569,7 +572,7 @@ int flexi_data_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi,
-        struct flexi_Context_t *pCtx
+        DBContext *pCtx
 )
 {
     (void) pApi;
