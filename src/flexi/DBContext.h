@@ -7,6 +7,7 @@
 
 #include <string>
 #include <map>
+#include <unordered_map>
 #include "../project_defs.h"
 #include "ClassDef.h"
 #include "../sqlite/Database.h"
@@ -53,14 +54,14 @@ public:
     /*
      * Duktape context. Created on demand
      */
-//    duk_context *pDuk = nullptr;
+    //    duk_context *pDuk = nullptr;
 
     /*
      * Hash of loaded class definitions (by current names)
      */
     //    Hash classDefsByName;
 
-    std::map<std::string, std::shared_ptr<ClassDef>> classDefsByName = {};
+    std::unordered_map<std::string, std::shared_ptr<ClassDef>> classDefsByName = {};
 
     // TODO Init and use
     Hash classDefsById = {};
@@ -86,11 +87,45 @@ public:
      * Items in tree are flexi_RefValue_t
      * Cache gets cleared on every exit
      */
+
+    // TODO use map/unordered_map
     struct RBTree refValueCache = {};
 
 public:
     std::shared_ptr<ClassDef> getClassById(sqlite3_int64 classID);
+
     std::shared_ptr<PropertyDef> getPropertyById(sqlite3_int64 propertyID);
+
+    void CreateClass(std::string className, std::string classDefJson,
+                     bool createVTable);
+    std::shared_ptr<ClassDef> LoadClassDef(sqlite3_int64 classId);
+    std::shared_ptr<ClassDef> LoadClassDef(std::string className);
+
+    // 'flexi' sqlite sub-functions
+    void CreateClassFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void InitDatabaseFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void UsageFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void AlterClassFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void DropClassFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void CreatePropFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void AlterPropFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void DropPropFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void RenameClassFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void RenamePropFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void MergePropFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void SplitPropFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void ObjectToPropsFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void PropsToObjectFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void PropToRefFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void RefToPropFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void ChangeObjectClassFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void SchemaFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void ConfigFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void StructuralSplitFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void StructuralMergeFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+    void RemoveDuplicatesFunc(sqlite3_context*context, int argc, sqlite3_value** argv);
+
+    sqlite3_int64 GetClassID(std::string className);
 };
 
 #endif //FLEXILITE_DBCONTEXT_H
