@@ -60,6 +60,7 @@ include_directories(
         lib/duktape
         lib/sqlite
         lib/nlohmann-json
+        lib/dukglue/include/dukglue
 )
 
 add_custom_target(Generate_Resources
