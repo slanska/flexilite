@@ -99,6 +99,8 @@ set(EXT_FILES
 #        src/flexi/flexi_data.cpp
 
         lib/duktape/duktape.c
+        lib/dukglue/include/dukglue/dukglue.h
+
         lib/nlohmann-json/json.hpp
 
 #        src/flexi/flexi_class.cpp

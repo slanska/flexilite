@@ -8,3 +8,6 @@
 
 
 
+[submodule "lib/dukglue"]
+	path = lib/dukglue
+	url = https://github.com/Aloshi/dukglue.git
