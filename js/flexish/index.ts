@@ -25,15 +25,13 @@
 ///<reference path="../../typings/index.d.ts"/>
 
 let cli = require('cli');
-import Promise = require('bluebird');
 import sqlite = require('../dbhelper');
-import path = require('path');
-var jsBeautify = require('js-beautify');
-import fs = require('fs');
+
+let jsBeautify = require('js-beautify');
 
 import {SQLiteSchemaParser} from './sqliteSchemaParser';
-import {runFlexiliteQuery} from './runQuery';
-import {initFlexiliteDatabase} from './initDb';
+// import {runFlexiliteQuery} from './runQuery';
+// import {initFlexiliteDatabase} from './initDb';
 
 // Promise.promisify(sqlite.Database.prototype.all);
 // Promise.promisify(sqlite.Database.prototype.exec);
@@ -59,7 +57,7 @@ cli.parse(
     // Commands
     ['schema', 'load', 'query', 'help', 'init']);
 
-function generateSchema(args, options) {
+function generateSchema(args: any, options: any) {
     let db = new sqlite.Database(options.database);
     let parser = new SQLiteSchemaParser(db);
     return parser.parseSchema()
@@ -72,22 +70,22 @@ function generateSchema(args, options) {
         });
 }
 
-function queryDatabase(args, options) {
+function queryDatabase(args: any[], options: any) {
     // Init db
     // return runFlexiliteQuery();
 }
 
-function loadData(args, options) {
+function loadData(args: any[], options: any) {
 }
 
-function initDatabase(args, options) {
+function initDatabase(args: any[], options: any) {
 }
 
 /*
  Main function will get list of free standing arguments (not commands)
  and hash of named options
  */
-cli.main((args, options) => {
+cli.main((args: any[], options: any) => {
     switch (cli.command) {
         case 'schema':
             if (!options.database)

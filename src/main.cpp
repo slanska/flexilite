@@ -7,10 +7,6 @@
 #include <iostream>
 #include "main.h"
 
-#ifdef _WIN32
-__declspec(dllexport)
-#endif
-
 bool is_mod_2(int a)
 {
     return (a % 2) == 0;
@@ -53,14 +49,45 @@ public:
         return result;
     }
 
+    std::string Execute()
+    {
+        int result = sqlite3_step(pStmt);
+        if (result == SQLITE_ROW)
+        {
+            auto v = (const char *) sqlite3_column_text(pStmt, 0);
+            std::string vv(v);
+            return vv;
+        }
+        return "";
+    }
+
     ~Stmt()
     {
+        std::cout << "Statement destroyed" << std::endl;
         sqlite3_free((void *) zSql);
         sqlite3_free((void *) zTail);
         sqlite3_finalize(pStmt);
     }
 };
 
+static void *duk_malloc(void *udata, duk_size_t size)
+{
+    return sqlite3_malloc((duk_size_t) size);
+}
+
+static void *duk_realloc(void *udata, void *ptr, duk_size_t size)
+{
+    return sqlite3_realloc(ptr, (duk_size_t) size);
+}
+
+static void duk_free(void *udata, void *ptr)
+{
+    sqlite3_free(ptr);
+}
+
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
 extern "C" int sqlite3_extension_init(
         sqlite3 *db,
         char **pzErrMsg,
@@ -79,7 +106,9 @@ extern "C" int sqlite3_extension_init(
 
         explicit DukContext()
         {
-            pCtx = duk_create_heap_default();
+            pCtx = duk_create_heap(duk_malloc, duk_realloc,
+                                   duk_free, nullptr, nullptr);
+            //            pCtx = duk_create_heap_default();
 
             std::cout << "##### DukContext: created" << std::endl;
             // Register SQLite functions
@@ -89,9 +118,8 @@ extern "C" int sqlite3_extension_init(
             dukglue_register_function(pCtx, sqlite3_memory_highwater, "sqlite3_memory_highwater");
 
             dukglue_register_constructor<Stmt, uint64_t, const char *>(pCtx, "Stmt");
-            //            dukglue_register_constructor<Stmt, uintptr_t, const char*>(pCtx, "Stmt");
             dukglue_register_method(pCtx, &Stmt::Prepare, "Prepare");
-
+            dukglue_register_method(pCtx, &Stmt::Execute, "Execute");
 
             test_eval(pCtx, "is_mod_2(5)");
 
@@ -127,10 +155,14 @@ extern "C" int sqlite3_extension_init(
     dukglue_register_global(pDukCtx->getCtx(), pDb, "db");
 
     std::string sql("    var st = new Stmt(db, 'select julianday();');"
-                            "st.Prepare();");
+                            "st.Prepare();"
+                            "var dt = st.Execute();"
+                            "delete st;"
+                            "dt;"
+    );
     test_eval(pDukCtx->getCtx(), sql.c_str());
     DukValue prepResult = DukValue::take_from_stack(pDukCtx->getCtx());
-    std::cout << "prepResult: " << prepResult.as_int() << std::endl;
+    std::cout << "exec result: " << prepResult.as_string() << std::endl;
 
     int (*funcs[])(sqlite3 *, char **, const sqlite3_api_routines *) = {
             eval_func_init,

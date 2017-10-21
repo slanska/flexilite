@@ -6,7 +6,6 @@
 ///<reference path="DBInterfaces.d.ts"/>
 
 import sqlite3 = require('sqlite3');
-import objectHash = require('object-hash');
 import {SchemaHelper, IShemaHelper} from '../../misc/SchemaHelper';
 import {ReverseEngine} from '../../../flexish/reverseEng';
 import _ = require('lodash');

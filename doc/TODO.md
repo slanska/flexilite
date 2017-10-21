@@ -17,4 +17,19 @@
 * create/destroy DBContext
 * Port class load to ClassDef
 * Use RapidJSON / NLohmann
-* Update - implement
+* Update data - implement
+
+* add ts-loader
+* Setup webpack for transpiling and bundling JS code
+* Add lodash
+* &#10004; Define better-sqlite3.d.ts for API (@types already defined)
+* Create Database, Statement .cpp classes and their 
+counterparts in TS to have subset of better-sqlite3 API
+* Register sqlite classes in DukContext
+* Verify destructors work (add all objects to set in DukContext?)
+* Create DBContext.ts class to keep connection specific
+data
+* Load JS bundle in DukContext
+* Check duktape debugger (VS Code)
+* Create class - in TS
+* flexish - convert to c++ exe with duktape
