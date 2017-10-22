@@ -15,6 +15,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <duk_config.h>
 
 #include "common/common.h"
 
@@ -24,39 +25,6 @@
 
 SQLITE_EXTENSION_INIT3
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/*
- * Macro to determine if property has range type
- */
-// TODO temporary implementation
-#define IS_RANGE_PROPERTY(propType) 0
-
-/*
- * Internal API
- */
-//
-/////
-///// \param db
-///// \param zClassName
-///// \param zClassDef
-///// \param bCreateVTable
-///// \param pzError
-///// \return
-//int flexi_class_create(sqlite3 *db,
-//        // User data
-//                       void *pAux,
-//                       const char *zClassName,
-//                       const char *zClassDef,
-//                       int bCreateVTable,
-//                       char **pzError);
-//
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif //SQLITE_EXTENSIONS_PROJECT_DEFS_H
 

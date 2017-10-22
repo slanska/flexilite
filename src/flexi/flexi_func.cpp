@@ -6,13 +6,12 @@
  * Implementation of proxy 'flexi' function
  */
 
+#include <dukglue.h>
 #include "../project_defs.h"
-
 #include "flexi_class.h"
-#include "flexi_prop_merge.h"
 #include "DBContext.h"
-
-//SQLITE_EXTENSION_INIT3
+#include "../DukContext.h"
+#include "../better-sqlite3/Database.h"
 
 static int flexi_help_func(sqlite3_context *context,
                            int argc,
@@ -218,13 +217,23 @@ extern "C" int flexi_init(sqlite3 *db,
         int result;
         sqlite3_stmt *pDummy = nullptr;
 
-        auto pDBCtx = std::make_shared<DBContext>(db);
-        void *pUserData = sqlite3_malloc(sizeof(pDBCtx));
-        memmove(pUserData, &pDBCtx, sizeof(pDBCtx));
+        // Create new database instance in JavaScript
+        auto dbAsInt = (uint64_t) db;
+        std::ostringstream str;
+        str << "var db = new Database(" << dbAsInt << ");"
+                "var stmt = db.prepare('select julianday();');"
+                "var row = stmt.get([]);";
+        auto ss = str.str();
+
+        //        auto database = new Database(dbAsInt);
+
+        pDukCtx->test_eval(ss.c_str());
+        //        dukglue_peval(pDukCtx->getCtx(), str.str().c_str());
+        DukValue database = DukValue::take_from_stack(pDukCtx->getCtx());
 
         CHECK_CALL(sqlite3_create_function_v2(db, "flexi", -1, SQLITE_UTF8,
-                                              pUserData,
-                                              flexi_func, 0, 0, NULL));
+                                              &database,
+                                              flexi_func, 0, 0, nullptr));
 
         // Execute 'flexi_data' with dummy call to enable finalization
         CHECK_STMT_PREPARE(db, "select * from flexi_data();", &pDummy);
@@ -236,7 +245,7 @@ extern "C" int flexi_init(sqlite3 *db,
         goto EXIT;
 
         ONERROR:
-//        free(pDBCtx);
+        //        free(pDBCtx);
 
         EXIT:
         //        pCtx->nRefCount--;

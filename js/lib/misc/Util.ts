@@ -4,10 +4,8 @@
 
     ///<reference path="../../../typings/tsd.d.ts"/>
 
-export class Util
-{
-    public static JSONReplacer()
-    {
+export class Util {
+    public static JSONReplacer() {
     }
 
     // Julian date conversion utilities.
@@ -17,30 +15,25 @@ export class Util
 // (Julian day number algorithm adopted from Press et al.)
 //-------
 
-    public static dateToJulian(era, y, m, d, h, mn, s):number
-    {
+    public static dateToJulian(era: string, y: number, m: number, d: number, h: number, mn: number, s: number): number {
         var jy, ja, jm;			//scratch
 
-        if (y == 0)
-        {
+        if (y == 0) {
             alert("There is no year 0 in the Julian system!");
             return 0; // Invalid
         }
-        if (y == 1582 && m == 10 && d > 4 && d < 15)
-        {
+        if (y == 1582 && m == 10 && d > 4 && d < 15) {
             alert("The dates 5 through 14 October, 1582, do not exist in the Gregorian system!");
             return 0; // "invalid";
         }
 
         if (era == "BCE")
             y = -y + 1;
-        if (m > 2)
-        {
+        if (m > 2) {
             jy = y;
             jm = m + 1;
         }
-        else
-        {
+        else {
             jy = y - 1;
             jm = m + 13;
         }
@@ -49,16 +42,14 @@ export class Util
 
         //check for switch to Gregorian calendar
         var gregcal = 15 + 31 * ( 10 + 12 * 1582 );
-        if (d + 31 * (m + 12 * y) >= gregcal)
-        {
+        if (d + 31 * (m + 12 * y) >= gregcal) {
             ja = Math.floor(0.01 * jy);
             intgr += 2 - ja + Math.floor(0.25 * ja);
         }
 
         //correct for half-day offset
         var dayfrac = h / 24.0 - 0.5;
-        if (dayfrac < 0.0)
-        {
+        if (dayfrac < 0.0) {
             dayfrac += 1.0;
             --intgr;
         }
@@ -78,8 +69,8 @@ export class Util
 // (algorithm adopted from Press et al.)
 //-------
 
-    public static julianToDate(jd, form)
-    {
+    // form - typed object
+    public static julianToDate(jd: number, form: any) {
         var j1, j2, j3, j4, j5;			//scratch
 
         //
@@ -88,8 +79,7 @@ export class Util
         var intgr = Math.floor(jd);
         var frac = jd - intgr;
         var gregjd = 2299161;
-        if (intgr >= gregjd)
-        {				//Gregorian calendar correction
+        if (intgr >= gregjd) {				//Gregorian calendar correction
             var tmp = Math.floor(( (intgr - 1867216) - 0.25 ) / 36524.25);
             j1 = intgr + 1 + tmp - Math.floor(0.25 * tmp);
         }
@@ -97,9 +87,8 @@ export class Util
             j1 = intgr;
 
         //correction for half day offset
-        var dayfrac = frac + 0.5;
-        if (dayfrac >= 1.0)
-        {
+        let dayfrac = frac + 0.5;
+        if (dayfrac >= 1.0) {
             dayfrac -= 1.0;
             ++j1;
         }
@@ -113,8 +102,8 @@ export class Util
         var m = Math.floor(j5 - 1);
         if (m > 12) m -= 12;
         var y = Math.floor(j3 - 4715);
-        if (m > 2)   --y;
-        if (y <= 0)  --y;
+        if (m > 2) --y;
+        if (y <= 0) --y;
 
         //
         // get time of day from day fraction
@@ -126,8 +115,7 @@ export class Util
         f -= sc;
         if (f > 0.5) ++sc;
 
-        if (y < 0)
-        {
+        if (y < 0) {
             y = -y;
             form.era[1].checked = true;
         }

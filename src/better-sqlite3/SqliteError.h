@@ -1,0 +1,8 @@
+//
+// Created by slanska on 2017-10-21.
+//
+
+#ifndef FLEXILITE_SQLITEERROR_H
+#define FLEXILITE_SQLITEERROR_H
+
+#endif //FLEXILITE_SQLITEERROR_H

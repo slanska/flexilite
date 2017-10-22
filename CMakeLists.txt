@@ -80,6 +80,7 @@ add_definitions(-DRESOURCES_GENERATED)
 set(EXT_FILES
         src/misc/json1.c
         src/typings/DBDefinitions.h
+        src/project_defs.h
         src/main.cpp
 
         # compress.c is temporarily disabled because of the following error: Undefined symbols for architecture x86_64:
@@ -162,7 +163,7 @@ set(EXT_FILES
         src/sqlite/VariadicBind.h
         src/sqlite/Assertion.h
         src/flexi/SymbolRef.cpp
-        src/flexi/SymbolRef.h)
+        src/flexi/SymbolRef.h src/better-sqlite3/SqliteError.cpp src/better-sqlite3/SqliteError.h src/better-sqlite3/Database.cpp src/better-sqlite3/Database.h src/better-sqlite3/Statement.cpp src/better-sqlite3/Statement.h src/better-sqlite3/Util.cpp src/better-sqlite3/Util.h src/better-sqlite3/Transaction.cpp src/better-sqlite3/Transaction.h src/DukContext.h src/DukContext.cpp)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
