@@ -8,6 +8,7 @@
 #include <string>
 #include <cstdarg>
 #include <dukglue.h>
+#include <map>
 #include "../project_defs.h"
 #include "Util.h"
 
@@ -19,6 +20,23 @@ private:
     Database *db = nullptr;
     std::string sql{};
     sqlite3_stmt *stmt = nullptr;
+
+    /*
+     * Duktape C functions and properties
+     */
+    static int duk_constructor(duk_context*ctx);
+    static int duk_destructor(duk_context*ctx);
+    static int duk_safeIntegers(duk_context*ctx);
+    static int duk_pluck(duk_context*ctx);
+    static int duk_bind(duk_context*ctx);
+    static int duk_get(duk_context*ctx);
+    static int duk_all(duk_context*ctx);
+    static int duk_each(duk_context*ctx);
+//    static int duk_getDatabase(duk_context*ctx);
+    static int duk_getSource(duk_context*ctx);
+    static int duk_run(duk_context*ctx);
+    static int duk_getReturnsData(duk_context*ctx);
+
 public:
     explicit Statement(Database *_db, std::string _sql);
 
@@ -26,25 +44,27 @@ public:
 
     ~Statement();
 
+    static void RegisterInDuktape(duk_context* ctx);
+
     Database *getDatabase();
 
     std::string getSource();
 
     bool getReturnsData();
 
-    RunResult *run(std::vector<DukValue>);
+    RunResult *runSQL(std::vector<DukValue>);
 
     Statement *safeIntegers(bool toggleState = false);
 
     Statement *pluck(bool toggleState = false);
 
-    Statement *bind(std::vector<DukValue> params);
+    Statement *bindParams(std::vector<DukValue> params);
 
-    void each(std::vector<DukValue> params, DukValue callback);
+    void forEachRow(std::vector<DukValue> params, DukValue callback);
 
-    std::vector<DukValue> get(std::vector<DukValue> params);
+    DukValue getFirstRow(std::vector<DukValue> params);
 
-    std::vector<std::vector<DukValue>> all(std::vector<DukValue> params);
+    DukValues * getNextRow(std::vector<DukValue> params);
 
 };
 

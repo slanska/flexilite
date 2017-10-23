@@ -220,9 +220,13 @@ extern "C" int flexi_init(sqlite3 *db,
         // Create new database instance in JavaScript
         auto dbAsInt = (uint64_t) db;
         std::ostringstream str;
-        str << "var db = new Database(" << dbAsInt << ");"
-                "var stmt = db.prepare('select julianday();');"
-                "var row = stmt.get([]);";
+        str << "var db = new Database(" << dbAsInt << "); "
+                "Statement.prototype._all = function() { /*var r = [].slice.call(arguments);*/  return 'abc';}; "
+                "var st = new Statement(db, 'select julianday();');"
+                "st.getNextRow([1, '2', true, null]);";
+//        str << "var db = new Database(" << dbAsInt << ");"
+//                "var stmt = db.prepare('select julianday();');"
+//                "var row = stmt.get([]);";
         auto ss = str.str();
 
         //        auto database = new Database(dbAsInt);

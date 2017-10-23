@@ -24,13 +24,19 @@
 * &#10004; Add lodash
 * &#10004; upgrade sqlite to 3.20.1
 * &#10004; Define better-sqlite3.d.ts for API (@types already defined)
-* Find out how to pass and get arrays of values to/from Duktape 
-* Create Database, Statement, SqliteError .cpp classes and their 
+* &#10004; Find out how to pass and get arrays of values to/from Duktape (vectors are supported)
+* &#10004; Create Database, Statement, SqliteError .cpp classes and their 
 counterparts in TS to have subset of better-sqlite3 API
-* Register sqlite classes in DukContext
+* &#10004; Register sqlite classes in DukContext
+
 * Verify destructors work (add all objects to set in DukContext?)
+* Check std::map and std::unordered_map
+* Check how throw is handled by Duk
+* JS script to extend classes with methods not supported by Dukglue
+* Module flexi in TS. export var DBContexts: {[dbHandle: number]: DBContext} = {}; 
+export function CreateDBContext(db: Database, dbHandle: number)
 * Create DBContext.ts class to keep connection specific
-data
+data: Database, statements, user info, class definitions, cache of referenced values etc.
 * Load JS bundle in DukContext (embed into lib?)
 * Check duktape debugger (VS Code)
 * Flexi 'create class' - in TS

@@ -40,17 +40,14 @@ private:
     // All opened statements
     std::vector<Statement *> stmts = {};
 
-    void selfRegister();
-
 public:
     explicit Database(uint64_t _dbHandle);
-//    explicit Database(uintptr_t _dbHandle);
 
-    explicit Database(std::string fileName) : Database(fileName, {}) {};
-
-    explicit Database(std::string fileName, const DatabaseOptions &options);
+    explicit Database(std::string fileName, const DatabaseOptions &options = {});
 
     ~Database();
+
+    static void RegisterInDuktape(duk_context* ctx);
 
     bool getMemoryDB();
 

@@ -97,3 +97,12 @@ Database::~Database()
     close();
 }
 
+void Database::RegisterInDuktape(duk_context *ctx)
+{
+    dukglue_register_constructor<Database, uint64_t>(ctx, "Database");
+    dukglue_register_method(ctx, &Database::pragma, "pragma");
+    dukglue_register_method(ctx, &Database::prepare, "prepare");
+    dukglue_register_method(ctx, &Database::close, "close");
+    dukglue_register_method(ctx, &Database::exec, "exec");
+}
+

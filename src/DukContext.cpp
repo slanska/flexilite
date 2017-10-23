@@ -33,25 +33,19 @@ DukContext::DukContext()
 
     std::cout << "##### DukContext: created" << std::endl;
 
+    // Only one constructor can be registered via Dukglue. If more than one ctor is needed,
+    // it should be be implemented in Javascript
+    // Also, methods and functions can accept all standard primitive types (but not those re-defined.
+    // E.g. 'long long' and 'uint64_t' are ok, but 'uintptr_t' is not supported), pointers (not const*, not &,
+    // not const &), std::vector<T> (one dimension array), but not std::vector<std::vector<T>>
+
+    // TOCO Check std::map/unordered_map. Check throw
+
     // Database
-    dukglue_register_constructor<Database, uint64_t>(pCtx, "Database");
-//    dukglue_register_constructor<Database, std::string>(pCtx, "Database");
-//    dukglue_register_constructor<Database, std::string, const DatabaseOptions &>(pCtx, "Database");
-    dukglue_register_method(pCtx, &Database::pragma, "pragma");
-    dukglue_register_method(pCtx, &Database::prepare, "prepare");
-    dukglue_register_method(pCtx, &Database::close, "close");
-    dukglue_register_method(pCtx, &Database::exec, "exec");
+    Database::RegisterInDuktape(getCtx());
 
     // Statement
-    dukglue_register_constructor<Statement, Database *, std::string>(pCtx, "Statement");
-//    dukglue_register_constructor<Statement, Database *, std::vector<std::string>>(pCtx, "Statement");
-    dukglue_register_method(pCtx, &Statement::all, "all");
-    dukglue_register_method(pCtx, &Statement::get, "get");
-    dukglue_register_method(pCtx, &Statement::bind, "bind");
-    dukglue_register_method(pCtx, &Statement::each, "each");
-    dukglue_register_method(pCtx, &Statement::run, "run");
-    dukglue_register_method(pCtx, &Statement::pluck, "pluck");
-
+    Statement::RegisterInDuktape(getCtx());
 
     // Register SQLite functions
     //    dukglue_register_function(pCtx, is_mod_2, "is_mod_2");
