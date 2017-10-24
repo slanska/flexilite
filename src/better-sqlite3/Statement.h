@@ -24,18 +24,28 @@ private:
     /*
      * Duktape C functions and properties
      */
-    static int duk_constructor(duk_context*ctx);
-    static int duk_destructor(duk_context*ctx);
-    static int duk_safeIntegers(duk_context*ctx);
-    static int duk_pluck(duk_context*ctx);
-    static int duk_bind(duk_context*ctx);
-    static int duk_get(duk_context*ctx);
-    static int duk_all(duk_context*ctx);
-    static int duk_each(duk_context*ctx);
-//    static int duk_getDatabase(duk_context*ctx);
-    static int duk_getSource(duk_context*ctx);
-    static int duk_run(duk_context*ctx);
-    static int duk_getReturnsData(duk_context*ctx);
+    static int duk_constructor(duk_context *ctx);
+
+    static int duk_destructor(duk_context *ctx);
+
+    static int duk_safeIntegers(duk_context *ctx);
+
+    static int duk_pluck(duk_context *ctx);
+
+    static int duk_bind(duk_context *ctx);
+
+    static int duk_get(duk_context *ctx);
+
+    static int duk_all(duk_context *ctx);
+
+    static int duk_each(duk_context *ctx);
+
+    //    static int duk_getDatabase(duk_context*ctx);
+    static int duk_getSource(duk_context *ctx);
+
+    static int duk_run(duk_context *ctx);
+
+    static int duk_getReturnsData(duk_context *ctx);
 
 public:
     explicit Statement(Database *_db, std::string _sql);
@@ -44,7 +54,7 @@ public:
 
     ~Statement();
 
-    static void RegisterInDuktape(duk_context* ctx);
+    static void RegisterInDuktape(DukContext &ctx);
 
     Database *getDatabase();
 
@@ -64,7 +74,7 @@ public:
 
     DukValue getFirstRow(std::vector<DukValue> params);
 
-    DukValues * getNextRow(std::vector<DukValue> params);
+    void *getNextRow(std::vector<DukValue> params);
 
 };
 

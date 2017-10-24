@@ -47,7 +47,7 @@ public:
 
     ~Database();
 
-    static void RegisterInDuktape(duk_context* ctx);
+    static void RegisterInDuktape(DukContext &ctx);
 
     bool getMemoryDB();
 

@@ -42,10 +42,10 @@ DukContext::DukContext()
     // TOCO Check std::map/unordered_map. Check throw
 
     // Database
-    Database::RegisterInDuktape(getCtx());
+    Database::RegisterInDuktape(*this);
 
     // Statement
-    Statement::RegisterInDuktape(getCtx());
+    Statement::RegisterInDuktape(*this);
 
     // Register SQLite functions
     //    dukglue_register_function(pCtx, is_mod_2, "is_mod_2");
@@ -113,6 +113,69 @@ DukContext::~DukContext()
 {
     duk_destroy_heap(pCtx);
     std::cout << "##### DukContext: destroyed" << std::endl;
+}
+
+int DukContext::PushObject()
+{
+    return 0;
+}
+
+void DukContext::PutFunctionList(duk_idx_t obj_idx, const duk_function_list_entry *funcs)
+{
+
+}
+
+void DukContext::SetPrototype(duk_idx_t obj_idx)
+{
+
+}
+
+void DukContext::PutGlobalString(const char *str)
+{
+
+}
+
+void DukContext::PushBoolean(bool v)
+{
+
+}
+
+int DukContext::test_result(int result)
+{
+    if (result < 0)
+    {
+        duk_get_prop_string(pCtx, -1, "stack");
+        std::cerr << duk_safe_to_string(pCtx, -1) << std::endl;
+        duk_pop(pCtx);
+
+        assert(false);
+    }
+
+    return result;
+}
+
+void DukContext::defineProperty(int objIndex, const char *propName, duk_c_function Getter,
+                             duk_c_function Setter)
+{
+    duk_uint_t flags = 0;
+    duk_push_string(pCtx, propName);
+    if (Getter != nullptr)
+    {
+        duk_push_c_function(pCtx, Getter, 0);
+        duk_push_string(pCtx, "name");
+        duk_push_string(pCtx, "getter");
+        duk_def_prop(pCtx, objIndex, DUK_DEFPROP_HAVE_VALUE);
+        flags |= DUK_DEFPROP_HAVE_GETTER;
+    }
+    if (Setter != nullptr)
+    {
+        duk_push_c_function(pCtx, Setter, 1);
+        duk_push_string(pCtx, "name");
+        duk_push_string(pCtx, "setter");
+        duk_def_prop(pCtx, objIndex, DUK_DEFPROP_HAVE_VALUE);
+        flags |= DUK_DEFPROP_HAVE_SETTER;
+    }
+    duk_def_prop(pCtx, objIndex, flags);
 }
 
 thread_local auto pDukCtx = std::unique_ptr<DukContext>(new DukContext());

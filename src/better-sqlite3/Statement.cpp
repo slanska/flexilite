@@ -65,9 +65,8 @@ DukValue Statement::getFirstRow(std::vector<DukValue> params)
     return DukValue();
 }
 
-DukValues *Statement::getNextRow(std::vector<DukValue> params)
+void *Statement::getNextRow(std::vector<DukValue> params)
 {
-    auto result = new DukValues();
     //    throw std::invalid_argument("aaa");
     int ii = 0;
     //    for (auto v : params)
@@ -75,7 +74,7 @@ DukValues *Statement::getNextRow(std::vector<DukValue> params)
     //        std::string k = std::to_string(++ii);
     //        result->set(k, v);
     //    }
-    return result;
+    return nullptr;
 }
 
 int Statement::duk_constructor(duk_context *ctx)
@@ -108,7 +107,7 @@ int Statement::duk_constructor(duk_context *ctx)
 
 int Statement::duk_destructor(duk_context *ctx)
 {
-    auto self = getDukData<Statement>(ctx);
+    auto self = DukContext::getDukData<Statement>(ctx);
     return 0;
 }
 
@@ -165,7 +164,7 @@ int Statement::duk_run(duk_context *ctx)
     return 0;
 }
 
-void Statement::RegisterInDuktape(duk_context *ctx)
+void Statement::RegisterInDuktape(DukContext &ctx)
 {
     const duk_function_list_entry methods[] = {
             {"get",          duk_get,          -1},
@@ -179,33 +178,34 @@ void Statement::RegisterInDuktape(duk_context *ctx)
     };
 
     // Statement function
-    duk_push_c_function(ctx, &duk_constructor, 2);
+    duk_push_c_function(ctx.getCtx(), &duk_constructor, 2);
 
     // Create a prototype with functions
-    int obj = duk_push_object(ctx);
-    duk_put_function_list(ctx, -1, methods);
-    duk_set_prototype(ctx, obj);
+    int protoIdx = duk_push_object(ctx.getCtx());
+    duk_put_function_list(ctx.getCtx(), protoIdx, methods);
 
     // Register properties
-//    DefineDuktapeProperty(ctx, obj, "database", duk_getDatabase);
+    //    DefineDuktapeProperty(ctx, obj, "database", duk_getDatabase);
 
-    DefineDuktapeProperty(ctx, obj, "source", duk_getSource);
+    ctx.defineProperty(protoIdx, "source", duk_getSource);
 
-    DefineDuktapeProperty(ctx, obj, "returnsData", duk_getReturnsData);
+    ctx.defineProperty(protoIdx, "returnsData", duk_getReturnsData);
+
+    duk_set_prototype(ctx.getCtx(), protoIdx);
 
     // Now store the Point function as a global
-    duk_put_global_string(ctx, "Statement");
+    duk_put_global_string(ctx.getCtx(), "Statement");
 
     // TODO Test
-    duk_peval_string(ctx, "var st = new Statement(111, 'select julianday();');var row = st.get()");
+    duk_peval_string(ctx.getCtx(), "var st = new Statement(111, 'select julianday();');var row = st.get()");
 }
 
 int Statement::duk_getReturnsData(duk_context *ctx)
 {
-    auto dd = getDukData<Statement>(ctx);
+    auto dd = DukContext::getDukData<Statement>(ctx);
     bool returns_data = dd->stmt && sqlite3_stmt_readonly(dd->stmt)
-                         && sqlite3_column_count(dd->stmt) >= 1;
-    duk_push_boolean(ctx, (duk_bool_t)returns_data);
+                        && sqlite3_column_count(dd->stmt) >= 1;
+    duk_push_boolean(ctx, (duk_bool_t) returns_data);
     return 1;
 }
 
