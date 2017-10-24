@@ -5,7 +5,6 @@
 #include "Database.h"
 
 Database::Database(uint64_t _dbHandle) : db((sqlite3 *) _dbHandle)
-//Database::Database(uintptr_t _dbHandle) : db((sqlite3 *) _dbHandle)
 {
 }
 
@@ -125,8 +124,8 @@ void Database::RegisterInDuktape(DukContext &ctx)
     ctx.defineProperty(protoIdx, "memory", duk_memoryGetter);
     ctx.defineProperty(protoIdx, "open", duk_openGetter);
     ctx.defineProperty(protoIdx, "name", duk_nameGetter);
-    ctx.defineProperty(protoIdx, "open", duk_openGetter);
     ctx.defineProperty(protoIdx, "readonly", duk_readonlyGetter);
+    ctx.defineProperty(protoIdx, "inTransaction", duk_inTransactionGetter);
 
     duk_set_prototype(ctx.getCtx(), protoIdx);
 
@@ -135,23 +134,59 @@ void Database::RegisterInDuktape(DukContext &ctx)
 
     // TODO Test
     duk_peval_string(ctx.getCtx(), "var db = new Database(':memory:');var st = db.prepare('select julianday();"
-            "var row = st.get();row;')");
+            "var row = st.get();row;');db.close();row;");
 
 }
 
 int Database::duk_constructor(duk_context *ctx)
 {
+    if (!duk_is_constructor_call(ctx))
+    {
+        return DUK_ERR_ERROR;
+    }
+
+    // Check number and types of parameters
+    // Available options: 1 string parameter - file name
+    //
+
+    const char* fileName = duk_require_string(ctx, 0);
+//    const char *zSql = duk_require_string(ctx, 1);
+
+    duk_push_this(ctx);
+
+    // Store object in internal property
+    Database *self;
+    self = new Database(fileName);
+    duk_push_pointer(ctx, self);
+    duk_put_prop_string(ctx, -2, DUK_OBJECT_REF_PROP_NAME);
+
+    // Store a boolean flag to mark the object as deleted because the destructor may be called several times
+    duk_push_boolean(ctx, 0);
+    duk_put_prop_string(ctx, -2, DUK_DELETED_PROP_NAME);
+
+    // Store the function destructor
+    duk_push_c_function(ctx, duk_destructor, 1);
+    duk_set_finalizer(ctx, -2);
+
     return 0;
 }
 
 int Database::duk_destructor(duk_context *ctx)
 {
+    auto self = DukContext::getDukData<Database>(ctx);
+    delete (self);
     return 0;
 }
 
 int Database::duk_prepare(duk_context *ctx)
 {
-    return 0;
+    const char *sql = duk_require_string(ctx, 0);
+    duk_push_global_object(ctx);
+    duk_get_prop_string(ctx, -1, "Statement");
+    duk_push_this(ctx);
+    duk_push_string(ctx, sql);
+    duk_new(ctx, 2);
+    return 1;
 }
 
 int Database::duk_exec(duk_context *ctx)
@@ -176,11 +211,22 @@ int Database::duk_checkpoint(duk_context *ctx)
 
 int Database::duk_register(duk_context *ctx)
 {
+    auto self = DukContext::getDukData<Database>(ctx);
+    // Determine number and type of parameters
+    // Create function proxy
+    // Store proxy in map of functions
+
+    // Compile function, load bytecode
+    // Use function proxy as user data
+    // TODO   sqlite3_create_function(self->db, );
     return 0;
 }
 
 int Database::duk_defaultSafeIntegers(duk_context *ctx)
 {
+    // no op
+    // TODO Clear stack
+//    duk_
     return 0;
 }
 

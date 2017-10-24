@@ -33,66 +33,17 @@ DukContext::DukContext()
 
     std::cout << "##### DukContext: created" << std::endl;
 
-    // Only one constructor can be registered via Dukglue. If more than one ctor is needed,
-    // it should be be implemented in Javascript
-    // Also, methods and functions can accept all standard primitive types (but not those re-defined.
-    // E.g. 'long long' and 'uint64_t' are ok, but 'uintptr_t' is not supported), pointers (not const*, not &,
-    // not const &), std::vector<T> (one dimension array), but not std::vector<std::vector<T>>
-
-    // TOCO Check std::map/unordered_map. Check throw
-
     // Database
     Database::RegisterInDuktape(*this);
 
     // Statement
     Statement::RegisterInDuktape(*this);
 
-    // Register SQLite functions
-    //    dukglue_register_function(pCtx, is_mod_2, "is_mod_2");
-    //    dukglue_register_function(pCtx, sqlite3_libversion, "sqlite3_libversion");
-    //    dukglue_register_function(pCtx, sqlite3_memory_used, "sqlite3_memory_used");
-    //    dukglue_register_function(pCtx, sqlite3_memory_highwater, "sqlite3_memory_highwater");
-    //
-    //    dukglue_register_function(pCtx, getVector, "getVector");
-    //
-    //    dukglue_register_constructor<Stmt, uint64_t, const char *>(pCtx, "Stmt");
-    //    dukglue_register_method(pCtx, &Stmt::Prepare, "Prepare");
-    //    dukglue_register_method(pCtx, &Stmt::Execute, "Execute");
-    //
-    //    test_eval(pCtx, "is_mod_2(5)");
-    //
-    //    test_eval(pCtx, "sqlite3_libversion()");
-    //    DukValue libVer = DukValue::take_from_stack(pCtx);
-    //    std::cout << "sqlite3_libversion: " << libVer.as_c_string() << std::endl;
-    //
-    //    test_eval(pCtx, "sqlite3_memory_used()");
-    //    DukValue memUsed = DukValue::take_from_stack(pCtx);
-    //    std::cout << "sqlite3_memory_used: " << memUsed.as_float() << std::endl;
+    // TODO
 
-    // Sqlite statement
-    //    auto pDb = reinterpret_cast<uint64_t >  (db);
-    //    dukglue_register_global(pDukCtx->getCtx(), pDb, "db");
-    //
-    //    std::string sql("    var st = new Stmt(db, 'select julianday();');"
-    //                            "st.Prepare();"
-    //                            "var dt = st.Execute();"
-    //                            "delete st;"
-    //                            "dt;"
-    //    );
-    //    test_eval(pDukCtx->getCtx(), sql.c_str());
-    //    DukValue prepResult = DukValue::take_from_stack(pDukCtx->getCtx());
-    //    std::cout << "exec result: " << prepResult.as_string() << std::endl;
-    //
-    //    // Vector
-    //    std::string js = "var dd = getVector(['Привет ', 'Гномики ', ' Какдила?']);"
-    //            "var total = 0;"
-    //            "for (var i = 0; i < dd.length; i++) total += dd[i].length; total;";
-    //    test_eval(pDukCtx->getCtx(), js.c_str());
-    //    DukValue jsResult = DukValue::take_from_stack(pDukCtx->getCtx());
-    //    std::cout << "exec result: " << jsResult.as_int() << std::endl;
+    // If first run, compile JS bundle, and store bytecode
 
-
-    // Load .js
+    // Load compiled bytecode into each context
 }
 
 void DukContext::test_eval(const char *code)
@@ -162,17 +113,11 @@ void DukContext::defineProperty(int objIndex, const char *propName, duk_c_functi
     if (Getter != nullptr)
     {
         duk_push_c_function(pCtx, Getter, 0);
-        //        duk_push_string(pCtx, "name");
-        //        duk_push_string(pCtx, "getter");
-        //        duk_def_prop(pCtx, objIndex, DUK_DEFPROP_HAVE_VALUE);
         flags |= DUK_DEFPROP_HAVE_GETTER;
     }
     if (Setter != nullptr)
     {
         duk_push_c_function(pCtx, Setter, 1);
-        //        duk_push_string(pCtx, "name");
-        //        duk_push_string(pCtx, "setter");
-        //        duk_def_prop(pCtx, objIndex, DUK_DEFPROP_HAVE_VALUE);
         flags |= DUK_DEFPROP_HAVE_SETTER;
     }
     duk_def_prop(pCtx, objIndex, flags);

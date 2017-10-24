@@ -90,8 +90,8 @@ int Statement::duk_constructor(duk_context *ctx)
     duk_push_this(ctx);
 
     // Store object in internal property
-    auto st = new Statement(nullptr, zSql);
-    duk_push_pointer(ctx, st);
+    auto self = new Statement(nullptr, zSql);
+    duk_push_pointer(ctx, self);
     duk_put_prop_string(ctx, -2, DUK_OBJECT_REF_PROP_NAME);
 
     // Store a boolean flag to mark the object as deleted because the destructor may be called several times
@@ -187,9 +187,7 @@ void Statement::RegisterInDuktape(DukContext &ctx)
 
     // Register properties
     //    DefineDuktapeProperty(ctx, obj, "database", duk_getDatabase);
-
     ctx.defineProperty(protoIdx, "source", duk_getSource);
-
     ctx.defineProperty(protoIdx, "returnsData", duk_getReturnsData);
 
     duk_set_prototype(ctx.getCtx(), protoIdx);
