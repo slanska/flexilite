@@ -40,6 +40,21 @@ private:
     // All opened statements
     std::vector<Statement *> stmts = {};
 
+    static int duk_constructor(duk_context* ctx);
+    static int duk_destructor(duk_context* ctx);
+    static int duk_prepare(duk_context* ctx);
+    static int duk_exec(duk_context* ctx);
+    static int duk_close(duk_context* ctx);
+    static int duk_pragma(duk_context* ctx);
+    static int duk_checkpoint(duk_context* ctx);
+    static int duk_register(duk_context* ctx);
+    static int duk_defaultSafeIntegers(duk_context* ctx);
+    static int duk_memoryGetter(duk_context* ctx);
+    static int duk_nameGetter(duk_context* ctx);
+    static int duk_openGetter(duk_context* ctx);
+    static int duk_inTransactionGetter(duk_context* ctx);
+    static int duk_readonlyGetter(duk_context* ctx);
+
 public:
     explicit Database(uint64_t _dbHandle);
 

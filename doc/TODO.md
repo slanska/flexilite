@@ -31,7 +31,7 @@ counterparts in TS to have subset of better-sqlite3 API
 
 * Verify destructors work (add all objects to set in DukContext?)
 * Check std::map and std::unordered_map
-* Check how throw is handled by Duk
+* Check how throw is handled by Duk - enable #define for c++ exceptions
 * JS script to extend classes with methods not supported by Dukglue
 * Module flexi in TS. export var DBContexts: {[dbHandle: number]: DBContext} = {}; 
 export function CreateDBContext(db: Database, dbHandle: number)
@@ -42,3 +42,8 @@ data: Database, statements, user info, class definitions, cache of referenced va
 * Flexi 'create class' - in TS
 * ??? flexish - convert to c++ exe with duktape
 * Flexi_data 'update' - in c++/ts
+
+* Database binding to Duktape
+* ?? Add Duk console
+* Add Duk debug server to test app
+* Configure VSCode: CMake and Duk debug 

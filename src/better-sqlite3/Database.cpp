@@ -87,7 +87,11 @@ Database *Database::close()
 {
     // TODO if own database, close it
 
-    int result = sqlite3_close(db);
+    if (db != nullptr)
+    {
+        int result = sqlite3_close(db);
+        db = nullptr;
+    }
     return this;
 }
 
@@ -99,10 +103,109 @@ Database::~Database()
 
 void Database::RegisterInDuktape(DukContext &ctx)
 {
-    dukglue_register_constructor<Database, uint64_t>(ctx.getCtx(), "Database");
-    dukglue_register_method(ctx.getCtx(), &Database::pragma, "pragma");
-    dukglue_register_method(ctx.getCtx(), &Database::prepare, "prepare");
-    dukglue_register_method(ctx.getCtx(), &Database::close, "close");
-    dukglue_register_method(ctx.getCtx(), &Database::exec, "exec");
+    const duk_function_list_entry methods[] = {
+            {"pragma",              duk_pragma,              -1},
+            {"prepare",             duk_prepare,             1},
+            {"close",               duk_close,               -1},
+            {"exec",                duk_exec,                1},
+            {"checkpoint",          duk_checkpoint,          -1},
+            {"register",            duk_register,            -1},
+            {"defaultSafeIntegers", duk_defaultSafeIntegers, -1},
+            {nullptr,               nullptr,                 0}
+    };
+
+    // Statement function
+    duk_push_c_function(ctx.getCtx(), &duk_constructor, -1);
+
+    // Create a prototype with functions
+    int protoIdx = duk_push_object(ctx.getCtx());
+    duk_put_function_list(ctx.getCtx(), protoIdx, methods);
+
+    // Register properties
+    ctx.defineProperty(protoIdx, "memory", duk_memoryGetter);
+    ctx.defineProperty(protoIdx, "open", duk_openGetter);
+    ctx.defineProperty(protoIdx, "name", duk_nameGetter);
+    ctx.defineProperty(protoIdx, "open", duk_openGetter);
+    ctx.defineProperty(protoIdx, "readonly", duk_readonlyGetter);
+
+    duk_set_prototype(ctx.getCtx(), protoIdx);
+
+    // Now store the Point function as a global
+    duk_put_global_string(ctx.getCtx(), "Database");
+
+    // TODO Test
+    duk_peval_string(ctx.getCtx(), "var db = new Database(':memory:');var st = db.prepare('select julianday();"
+            "var row = st.get();row;')");
+
+}
+
+int Database::duk_constructor(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_destructor(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_prepare(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_exec(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_close(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_pragma(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_checkpoint(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_register(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_defaultSafeIntegers(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_memoryGetter(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_nameGetter(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_openGetter(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_inTransactionGetter(duk_context *ctx)
+{
+    return 0;
+}
+
+int Database::duk_readonlyGetter(duk_context *ctx)
+{
+    return 0;
 }
 

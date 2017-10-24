@@ -108,6 +108,7 @@ int Statement::duk_constructor(duk_context *ctx)
 int Statement::duk_destructor(duk_context *ctx)
 {
     auto self = DukContext::getDukData<Statement>(ctx);
+    free(self);
     return 0;
 }
 

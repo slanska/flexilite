@@ -155,24 +155,24 @@ int DukContext::test_result(int result)
 }
 
 void DukContext::defineProperty(int objIndex, const char *propName, duk_c_function Getter,
-                             duk_c_function Setter)
+                                duk_c_function Setter)
 {
     duk_uint_t flags = 0;
     duk_push_string(pCtx, propName);
     if (Getter != nullptr)
     {
         duk_push_c_function(pCtx, Getter, 0);
-        duk_push_string(pCtx, "name");
-        duk_push_string(pCtx, "getter");
-        duk_def_prop(pCtx, objIndex, DUK_DEFPROP_HAVE_VALUE);
+        //        duk_push_string(pCtx, "name");
+        //        duk_push_string(pCtx, "getter");
+        //        duk_def_prop(pCtx, objIndex, DUK_DEFPROP_HAVE_VALUE);
         flags |= DUK_DEFPROP_HAVE_GETTER;
     }
     if (Setter != nullptr)
     {
         duk_push_c_function(pCtx, Setter, 1);
-        duk_push_string(pCtx, "name");
-        duk_push_string(pCtx, "setter");
-        duk_def_prop(pCtx, objIndex, DUK_DEFPROP_HAVE_VALUE);
+        //        duk_push_string(pCtx, "name");
+        //        duk_push_string(pCtx, "setter");
+        //        duk_def_prop(pCtx, objIndex, DUK_DEFPROP_HAVE_VALUE);
         flags |= DUK_DEFPROP_HAVE_SETTER;
     }
     duk_def_prop(pCtx, objIndex, flags);
