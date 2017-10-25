@@ -122,5 +122,3 @@ void DukContext::defineProperty(int objIndex, const char *propName, duk_c_functi
     }
     duk_def_prop(pCtx, objIndex, flags);
 }
-
-thread_local auto pDukCtx = std::unique_ptr<DukContext>(new DukContext());

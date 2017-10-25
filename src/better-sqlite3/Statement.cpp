@@ -196,7 +196,7 @@ void Statement::RegisterInDuktape(DukContext &ctx)
     duk_put_global_string(ctx.getCtx(), "Statement");
 
     // TODO Test
-    duk_peval_string(ctx.getCtx(), "var st = new Statement(111, 'select julianday();');var row = st.get()");
+//    duk_peval_string(ctx.getCtx(), "var st = new Statement(111, 'select julianday();');var row = st.get()");
 }
 
 int Statement::duk_getReturnsData(duk_context *ctx)

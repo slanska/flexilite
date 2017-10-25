@@ -8,8 +8,8 @@
 #include <duk_config.h>
 #include <memory>
 
-#define DUK_OBJECT_REF_PROP_NAME ("\xff""\xff""data")
-#define DUK_DELETED_PROP_NAME ("\xff""\xff""deleted")
+#define DUK_OBJECT_REF_PROP_NAME  DUK_HIDDEN_SYMBOL("data")
+#define DUK_DELETED_PROP_NAME  DUK_HIDDEN_SYMBOL("deleted")
 
 /*
  * Duktape context holder, per thread.

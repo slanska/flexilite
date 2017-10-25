@@ -2,6 +2,7 @@
 // Created by slanska on 2017-10-21.
 //
 
+#include <sqlite3ext.h>
 #include "Database.h"
 
 Database::Database(uint64_t _dbHandle) : db((sqlite3 *) _dbHandle)
@@ -113,8 +114,8 @@ void Database::RegisterInDuktape(DukContext &ctx)
             {nullptr,               nullptr,                 0}
     };
 
-    // Statement function
-    duk_push_c_function(ctx.getCtx(), &duk_constructor, -1);
+    // Database ctor function: may take 1 or 2 parameters
+    duk_push_c_function(ctx.getCtx(), &duk_constructor, DUK_VARARGS);
 
     // Create a prototype with functions
     int protoIdx = duk_push_object(ctx.getCtx());
@@ -133,7 +134,7 @@ void Database::RegisterInDuktape(DukContext &ctx)
     duk_put_global_string(ctx.getCtx(), "Database");
 
     // TODO Test
-    duk_peval_string(ctx.getCtx(), "var db = new Database(':memory:');var st = db.prepare('select julianday();"
+    ctx.test_eval("var db = new Database(':memory:');var st = db.prepare('select julianday();"
             "var row = st.get();row;');db.close();row;");
 
 }
@@ -144,19 +145,57 @@ int Database::duk_constructor(duk_context *ctx)
     {
         return DUK_ERR_ERROR;
     }
+    Database *self = nullptr;
 
-    // Check number and types of parameters
-    // Available options: 1 string parameter - file name
-    //
+    auto nargs = duk_get_top(ctx);
+    uint64_t dbHandle;
+    const char *fileName;
+    if (nargs == 1)
+    {
+        // Check type: string - file name, pointer - existing database connection
+        auto p1type = duk_get_type(ctx, 0);
+        switch (p1type)
+        {
+            case DUK_TYPE_STRING:
+                fileName = duk_get_string(ctx, 0);
+                self = new Database(fileName);
+                break;
 
-    const char* fileName = duk_require_string(ctx, 0);
-//    const char *zSql = duk_require_string(ctx, 1);
+            case DUK_TYPE_POINTER:
+                dbHandle = (uint64_t) duk_require_pointer(ctx, 1);
+                self = new Database(dbHandle);
+                break;
+
+            default:
+                self = nullptr;
+                break;
+        }
+    }
+    else
+        if (nargs == 2)
+        {
+            // 1st param should be string, 2nd - config object
+            fileName = duk_get_string(ctx, 0);
+            duk_require_object(ctx, 1);
+            DatabaseOptions opts;
+            duk_get_prop_string(ctx, 1, "memory");
+            opts.memory = (bool) duk_get_boolean(ctx, -1);
+            duk_get_prop_string(ctx, 1, "readOnly");
+            opts.readonly = (bool) duk_get_boolean(ctx, -1);
+            duk_get_prop_string(ctx, 1, "fileMustExist");
+            opts.fileMustExist = (bool) duk_get_boolean(ctx, -1);
+
+            self = new Database(fileName, opts);
+
+        }
+        else return DUK_ERR_ERROR;
+
+    if (self == nullptr)
+        return DUK_ERR_ERROR;
 
     duk_push_this(ctx);
 
     // Store object in internal property
-    Database *self;
-    self = new Database(fileName);
     duk_push_pointer(ctx, self);
     duk_put_prop_string(ctx, -2, DUK_OBJECT_REF_PROP_NAME);
 
@@ -209,6 +248,9 @@ int Database::duk_checkpoint(duk_context *ctx)
     return 0;
 }
 
+/*
+ * Register custom function
+ */
 int Database::duk_register(duk_context *ctx)
 {
     auto self = DukContext::getDukData<Database>(ctx);
@@ -226,7 +268,7 @@ int Database::duk_defaultSafeIntegers(duk_context *ctx)
 {
     // no op
     // TODO Clear stack
-//    duk_
+    //    duk_
     return 0;
 }
 

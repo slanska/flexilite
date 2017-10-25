@@ -68,6 +68,9 @@ static int flexi_init_func(sqlite3_context *context,
 
 }
 
+thread_local auto pDukCtx = std::unique_ptr<DukContext>(new DukContext());
+
+
 /*
  * Central gateway to all Flexilite API
  */
@@ -218,32 +221,32 @@ extern "C" int flexi_init(sqlite3 *db,
         sqlite3_stmt *pDummy = nullptr;
 
         // Create new database instance in JavaScript
-        auto dbAsInt = (uint64_t) db;
-        std::ostringstream str;
-        str << "var db = new Database(" << dbAsInt << "); "
-                "Statement.prototype._all = function() { /*var r = [].slice.call(arguments);*/  return 'abc';}; "
-                "var st = new Statement(db, 'select julianday();');"
-                "st.getNextRow([1, '2', true, null]);";
+//        auto dbAsInt = (uint64_t) db;
+//        std::ostringstream str;
+//        str << "var db = new Database(" << dbAsInt << "); "
+//                "Statement.prototype._all = function() { /*var r = [].slice.call(arguments);*/  return 'abc';}; "
+//                "var st = new Statement(db, 'select julianday();');"
+//                "st.getNextRow([1, '2', true, null]);";
 //        str << "var db = new Database(" << dbAsInt << ");"
 //                "var stmt = db.prepare('select julianday();');"
 //                "var row = stmt.get([]);";
-        auto ss = str.str();
+//        auto ss = str.str();
 
         //        auto database = new Database(dbAsInt);
-
-        pDukCtx->test_eval(ss.c_str());
-        //        dukglue_peval(pDukCtx->getCtx(), str.str().c_str());
-        DukValue database = DukValue::take_from_stack(pDukCtx->getCtx());
+//
+//        pDukCtx->test_eval(ss.c_str());
+//        //        dukglue_peval(pDukCtx->getCtx(), str.str().c_str());
+//        DukValue database = DukValue::take_from_stack(pDukCtx->getCtx());
 
         CHECK_CALL(sqlite3_create_function_v2(db, "flexi", -1, SQLITE_UTF8,
-                                              &database,
-                                              flexi_func, 0, 0, nullptr));
+                                              nullptr, // Use db context id
+                                              flexi_func, nullptr, nullptr, nullptr));
 
         // Execute 'flexi_data' with dummy call to enable finalization
-        CHECK_STMT_PREPARE(db, "select * from flexi_data();", &pDummy);
-        result = sqlite3_step(pDummy);
-        if (result != SQLITE_ROW && result != SQLITE_DONE)
-            goto ONERROR;
+//        CHECK_STMT_PREPARE(db, "select * from flexi_data();", &pDummy);
+//        result = sqlite3_step(pDummy);
+//        if (result != SQLITE_ROW && result != SQLITE_DONE)
+//            goto ONERROR;
 
         result = SQLITE_OK;
         goto EXIT;

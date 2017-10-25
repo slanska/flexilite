@@ -23,10 +23,10 @@ public:
     int64_t lastInsertROWID;
 };
 
-
-
-
-
+/*
+ * Pushes all items in argv array to Duktape stack
+ */
+void SQLiteValuesToDukStack(duk_context* ctx, int argc, sqlite3_value** argv);
 
 
 #endif //FLEXILITE_UTIL_H
