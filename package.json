@@ -31,13 +31,16 @@
   "devDependencies": {
     "@types/better-sqlite3": "^3.1.2",
     "@types/cli": "^0.11.19",
-    "@types/lodash": "^4.14.78",
+    "@types/lodash": "^4.14.80",
+    "@types/moment": "^2.13.0",
     "chai": "^3.3.0",
     "csv": "^0.4.6",
     "faker": "^3.0.1",
     "mocha": "^2.3.3",
+    "moment": "^2.19.1",
     "should": "^7.1.0",
     "supertest": "^1.1.0",
-    "ts-loader": "^3.0.5"
+    "ts-loader": "^3.0.5",
+    "webpack": "^3.8.1"
   }
 }

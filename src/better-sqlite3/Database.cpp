@@ -141,6 +141,8 @@ void Database::RegisterInDuktape(DukContext &ctx)
 
 int Database::duk_constructor(duk_context *ctx)
 {
+    duk_debugger_attach(pDukCtx->getCtx(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+
     if (!duk_is_constructor_call(ctx))
     {
         return DUK_ERR_ERROR;

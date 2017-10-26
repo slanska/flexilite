@@ -30,15 +30,14 @@ counterparts in TS to have subset of better-sqlite3 API
 * &#10004; Register sqlite classes in DukContext
 
 * Verify destructors work (add all objects to set in DukContext?)
-* Check std::map and std::unordered_map
+* &#10004; Check std::map and std::unordered_map (_not relevant after switching to Duktape_)
 * Check how throw is handled by Duk - enable #define for c++ exceptions
-* JS script to extend classes with methods not supported by Dukglue
+* &#10004; JS script to extend classes with methods not supported by Dukglue (_not relevant_)
 * Module flexi in TS. export var DBContexts: {[dbHandle: number]: DBContext} = {}; 
 export function CreateDBContext(db: Database, dbHandle: number)
 * Create DBContext.ts class to keep connection specific
 data: Database, statements, user info, class definitions, cache of referenced values etc.
 * Load JS bundle in DukContext (embed into lib?)
-* Check duktape debugger (VS Code)
 * Flexi 'create class' - in TS
 * ??? flexish - convert to c++ exe with duktape
 * Flexi_data 'update' - in c++/ts
@@ -46,4 +45,17 @@ data: Database, statements, user info, class definitions, cache of referenced va
 * Database binding to Duktape
 * ?? Add Duk console
 * Add Duk debug server to test app
+
+* Webpack bundle - 3 configs
+    - Libs - lodash, moment - to be placed in exe path
+    - Node - to be run in node.js - to be placed to __build
+    - Duk - to be embedded into Flexilite lib. Includes Node + init script - to be placed in exe path
+
+* Temporarily disable flexi tests    
+* Load JS scripts on extension init
 * Configure VSCode: CMake and Duk debug 
+* Check duktape debugger (VS Code)
+* Set stash per connection
+* Init DBContext with constructed Database
+* Remove Dukglue
+* Remove SQLite C++ lib (src/sqlite)

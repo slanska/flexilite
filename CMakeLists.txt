@@ -75,7 +75,11 @@ set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TR
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_definitions(-DRESOURCES_GENERATED)
+add_definitions(-DRESOURCES_GENERATED
+        -DDUK_USE_DEBUGGER_SUPPORT
+        -DDUK_USE_DEBUGGER_SUPPORT
+        -DDUK_USE_CPP_EXCEPTIONS
+        )
 
 set(EXT_FILES
         src/misc/json1.c
@@ -90,7 +94,7 @@ set(EXT_FILES
         src/misc/fileio.c
         src/misc/regexp.c
         src/misc/totype.c
-#        src/_old_flexilite/flexi_get.c
+        #        src/_old_flexilite/flexi_get.c
         src/misc/var.c
 
         src/util/hash.c
@@ -98,51 +102,51 @@ set(EXT_FILES
         src/misc/hash.c
 
         src/misc/memstat.c
-#        src/flexi/flexi_data.cpp
+        #        src/flexi/flexi_data.cpp
 
         lib/duktape/duktape.c
         lib/dukglue/include/dukglue/dukglue.h
 
         lib/nlohmann-json/json.hpp
 
-#        src/flexi/flexi_class.cpp
-#        src/flexi/flexi_class_alter.cpp
-#        src/flexi/flexi_props_to_object.c
+        #        src/flexi/flexi_class.cpp
+        #        src/flexi/flexi_class_alter.cpp
+        #        src/flexi/flexi_props_to_object.c
 
         src/fts/fts3_expr.c
         src/fts/fts3_tokenizer.c
         src/fts/fts3_hash.c
-#        src/flexi/flexi_prop.c
-#        src/flexi/flexi_prop_merge.c
-#        src/flexi/flexi_query.cpp
-#        src/util/json_proc.c
+        #        src/flexi/flexi_prop.c
+        #        src/flexi/flexi_prop_merge.c
+        #        src/flexi/flexi_query.cpp
+        #        src/util/json_proc.c
         src/common/common.h
         src/util/Array.c
         src/util/Array.h
         src/flexi/flexi_func.cpp
 
-#        src/flexi/flexi_prop_merge.h
-#        src/flexi/flexi_db_ctx.cpp
-#        src/flexi/flexi_db_ctx.h
-#        src/flexi/flexi_UserInfo_t.c
-#        src/flexi/flexi_UserInfo_t.h
-#        src/util/rbtree.c
-#        src/flexi/class_ref_def.c
-#        src/flexi/class_ref_def.h
-#        src/util/List.c
-#        src/util/List.h
+        #        src/flexi/flexi_prop_merge.h
+        #        src/flexi/flexi_db_ctx.cpp
+        #        src/flexi/flexi_db_ctx.h
+        #        src/flexi/flexi_UserInfo_t.c
+        #        src/flexi/flexi_UserInfo_t.h
+        #        src/util/rbtree.c
+        #        src/flexi/class_ref_def.c
+        #        src/flexi/class_ref_def.h
+        #        src/util/List.c
+        #        src/util/List.h
         src/util/Path.c
         src/util/Path.h
         src/util/StringBuilder.c
         src/util/StringBuilder.h
-#        src/flexi/flexi_data_adhoc.c
-#        src/flexi/flexi_data_vtable.c
-#        src/flexi/class_build_json.c
-#        src/flexi/flexi_data.h
-#        src/flexi/flexi_Object.c
-#        src/flexi/flexi_Object.h
-#        src/flexi/flexi_PropValue.c
-#        src/flexi/flexi_PropValue.h
+        #        src/flexi/flexi_data_adhoc.c
+        #        src/flexi/flexi_data_vtable.c
+        #        src/flexi/class_build_json.c
+        #        src/flexi/flexi_data.h
+        #        src/flexi/flexi_Object.c
+        #        src/flexi/flexi_Object.h
+        #        src/flexi/flexi_PropValue.c
+        #        src/flexi/flexi_PropValue.h
         src/flexi/DBContext.cpp
         src/flexi/DBContext.h
         src/flexi/ClassDef.cpp
@@ -181,4 +185,5 @@ add_custom_target(install_${PROJECT_NAME}
         COMMENT "Installing ${PROJECT_NAME}")
 
 add_subdirectory(test)
+add_subdirectory(duktape-cmdline)
 
