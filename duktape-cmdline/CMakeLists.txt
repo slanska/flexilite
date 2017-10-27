@@ -13,18 +13,17 @@ project(duktape)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_definitions(
-        -DDUK_CMDLINE_DEBUGGER_SUPPORT
-        -DDUK_USE_DEBUGGER_SUPPORT
-        -DDUK_USE_INTERRUPT_COUNTER
-)
 
 include_directories(
         ../lib/duktape
 )
 
-# TODO Needed?
-#find_package(Threads REQUIRED)
+add_definitions(
+
+        -DDUK_USE_DEBUGGER_SUPPORT
+        -DDUK_USE_INTERRUPT_COUNTER
+        -DDUK_CMDLINE_DEBUGGER_SUPPORT
+)
 
 set(DUK_FILES
         duk_cmdline.c
