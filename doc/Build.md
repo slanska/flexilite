@@ -7,3 +7,4 @@ git submodule update
 
 This will load source code for cmocka unit testing framework
 
+Specific version of Lua-CJSON was 

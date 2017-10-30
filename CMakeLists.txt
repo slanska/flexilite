@@ -81,6 +81,11 @@ add_definitions(-DRESOURCES_GENERATED
 
 set(EXT_FILES
         src/lua-sqlite/lsqlite3.c
+#        lib/lua-cjson/dtoa.c
+#        lib/lua-cjson/g_fmt.c
+        lib/lua-cjson/fpconv.c
+        lib/lua-cjson/lua_cjson.c
+        lib/lua-cjson/strbuf.c
         src/misc/json1.c
         src/typings/DBDefinitions.h
         src/project_defs.h
@@ -159,6 +164,8 @@ set(CMAKE_FIND_LIBRARY_PREFIXES "")
 # Link to luajit statically
 
 add_subdirectory(lib/luajit-2.1)
+
+#add_subdirectory(lib/lua-cjson)
 
 add_library(Flexilite SHARED ${EXT_FILES})
 
