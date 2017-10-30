@@ -18,12 +18,19 @@ extern "C"
 
 #include <iostream>
 #include <fstream>
+#include <zconf.h>
 
 #include "../project_defs.h"
 #include "flexi_class.h"
 #include "DBContext.h"
 #include "../DukContext.h"
 #include "../better-sqlite3/Database.h"
+#include "../util/Path.h"
+
+extern "C"
+{
+LUALIB_API int luaopen_lsqlite3(lua_State *L);
+}
 
 static int flexi_help_func(sqlite3_context *context,
                            int argc,
@@ -150,6 +157,16 @@ static void flexi_func(sqlite3_context *context,
     };
 
     lua_State *L = luaL_newstate();
+    luaL_openlibs(L);
+    luaopen_lsqlite3(L);
+    char zCurrentDir[PATH_MAX + 1];
+    char *zLuaSrc = nullptr;
+    getcwd(zCurrentDir, PATH_MAX);
+    Path_join(&zLuaSrc, zCurrentDir, "../../src_lua/DBContext.lua");
+    if (luaL_dofile(L, zLuaSrc))
+    {
+        printf("%s\n", lua_tostring(L, -1));
+    }
 
     char *zMethodName = (char *) sqlite3_value_text(argv[0]);
     char *zError = nullptr;
@@ -248,26 +265,26 @@ extern "C" int flexi_init(sqlite3 *db,
         /*
          * TODO temp load from external file
          */
-        loadJsScript("./duk-deps.js");
-        loadJsScript("./flexi-duk.js");
+        //        loadJsScript("./duk-deps.js");
+        //        loadJsScript("./flexi-duk.js");
 
         // Create new database instance in JavaScript
-        auto dbAsInt = (uint64_t) db;
-        std::ostringstream str;
-        str << "var db = new Database(" << dbAsInt << "); "
-                "Statement.prototype._all = function() { /*var r = [].slice.call(arguments);*/  return 'abc';}; "
-                "var st = new Statement(db, 'select julianday();');"
-                "st.getNextRow([1, '2', true, null]);";
-        str << "var db = new Database(" << dbAsInt << ");"
-                "var stmt = db.prepare('select julianday();');"
-                "var row = stmt.get([]);";
-        auto ss = str.str();
+        //        auto dbAsInt = (uint64_t) db;
+        //        std::ostringstream str;
+        //        str << "var db = new Database(" << dbAsInt << "); "
+        //                "Statement.prototype._all = function() { /*var r = [].slice.call(arguments);*/  return 'abc';}; "
+        //                "var st = new Statement(db, 'select julianday();');"
+        //                "st.getNextRow([1, '2', true, null]);";
+        //        str << "var db = new Database(" << dbAsInt << ");"
+        //                "var stmt = db.prepare('select julianday();');"
+        //                "var row = stmt.get([]);";
+        //        auto ss = str.str();
 
-        auto database = new Database(dbAsInt);
+        //        auto database = new Database(dbAsInt);
 
-        pDukCtx->test_eval(ss.c_str());
+        //        pDukCtx->test_eval(ss.c_str());
         //        dukglue_peval(pDukCtx->getCtx(), str.str().c_str());
-        DukValue dbVal = DukValue::take_from_stack(pDukCtx->getCtx());
+        //        DukValue dbVal = DukValue::take_from_stack(pDukCtx->getCtx());
 
         CHECK_CALL(sqlite3_create_function_v2(db, "flexi", -1, SQLITE_UTF8,
                                               nullptr, // Use db context id

@@ -86,6 +86,7 @@ add_definitions(-DRESOURCES_GENERATED
         )
 
 set(EXT_FILES
+        src/lua-sqlite/lsqlite3.c
         src/misc/json1.c
         src/typings/DBDefinitions.h
         src/project_defs.h
@@ -185,11 +186,6 @@ add_subdirectory(lib/luajit-2.1)
 
 add_library(Flexilite SHARED ${EXT_FILES})
 
-find_library(LIBLUAJIT_PATH luajit-static)
-
-#set(LIBLUAJIT_PATH ${CMAKE_SOURCE_DIR}/bin/libluajit)
-
-#target_link_libraries(Flexilite ${LIBLUAJIT_PATH})
 target_link_libraries(Flexilite PUBLIC luajit-static)
 
 #set_target_properties(Flexilite PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")

@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     char *zDir = nullptr;
     Path_dirname(&zDir, *argv);
 
-    // TODO temp
+    // TODO temp - getcwd is not supported by Universal Window Apps
     char zCurrentDir[PATH_MAX + 1];
     getcwd(zCurrentDir, PATH_MAX);
 
