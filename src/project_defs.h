@@ -15,7 +15,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
-#include <duk_config.h>
 
 #include "common/common.h"
 

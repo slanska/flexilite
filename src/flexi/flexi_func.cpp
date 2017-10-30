@@ -6,9 +6,6 @@
  * Implementation of proxy 'flexi' function
  */
 
-// TODO Remove
-#include <dukglue.h>
-
 extern "C"
 {
 #include <lua.h>
@@ -22,9 +19,9 @@ extern "C"
 
 #include "../project_defs.h"
 #include "flexi_class.h"
-#include "DBContext.h"
-#include "../DukContext.h"
-#include "../better-sqlite3/Database.h"
+//#include "DBContext.h"
+//#include "../DukContext.h"
+//#include "../better-sqlite3/Database.h"
 #include "../util/Path.h"
 
 extern "C"
@@ -87,7 +84,7 @@ static int flexi_init_func(sqlite3_context *context,
 
 }
 
-thread_local auto pDukCtx = std::unique_ptr<DukContext>(new DukContext());
+//thread_local auto pDukCtx = std::unique_ptr<DukContext>(new DukContext());
 
 
 /*
@@ -119,28 +116,28 @@ static void flexi_func(sqlite3_context *context,
 
         const char *zHelp;
     } methods[] = {
-            {"create class",          &DBContext::CreateClassFunc},
-            {"alter class",           &DBContext::AlterClassFunc},
-            {"drop class",            &DBContext::DropClassFunc},
-            {"rename class",          &DBContext::RenameClassFunc},
-            {"create property",       &DBContext::CreatePropFunc},
-            {"alter property",        &DBContext::AlterPropFunc},
-            {"drop property",         &DBContext::DropPropFunc},
-            {"rename property",       &DBContext::RenamePropFunc},
-            {"merge property",        &DBContext::MergePropFunc},
-            {"split property",        &DBContext::SplitPropFunc},
-
-            {"properties to object",  &DBContext::PropsToObjectFunc},
-            {"object to properties",  &DBContext::ObjectToPropsFunc},
-            {"property to reference", &DBContext::PropToRefFunc},
-            {"reference to property", &DBContext::RefToPropFunc},
-            {"change object class",   &DBContext::ChangeObjectClassFunc},
-
-            {"schema",                &DBContext::SchemaFunc},
-            {"config",                &DBContext::ConfigFunc},
-            {"structural merge",      &DBContext::StructuralMergeFunc},
-            {"structural split",      &DBContext::StructuralSplitFunc},
-            {"remove duplicates",     &DBContext::RemoveDuplicatesFunc},
+//            {"create class",          &DBContext::CreateClassFunc},
+//            {"alter class",           &DBContext::AlterClassFunc},
+//            {"drop class",            &DBContext::DropClassFunc},
+//            {"rename class",          &DBContext::RenameClassFunc},
+//            {"create property",       &DBContext::CreatePropFunc},
+//            {"alter property",        &DBContext::AlterPropFunc},
+//            {"drop property",         &DBContext::DropPropFunc},
+//            {"rename property",       &DBContext::RenamePropFunc},
+//            {"merge property",        &DBContext::MergePropFunc},
+//            {"split property",        &DBContext::SplitPropFunc},
+//
+//            {"properties to object",  &DBContext::PropsToObjectFunc},
+//            {"object to properties",  &DBContext::ObjectToPropsFunc},
+//            {"property to reference", &DBContext::PropToRefFunc},
+//            {"reference to property", &DBContext::RefToPropFunc},
+//            {"change object class",   &DBContext::ChangeObjectClassFunc},
+//
+//            {"schema",                &DBContext::SchemaFunc},
+//            {"config",                &DBContext::ConfigFunc},
+//            {"structural merge",      &DBContext::StructuralMergeFunc},
+//            {"structural split",      &DBContext::StructuralSplitFunc},
+//            {"remove duplicates",     &DBContext::RemoveDuplicatesFunc},
 
             /* TODO
              * "structural merge" -- join 2+ objects to 1 object
@@ -149,11 +146,11 @@ static void flexi_func(sqlite3_context *context,
              *
              */
 
-            {"init",                  &DBContext::InitDatabaseFunc},
-            {"help",                  &DBContext::UsageFunc, false},
+//            {"init",                  &DBContext::InitDatabaseFunc},
+//            {"help",                  &DBContext::UsageFunc, false},
 
             // TODO
-            {"validate data",         nullptr},
+        {"validate data",         nullptr},
     };
 
     lua_State *L = luaL_newstate();
@@ -244,14 +241,14 @@ int flexi_data_init(
         DBContext *pCtx
 );
 
-static void loadJsScript(const char *zFilePath)
-{
-    std::ifstream jsFile(zFilePath);
-    std::stringstream ss;
-    ss << jsFile.rdbuf();
-    std::string str = ss.str();
-    duk_peval_string(pDukCtx->getCtx(), str.c_str());
-}
+//static void loadJsScript(const char *zFilePath)
+//{
+//    std::ifstream jsFile(zFilePath);
+//    std::stringstream ss;
+//    ss << jsFile.rdbuf();
+//    std::string str = ss.str();
+//    duk_peval_string(pDukCtx->getCtx(), str.c_str());
+//}
 
 extern "C" int flexi_init(sqlite3 *db,
                           char **pzErrMsg,

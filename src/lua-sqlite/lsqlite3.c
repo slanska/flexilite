@@ -2562,7 +2562,11 @@ LUALIB_API int luaopen_lsqlite3(lua_State *L)
     sqlite_ctx_meta_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
     /* register (local) sqlite metatable */
-    luaL_register(L, "sqlite3", sqlitelib);
+    /*
+     * Use generic name for data access, so that Flexilite
+     * could be ported to other databases too (PostgreSQL)
+     */
+    luaL_register(L, "dbapi", sqlitelib);
 
     {
         int i = 0;

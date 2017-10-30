@@ -60,10 +60,7 @@ target_link_libraries(sqlite_shell m)
 project(Flexilite)
 
 include_directories(
-        lib/duktape
         lib/sqlite
-        lib/nlohmann-json
-        lib/dukglue/include/dukglue
         lib/luajit-2.1/src
 )
 
@@ -80,9 +77,6 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_definitions(-DRESOURCES_GENERATED
-        -DDUK_USE_DEBUGGER_SUPPORT
-        -DDUK_USE_DEBUGGER_SUPPORT
-        -DDUK_USE_CPP_EXCEPTIONS
         )
 
 set(EXT_FILES
@@ -108,11 +102,6 @@ set(EXT_FILES
 
         src/misc/memstat.c
         #        src/flexi/flexi_data.cpp
-
-        lib/duktape/duktape.c
-        lib/dukglue/include/dukglue/dukglue.h
-
-        lib/nlohmann-json/json.hpp
 
         #        src/flexi/flexi_class.cpp
         #        src/flexi/flexi_class_alter.cpp
@@ -152,27 +141,39 @@ set(EXT_FILES
         #        src/flexi/flexi_Object.h
         #        src/flexi/flexi_PropValue.c
         #        src/flexi/flexi_PropValue.h
-        src/flexi/DBContext.cpp
-        src/flexi/DBContext.h
+#        src/flexi/DBContext.cpp
+#        src/flexi/DBContext.h
         src/flexi/ClassDef.cpp
         src/flexi/ClassDef.h
         src/flexi/PropertyDef.cpp
         src/flexi/PropertyDef.h
-        src/sqlite/Column.cpp
-        src/sqlite/Column.h
-        src/sqlite/Statement.cpp
-        src/sqlite/Statement.h
-        src/sqlite/Exception.cpp
-        src/sqlite/Exception.h
-        src/sqlite/Database.cpp
-        src/sqlite/Database.h
-        src/sqlite/Transaction.cpp
-        src/sqlite/Transaction.h
-        src/sqlite/SQLiteCpp.h
-        src/sqlite/VariadicBind.h
-        src/sqlite/Assertion.h
-        src/flexi/SymbolRef.cpp
-        src/flexi/SymbolRef.h src/better-sqlite3/SqliteError.cpp src/better-sqlite3/SqliteError.h src/better-sqlite3/Database.cpp src/better-sqlite3/Database.h src/better-sqlite3/Statement.cpp src/better-sqlite3/Statement.h src/better-sqlite3/Util.cpp src/better-sqlite3/Util.h src/better-sqlite3/Transaction.cpp src/better-sqlite3/Transaction.h src/DukContext.h src/DukContext.cpp)
+#        src/sqlite/Column.cpp
+#        src/sqlite/Column.h
+#        src/sqlite/Statement.cpp
+#        src/sqlite/Statement.h
+#        src/sqlite/Exception.cpp
+#        src/sqlite/Exception.h
+#        src/sqlite/Database.cpp
+#        src/sqlite/Database.h
+#        src/sqlite/Transaction.cpp
+#        src/sqlite/Transaction.h
+#        src/sqlite/SQLiteCpp.h
+#        src/sqlite/VariadicBind.h
+#        src/sqlite/Assertion.h
+#        src/flexi/SymbolRef.cpp
+#        src/flexi/SymbolRef.h
+#        src/better-sqlite3/SqliteError.cpp
+#        src/better-sqlite3/SqliteError.h
+#        src/better-sqlite3/Database.cpp
+#        src/better-sqlite3/Database.h
+#        src/better-sqlite3/Statement.cpp
+#        src/better-sqlite3/Statement.h
+#        src/better-sqlite3/Util.cpp
+#        src/better-sqlite3/Util.h
+#        src/better-sqlite3/Transaction.cpp
+#        src/better-sqlite3/Transaction.h
+#        src/DukContext.h src/DukContext.cpp
+        )
 
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
@@ -197,5 +198,4 @@ add_custom_target(install_${PROJECT_NAME}
         COMMENT "Installing ${PROJECT_NAME}")
 
 add_subdirectory(test)
-add_subdirectory(duktape-cmdline)
 

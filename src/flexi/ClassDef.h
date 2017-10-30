@@ -12,7 +12,6 @@
 
 #include "../project_defs.h"
 #include "SymbolRef.h"
-#include <json.hpp>
 
 /*
  * Column numbers and array indexes for class' special properties

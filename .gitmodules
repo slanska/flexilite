@@ -2,15 +2,6 @@
 	path = lib/cmocka
 	url = git://git.cryptomilk.org/projects/cmocka.git
 
-[submodule "lib/parson_json"]
-	path = lib/parson_json
-	url = https://github.com/kgabis/parson.git
-
-
-
-[submodule "lib/dukglue"]
-	path = lib/dukglue
-	url = https://github.com/Aloshi/dukglue.git
 [submodule "lib/luajit"]
 	path = lib/luajit
 	url = http://luajit.org/git/luajit-2.0.git
