@@ -54,8 +54,11 @@ data: Database, statements, user info, class definitions, cache of referenced va
 * Temporarily disable flexi tests    
 * Load JS scripts on extension init
 * Configure VSCode: CMake and Duk debug 
-* Check duktape debugger (VS Code)
+* &#10003; Check duktape debugger (VS Code) - half-working - need to find out how 
+to link to source code and set breakpoints
 * Set stash per connection
 * Init DBContext with constructed Database
 * Remove Dukglue
 * Remove SQLite C++ lib (src/sqlite)
+* Webpack for Flexilite and DBContext
+* Load scripts

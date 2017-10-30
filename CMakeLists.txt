@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 
 enable_testing()
 
+if (WIN32)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+endif ()
+
 #CMake provides three variables to describe the system:
 #
 #CMAKE_SYSTEM_NAME (Window, Linux, Darwin),
@@ -23,7 +27,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 project(sqlite_shell)
 
 message("Building on: ${CMAKE_SYSTEM_NAME}")
-
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -61,6 +64,7 @@ include_directories(
         lib/sqlite
         lib/nlohmann-json
         lib/dukglue/include/dukglue
+        lib/luajit-2.1/src
 )
 
 add_custom_target(Generate_Resources
@@ -169,12 +173,24 @@ set(EXT_FILES
         src/flexi/SymbolRef.cpp
         src/flexi/SymbolRef.h src/better-sqlite3/SqliteError.cpp src/better-sqlite3/SqliteError.h src/better-sqlite3/Database.cpp src/better-sqlite3/Database.h src/better-sqlite3/Statement.cpp src/better-sqlite3/Statement.h src/better-sqlite3/Util.cpp src/better-sqlite3/Util.h src/better-sqlite3/Transaction.cpp src/better-sqlite3/Transaction.h src/DukContext.h src/DukContext.cpp)
 
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
+#set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
+#set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
+#set(CMAKE_FIND_LIBRARY_SUFFIXES ".dll")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
+
+# Register Flexilite DLL/SO/DYLIB
+# Link to luajit statically
+
+add_subdirectory(lib/luajit-2.1)
 
 add_library(Flexilite SHARED ${EXT_FILES})
 
-target_link_libraries(Flexilite m)
+find_library(LIBLUAJIT_PATH luajit-static)
+
+#set(LIBLUAJIT_PATH ${CMAKE_SOURCE_DIR}/bin/libluajit)
+
+#target_link_libraries(Flexilite ${LIBLUAJIT_PATH})
+target_link_libraries(Flexilite PUBLIC luajit-static)
 
 #set_target_properties(Flexilite PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 #set_target_properties(Flexilite PROPERTIES COMPILE_FLAGS "-m64" LINK_FLAGS "-m64")

@@ -16,6 +16,7 @@ import chai = require('chai');
 import sqlite3 = require('../dbhelper');
 import util = require("util");
 import path =require("path");
+
 let shortid = require("shortid");
 import faker = require("faker");
 import fs = require('fs');
@@ -35,7 +36,7 @@ function initOpenedDB(db: sqlite3.Database): Promise<sqlite3.Database> {
     console.log(`Process ID=${process.pid}`);
     // let libPath = path.join(__dirname, '../../bin/libFlexilite');
     let libPath = '../../bin/libFlexilite';
-    let currentUserID;
+    let currentUserID: any;
     return db.allAsync(`select randomblob(16) as uuid;`)
         .then((rows) => {
             currentUserID = rows[0]['uuid'];
@@ -44,7 +45,7 @@ function initOpenedDB(db: sqlite3.Database): Promise<sqlite3.Database> {
         })
         .then(() => db.loadExtensionAsync(libPath))
         .then(() => {
-            db["CurrentUserID"] = currentUserID;
+            (db as any)["CurrentUserID"] = currentUserID;
             return db.runAsync(`select var('CurrentUserID', ?);`, currentUserID);
         });
 }

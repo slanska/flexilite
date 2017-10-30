@@ -1,25 +1,25 @@
 // tests will go here
 
-/// <reference path="../typings/mocha/mocha.d.ts"/>
-/// <reference path="../typings/node/node.d.ts"/>
-/// <reference path="../typings/chai/chai.d.ts" />
-/// <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
-/// <reference path="../typings/tsd.d.ts" />
+// / <reference path="../typings/mocha/mocha.d.ts"/>
+// / <reference path="../typings/node/node.d.ts"/>
+// / <reference path="../typings/chai/chai.d.ts" />
+// / <reference path="../node_modules/orm/lib/TypeScript/orm.d.ts" />
+// / <reference path="../typings/tsd.d.ts" />
 
 'use strict';
 
-import orm = require("orm");
-var sqlite3 = require("sqlite3");
-import util = require("util");
-import path =require("path");
-import helper = require("./helper");
-var fs = require('fs');
-var Sync = require("syncho");
-import faker = require('faker');
-var orm_trn = require('orm-transaction');
-var Driver = require('../lib/FlexiliteAdapter').Driver;
-
-var drv = require('../lib/drivers/SQLite/Driver');
+// import orm = require("orm");
+// var sqlite3 = require("sqlite3");
+// import util = require("util");
+// import path =require("path");
+// import helper = require("./helper");
+// var fs = require('fs');
+// var Sync = require("syncho");
+// import faker = require('faker');
+// var orm_trn = require('orm-transaction');
+// var Driver = require('../lib/FlexiliteAdapter').Driver;
+//
+// var drv = require('../lib/drivers/SQLite/Driver');
 
 /**
  * Unit tests

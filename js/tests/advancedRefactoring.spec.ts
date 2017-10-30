@@ -10,39 +10,33 @@
 'use strict';
 
 import mocha = require('mocha');
+
 require('../lib/drivers/SQLite');
 import path = require('path');
 import _ = require('lodash');
 
-describe('Advanced cases of data refactoring', () =>
-{
-    it('1. Merge objects', (done)=>
-    {
+describe('Advanced cases of data refactoring', () => {
+    it('1. Merge objects', (done: Function) => {
         done();
     });
 
-    it('2. Split objects', (done)=>
-    {
+    it('2. Split objects', (done: Function) => {
         done();
     });
 
-    it('3. Change class type (assign objects to a different class)', (done)=>
-    {
+    it('3. Change class type (assign objects to a different class)', (done: Function) => {
         done();
     });
 
-    it('4. Rename class', (done)=>
-    {
+    it('4. Rename class', (done: Function) => {
         done();
     });
 
-    it('5. Rename property', (done)=>
-    {
+    it('5. Rename property', (done: Function) => {
         done();
     });
 
-    it('6. One-to-many -> many-to-many', (done)=>
-    {
+    it('6. One-to-many -> many-to-many', (done: Function) => {
         done();
     });
 
@@ -50,8 +44,7 @@ describe('Advanced cases of data refactoring', () =>
     Country text column -> Extract to separate object, replace with country ID -> include into row
     by auto-generated link to Countries
      */
-    it('7. Scalar value(s) -> Extract to separate object -> Display value(s) from referenced object', (done)=>
-    {
+    it('7. Scalar value(s) -> Extract to separate object -> Display value(s) from referenced object', (done: Function) => {
         done();
     });
 });

@@ -14,35 +14,28 @@ import mocha = require('mocha');
 import path = require('path');
 import _ = require('lodash');
 
-describe('Typical scenarios of data refactoring', () =>
-{
-    it('1. Create', (done)=>
-    {
+describe('Typical scenarios of data refactoring', () => {
+    it('1. Create', (done: Function) => {
         done();
     });
 
-    it('2. Name -> FirstName + LastName', (done)=>
-    {
+    it('2. Name -> FirstName + LastName', (done: Function) => {
         done();
     });
 
-    it('3. Add Email and Phone', (done)=>
-    {
+    it('3. Add Email and Phone', (done: Function) => {
         done();
     });
 
-    it('4. Extract Address into separate entity', (done)=>
-    {
+    it('4. Extract Address into separate entity', (done: Function) => {
         done();
     });
 
-    it('5. Multiple emails and phones', (done)=>
-    {
+    it('5. Multiple emails and phones', (done: Function) => {
         done();
     });
 
-    it('6. Multiple addresses', (done)=>
-    {
+    it('6. Multiple addresses', (done: Function) => {
         done();
     });
 });

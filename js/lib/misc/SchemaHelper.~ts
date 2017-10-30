@@ -2,14 +2,13 @@
  * Created by slanska on 2016-03-26.
  */
 
-/// <reference path="../../typings/lib.d.ts" />
+/// <reference path="../../../typings/lib.d.ts" />
 
 'use strict';
 
 import sqlite3 = require('sqlite3');
 var Sync = require('syncho');
 import _ = require('lodash');
-import orm = require('orm');
 
 /*
  Converts node-orm2 schema definition as it is passed to sync method,
@@ -20,7 +19,7 @@ export interface IShemaHelper
     targetClassProps:IClassPropertyDictionaryByName;
     getNameID:(name:string)=>number;
     getClassIDbyName:(className:string)=>number;
-    convertFromNodeOrmSync();
+    convertFromNodeOrmSync():any;
 }
 
 

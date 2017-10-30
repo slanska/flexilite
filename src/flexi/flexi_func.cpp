@@ -6,7 +6,19 @@
  * Implementation of proxy 'flexi' function
  */
 
+// TODO Remove
 #include <dukglue.h>
+
+extern "C"
+{
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+}
+
+#include <iostream>
+#include <fstream>
+
 #include "../project_defs.h"
 #include "flexi_class.h"
 #include "DBContext.h"
@@ -137,6 +149,8 @@ static void flexi_func(sqlite3_context *context,
             {"validate data",         nullptr},
     };
 
+    lua_State *L = luaL_newstate();
+
     char *zMethodName = (char *) sqlite3_value_text(argv[0]);
     char *zError = nullptr;
     int result = SQLITE_OK;
@@ -213,6 +227,15 @@ int flexi_data_init(
         DBContext *pCtx
 );
 
+static void loadJsScript(const char *zFilePath)
+{
+    std::ifstream jsFile(zFilePath);
+    std::stringstream ss;
+    ss << jsFile.rdbuf();
+    std::string str = ss.str();
+    duk_peval_string(pDukCtx->getCtx(), str.c_str());
+}
+
 extern "C" int flexi_init(sqlite3 *db,
                           char **pzErrMsg,
                           const sqlite3_api_routines *pApi)
@@ -222,7 +245,11 @@ extern "C" int flexi_init(sqlite3 *db,
         int result;
         sqlite3_stmt *pDummy = nullptr;
 
-
+        /*
+         * TODO temp load from external file
+         */
+        loadJsScript("./duk-deps.js");
+        loadJsScript("./flexi-duk.js");
 
         // Create new database instance in JavaScript
         auto dbAsInt = (uint64_t) db;

@@ -4,7 +4,7 @@
 
 /*
 Webpack configuration to prepare JS bundle for Flexlite sources to run
-in embedded Duktape environment
+in node JS environment
  */
 
 var path = require('path');
@@ -14,29 +14,20 @@ module.exports = {
     entry: "./js/duk/index.js",
     output: {
         filename: "build/bin/flexi-duk.js"
-
     },
     resolve: {
         // Add '.ts' and '.tsx' as a resolvable extension.
         extensions: [".webpack.js", ".web.js", ".ts", ".tsx", ".js"]
     },
     module: {
-        rules: [
+        loaders: [
+            // all files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'
             {
-                test: [/\.tsx?$/, /\.jsx?$/],
-                exclude: /js\/tests/,
-                loader: 'ts-loader'
+                test: [/\.tsx?$/, /\.jsx?$/], loader: "ts-loader", include: [
+                path.resolve(__dirname, "js"),
+            ]
             }
-        ],
-
-        // loaders: [
-        //     // all files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'
-        //     {
-        //         test: [/\.tsx?$/, /\.jsx?$/], loader: "ts-loader", include: [
-        //         path.resolve(__dirname, "../js/duk")
-        //     ]
-        //     }
-        // ]
+        ]
     },
     externals: {
         lodash: 'lodash',

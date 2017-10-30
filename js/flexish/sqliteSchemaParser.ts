@@ -11,6 +11,7 @@
 import _ = require('lodash');
 import Promise = require('bluebird');
 import Dictionary = _.Dictionary;
+
 let Pluralize = require('pluralize');
 import sqlite = require('../dbhelper');
 
@@ -203,7 +204,7 @@ interface ISQLiteForeignKeyInfo {
     processed?: boolean;
 }
 
-type ClassDefCollection = {[name: string]: IClassDefinition};
+type ClassDefCollection = { [name: string]: IClassDefinition };
 
 /*
  Internally used object with table name, mapping between column numbers and column names and other attributes
@@ -505,7 +506,7 @@ export class SQLiteSchemaParser {
             })
             // Process indexes
             .then((indexes: ISQLiteIndexInfo[]) => {
-                let deferredIdxCols = [];
+                let deferredIdxCols: any[] = [];
 
                 // Check if primary key is included into list of indexes
                 if (!_.find(indexes, (ix: ISQLiteIndexInfo) => ix.origin === 'pk')) {
@@ -574,7 +575,7 @@ export class SQLiteSchemaParser {
     }
 
     private getIndexColumnNames(tbl: ITableInfo, idx: ISQLiteIndexInfo) {
-        let result = [];
+        let result: any[] = [];
         _.forEach(idx.columns, (c: ISQLiteIndexColumn) => {
             result.push(tbl.columns[c.cid].name);
         });
@@ -726,8 +727,8 @@ export class SQLiteSchemaParser {
                         }
                         else {
                             let ftsCol = ftsCols.shift();
-                            classDef.fullTextIndexing = classDef.fullTextIndexing || {};
-                            classDef.fullTextIndexing[ftsCol] = col.name;
+                            classDef.fullTextIndexing = (classDef.fullTextIndexing || {}) as any;
+                            classDef.fullTextIndexing[ftsCol] = {$name: col.name} as IMetadataRef;
                             prop.index = 'fulltext';
                         }
                     }
@@ -744,8 +745,8 @@ export class SQLiteSchemaParser {
                         else {
                             let rtCol = rtCols.shift();
                             classDef.rangeIndexing = classDef.rangeIndexing || {} as any;
-                            classDef.rangeIndexing[rtCol + '0'] = col.name;
-                            classDef.rangeIndexing[rtCol + '1'] = col.name;
+                            classDef.rangeIndexing[rtCol + '0'] = {$name: col.name};
+                            classDef.rangeIndexing[rtCol + '1'] = {$name: col.name};
                             prop.index = 'range';
                         }
                     }
@@ -798,12 +799,12 @@ export class SQLiteSchemaParser {
             });
 
         if (uniqOtherIndexes.length > 0) {
-            classDef.specialProperties.uid = tblInfo.columns[uniqOtherIndexes[0].columns[0].cid].name;
+            classDef.specialProperties.uid = {$name: tblInfo.columns[uniqOtherIndexes[0].columns[0].cid].name};
             _.forEach(uniqOtherIndexes, (idx: ISQLiteIndexInfo) => {
                 let col = tblInfo.columns[idx.columns[0].cid];
                 let prop = classDef.properties[col.name];
                 if (prop.rules.type === 'binary' && prop.rules.maxLength === 16) {
-                    classDef.specialProperties.autoUuid = tblInfo.columns[idx.columns[0].cid].name;
+                    classDef.specialProperties.autoUuid = {$name: tblInfo.columns[idx.columns[0].cid].name};
                 }
             });
         }
@@ -830,11 +831,11 @@ export class SQLiteSchemaParser {
 
         if (uniqTxtIndexes.length > 0) {
             // Items assigned to code, name, description
-            classDef.specialProperties.code = tblInfo.columns[uniqTxtIndexes[0].columns[0].cid].name;
+            classDef.specialProperties.code = {$name: tblInfo.columns[uniqTxtIndexes[0].columns[0].cid].name};
             if (!classDef.specialProperties.uid)
                 classDef.specialProperties.uid = classDef.specialProperties.code;
-            classDef.specialProperties.name = tblInfo.columns[uniqTxtIndexes[uniqTxtIndexes.length > 1 ? 1 : 0].columns[0].cid].name;
-            classDef.specialProperties.description = tblInfo.columns[_.last(uniqTxtIndexes).columns[0].cid].name;
+            classDef.specialProperties.name = {$name: tblInfo.columns[uniqTxtIndexes[uniqTxtIndexes.length > 1 ? 1 : 0].columns[0].cid].name};
+            classDef.specialProperties.description = {$name: tblInfo.columns[_.last(uniqTxtIndexes).columns[0].cid].name};
         }
     }
 
@@ -843,7 +844,7 @@ export class SQLiteSchemaParser {
      and parses it to Flexilite class definition
      Returns promise which resolves to dictionary of Flexilite classes
      */
-    public parseSchema(): Promise < ClassDefCollection > {
+    public parseSchema(): Promise<ClassDefCollection> {
         let self = this;
         self.outSchema = {};
         self.tableInfo = [];
@@ -851,7 +852,7 @@ export class SQLiteSchemaParser {
         // Get list of tables (excluding internal tables)
         return self.db.allAsync(`select * from sqlite_master where type = 'table' and name not like 'sqlite%';`)
             .then((tables: ISQLiteTableInfo[]) => {
-                let deferredTables = [];
+                let deferredTables: any[] = [];
                 _.forEach(tables, (item: ISQLiteTableInfo) => {
                     deferredTables.push(self.loadTableInfo(item));
                 });

@@ -86,3 +86,6 @@ node_modules
 /js/lib/drivers/SQLite/SQLiteDataRefactor.js
 !/lib/rapidjson/
 /js/__build/flexi-duk.js
+/build/bin/duk-deps.js
+/build/bin/flexilite_test
+/build/bin/flexi-duk.js

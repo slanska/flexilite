@@ -20,7 +20,10 @@
   },
   "scripts": {
     "postinstall": "git submodule init & git submodule update",
-    "valgrind": "cd ./cmake-build-debug/bin && valgrind --leak-check=full --track-origins=yes ./flexilite_test"
+    "valgrind": "cd ./cmake-build-debug/bin && valgrind --leak-check=full --track-origins=yes ./flexilite_test",
+    "webpack-deps": "webpack -w --config config/webpack.config.deps.js",
+    "webpack-duk": "webpack -w --config config/webpack.config.duktape.js",
+    "webpack-node": "webpack -w --config config/webpack.config.node.js"
   },
   "main": "lib/index.js",
   "engines": {
@@ -33,6 +36,7 @@
     "@types/cli": "^0.11.19",
     "@types/lodash": "^4.14.80",
     "@types/moment": "^2.13.0",
+    "better-sqlite3": "^4.0.3",
     "chai": "^3.3.0",
     "csv": "^0.4.6",
     "faker": "^3.0.1",
@@ -40,7 +44,7 @@
     "moment": "^2.19.1",
     "should": "^7.1.0",
     "supertest": "^1.1.0",
-    "ts-loader": "^3.0.5",
+    "ts-loader": "^3.1.0",
     "webpack": "^3.8.1"
   }
 }

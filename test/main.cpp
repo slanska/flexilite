@@ -14,14 +14,14 @@
 
 int main(int argc, char **argv)
 {
-    char *zDir = NULL;
+    char *zDir = nullptr;
     Path_dirname(&zDir, *argv);
 
     // TODO temp
     char zCurrentDir[PATH_MAX + 1];
     getcwd(zCurrentDir, PATH_MAX);
 
-    if (zDir == NULL || strlen(zDir) == 0 || strcmp(zDir, ".") == 0)
+    if (zDir == nullptr || strlen(zDir) == 0 || strcmp(zDir, ".") == 0)
     {
         sqlite3_free(zDir);
         zDir = sqlite3_mprintf("%s", zCurrentDir);

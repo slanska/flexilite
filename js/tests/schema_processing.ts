@@ -16,7 +16,7 @@ var expect = chai.expect;
 describe('Flexilite schema processing', () => {
     var db: sqlite3.Database;
 
-    before((done) => {
+    before((done: Function) => {
         helper.openMemoryDB()
             .then(d => {
                 db = d;
@@ -24,7 +24,7 @@ describe('Flexilite schema processing', () => {
             });
     });
 
-    after((done) => {
+    after((done: Function) => {
         db.closeAsync()
             .then(() => done());
     });

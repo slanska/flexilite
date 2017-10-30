@@ -413,7 +413,7 @@ declare type QueryWhereOperator = '$eq' | '$ne' | '$lt' | '$gt' | '$le' | '$ge' 
      */
     '$difference';
 
-type IClassPropertyDictionary = { [propID: string]: IClassPropertyDef };
+// type IClassPropertyDictionary = { [propID: string]: IClassPropertyDef };
 
 /*
  /*
@@ -548,6 +548,7 @@ interface IClassDefinition {
         D1?: IMetadataRef;
         E0?: IMetadataRef;
         E1?: IMetadataRef;
+        [index: string]: IMetadataRef;
     }
 
     /*
@@ -560,6 +561,7 @@ interface IClassDefinition {
         X3?: IMetadataRef;
         X4?: IMetadataRef;
         X5?: IMetadataRef;
+        [index: string]: IMetadataRef;
     }
 
     /*
@@ -591,4 +593,5 @@ interface IStorageFlexiRelProperty {
     refProperty: IMetadataRef;
 }
 
-type IClassPropertyDictionaryByName = { [propName: string]: IClassPropertyDef };
+// type IClassPropertyDictionaryByName = { [propName: string]: IClassPropertyDef };
+type IClassPropertyDictionary = { [propName: string]: IClassPropertyDef };

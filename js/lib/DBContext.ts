@@ -2,34 +2,33 @@
  * Created by slanska on 2017-10-24.
  */
 
-//v/<reference path="../../node_modules/@types/better-sqlite3/index.d.ts"/>
+///<reference path="../../node_modules/@types/better-sqlite3/index.d.ts"/>
 
 import * as Database from 'better-sqlite3';
 
-interface RunResult {
-    changes: number;
-    lastInsertROWID: number; // TODO Integer.IntLike;
-}
+export namespace flexi {
+    interface RunResult {
+        changes: number;
+        lastInsertROWID: number; // TODO Integer.IntLike;
+    }
 
-declare class Statement {
-    database: Database;
-    source: string;
-    returnsData: boolean;
-    constructor(db: Database, sources: string[]);
+    declare class Statement {
+        database: Database;
+        source: string;
+        returnsData: boolean;
+        constructor(db: Database, sources: string[]);
 
-    run(...params: any[]): RunResult;
-    get(...params: any[]): any;
-    all(...params: any[]): any[];
-    each(params: any, cb: (row: any) => void): void;
-    each(cb: (row: any) => void): void;
-    each(...params: any[]): void;
-    pluck(toggleState?: boolean): this;
-    bind(...params: any[]): this;
-    safeIntegers(toggleState?: boolean): this;
-}
+        run(...params: any[]): RunResult;
+        get(...params: any[]): any;
+        all(...params: any[]): any[];
+        each(params: any, cb: (row: any) => void): void;
+        each(cb: (row: any) => void): void;
+        each(...params: any[]): void;
+        pluck(toggleState?: boolean): this;
+        bind(...params: any[]): this;
+        safeIntegers(toggleState?: boolean): this;
+    }
 
-
-module flexi {
     export class DBContext {
         stmts: { [sql: string]: Statement } = {};
 
@@ -81,9 +80,5 @@ module flexi {
 
         public alterClass(className: string, classDefJSON: string, createVTable: boolean = false) {
         }
-
-
     }
-
-
 }

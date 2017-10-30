@@ -9,6 +9,7 @@ import helper = require('./helper');
 import sqlite3 = require('sqlite3');
 import faker = require('faker');
 import chai = require('chai');
+
 var shortid = require('shortid');
 import Promise = require('bluebird');
 
@@ -17,141 +18,141 @@ var expect = chai.expect;
 describe('SQLite extensions: Flexilite EAV', () => {
     let db: sqlite3.Database;
 
-    const personMeta =  {
+    const personMeta = {
         "properties": {
             "EmployeeID": {
                 "rules": {
                     "type": "integer",
-                        "maxOccurences": 1,
-                        "minOccurences": 1
+                    "maxOccurences": 1,
+                    "minOccurences": 1
                 },
                 "index": "unique"
             },
             "LastName": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 20,
-                        "maxOccurences": 1,
-                        "minOccurences": 1
+                    "maxLength": 20,
+                    "maxOccurences": 1,
+                    "minOccurences": 1
                 },
                 "index": "fulltext"
             },
             "FirstName": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 10,
-                        "maxOccurences": 1,
-                        "minOccurences": 1
+                    "maxLength": 10,
+                    "maxOccurences": 1,
+                    "minOccurences": 1
                 }
             },
             "Title": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 30,
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxLength": 30,
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "TitleOfCourtesy": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 25,
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxLength": 25,
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "BirthDate": {
                 "rules": {
                     "type": "datetime",
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "HireDate": {
                 "rules": {
                     "type": "datetime",
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "Address": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 60,
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxLength": 60,
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "City": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 15,
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxLength": 15,
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "Region": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 15,
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxLength": 15,
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "PostalCode": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 10,
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxLength": 10,
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 },
                 "index": "fulltext"
             },
             "Country": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 15,
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxLength": 15,
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "HomePhone": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 24,
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxLength": 24,
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "Extension": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 4,
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxLength": 4,
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "Photo": {
                 "rules": {
                     "type": "binary",
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "Notes": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 1073741824,
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxLength": 1073741824,
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             },
             "PhotoPath": {
                 "rules": {
                     "type": "text",
-                        "maxLength": 255,
-                        "maxOccurences": 1,
-                        "minOccurences": 0
+                    "maxLength": 255,
+                    "maxOccurences": 1,
+                    "minOccurences": 0
                 }
             }
         },
@@ -160,7 +161,7 @@ describe('SQLite extensions: Flexilite EAV', () => {
         },
         "fullTextIndexing": {
             "X1": "PostalCode",
-                "X2": "LastName"
+            "X2": "LastName"
         }
     } as IClassDefinition;
 
@@ -181,7 +182,7 @@ describe('SQLite extensions: Flexilite EAV', () => {
         return result;
     }
 
-    before((done) => {
+    before((done: Function) => {
         helper.openDB("testA.db")
             .then(database => {
                 db = database;
@@ -189,12 +190,12 @@ describe('SQLite extensions: Flexilite EAV', () => {
             });
     });
 
-    after((done) => {
+    after((done: Function) => {
         db.closeAsync()
             .then(() => done());
     });
 
-    it('MATCH 2 on non-FTS-indexed columns', (done) => {
+    it('MATCH 2 on non-FTS-indexed columns', (done: Function) => {
         // let rows = db.all.sync(db, `select * from Person where AddressLine1 like '%camp%'`);
         db.allAsync(`select * from Person where city match 'south*' and email match 'kristi*'`)
             .then(rows => {
@@ -203,7 +204,7 @@ describe('SQLite extensions: Flexilite EAV', () => {
             });
     });
 
-    it('MATCH 2 intersect on non-FTS-indexed columns', (done) => {
+    it('MATCH 2 intersect on non-FTS-indexed columns', (done: Function) => {
         // let rows = db.all.sync(db, `select * from Person where AddressLine1 like '%camp%'`);
         db.allAsync(`select * from Person where city match 'south*' intersect 
             select * from Person where email match 'kristi*'`)
@@ -213,7 +214,7 @@ describe('SQLite extensions: Flexilite EAV', () => {
             });
     });
 
-    it('REGEXP 2', (done) => {
+    it('REGEXP 2', (done: Function) => {
         // let rows = db.all.sync(db, `select * from Person where lower(city) regexp '.*south\\S*.*' and
         // lower(email) regexp '.*\\S*hotmail\\S*.*'`);
         db.allAsync(`select * from Person where lower(city) regexp '.*south\\S*.*' and lower(email) regexp '.*kristi\\S*.*'`)
@@ -224,7 +225,7 @@ describe('SQLite extensions: Flexilite EAV', () => {
             });
     });
 
-    it('REGEXP 3', (done) => {
+    it('REGEXP 3', (done: Function) => {
         // let rows = db.all.sync(db, `select * from Person where lower(city) regexp '.*south\\S*.*' and
         // lower(email) regexp '.*\\S*hotmail\\S*.*'`);
         db.allAsync(`select * from Person where lower(city) regexp '.*south\\S*.*' 
@@ -237,7 +238,7 @@ describe('SQLite extensions: Flexilite EAV', () => {
             });
     });
 
-    it('MATCH 1 on non-FTS-indexed columns', (done) => {
+    it('MATCH 1 on non-FTS-indexed columns', (done: Function) => {
 
         // let rows = db.all.sync(db, `select * from Person where AddressLine1 like '%camp%'`);
         db.allAsync(`select * from Person where email match 'kristi*'`)
@@ -247,7 +248,7 @@ describe('SQLite extensions: Flexilite EAV', () => {
             });
     });
 
-    it('REGEXP 1', (done) => {
+    it('REGEXP 1', (done: Function) => {
         // let rows = db.all.sync(db, `select * from Person where lower(city) regexp '.*south\\S*.*' and
         // lower(email) regexp '.*\\S*hotmail\\S*.*'`);
         db.allAsync(`select * from Person where lower(email) regexp '.*kristi\\S*.*'`)
@@ -258,7 +259,7 @@ describe('SQLite extensions: Flexilite EAV', () => {
             });
     });
 
-    it('linear scan', (done) => {
+    it('linear scan', (done: Function) => {
         // let rows = db.all.sync(db, `select * from Person where AddressLine1 like '%camp%'`);
         db.allAsync(`select * from Person where city = 'South Kayden' `)
             .then(rows => {
@@ -267,7 +268,7 @@ describe('SQLite extensions: Flexilite EAV', () => {
             });
     });
 
-    it('basic flow', (done) => {
+    it('basic flow', (done: Function) => {
         let def = JSON.stringify(personMeta);
         db.execAsync(`create virtual table if not exists Person using 'flexi_eav' ('${def}');`)
             .then(() => db.execAsync(`begin transaction`))

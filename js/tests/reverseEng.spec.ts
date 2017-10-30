@@ -11,17 +11,17 @@ import path = require('path');
 import _ = require('lodash');
 
 describe('Reverse Engineering for existing SQLite databases', () => {
-    beforeEach((done) => {
+    beforeEach((done: Function) => {
         done();
     });
 
-    it('Generate schema for Northwind database', (done) => {
+    it('Generate schema for Northwind database', (done: Function) => {
         var srcDBName = path.join(__dirname, './data/northwind.db3');
         // reverseEngineering(srcDBName, done);
 
     });
 
-    it('Generate schema for Chinook database', (done) => {
+    it('Generate schema for Chinook database', (done: Function) => {
         var srcDBName = path.join(__dirname, './data/chinook.db');
         // reverseEngineering(srcDBName, done);
     });

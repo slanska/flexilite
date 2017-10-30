@@ -18,6 +18,6 @@ import Promise = require('bluebird');
  Query is specified in IFlexiliteQuery format
  Returns promise to IFlexiliteResponse
  */
-export function runFlexiliteQuery(db:sqlite.Database, query) {
+export function runFlexiliteQuery(db: sqlite.Database, query: any) {
 
 }

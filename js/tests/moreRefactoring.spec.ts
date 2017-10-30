@@ -10,49 +10,41 @@
 'use strict';
 
 import mocha = require('mocha');
+
 require('../lib/drivers/SQLite');
 import path = require('path');
 import _ = require('lodash');
 
-describe('More data refactoring', () =>
-{
-    it('1. Move references in the list', (done)=>
-    {
+describe('More data refactoring', () => {
+    it('1. Move references in the list', (done: Function) => {
         done();
     });
 
-    it('2. Indexed properties', (done)=>
-    {
+    it('2. Indexed properties', (done: Function) => {
         done();
     });
 
-    it('3. Delete property', (done)=>
-    {
+    it('3. Delete property', (done: Function) => {
         done();
     });
 
-    it('4. Delete class', (done)=>
-    {
+    it('4. Delete class', (done: Function) => {
         done();
     });
 
-    it('5. Embed referenced objects', (done)=>
-    {
+    it('5. Embed referenced objects', (done: Function) => {
         done();
     });
 
-    it('6. Computed property', (done)=>
-    {
+    it('6. Computed property', (done: Function) => {
         done();
     });
 
-    it('7. Create class from data', (done)=>
-    {
+    it('7. Create class from data', (done: Function) => {
         done();
     });
 
-    it('8. Find matching class and schema for data', (done)=>
-    {
+    it('8. Find matching class and schema for data', (done: Function) => {
         done();
     });
 });

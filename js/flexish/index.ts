@@ -61,7 +61,7 @@ function generateSchema(args: any, options: any) {
     let db = new sqlite.Database(options.database);
     let parser = new SQLiteSchemaParser(db);
     return parser.parseSchema()
-        .then((schema) => {
+        .then((schema: any) => {
             let out = jsBeautify(schema);
 
             // let fileName = path.join(path.dirname(options.database), path.);
