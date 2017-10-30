@@ -27,6 +27,7 @@ extern "C"
 extern "C"
 {
 LUALIB_API int luaopen_lsqlite3(lua_State *L);
+int luaopen_cjson(lua_State *l);
 }
 
 static int flexi_help_func(sqlite3_context *context,
@@ -156,6 +157,7 @@ static void flexi_func(sqlite3_context *context,
     lua_State *L = luaL_newstate();
     luaL_openlibs(L);
     luaopen_lsqlite3(L);
+    luaopen_cjson(L);
     char zCurrentDir[PATH_MAX + 1];
     char *zLuaSrc = nullptr;
     getcwd(zCurrentDir, PATH_MAX);
