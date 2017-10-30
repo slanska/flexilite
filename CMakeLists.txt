@@ -147,31 +147,6 @@ set(EXT_FILES
         src/flexi/ClassDef.h
         src/flexi/PropertyDef.cpp
         src/flexi/PropertyDef.h
-#        src/sqlite/Column.cpp
-#        src/sqlite/Column.h
-#        src/sqlite/Statement.cpp
-#        src/sqlite/Statement.h
-#        src/sqlite/Exception.cpp
-#        src/sqlite/Exception.h
-#        src/sqlite/Database.cpp
-#        src/sqlite/Database.h
-#        src/sqlite/Transaction.cpp
-#        src/sqlite/Transaction.h
-#        src/sqlite/SQLiteCpp.h
-#        src/sqlite/VariadicBind.h
-#        src/sqlite/Assertion.h
-#        src/flexi/SymbolRef.cpp
-#        src/flexi/SymbolRef.h
-#        src/better-sqlite3/SqliteError.cpp
-#        src/better-sqlite3/SqliteError.h
-#        src/better-sqlite3/Database.cpp
-#        src/better-sqlite3/Database.h
-#        src/better-sqlite3/Statement.cpp
-#        src/better-sqlite3/Statement.h
-#        src/better-sqlite3/Util.cpp
-#        src/better-sqlite3/Util.h
-#        src/better-sqlite3/Transaction.cpp
-#        src/better-sqlite3/Transaction.h
 #        src/DukContext.h src/DukContext.cpp
         )
 
