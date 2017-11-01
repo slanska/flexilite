@@ -62,6 +62,7 @@ project(Flexilite)
 include_directories(
         lib/sqlite
         lib/luajit-2.1/src
+        src/util
 )
 
 add_custom_target(Generate_Resources
@@ -80,9 +81,8 @@ add_definitions(-DRESOURCES_GENERATED
         )
 
 set(EXT_FILES
+        # version of lsqlite for extension library (using sqlite3ext.h instead of sqlite3.h)
         src/lua-sqlite/lsqlite3.c
-#        lib/lua-cjson/dtoa.c
-#        lib/lua-cjson/g_fmt.c
         lib/lua-cjson/fpconv.c
         lib/lua-cjson/lua_cjson.c
         lib/lua-cjson/strbuf.c
@@ -146,13 +146,13 @@ set(EXT_FILES
         #        src/flexi/flexi_Object.h
         #        src/flexi/flexi_PropValue.c
         #        src/flexi/flexi_PropValue.h
-#        src/flexi/DBContext.cpp
-#        src/flexi/DBContext.h
+        #        src/flexi/DBContext.cpp
+        #        src/flexi/DBContext.h
         src/flexi/ClassDef.cpp
         src/flexi/ClassDef.h
         src/flexi/PropertyDef.cpp
         src/flexi/PropertyDef.h
-#        src/DukContext.h src/DukContext.cpp
+        #        src/DukContext.h src/DukContext.cpp
         )
 
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
@@ -179,5 +179,61 @@ add_custom_target(install_${PROJECT_NAME}
         DEPENDS ${PROJECT_NAME}
         COMMENT "Installing ${PROJECT_NAME}")
 
-add_subdirectory(test)
 
+# flexilite_test
+
+#project(flexilite_test)
+#
+#set(CMAKE_CXX_STANDARD 11)
+#set(CMAKE_CXX_STANDARD_REQUIRED ON)
+###set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+#
+#add_definitions(-DSQLITE_ENABLE_FTS4
+#        -DSQLITE_ENABLE_RTREE
+#        -DSQLITE_ENABLE_LOAD_EXTENSION
+#        -DSQLITE_ENABLE_JSON1
+#        -DSQLITE_CORE
+#        -DHAVE_SIGNAL_H)
+#
+#include_directories(
+#        lib/sqlite
+#        lib/luajit-2.1/src
+#        lib/cmocka/include
+#        src/util
+#)
+#
+#find_package(Threads REQUIRED)
+#
+#set(TEST_FILES
+#
+##        lib/lua-sqlite/lsqlite3.c
+##        lib/lua-cjson/fpconv.c
+##        lib/lua-cjson/lua_cjson.c
+##        lib/lua-cjson/strbuf.c
+#
+#        lib/cmocka/src/cmocka.c
+#        lib/sqlite/sqlite3.c
+#
+#        src/util/hash.c
+#        src/util/Array.c
+#        src/util/StringBuilder.c
+#        src/util/Path.c
+#
+#        test/fts.c
+#        test/main.cpp
+#        test/fts.c
+#        test/util/db_init.c
+#        test/util/db_init.h
+#        test/definitions.h
+#        test/util/file_helper.c
+#        test/util/file_helper.h
+##        test/class.c
+#        test/sql_test_runner.c
+#        )
+#
+#add_executable(flexilite_test ${TEST_FILES})
+#
+#target_link_libraries(flexilite_test ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
+#target_link_libraries(flexilite_test libluajit)
+##target_link_libraries(flexilite_test m)
+#

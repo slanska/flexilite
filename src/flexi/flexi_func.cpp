@@ -154,18 +154,6 @@ static void flexi_func(sqlite3_context *context,
         {"validate data",         nullptr},
     };
 
-    lua_State *L = luaL_newstate();
-    luaL_openlibs(L);
-    luaopen_lsqlite3(L);
-    luaopen_cjson(L);
-    char zCurrentDir[PATH_MAX + 1];
-    char *zLuaSrc = nullptr;
-    getcwd(zCurrentDir, PATH_MAX);
-    Path_join(&zLuaSrc, zCurrentDir, "../../src_lua/DBContext.lua");
-    if (luaL_dofile(L, zLuaSrc))
-    {
-        printf("%s\n", lua_tostring(L, -1));
-    }
 
     char *zMethodName = (char *) sqlite3_value_text(argv[0]);
     char *zError = nullptr;
@@ -260,6 +248,30 @@ extern "C" int flexi_init(sqlite3 *db,
     {
         int result;
         sqlite3_stmt *pDummy = nullptr;
+
+        lua_State *L = luaL_newstate();
+        luaL_openlibs(L);
+        luaopen_lsqlite3(L);
+        luaopen_cjson(L);
+        if (luaL_dostring(L, "require('socket')\n"
+                "require(\"mobdebug\").loop()"))
+        {
+            printf("doString: %s\n", lua_tostring(L, -1));
+        }
+        printf("\nLua string\n");
+        lua_pop(L, 1);
+        char zCurrentDir[PATH_MAX + 1];
+        char *zLuaSrc = nullptr;
+        getcwd(zCurrentDir, PATH_MAX);
+        Path_join(&zLuaSrc, zCurrentDir, "../../src_lua/DBContext.lua");
+        if (luaL_dofile(L, "/Users/ruslanskorynin/Documents/Github/slanska/flexilite/src_lua/DBContext.lua"))
+        {
+            printf("doFile: %s\n", lua_tostring(L, -1));
+        }
+        printf("\nLua file\n");
+        lua_pop(L, 1);
+        lua_close(L);
+
 
         /*
          * TODO temp load from external file

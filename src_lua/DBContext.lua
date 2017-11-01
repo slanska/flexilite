@@ -6,30 +6,49 @@
 -- To change this template use File | Settings | File Templates.
 --
 
+--[[
+Refers to sqlite3 connection
+Collection of class definitions
+Loads class def from db
+Collection of user functions
+Executes user functions in sandbox
+Pool of prepared statements
+User info
+Access Permissions
+Misc db settings
+Finalizes statements on dispose
+]]
 
---local box = require('box')
+local ClassDef = require('ClassDef')
 
---print('before mobdebug')
-require("mobdebug").listen()
+local flexiFuncs = {
+    ['create class'] = function(action, className, classDef, createVTable)
+    end,
+    ['alter class'] = function(action, className, classDef, createVTable)
+    end,
+    ['drop class'] = function(action, className, classDef, createVTable)
+    end,
+    ['create property'] = function(action, className, classDef, createVTable)
+    end,
+    ['alter property'] = function(action, className, classDef, createVTable)
+    end,
+    ['drop property'] = function(action, className, classDef, createVTable)
+    end,
 
-function sleep (a)
-    local sec = tonumber(os.clock() + a);
-    while (os.clock() < sec) do
+}
+
+local DBContext = {}
+
+function DBContext:flexiAction(action, ...)
+    local ff = flexiFuncs[action]
+    print('action ' .. action)
+    if ff == nil then
+        error('Flexi action ' .. action .. ' not found')
     end
 end
 
-sleep(5)
---print('Awaiken')
+DBContext.__index = DBContext
+return DBContext
 
-local aaa = {ddd = "bbb"}
-
---box.cfg {
---    listen = 3301,
---    background = true,
---    log = '1.log',
---    pid_file = '1.pid'
---}
-
-print(aaa.ddd)
 
 
