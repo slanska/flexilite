@@ -10,7 +10,6 @@ extern "C" {
 #endif
 
 #include <sqlite3ext.h>
-//#include <duktape.h>
 #include "../util/hash.h"
 #include "flexi_UserInfo_t.h"
 #include "../util/Array.h"
@@ -171,11 +170,6 @@ typedef struct flexi_Context_t
      * Info on current user
      */
     flexi_UserInfo_t *pCurrentUser;
-
-    /*
-     * Duktape context. Created on demand
-     */
-// TODO   duk_context *pDuk;
 
     /*
      * Hash of loaded class definitions (by current names)

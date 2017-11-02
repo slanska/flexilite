@@ -6,19 +6,10 @@
 
 //#define SQLITE_CORE
 
-extern "C"
-{
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-}
-
 #include <cstdint>
 #include <cstring>
 #include <climits>
 #include <zconf.h>
-
-
 
 #include "definitions.h"
 
@@ -37,19 +28,6 @@ int main(int argc, char **argv)
         zDir = sqlite3_mprintf("%s", zCurrentDir);
     }
     printf("Current directory: %s, zDir: %s\n", zCurrentDir, zDir);
-
-    lua_State *L = luaL_newstate();
-    luaL_openlibs(L);
-//    luaopen_lsqlite3(L);
-//    luaopen_cjson(L);
-    if (luaL_dostring(L, "require('socket')\n"
-            "require(\"mobdebug\").loop()"))
-    {
-        printf("doString: %s\n", lua_tostring(L, -1));
-    }
-    printf("\nLua string\n");
-    lua_pop(L, 1);
-
 
     sqlite3 *pDB = nullptr;
     char *zSchemaSql = nullptr;

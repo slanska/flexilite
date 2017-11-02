@@ -19,9 +19,6 @@ extern "C"
 
 #include "../project_defs.h"
 #include "flexi_class.h"
-//#include "DBContext.h"
-//#include "../DukContext.h"
-//#include "../better-sqlite3/Database.h"
 #include "../util/Path.h"
 
 extern "C"
@@ -231,15 +228,6 @@ int flexi_data_init(
         DBContext *pCtx
 );
 
-//static void loadJsScript(const char *zFilePath)
-//{
-//    std::ifstream jsFile(zFilePath);
-//    std::stringstream ss;
-//    ss << jsFile.rdbuf();
-//    std::string str = ss.str();
-//    duk_peval_string(pDukCtx->getCtx(), str.c_str());
-//}
-
 extern "C" int flexi_init(sqlite3 *db,
                           char **pzErrMsg,
                           const sqlite3_api_routines *pApi)
@@ -253,18 +241,12 @@ extern "C" int flexi_init(sqlite3 *db,
         luaL_openlibs(L);
         luaopen_lsqlite3(L);
         luaopen_cjson(L);
-        if (luaL_dostring(L, "require('socket')\n"
-                "require(\"mobdebug\").loop()"))
-        {
-            printf("doString: %s\n", lua_tostring(L, -1));
-        }
-        printf("\nLua string\n");
-        lua_pop(L, 1);
+
         char zCurrentDir[PATH_MAX + 1];
         char *zLuaSrc = nullptr;
         getcwd(zCurrentDir, PATH_MAX);
-        Path_join(&zLuaSrc, zCurrentDir, "../../src_lua/DBContext.lua");
-        if (luaL_dofile(L, "/Users/ruslanskorynin/Documents/Github/slanska/flexilite/src_lua/DBContext.lua"))
+//        Path_join(&zLuaSrc, zCurrentDir, "../../src_lua/index.lua");
+        if (luaL_dofile(L, "/Users/ruslanskorynin/Documents/Github/slanska/flexilite/src_lua/index.lua"))
         {
             printf("doFile: %s\n", lua_tostring(L, -1));
         }

@@ -5,48 +5,41 @@
 
 --[[
 Keeps list of DBContexts
-Handles 'flexi' function
 Creates new DBContexts
 Disposes DBContext on db connection closing
 ]]
 
+require('socket')
+require('mobdebug').start()
+
 local DBContext = require('DBContext')
---package.loadlib("/usr/local/opt/sqlite/lib/libsqlite3.dylib","*")
-local sqlite = require('lsqlite3complete')
 
 Flexi = {
-    -- List of all active contexts
+    -- List of all active contexts, key is sqlite database handle
     Contexts = {},
-
-    lastContextID = 0,
-
-    action = function(contextID, action, ...)
-        local ff = flexiFuncs[action];
-        local ctx = Flexi.getDBContext(contextID)
-        ff(ctx, arg, ...)
-    end
 }
 
 function Flexi:newDBContext(db)
-    self.lastContextID = self.lastContextID + 1
-
     local result = {
         db = db,
-        db_ptr = db_ptr,
-        contextID = self.lastContextID,
         ClassDefs = {} }
 
-    self.Contexts[self.lastContextID] = result
+    self.Contexts[db] = result
     --result.__index = DBContext
 
     return setmetatable(result, DBContext)
 end
 
-function Flexi:getDBContext(contextID)
-    local result = self.Contexts[contextID]
+function Flexi:getDBContext(db)
+    local result = self.Contexts[db]
     if not result then
-        error('DBContext with ID ' .. contextID .. ' not found')
+        error('DBContext with ID ' .. db .. ' not found')
     end
+
+    if result.DB ~= db then
+        error("Invalid database handle")
+    end
+
     return result
 end
 
@@ -55,9 +48,8 @@ function Flexi:closeDBContext(contextID)
     ctx:close()
 end
 
-
+local sqlite = require('lsqlite3complete')
 local db = sqlite.open_memory()
-print(db:changes())
+-- todo use relational path
 db:load_extension('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/bin/libFlexilite')
-local ctx = Flexi:newDBContext(db)
-ctx:flexiAction('create class', 'Orders', [[]], true)
+local ctx = Flexi:newDBCbontext(db)

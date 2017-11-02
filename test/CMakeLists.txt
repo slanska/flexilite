@@ -26,19 +26,11 @@ include_directories(
         ../lib/cmocka/include
         ../lib/sqlite
         ../src/util
-        ../lib/luajit-2.1/src
 )
 
 find_package(Threads REQUIRED)
 
 set(TEST_FILES
-
-        ../lib/lua-sqlite/lsqlite3.c
-        #        lib/lua-cjson/dtoa.c
-        #        lib/lua-cjson/g_fmt.c
-#        ../lib/lua-cjson/fpconv.c
-#        ../lib/lua-cjson/lua_cjson.c
-#        ../lib/lua-cjson/strbuf.c
 
         ../lib/cmocka/src/cmocka.c
         ../lib/sqlite/sqlite3.c
@@ -64,4 +56,3 @@ set(TEST_FILES
 add_executable(flexilite_test ${TEST_FILES} )
 
 target_link_libraries(flexilite_test ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
-target_link_libraries(flexilite_test PUBLIC luajit)
