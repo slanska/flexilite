@@ -29,7 +29,6 @@ TODO processFlexiAction ???
 function Flexi.flexiFunction(ctx, action, ...)
     ctx:result_string 'wfh?'
     return 0
-    --print('User_data: ' .. ctx:user_data())
 end
 
 function Flexi:newDBContext(db)
@@ -38,15 +37,16 @@ function Flexi:newDBContext(db)
         ClassDefs = {} }
 
     self.Contexts[db] = result
-    --result.__index = DBContext
+
+    result = setmetatable(result, DBContext)
 
     db:create_function('flexi', -1, function(ctx, action, ...)
-        local tt = type(db)
+        local vv = DBContext.flexiAction(result, ctx, action, ...)
 
-        ctx:result_string('WTF?!')
+        ctx:result(vv)
     end)
 
-    return setmetatable(result, DBContext)
+    return result
 end
 
 function Flexi:getDBContext(db)
@@ -66,11 +66,5 @@ function Flexi:closeDBContext(contextID)
     local ctx = self:getDBContext(contextID)
     ctx:close()
 end
-
---local sqlite = require('lsqlite3complete')
---local db = sqlite.open_memory()
----- todo use relational path
---db:load_extension('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/bin/libFlexilite')
---local ctx = Flexi:newDBCbontext(db)
 
 

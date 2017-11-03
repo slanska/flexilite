@@ -24,36 +24,37 @@ Handles 'flexi' function
 local ClassDef = require('ClassDef')
 local UserInfo = require('UserInfo')
 
-local flexiFuncs = {
-    ['create class'] = function(action, className, classDef, createVTable)
-    end,
-    ['alter class'] = function(action, className, classDef, createVTable)
-    end,
-    ['drop class'] = function(action, className, classDef, createVTable)
-    end,
-    ['create property'] = function(action, className, classDef, createVTable)
-    end,
-    ['alter property'] = function(action, className, classDef, createVTable)
-    end,
-    ['drop property'] = function(action, className, classDef, createVTable)
-    end,
-    ['configure'] = function(action, settings)
+local DBContext = {}
 
+-- Should be after all FLEXI functions are defined
+local flexiFuncs = {
+    ['create class'] = require 'flexi_CreateClass',
+    ['alter class'] = require 'flexi_AlterClass',
+    ['drop class'] = require 'flexi_DropClass',
+    ['create property'] = require 'flexi_CreateProperty',
+    ['alter property'] = require 'flexi_AlterProperty',
+    ['drop property'] = require 'flexi_DropProperty',
+    ['configure'] = require 'flexi_Configure',
+
+    ['ping'] = function()
+        return 'pong'
     end,
+
     ['help'] = function(action)
 
     end,
 
-    ['ping'] = function()
+    ['ping'] = DBContext.flexi_ping,
 
-    end,
     ['current user'] = function()
 
     end,
 
-}
+    ['configure'] = function()
 
-local DBContext = {}
+    end,
+
+}
 
 function DBContext:new(db)
     assert(db)
@@ -79,14 +80,13 @@ end
 
 function DBContext:flexiAction(ctx, action, ...)
     local ff = flexiFuncs[action]
-    print('action ' .. action)
     if ff == nil then
         error('Flexi action ' .. action .. ' not found')
     end
 
-    local result = ff(...)
+    local result = ff(self, ...)
 
-    -- check result, set in context
+    return result
 end
 
 function DBContext:getStatement(sql)
@@ -114,10 +114,14 @@ function DBContext:getClassIdByName(className)
 end
 
 function DBContext:getNameID(name)
-    -- todo
     local stmt = self:getStatement 'select NameID from [.names] where [Value] = :1;'
+    stmt:reset()
     stmt:bind { [1] = name }
-    stmt:step()
+    for r in stmt:rows() do
+        return r[1]
+    end
+
+    error('Name [' .. name .. '] not found')
 end
 
 function DBContext:getPropIdByClassIdAndPropNameId(classId, propNameId)
@@ -147,6 +151,17 @@ function DBContext:flexi_Context_getPropIdByClassIdAndName(classId, propName)
 
     stmt:bind { [1] = propName, [2] = classId }
     stmt:step()
+end
+
+-- Loads class definition (as defined in [.classes] and [flexi_prop] tables)
+-- First checks if class def has been already loaded, and if so, simply returns it
+-- Otherwise, will load class definition from database and add it to the context class def collection
+-- If class is not found, will throw error
+---@param classId number
+---@see ClassDef
+---@return ClassDef
+function DBContext:LoadClassDefinition(classId)
+
 end
 
 return DBContext
