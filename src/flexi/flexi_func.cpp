@@ -114,28 +114,28 @@ static void flexi_func(sqlite3_context *context,
 
         const char *zHelp;
     } methods[] = {
-//            {"create class",          &DBContext::CreateClassFunc},
-//            {"alter class",           &DBContext::AlterClassFunc},
-//            {"drop class",            &DBContext::DropClassFunc},
-//            {"rename class",          &DBContext::RenameClassFunc},
-//            {"create property",       &DBContext::CreatePropFunc},
-//            {"alter property",        &DBContext::AlterPropFunc},
-//            {"drop property",         &DBContext::DropPropFunc},
-//            {"rename property",       &DBContext::RenamePropFunc},
-//            {"merge property",        &DBContext::MergePropFunc},
-//            {"split property",        &DBContext::SplitPropFunc},
-//
-//            {"properties to object",  &DBContext::PropsToObjectFunc},
-//            {"object to properties",  &DBContext::ObjectToPropsFunc},
-//            {"property to reference", &DBContext::PropToRefFunc},
-//            {"reference to property", &DBContext::RefToPropFunc},
-//            {"change object class",   &DBContext::ChangeObjectClassFunc},
-//
-//            {"schema",                &DBContext::SchemaFunc},
-//            {"config",                &DBContext::ConfigFunc},
-//            {"structural merge",      &DBContext::StructuralMergeFunc},
-//            {"structural split",      &DBContext::StructuralSplitFunc},
-//            {"remove duplicates",     &DBContext::RemoveDuplicatesFunc},
+            //            {"create class",          &DBContext::CreateClassFunc},
+            //            {"alter class",           &DBContext::AlterClassFunc},
+            //            {"drop class",            &DBContext::DropClassFunc},
+            //            {"rename class",          &DBContext::RenameClassFunc},
+            //            {"create property",       &DBContext::CreatePropFunc},
+            //            {"alter property",        &DBContext::AlterPropFunc},
+            //            {"drop property",         &DBContext::DropPropFunc},
+            //            {"rename property",       &DBContext::RenamePropFunc},
+            //            {"merge property",        &DBContext::MergePropFunc},
+            //            {"split property",        &DBContext::SplitPropFunc},
+            //
+            //            {"properties to object",  &DBContext::PropsToObjectFunc},
+            //            {"object to properties",  &DBContext::ObjectToPropsFunc},
+            //            {"property to reference", &DBContext::PropToRefFunc},
+            //            {"reference to property", &DBContext::RefToPropFunc},
+            //            {"change object class",   &DBContext::ChangeObjectClassFunc},
+            //
+            //            {"schema",                &DBContext::SchemaFunc},
+            //            {"config",                &DBContext::ConfigFunc},
+            //            {"structural merge",      &DBContext::StructuralMergeFunc},
+            //            {"structural split",      &DBContext::StructuralSplitFunc},
+            //            {"remove duplicates",     &DBContext::RemoveDuplicatesFunc},
 
             /* TODO
              * "structural merge" -- join 2+ objects to 1 object
@@ -144,11 +144,11 @@ static void flexi_func(sqlite3_context *context,
              *
              */
 
-//            {"init",                  &DBContext::InitDatabaseFunc},
-//            {"help",                  &DBContext::UsageFunc, false},
+            //            {"init",                  &DBContext::InitDatabaseFunc},
+            //            {"help",                  &DBContext::UsageFunc, false},
 
             // TODO
-        {"validate data",         nullptr},
+            {"validate data", nullptr},
     };
 
 
@@ -245,7 +245,7 @@ extern "C" int flexi_init(sqlite3 *db,
         char zCurrentDir[PATH_MAX + 1];
         char *zLuaSrc = nullptr;
         getcwd(zCurrentDir, PATH_MAX);
-//        Path_join(&zLuaSrc, zCurrentDir, "../../src_lua/index.lua");
+        //        Path_join(&zLuaSrc, zCurrentDir, "../../src_lua/index.lua");
         if (luaL_dofile(L, "/Users/ruslanskorynin/Documents/Github/slanska/flexilite/src_lua/index.lua"))
         {
             printf("doFile: %s\n", lua_tostring(L, -1));

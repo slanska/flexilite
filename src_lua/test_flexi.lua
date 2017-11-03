@@ -11,6 +11,7 @@ require 'socket'
 require('mobdebug').start()
 require 'cjson'
 require('index')
+require('io')
 
 local sqlite = require 'lsqlite3complete'
 local db = sqlite.open_memory()
@@ -18,13 +19,22 @@ local db = sqlite.open_memory()
 
 Flexi:newDBContext(db)
 
---for row in db:rows("select flexi('ping');") do
---    //table.print(row)
---end
+local function readAll(file)
+    local f = io.open(file, "rb")
+    local content = f:read("*all")
+    f:close()
+    return content
+end
 
-for row in db:rows[=[
+-- load sql scripts into Flexi variables
+Flexi.DBSchemaSQL = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/sql/dbschema.sql')
+Flexi.InitDefaultData = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/sql/init_default_data.sql')
+
+for row in db:rows [=[
     select flexi('create class', 'Orders', '{"ref": 123}', 1);]=] do
     print(row[1])
 end
+
+db:exec "select flexi('configure');"
 
 
