@@ -9,8 +9,6 @@ Creates new DBContexts
 Disposes DBContext on db connection closing
 ]]
 
-require('socket')
-require('mobdebug').start()
 
 local DBContext = require('DBContext')
 
@@ -19,6 +17,21 @@ Flexi = {
     Contexts = {},
 }
 
+--[[
+Gateway to handle all 'select flexi()' requests.
+- Finds DBContext by context ctx
+- Calls DBContext.processFlexiAction
+TODO processFlexiAction ???
+
+- Processing is done within protected call (pcall)
+- All errors are converted to ctx errors and reported back to caller
+]]
+function Flexi.flexiFunction(ctx, action, ...)
+    ctx:result_string 'wfh?'
+    return 0
+    --print('User_data: ' .. ctx:user_data())
+end
+
 function Flexi:newDBContext(db)
     local result = {
         db = db,
@@ -26,6 +39,12 @@ function Flexi:newDBContext(db)
 
     self.Contexts[db] = result
     --result.__index = DBContext
+
+    db:create_function('flexi', -1, function(ctx, action, ...)
+        local tt = type(db)
+
+        ctx:result_string('WTF?!')
+    end)
 
     return setmetatable(result, DBContext)
 end
@@ -48,8 +67,10 @@ function Flexi:closeDBContext(contextID)
     ctx:close()
 end
 
-local sqlite = require('lsqlite3complete')
-local db = sqlite.open_memory()
--- todo use relational path
-db:load_extension('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/bin/libFlexilite')
-local ctx = Flexi:newDBCbontext(db)
+--local sqlite = require('lsqlite3complete')
+--local db = sqlite.open_memory()
+---- todo use relational path
+--db:load_extension('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/bin/libFlexilite')
+--local ctx = Flexi:newDBCbontext(db)
+
+

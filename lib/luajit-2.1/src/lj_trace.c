@@ -86,7 +86,7 @@ static TraceNo trace_findfree(jit_State *J)
 /*
 ** Create symbol table of JIT-compiled code. For use with Linux perf tools.
 ** Example usage:
-**   perf record -f -e cycles luajit test.lua
+**   perf record -f -e cycles luajit test_flexi.lua
 **   perf report -s symbol
 **   rm perf.data /tmp/perf-*.map
 */

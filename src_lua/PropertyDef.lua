@@ -9,6 +9,8 @@ Keeps name, id, reference to class definition
 
 ]]
 
+require 'math'
+
 local PropertyDef = {}
 
 function PropertyDef:new(ClassDef, name)
@@ -29,8 +31,8 @@ function PropertyDef:save()
     local stmt = self.ClassDef.DBContext.getStatement [[
 
     ]]
-    
-    stmt:bind{}
+
+    stmt:bind {}
     local result = stmt:step()
     if result ~= 0 then
         -- todo error

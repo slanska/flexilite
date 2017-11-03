@@ -6,3 +6,9 @@
 --[[
 Implementation of flexi_data virtual table BestIndex API
 ]]
+
+local BestIndex = function()
+
+end
+
+return BestIndex
