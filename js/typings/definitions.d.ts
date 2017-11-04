@@ -354,8 +354,8 @@ declare interface IQuerySelectDef {
  Structure to define query
  Mimics SQL SELECT
  'where' can be used standalone.
- Query is evaluated for presence of 'where' or 'orderBy' attribute. If not any of those attributes are found, query body is treated as 'where' clause.
- Example: {Prop1: 123, Prop2: "abc"} is treated as {where: {Prop1: 123, Prop2: "abc"}}
+ Query is evaluated for presence of 'filter' or 'orderBy' attribute. If not any of those attributes are found, query body is treated as 'filter' clause.
+ Example: {Prop1: 123, Prop2: "abc"} is treated as {filter: {Prop1: 123, Prop2: "abc"}}
  */
 declare interface IQueryDef {
     select?: IQuerySelectDef;

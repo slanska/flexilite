@@ -56,9 +56,21 @@ data: Database, statements, user info, class definitions, cache of referenced va
 * Configure VSCode: CMake and Duk debug 
 * &#10003; Check duktape debugger (VS Code) - half-working - need to find out how 
 to link to source code and set breakpoints
-* Set stash per connection
-* Init DBContext with constructed Database
-* Remove Dukglue
-* Remove SQLite C++ lib (src/sqlite)
-* Webpack for Flexilite and DBContext
-* Load scripts
+* &#10003; Set stash per connection
+* &#10003; Init DBContext with constructed Database
+* &#10003; Remove Dukglue
+* &#10003; Remove SQLite C++ lib (src/sqlite)
+* &#10003; Webpack for Flexilite and DBContext
+* &#10003; Load scripts
+
+* &#10003; DBContext.verifyName
+* check error handling - pcall
+* merge classes
+* load class def
+* save class def
+* validate property
+* port AccessRules to Lua
+* tests using busted
+* flexi_DataUpdate
+* learn luacheck
+* how document

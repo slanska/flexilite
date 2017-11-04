@@ -24,6 +24,7 @@ Handles 'flexi' function
 local ClassDef = require('ClassDef')
 local UserInfo = require('UserInfo')
 
+---@class DBContext
 local DBContext = {}
 
 -- Should be after all FLEXI functions are defined
@@ -113,6 +114,13 @@ function DBContext:getClassIdByName(className)
     -- todo
 end
 
+--- Checks if string is a valid name
+---@param name string
+---@return boolean
+function DBContext:isNameValid(name)
+    return string.match(name, '[_%a][_%w]*') == name
+end
+
 function DBContext:getNameID(name)
     local stmt = self:getStatement 'select NameID from [.names] where [Value] = :1;'
     stmt:reset()
@@ -141,7 +149,7 @@ function DBContext:insertName(name)
     stmt:step()
 end
 
-function DBContext:flexi_Context_getPropIdByClassIdAndName(classId, propName)
+function DBContext:getPropIdByClassIdAndName(classId, propName)
     -- todo
     local stmt = self:getStatement [[
         select ID from [.names_props] where

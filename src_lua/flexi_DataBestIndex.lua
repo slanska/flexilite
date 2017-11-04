@@ -7,8 +7,8 @@
 Implementation of flexi_data virtual table BestIndex API
 ]]
 
-local BestIndex = function()
+local flexi_DataBestIndex = function(DBContext)
 
 end
 
-return BestIndex
+return flexi_DataBestIndex
