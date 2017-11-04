@@ -42,18 +42,6 @@ data: Database, statements, user info, class definitions, cache of referenced va
 * ??? flexish - convert to c++ exe with duktape
 * Flexi_data 'update' - in c++/ts
 
-* Database binding to Duktape
-* ?? Add Duk console
-* Add Duk debug server to test app
-
-* Webpack bundle - 3 configs
-    - Libs - lodash, moment - to be placed in exe path
-    - Node - to be run in node.js - to be placed to __build
-    - Duk - to be embedded into Flexilite lib. Includes Node + init script - to be placed in exe path
-
-* Temporarily disable flexi tests    
-* Load JS scripts on extension init
-* Configure VSCode: CMake and Duk debug 
 * &#10003; Check duktape debugger (VS Code) - half-working - need to find out how 
 to link to source code and set breakpoints
 * &#10003; Set stash per connection
@@ -64,13 +52,13 @@ to link to source code and set breakpoints
 * &#10003; Load scripts
 
 * &#10003; DBContext.verifyName
-* check error handling - pcall
+* &#10003; check error handling - pcall
 * merge classes
 * load class def
 * save class def
 * validate property
 * port AccessRules to Lua
-* tests using busted
+* try tests using busted
 * flexi_DataUpdate
 * learn luacheck
 * how document

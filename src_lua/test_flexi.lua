@@ -30,11 +30,18 @@ end
 Flexi.DBSchemaSQL = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/sql/dbschema.sql')
 Flexi.InitDefaultData = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/sql/init_default_data.sql')
 
-for row in db:rows [=[
-    select flexi('create class', 'Orders', '{"ref": 123}', 1);]=] do
-    print(row[1])
-end
+local ok, errorMessage = pcall(function()
 
-db:exec "select flexi('configure');"
+    for row in db:rows [=[
+    select flexi('create class', 'Orders', '{"ref": 123}', 1);]=] do
+        print(row[1])
+    end
+
+    db:exec "select flexi('configure');"
+end)
+
+if not ok then
+    print(errorMessage)
+end
 
 

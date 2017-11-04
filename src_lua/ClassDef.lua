@@ -18,10 +18,12 @@ local NameRef = require('NameRef')
 
 local ClassDef = {}
 
+--- Creates new instance of ClassDef
+--- Internal method. Sets DBContext to class def instance, but does not add it to DBContext.Classes
+---@param DBContext DBContext
+---@param name string
+--- (optional)
 function ClassDef:new (DBContext, name)
-
-    -- TODO validate name
-
     local result = {
         DBContext = DBContext,
         Name = name,
@@ -34,11 +36,22 @@ function ClassDef:new (DBContext, name)
     return result
 end
 
+-- Internally used constructor to create ClassDef from class definition table parsed from JSON
+---@param DBContext DBContext
+---@param json table
+-- (proto-object of ClassDef)
+function ClassDef:fromJSON(DBContext, json)
+    json.DBContext = DBContext
+    setmetatable(json, self)
+    self.__index = self
+    return json
+end
+
 function ClassDef:load()
     local stmt = self.DBContext:getStatement [[
 
     ]]
-    stmt:bind{}
+    stmt:bind {}
 end
 
 function ClassDef:selfValidate()
@@ -50,7 +63,8 @@ function ClassDef:hasProperty(idOrName)
     return prop ~= nil, prop
 end
 
--- Internal function to add property
+-- Internal function to add property to properties collection
+---@param propDef PropertyDef
 function ClassDef:addProperty(propDef)
     assert(propDef)
     assert(type(propDef.ID) == 'number')
@@ -70,6 +84,10 @@ end
 
 function ClassDef:validateData()
     -- todo
+end
+
+function ClassDef:toJSON()
+    
 end
 
 return ClassDef

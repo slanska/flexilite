@@ -5,16 +5,16 @@
 
 local UserInfo = {}
 
-function UserInfo:new()
-    local result = {
+function UserInfo:new(o)
+    o = o or {
         UserID = '',
         Roles = {},
         Culture = {}
     }
 
-    setmetatable(result, self)
+    setmetatable(o, self)
     self.__index = self
-    return result
+    return o
 end
 
 -- sqlite function handler
