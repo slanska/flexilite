@@ -4,6 +4,7 @@
 ---
 
 local json = require 'cjson'
+local ClassDef = require 'ClassDef'
 
 --[[
 Merges 2 class definitions - if given property is not defined in destClassDef, its counterpart from sourceClassDef is used
@@ -16,10 +17,9 @@ Properties are handled for each property individually, but entire individual pro
 ---@param destClassDef table @comment raw class definition decoded from JSON
 ---@return ClassDef @comment new class
 local function MergeClassDefinitions(self, srcClass, destClassDef)
-    local newClass = self:newClassFromDef(destClassDef)
+    local newClass = ClassDef:fromJSON(self, destClassDef)
 
-    -- Properties - one by one
-    newClass.Properties = newClass.Properties or srcClass.Properties
+    -- Merge properties - one by one
     for i, p in ipairs(srcClass.Properties) do
         local propName = p.Name
         if not newClass.Properties[propName] then

@@ -6,7 +6,7 @@
 --[[
 Flexilite class (table) definition
 Has reference to DBContext
-Corresponds to [.classes] database table + decoded [data] field, with initialized PropertyRef's and NameRef's
+Corresponds to [.classes] database table + D - decoded [data] field, with initialized PropertyRef's and NameRef's
 
 Find property
 Validates class structure
@@ -24,53 +24,66 @@ local NameRef = require('NameRef')
 ---@class ClassDef
 local ClassDef = {}
 
---- Creates new unsaved instance of ClassDef
---- Internal method. Sets DBContext to class def instance, but does not add it to DBContext.Classes
---- Used for new class initialization and class alteration
+---@private
+---@param self ClassDef
+---@param json string @comment As it is stored in [.classes].Data
+local function fromJSON(self, json)
+    local dd = json.decode(json)
+
+    self.Properties = {}
+
+    for k, p in pairs(dd.properties) do
+        if not self.Properties[p.ID] then
+            local prop = PropertyDef:fromJSON(self, p)
+            self.Properties[p.Name] = prop
+            self.Properties[p.ID] = prop
+        end
+    end
+
+    ---@param dictName string
+    function dictFromJSON(dictName)
+        self[dictName] = {}
+        local tt = dd[dictName]
+        if tt then
+            for k, v in pairs(tt) do
+                self[dictName][k] = NameRef:fromJSON(self.DBContext, Bv)
+            end
+        end
+    end
+
+    dictToJSON('specialProperties')
+    dictToJSON('rangeIndexing')
+    dictToJSON('fullTextIndexing')
+    dictToJSON('columnMapping')
+end
+
+--- Loads class definition from database
+---@public
 ---@param DBContext DBContext
----@param name string
+---@param obj table
 --- (optional)
-function ClassDef:new (DBContext, name)
-    local result = {
-        DBContext = DBContext,
-        Name = name,
-
-        -- Properties are stored twice - by ID and by Name
-        Properties = {} }
-
-    setmetatable(result, self)
+function ClassDef:loadFromDB (DBContext, obj)
+    assert(obj)
+    setmetatable(obj, self)
     self.__index = self
-    return result
+    obj.DBContext = DBContext
+    obj:fromJSON(obj.Data)
+    obj.Data = nil
+    return obj
 end
 
 -- Initializes raw table (normally loaded from database) as ClassDef object
+---@public
 ---@param DBContext DBContext
----@param instance table
-function ClassDef:init(DBContext, instance)
-    assert(instance)
-    setmetatable(instance, self)
-    self.__index = self
-    instance.DBContext = DBContext
-    return instance
-end
-
--- Internally used constructor to create ClassDef from class definition table parsed from JSON
----@param DBContext DBContext
----@param json table
--- (proto-object of ClassDef)
+---@param json string
 function ClassDef:fromJSON(DBContext, json)
-    json.DBContext = DBContext
-    setmetatable(json, self)
+    local obj = {
+        DBContext = DBContext
+    }
+    setmetatable(obj, self)
     self.__index = self
-    return json
-end
-
--- TODO
-function ClassDef:load()
-    local stmt = self.DBContext:getStatement [[
-
-    ]]
-    stmt:bind {}
+    fromJSON(self, json)
+    return obj
 end
 
 function ClassDef:selfValidate()
@@ -105,12 +118,12 @@ function ClassDef:validateData()
     -- todo
 end
 
----@return table @comment User friendly stringified JSON of class definition (excluding raw and internal properties)
+---@return table @comment User friendly encoded JSON of class definition (excluding raw and internal properties)
 function ClassDef:toJSON()
     local result = {
         id = self.ID,
         name = self.Name,
-        allowAnyProps = self.allowAnyProps,
+        allowAnyProps = self.D.allowAnyProps,
     }
 
     ---@return nil

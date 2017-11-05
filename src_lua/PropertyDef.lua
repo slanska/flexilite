@@ -138,6 +138,9 @@ function PropertyDef:toJSON()
         name = self.Name,
 
     }
+
+    -- TODO toJSON
+
     return result
 end
 

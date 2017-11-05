@@ -48,6 +48,7 @@ function DBContext:new(db)
 
         UserInfo = UserInfo:new(),
 
+        -- Collection of classes. Each class is referenced twice - by ID and Name
         Classes = {},
 
         Functions = {},
@@ -118,14 +119,12 @@ function DBContext:isNameValid(name)
 end
 
 function DBContext:getNameID(name)
-    local stmt = self:getStatement 'select NameID from [.names] where [Value] = :1;'
-    stmt:reset()
-    stmt:bind { [1] = name }
-    for r in stmt:rows() do
-        return r[1]
+    local row = self:loadOneRow() 'select NameID from [.names] where [Value] = :1;'
+    if not row then
+        error('Name [' .. name .. '] not found')
     end
 
-    error('Name [' .. name .. '] not found')
+    return row.NameID
 end
 
 function DBContext:getPropIdByClassIdAndPropNameId(classId, propNameId)
@@ -207,19 +206,12 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
     end
 
     local cls = self:loadOneRow([[]], {})
-    assert(cls)
-    result = ClassDef:new(self)
-
+    result = ClassDef:loadFromDB(self, cls)
     if not noList then
         self:addClassToList(result)
     end
 
     return result
-end
-
----@param classDef table
-function DBContext:newClassFromDef(classDef)
-    return ClassDef:fromJSON(self, classDef)
 end
 
 -- Returns schema definition for entire database, single class, or single property
