@@ -11,6 +11,7 @@ Provides API for property definition validation, type change etc
 
 require 'math'
 
+---@class PropertyDef
 local PropertyDef = {
     -- Assume text property by default (if no type is set)
     type = 'text',
@@ -131,8 +132,13 @@ function PropertyDef:selfValidate()
     -- todo
 end
 
+---@return table @comment User friendly JSON-ready table with all public properties. Internal properties are not included
 function PropertyDef:toJSON()
+    local result = {
+        name = self.Name,
 
+    }
+    return result
 end
 
 --[[

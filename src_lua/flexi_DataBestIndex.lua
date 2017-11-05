@@ -7,7 +7,8 @@
 Implementation of flexi_data virtual table BestIndex API
 ]]
 
-local flexi_DataBestIndex = function(DBContext)
+---@param self DBContext
+local flexi_DataBestIndex = function(self)
 
 end
 

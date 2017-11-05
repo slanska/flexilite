@@ -8,7 +8,8 @@ Implementation of flexi_data virtual table Filter API. Uses QueryBuilder to gene
 SQL from query JSON
 ]]
 
-local function flexi_DataFilter(DBContext)
+---@param self DBContext
+local function flexi_DataFilter(self)
 
 end
 

@@ -4,9 +4,10 @@
 ---
 
 --[[
-Class definition
+Flexilite class (table) definition
 Has reference to DBContext
-Collection of properties
+Corresponds to [.classes] database table + decoded [data] field, with initialized PropertyRef's and NameRef's
+
 Find property
 Validates class structure
 Loads class def from DB
@@ -16,10 +17,16 @@ Validates existing data with new class definition
 local PropertyDef = require('PropertyDef')
 local NameRef = require('NameRef')
 
+--[[
+
+]]
+
+---@class ClassDef
 local ClassDef = {}
 
---- Creates new instance of ClassDef
+--- Creates new unsaved instance of ClassDef
 --- Internal method. Sets DBContext to class def instance, but does not add it to DBContext.Classes
+--- Used for new class initialization and class alteration
 ---@param DBContext DBContext
 ---@param name string
 --- (optional)
@@ -36,6 +43,17 @@ function ClassDef:new (DBContext, name)
     return result
 end
 
+-- Initializes raw table (normally loaded from database) as ClassDef object
+---@param DBContext DBContext
+---@param instance table
+function ClassDef:init(DBContext, instance)
+    assert(instance)
+    setmetatable(instance, self)
+    self.__index = self
+    instance.DBContext = DBContext
+    return instance
+end
+
 -- Internally used constructor to create ClassDef from class definition table parsed from JSON
 ---@param DBContext DBContext
 ---@param json table
@@ -47,6 +65,7 @@ function ClassDef:fromJSON(DBContext, json)
     return json
 end
 
+-- TODO
 function ClassDef:load()
     local stmt = self.DBContext:getStatement [[
 
@@ -86,8 +105,36 @@ function ClassDef:validateData()
     -- todo
 end
 
+---@return table @comment User friendly stringified JSON of class definition (excluding raw and internal properties)
 function ClassDef:toJSON()
-    
+    local result = {
+        id = self.ID,
+        name = self.Name,
+        allowAnyProps = self.allowAnyProps,
+    }
+
+    ---@return nil
+    function dictToJSON(dictName)
+        local dict = self[dictName]
+        if dict then
+            result[dictName] = {}
+            for ch, n in pairs(dict) do
+                assert(n)
+                result[dictName][ch] = n.toJSON()
+            end
+        end
+    end
+
+    for i, p in ipairs(self.Properties) do
+        result[p.Name] = p.toJSON()
+    end
+
+    dictToJSON('specialProperties')
+    dictToJSON('fullTextIndexing')
+    dictToJSON('rangeIndexing')
+    dictToJSON('columnMapping')
+
+    return result
 end
 
 return ClassDef

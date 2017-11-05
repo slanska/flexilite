@@ -57,8 +57,11 @@ to link to source code and set breakpoints
 * load class def
 * save class def
 * validate property
-* port AccessRules to Lua
+* ? port AccessRules to Lua
 * try tests using busted
 * flexi_DataUpdate
-* learn luacheck
-* how document
+* &#10003; configure luacheck
+* &#10003; how document Lua code
+* extend flexiActions - function to table, with help and description
+* toJSON, flexi schema
+* try to bundle .lua files into DLL using luajit -b 

@@ -12,17 +12,15 @@ Properties are handled for each property individually, but entire individual pro
 ]]
 
 ---@param self DBContext
----@param sourceClassDef ClassDef
----@param destClassDef table
--- (raw class definition decoded from JSON)
----@return ClassDef
--- (new class)
-local function MergeClassDefinitions(self, sourceClassDef, destClassDef)
+---@param srcClass ClassDef @see ClassDef
+---@param destClassDef table @comment raw class definition decoded from JSON
+---@return ClassDef @comment new class
+local function MergeClassDefinitions(self, srcClass, destClassDef)
     local newClass = self:newClassFromDef(destClassDef)
 
     -- Properties - one by one
-    newClass.Properties = newClass.Properties or sourceClassDef.Properties
-    for i, p in ipairs(sourceClassDef.Properties) do
+    newClass.Properties = newClass.Properties or srcClass.Properties
+    for i, p in ipairs(srcClass.Properties) do
         local propName = p.Name
         if not newClass.Properties[propName] then
             newClass:addProperty(p)
@@ -30,37 +28,39 @@ local function MergeClassDefinitions(self, sourceClassDef, destClassDef)
     end
 
     -- Name
-    newClass.Name = newClass.Name or sourceClassDef.Name
+    newClass.Name = newClass.Name or srcClass.Name
 
     -- ID
-    newClass.ID = newClass.ID or sourceClassDef.ID
+    newClass.ID = newClass.ID or srcClass.ID
 
     -- specialProperties
-    newClass.specialProperties = newClass.specialProperties or sourceClassDef.specialProperties or {}
+    newClass.specialProperties = newClass.specialProperties or srcClass.specialProperties or {}
 
     -- rangeIndexing
-    newClass.rangeIndexing = newClass.rangeIndexing or sourceClassDef.rangeIndexing or {}
+    newClass.rangeIndexing = newClass.rangeIndexing or srcClass.rangeIndexing or {}
 
     -- fullTextIndexing
-    newClass.fullTextIndexing = newClass.fullTextIndexing or sourceClassDef.fullTextIndexing or {}
+    newClass.fullTextIndexing = newClass.fullTextIndexing or srcClass.fullTextIndexing or {}
 
     -- allowAnyProps
-    newClass.allowAnyProps = newClass.allowAnyProps or sourceClassDef.allowAnyProps or false
+    newClass.allowAnyProps = newClass.allowAnyProps or srcClass.allowAnyProps or false
 
     -- columnMapping
-    newClass.columnMapping = newClass.columnMapping or sourceClassDef.columnMapping or {}
+    newClass.columnMapping = newClass.columnMapping or srcClass.columnMapping or {}
 
     -- SystemClass
-    newClass.SystemClass = newClass.SystemClass or sourceClassDef.SystemClass or false
+    newClass.SystemClass = newClass.SystemClass or srcClass.SystemClass or false
 
     -- VirtualTable
-    newClass.VirtualTable = newClass.VirtualTable or sourceClassDef.VirtualTable or false
+    newClass.VirtualTable = newClass.VirtualTable or srcClass.VirtualTable or false
 
     -- ctloMask
-    newClass.ctloMask = newClass.ctloMask or sourceClassDef.ctloMask or 0
+    newClass.ctloMask = newClass.ctloMask or srcClass.ctloMask or 0
 
     -- AccessRules
-    newClass.AccessRules = newClass.AccessRules or sourceClassDef.AccessRules or {}
+    newClass.AccessRules = newClass.AccessRules or srcClass.AccessRules or {}
+
+    -- TODO Copy raw .classes fields
 
     return newClass
 end
@@ -68,11 +68,10 @@ end
 -- Alter class definition. Raises error if operation cannot be completed
 ---@param self DBContext
 ---@param className string
----@param newClassDefJSON string
--- (JSON encoded)
+---@param newClassDefJSON string @comment JSON encoded
 ---@param createVTable boolean
----@param invalidData string
--- (ignore - class will be marked as 'has invalid data', fail - throw error if invalid existing data are found (default))
+---@param invalidData string @comment (ignore - class will be marked as 'has invalid data',
+-- fail throw error if invalid existing data are found (default))
 local function AlterClass(self, className, newClassDefJSON, createVTable, invalidData)
     local classDef = json.decode(newClassDefJSON)
     createVTable = createVTable or false
@@ -89,8 +88,6 @@ local function AlterClass(self, className, newClassDefJSON, createVTable, invali
     --- fullTextIndexing
     --- rangeIndexing
     --- columnMapping: cannot change if locked
-
-    -- Copy .classes fields
 
     -- Check if property changes are ok
 

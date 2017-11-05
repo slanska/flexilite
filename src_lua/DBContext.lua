@@ -28,6 +28,8 @@ local UserInfo = require('UserInfo')
 
 ---@class DBContext
 local DBContext = {}
+
+-- Forward declaration
 local flexiFuncs
 
 --- Creates a new DBContext, associated with sqlite database connection
@@ -57,13 +59,15 @@ function DBContext:new(db)
     return result
 end
 
+-- Callback to sqlite 'flexi' function
 function DBContext:flexiAction(ctx, action, ...)
+    local result
     local ff = flexiFuncs[action]
     if ff == nil then
         error('Flexi action ' .. action .. ' not found')
     end
 
-    local result = ff(self, ...)
+    result = ff(self, ...)
 
     return result
 end
@@ -187,11 +191,11 @@ end
 -- First checks if class def has been already loaded, and if so, simply returns it
 -- Otherwise, will load class definition from database and add it to the context class def collection
 -- If class is not found, will throw error
----@param classIdOrName number
---- (or string)
+---@param classIdOrName number @comment number or string
+---@param noList boolean @comment If true, class is meant to be used temporarily and will not be added to the DBContextcollection
 ---@see ClassDef
 ---@return ClassDef
-function DBContext:LoadClassDefinition(classIdOrName)
+function DBContext:LoadClassDefinition(classIdOrName, noList)
     local result = self.Classes[classId]
     if result then
         if type(classIdOrName) == 'string' then
@@ -204,8 +208,13 @@ function DBContext:LoadClassDefinition(classIdOrName)
 
     local cls = self:loadOneRow([[]], {})
     assert(cls)
+    result = ClassDef:new(self)
 
+    if not noList then
+        self:addClassToList(result)
+    end
 
+    return result
 end
 
 ---@param classDef table
@@ -222,10 +231,27 @@ function DBContext:flexi_Schema(className, propertyName)
     local result
     if not className then
         -- return entire schema
+        result = {}
+
+        local stmt = self:getStatement [[select name, id from [.classes]; ]]
+        stmt:reset()
+        ---@type ClassDef
+        for row in stmt:rows() do
+            -- Temp load - do not add to collection
+            local cls = self:LoadClassDefinition(row.id)
+
+
+        end
+
     elseif not propertyName then
         -- return class
+        local cls = self:LoadClassDefinition(className)
+        result = cls.toJSON()
     else
         -- return property
+        local cls = self:LoadClassDefinition(className)
+        local prop = cls:getProperty(propertyName)
+        result = prop.toJSON()
     end
     return json.encode(result)
 end

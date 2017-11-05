@@ -9,7 +9,8 @@ local json = require('cjson')
 Implementation of flexi_data virtual table Update API: insert, update, delete
 ]]
 
-local function updateObject(DBContext)
+---@param self DBContext
+local function updateObject(self)
 
 end
 
@@ -34,7 +35,7 @@ end
 ]]
 
 ---
----@param DBContext DBContext
+---@param self DBContext
 ---@param className string
 --- (optional) if not specified, should be defined in JSON
 ---@param oldRowID number
@@ -45,8 +46,7 @@ end
 --- data payload. Can be single object or array of objects. Objects may have $class and $id attributes
 ---@param queryJSON string
 --- (optional) filter to apply
-local function flexi_DataUpdate
-(DBContext, className, oldRowID, newRowID, dataJSON, queryJSON)
+local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, queryJSON)
     local data = json.decode(dataJSON)
 
     if type(data) ~= 'table' then
@@ -58,11 +58,11 @@ local function flexi_DataUpdate
     if #data > 0 then
         -- Array
         for i, v in ipairs(data) do
-            updateObject(DBContext, v)
+            updateObject(self, v)
         end
     else
         -- Object
-        updateObject(DBContext, data)
+        updateObject(self, data)
     end
 
 end
