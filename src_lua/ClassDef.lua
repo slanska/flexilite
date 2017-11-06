@@ -86,6 +86,13 @@ function ClassDef:fromJSON(DBContext, json)
     return obj
 end
 
+---@param DBContext DBContext
+---@param jsonString string
+---@return ClassDef
+function ClassDef:fromJSONString(DBContext, jsonString)
+    return self:fromJSON(DBContext, json.decode(jsonString))
+end
+
 function ClassDef:selfValidate()
     -- todo implement
 end

@@ -52,6 +52,11 @@ function DBContext:new(db)
         Classes = {},
 
         Functions = {},
+
+        -- Can be overriden by flexi('config', ...)
+        config = {
+            createVirtualTable = false
+        }
     }
 
     setmetatable(result, self)
@@ -68,7 +73,18 @@ function DBContext:flexiAction(ctx, action, ...)
         error('Flexi action ' .. action .. ' not found')
     end
 
-    result = ff(self, ...)
+    -- Start transaction
+    self.db:exec 'begin'
+
+    local ok, errorMsg = pcall(function()
+        result = ff(self, ...)
+        self.db:exec 'commit'
+    end)
+
+    if not ok then
+        self.db:exec 'rollback'
+        error(errorMsg)
+    end
 
     return result
 end
