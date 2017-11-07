@@ -98,8 +98,7 @@ function ClassDef:selfValidate()
 end
 
 function ClassDef:hasProperty(idOrName)
-    local prop = self.Properties[idOrName]
-    return prop ~= nil, prop
+    return self.Properties[idOrName]
 end
 
 -- Internal function to add property to properties collection
@@ -114,11 +113,11 @@ end
 
 function ClassDef:getProperty(idOrName)
     -- Check if exists
-    local exists, prop = self.hasProperty(idOrName)
-    if not exists then
+    local prop = self.hasProperty(idOrName)
+    if not prop then
         error( "Property " .. tostring(idOrName) .. " not found")
     end
-    return self.Properties[idOrName]
+    return prop
 end
 
 function ClassDef:validateData()

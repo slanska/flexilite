@@ -16,7 +16,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
   -- Mapped columns. Mapping is different for different classes
   [X1], [X2], [X3], [X4], [X5],
 
--- to allow case insensitive search for different languages
+  -- to allow case insensitive search for different languages
   tokenize=unicode61
 );
 
@@ -32,7 +32,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
 --  (if .classes.Data.allowNotDefinedProps = 1). Such attributes will be stored as IDs to .names table,
 --  where ID will be for record with type = 0 (name). Normally, object properties defined in schema will be referencing
 --  rows with type = 1 (property). Having both types of entities in one table allows shared space for names. Both types are exposed as
---  updatable views (.names and flexi_prop), so their exposition will not be much different from real table
+--  updatable views (.names and flexi_prop), so their implementation will not be much different from real table
 --  
 --  When a new property is created, a new row gets inserted with Type = 1. Also, if needed row for Name (with Type = 0) gets inserted as well.
 ------------------------------------------------------------------------------------------
@@ -80,22 +80,29 @@ CREATE TABLE IF NOT EXISTS [.names_props]
   */
   PluralOf     INTEGER             NULL
     CONSTRAINT [fkNamesByPluralOf]
-    REFERENCES [.names_props] ([ID]) ON DELETE SET NULL ON UPDATE RESTRICT,
+    REFERENCES [.names_props] ([ID])
+      ON DELETE SET NULL
+      ON UPDATE RESTRICT,
   AliasOf      INTEGER             NULL
     CONSTRAINT [fkNamesByAliasOf]
-    REFERENCES [.names_props] ([ID]) ON DELETE SET NULL ON UPDATE RESTRICT,
+    REFERENCES [.names_props] ([ID])
+      ON DELETE SET NULL
+      ON UPDATE RESTRICT,
 
   /*
   Property specific columns
   */
   [ClassID]    INTEGER             NULL CONSTRAINT [fkClassPropertiesToClasses]
-  REFERENCES [.classes] ([ClassID]) ON DELETE CASCADE ON UPDATE RESTRICT,
+  REFERENCES [.classes] ([ClassID])
+    ON DELETE CASCADE
+    ON UPDATE RESTRICT,
 
   /*
   ID of property name
   */
   [PropNameID] INTEGER             NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.names_props] ([ID])
-  ON DELETE RESTRICT ON UPDATE RESTRICT,
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
 
   /*
   Optional mapping for locked property (A-P)
@@ -104,18 +111,18 @@ CREATE TABLE IF NOT EXISTS [.names_props]
 );
 
 CREATE TRIGGER IF NOT EXISTS [namesAfterInsert]
-AFTER INSERT
+  AFTER INSERT
   ON [.names_props]
-FOR EACH ROW
+  FOR EACH ROW
   WHEN new.Value IS NOT NULL
 BEGIN
   INSERT INTO [.full_text_data] (docid, ClassID, X1) VALUES (-new.ID, 0, new.Value);
 END;
 
 CREATE TRIGGER IF NOT EXISTS [namesAfterUpdate]
-AFTER UPDATE
+  AFTER UPDATE
   ON [.names_props]
-FOR EACH ROW
+  FOR EACH ROW
   WHEN new.Value IS NOT NULL
 BEGIN
   UPDATE [.full_text_data]
@@ -124,9 +131,9 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS [namesAfterDelete]
-AFTER DELETE
+  AFTER DELETE
   ON [.names_props]
-FOR EACH ROW
+  FOR EACH ROW
   WHEN old.Value IS NOT NULL
 BEGIN
   DELETE FROM [.full_text_data]
@@ -168,17 +175,17 @@ CREATE VIEW IF NOT EXISTS [.names] AS
   WHERE Type = 0;
 
 CREATE TRIGGER IF NOT EXISTS [names_Insert]
-INSTEAD OF INSERT
+  INSTEAD OF INSERT
   ON [.names]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   INSERT INTO [.names_props] (Value, AliasOf, PluralOf, Type) VALUES (new.Value, new.AliasOf, new.PluralOf, 0);
 END;
 
 CREATE TRIGGER IF NOT EXISTS [names_Update]
-INSTEAD OF UPDATE
+  INSTEAD OF UPDATE
   ON [.names]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   UPDATE [.names_props]
   SET Value = new.Value, AliasOf = new.Value, PluralOf = new.PluralOf
@@ -186,9 +193,9 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS [names_Delete]
-INSTEAD OF DELETE
+  INSTEAD OF DELETE
   ON [.names]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   DELETE FROM [.names_props]
   WHERE [.names_props].ID = old.NameID;
@@ -205,23 +212,24 @@ CREATE TABLE IF NOT EXISTS [.access_rules] (
   O - Object
   P - Property
   */
-  [ItemType]   CHAR NOT NULL,
+  [ItemType]   CHAR     NOT NULL,
 
   /*
   H - hidden
   R - read only
-  U - updateable
+  U - updatable
   A - can add
   D - can delete
   */
-  [Access]     CHAR NOT NULL,
+  [Access]     CHAR     NOT NULL,
 
   /*
   ClassID or ObjectID or PropertyID
   */
-  [ItemID]     INT  NOT NULL,
+  [ItemID]     INT      NOT NULL,
   CONSTRAINT [sqlite_autoindex_AccessRules_1] PRIMARY KEY ([UserRoleID], [ItemType], [ItemID])
-) WITHOUT ROWID;
+)
+  WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS [idxAccessRulesByItemID]
   ON [.access_rules] ([ItemID]);
@@ -245,9 +253,9 @@ CREATE TABLE IF NOT EXISTS [.change_log] (
 );
 
 CREATE TRIGGER IF NOT EXISTS trigChangeLogAfterInsert
-AFTER INSERT
+  AFTER INSERT
   ON [.change_log]
-FOR EACH ROW
+  FOR EACH ROW
   WHEN new.ChangedBy IS NULL
 BEGIN
   UPDATE [.change_log]
@@ -261,7 +269,9 @@ END;
 CREATE TABLE IF NOT EXISTS [.classes] (
   [ClassID]     INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   [NameID]      INTEGER NOT NULL CONSTRAINT [fkClassesNameID]
-  REFERENCES [.names_props] ([ID]) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  REFERENCES [.names_props] ([ID])
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
 
   -- System class is used internally by the system and cannot be changed or deleted by end-user
   [SystemClass] BOOL    NOT NULL             DEFAULT 0,
@@ -280,21 +290,26 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   /*
   Class definition as it was provided by user (properties and class references are defined by names)
   */
-  OriginalData  JSON1 NOT NULL,
+  OriginalData  JSON1   NOT NULL,
 
   /*
   Whether to create corresponding virtual table or not
    */
-  VirtualTable  BOOL    NOT NULL             DEFAULT 0
+  VirtualTable  BOOL    NOT NULL             DEFAULT 0,
+
+  /*
+  Set to 1 when class is not resolved (i.e. has references to non-existing classes)
+  */
+  Unresolved    BOOL    NOT NULL             DEFAULT 0
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClasses_byNameID]
   ON [.classes] ([NameID]);
 
 CREATE TRIGGER IF NOT EXISTS [trigClassesAfterInsert]
-AFTER INSERT
+  AFTER INSERT
   ON [.classes]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   -- TODO Fix unresolved names : mixins and reference properties
 
@@ -315,9 +330,9 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigClassesAfterUpdate]
-AFTER UPDATE
+  AFTER UPDATE
   ON [.classes]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   INSERT INTO [.change_log] ([OldKey], [OldValue], [KEY], [Value])
     SELECT
@@ -359,9 +374,9 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigClassesAfterDelete]
-AFTER DELETE
+  AFTER DELETE
   ON [.classes]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   INSERT INTO [.change_log] ([OldKey], [OldValue]) VALUES (
     printf('@%s', old.ClassID),
@@ -395,27 +410,27 @@ CREATE VIEW IF NOT EXISTS [flexi_class] AS
   FROM [.classes];
 
 CREATE TRIGGER IF NOT EXISTS [trig_Flexi_Class_Insert]
-INSTEAD OF INSERT
+  INSTEAD OF INSERT
   ON [flexi_class]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   SELECT flexi('create class', new.Class, new.Definition, new.AsTable);
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trig_Flexi_Class_Update]
-INSTEAD OF UPDATE
+  INSTEAD OF UPDATE
   ON [flexi_class]
 
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   SELECT flexi('rename class', old.Class, new.Class);
   SELECT flexi('alter class', new.Class, new.Definition, new.AsTable);
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trig_Flexi_Class_Delete]
-INSTEAD OF DELETE
+  INSTEAD OF DELETE
   ON [flexi_class]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   SELECT flexi('drop class', old.Class);
 END;
@@ -444,30 +459,30 @@ CREATE VIEW IF NOT EXISTS [flexi_prop] AS
   WHERE cp.Type = 1 AND cp.Deleted = 0;
 
 CREATE TRIGGER IF NOT EXISTS trigFlexi_Prop_Insert
-INSTEAD OF INSERT
+  INSTEAD OF INSERT
   ON [flexi_prop]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
---  TODO SELECT flexi('create property', new.Class, new.Property, new.Definition);
+  --  TODO SELECT flexi('create property', new.Class, new.Property, new.Definition);
 
   INSERT OR IGNORE INTO [.names_props] ([Value], [Type]) VALUES (new.Property, 0);
   INSERT INTO [.names_props] (Type, PropNameID, ClassID, ctlv, ctlvPlan)
   VALUES (1, coalesce(new.NameID, (SELECT n.ID
-              FROM [.names_props] n
-              WHERE n.[Value] = new.Property
-              LIMIT 1)),
+                                   FROM [.names_props] n
+                                   WHERE n.[Value] = new.Property
+                                   LIMIT 1)),
           new.ClassID, new.ctlv, new.ctlvPlan);
 
   -- TODO Fix unresolved references??? (needed?)
 END;
 
 CREATE TRIGGER IF NOT EXISTS trigFlexi_Prop_Update
-INSTEAD OF UPDATE
+  INSTEAD OF UPDATE
   ON [flexi_prop]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
---  SELECT flexi('rename property', new.Class, old.Property, new.Property);
---  SELECT flexi('alter property', new.Class, new.Property, new.Definition);
+  --  SELECT flexi('rename property', new.Class, old.Property, new.Property);
+  --  SELECT flexi('alter property', new.Class, new.Property, new.Definition);
 
   INSERT OR IGNORE INTO [.names_props] (Value, Type)
   VALUES (new.Property, 0);
@@ -481,11 +496,11 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS trigFlexi_Prop_Delete
-INSTEAD OF DELETE
+  INSTEAD OF DELETE
   ON [flexi_prop]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
---  SELECT flexi('drop property', old.Class, old.Property);
+  --  SELECT flexi('drop property', old.Class, old.Property);
 
   DELETE FROM [.names_props]
   WHERE ID = old.PropertyID;
@@ -500,7 +515,9 @@ END;
 CREATE TABLE IF NOT EXISTS [.objects] (
   [ObjectID] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   [ClassID]  INTEGER NOT NULL CONSTRAINT [fkObjectsClassIDToClasses]
-  REFERENCES [.classes] ([ClassID]) ON DELETE CASCADE ON UPDATE CASCADE,
+  REFERENCES [.classes] ([ClassID])
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
 
   /*
   This is bit mask which regulates index storage.
@@ -511,14 +528,14 @@ CREATE TABLE IF NOT EXISTS [.objects] (
   [ctlo]     INTEGER,
 
   /*
-  Reserved for future use. Will be used tp store certain property values directly with object
+  Reserved for future use. Will be used to store certain property values directly with object
    */
   [Data]     JSON1   NULL,
 
   /*
   Optional data for object/row (font/color/formulas etc. customization)
   */
-  [ExtData]  JSON1   NULL
+  [MetaData]  JSON1   NULL
 );
 
 CREATE INDEX IF NOT EXISTS [idxObjectsByClassSchema]
@@ -526,9 +543,9 @@ CREATE INDEX IF NOT EXISTS [idxObjectsByClassSchema]
 
 -- Triggers
 CREATE TRIGGER IF NOT EXISTS [trigObjectsAfterInsert]
-AFTER INSERT
+  AFTER INSERT
   ON [.objects]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   -- TODO force ctlo. Will it work?
   UPDATE [.objects]
@@ -557,9 +574,9 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigObjectsAfterUpdate]
-AFTER UPDATE
+  AFTER UPDATE
   ON [.objects]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   INSERT INTO [.change_log] ([OldKey], [OldValue], [KEY], [Value])
     SELECT
@@ -607,9 +624,9 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigObjectsAfterUpdateOfClassID_ObjectID]
-AFTER UPDATE OF [ClassID], [ObjectID]
+  AFTER UPDATE OF [ClassID], [ObjectID]
   ON [.objects]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   -- Force updating indexes for direct columns
   UPDATE [.objects]
@@ -634,11 +651,10 @@ BEGIN
   WHERE [Value] = old.ObjectID AND ctlv IN (0, 10) AND new.[ObjectID] <> old.ObjectID;
 END;
 
-
 CREATE TRIGGER IF NOT EXISTS [trigObjectsAfterDelete]
-AFTER DELETE
+  AFTER DELETE
   ON [.objects]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   INSERT INTO [.change_log] ([OldKey], [OldValue])
     SELECT
@@ -703,7 +719,7 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
   [Value]              NOT NULL,
 
   /*
-  ctlv is used for index control. Possible values:
+  ctlv - value bit flags (indexing etc). Possible values:
       bit 0 - Index
       bits 1-3 - reference
           2(3 as bit 0 is set) - regular ref
@@ -714,19 +730,21 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
           12(13) - cannot delete B until this reference exists
           14(15) - cannot delete A nor B until this reference exist
 
-      bit 4 (16) - full text data
-      bit 5 (32) - range data
+      bit 4 (16) - integer value, actually NameID
+      bit 5 (32) - full text data
       bit 6 (64) - DON'T track changes
       bit 7 (128) - unique index
+      bit 8 (256) - range data -- ??? needed
   */
   [ctlv]       INTEGER,
   /*
 Optional data for cell (font/color/format etc. customization)
 */
-  [ExtData]    JSON1   NULL,
+  [MetaData]    JSON1   NULL,
 
   CONSTRAINT [] PRIMARY KEY ([ObjectID], [PropertyID], [PropIndex])
-) WITHOUT ROWID;
+)
+  WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS [idxClassReversedRefs]
   ON [.ref-values] ([Value], [PropertyID])
@@ -741,9 +759,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS [idxValuesByPropUniqueValue]
   WHERE ([ctlv] & 128);
 
 CREATE TRIGGER IF NOT EXISTS [trigValuesAfterInsert]
-AFTER INSERT
+  AFTER INSERT
   ON [.ref-values]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   INSERT INTO [.change_log] ([KEY], [Value])
     SELECT
@@ -763,9 +781,9 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigValuesAfterUpdate]
-AFTER UPDATE
+  AFTER UPDATE
   ON [.ref-values]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   INSERT INTO [.change_log] ([OldKey], [OldValue], [KEY], [Value])
     SELECT
@@ -810,9 +828,9 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS [trigValuesAfterDelete]
-AFTER DELETE
+  AFTER DELETE
   ON [.ref-values]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   INSERT INTO [.change_log] ([OldKey], [OldValue])
     SELECT
@@ -838,6 +856,41 @@ BEGIN
     AND [PropertyIndex] MATCH printf('#%s#', old.[PropIndex]);
 END;
 
+------------------------------------------------------------------------------------------
+-- .multi_key2, .multi_key3, .multi_key4
+-- Clustered (without rowid), single-index tables used as external index for .ref-values
+-- to support multi key unique indexes (2-3-4 columns
+------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS [.multi_key2] (
+  ClassID  INTEGER NOT NULL,
+  Z1               NOT NULL,
+  Z2               NOT NULL,
+  ObjectID INTEGER NOT NULL,
+  CONSTRAINT [] PRIMARY KEY ([ClassID], [Z1], [Z2])
+)
+  WITHOUT ROWID;
+------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS [.multi_key3] (
+  ClassID  INTEGER NOT NULL,
+  Z1               NOT NULL,
+  Z2               NOT NULL,
+  Z3               NOT NULL,
+  ObjectID INTEGER NOT NULL,
+  CONSTRAINT [] PRIMARY KEY ([ClassID], [Z1], [Z2], [Z3])
+)
+  WITHOUT ROWID;
+------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS [.multi_key4] (
+  ClassID  INTEGER NOT NULL,
+  Z1               NOT NULL,
+  Z2               NOT NULL,
+  Z3               NOT NULL,
+  Z4               NOT NULL,
+  ObjectID INTEGER NOT NULL,
+  CONSTRAINT [] PRIMARY KEY ([ClassID], [Z1], [Z2], [Z3], [Z4])
+)
+  WITHOUT ROWID;
+
 --------------------------------------------------------------------------------------------
 -- .ValuesEasy
 --------------------------------------------------------------------------------------------
@@ -851,9 +904,9 @@ CREATE VIEW IF NOT EXISTS [.ValuesEasy] AS
     NULL AS [ExtData];
 
 CREATE TRIGGER IF NOT EXISTS trigValuesEasy_Insert
-INSTEAD OF INSERT
+  INSTEAD OF INSERT
   ON [.ValuesEasy]
-FOR EACH ROW
+  FOR EACH ROW
 BEGIN
   INSERT OR REPLACE INTO [.objects] (ClassID, ObjectID, ctlo)
     SELECT

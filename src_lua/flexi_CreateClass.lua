@@ -7,6 +7,12 @@ local JSON = require('cjson')
 local AlterClass, MergeClassDefinitions = require('flexi_AlterClass')
 local ClassDef = require 'ClassDef'
 
+---@param self DBContext
+local function ResolveClasses(self)
+
+end
+
+
 ---
 --- Creates a new class
 --- if createVirtualTable == true, virtual table will be created
@@ -27,9 +33,6 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
         error('Invalid class name' .. className)
     end
 
-    -- load class definition
-    local cls = ClassDef:fromJSONString(self, classDefAsJSONString)
-
     if type(createVirtualTable) == 'nil' then
         createVirtualTable = self.config.createVirtualTable
     end
@@ -44,31 +47,19 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
         -- TODO Is this right way?
 
         -- Call virtual table creation
-        local sql = {}
-        table.insert(sql, 'create virtual table [' .. className .. '] using flexi_data (')
-
-        -- TODO Schema, ClassName: create virtual table [%s] using flexi_data ()
-
-        local first = true
-        for i, p in ipairs(cls.Properties) do
-            if not first then
-                table.insert(sql, ',')
-            else
-                first = false
-            end
-            table.insert(sql, '[' .. p.Name .. '] ' .. p:getNativeType())
-        end
-
-        table.insert(sql, ');')
-
-        local sqlStr = table:concat(sql, '\n')
+        local sqlStr = string.format("create virtual table [' .. className .. '] using flexi_data ('%q');", classDefAsJSONString)
         self.db:exec(sqlStr)
     else
+        -- load class definition
+        local cls = ClassDef:fromJSONString(self, classDefAsJSONString)
+
         local classNameID
         local stmt = self:getStatement "insert into [.classes] (NameID, OriginalData) values (:1, :2);"
         stmt:reset()
         stmt:bind { [1] = classNameID, [2] = nil } -- TODO
         stmt:step()
+
+        -- TODO Check if there unresolved classes
 
         return 'Class [' .. className .. '] created'
     end

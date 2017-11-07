@@ -46,6 +46,7 @@ declare type PropertyType =
      Precision is
      */
     'date' |
+    'time' |
     'timespan' |
     'datetime' |
 
@@ -88,11 +89,13 @@ declare type PropertyType =
      (the same storage format used by Visual Basic script - 4 decimal point accuracy)
      */
     'money' |
+    'decimal' |
 
     /*
      Volatile, not stored property. Accepted on input but ignored
      */
-    'computed';
+    'computed' |
+    'formula';
 
 declare type PropertyIndexMode =
     /*
@@ -167,18 +170,19 @@ interface IMetadataRef {
     $id?: number;
 }
 
-declare interface TMixinClassDef {
-    classRef?: IMetadataRef | IMetadataRef[],
+declare interface TMixinPropertyDef {
+    classRef?: IMetadataRef | IMetadataRef[]
+}
+
+declare interface IReferencePropertyDef extends TMixinPropertyDef {
     dynamic?: {
         selectorProp: IMetadataRef;
         rules: {
             regex: string | RegExp,
             classRef: IMetadataRef
         }[];
-    }
-}
+    },
 
-declare interface IReferencePropertyDef extends TMixinClassDef {
     /*
      Property name ID (in `classRef` class) used as reversed reference property for this one. Optional. If set,
      Flexilite will ensure that referenced class does have this property (by creating if needed).
@@ -308,20 +312,6 @@ interface IClassPropertyDef {
     enumDef?: IEnumPropertyDef;
 
     defaultValue?: any;
-
-    /*
-     List of command, non-stored attributes, which are used as instructions for property alteration
-     */
-
-    /*
-     Instruction to rename property
-     */
-    $renameTo?: string;
-
-    /*
-     Property will be removed by flexi_class_alter
-     */
-    $drop?: boolean;
 }
 
 declare interface IQueryWhereDef {
@@ -414,6 +404,10 @@ declare type QueryWhereOperator = '$eq' | '$ne' | '$lt' | '$gt' | '$le' | '$ge' 
     '$difference';
 
 // type IClassPropertyDictionary = { [propID: string]: IClassPropertyDef };
+
+interface IIndexDef extends IMetadataRef {
+    desc?: boolean
+}
 
 /*
  /*
@@ -565,12 +559,6 @@ interface IClassDefinition {
     }
 
     /*
-     (Optional) list of base classes. Defines classes that given class can 'extend', i.e. use their
-     properties
-     */
-    mixin?: TMixinClassDef;
-
-    /*
      Optional storage mode. By default - 'flexi-data', which means that data will be stored in Flexilite
      internal tables (.objects and .ref-values).
      'flexi-rel' means that data will not stored anywhere, and class with this storage mode will be serving
@@ -583,8 +571,10 @@ interface IClassDefinition {
     storageFlexiRel?: {
         master: IStorageFlexiRelProperty;
         detail: IStorageFlexiRelProperty;
-    }
+    },
 
+    indexes?: { [indexName: string]: {properties: string | IIndexDef[],
+            type?: PropertyIndexMode }}
 }
 
 interface IStorageFlexiRelProperty {

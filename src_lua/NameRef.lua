@@ -11,41 +11,80 @@ id
 ]]
 
 ---@class NameRef
-local NameRef = {
-    ---@param a NameRef
-    ---@param b NameRef
+local MetadataRef = {
+
+    ---@comment '==' operator
+    ---@overload
+    ---@param a MetadataRef
+    ---@param b MetadataRef
     __eq = function(a, b)
-        return a.id == b.id or a.name == b.name
+        if getmetatable(a) ~= getmetatable(b) then
+            return false
+        end
+        if a.id and b.id and a.id == b.id then
+            return true
+        end
+        return a.name and b.name and a.name == b.name
     end
 }
 
----@param DBContext DBContext
----@param name string @comment Name referenced
-function NameRef:fromJSON(DBContext, obj)
-    assert(DBContext)
-    setmetatable(obj, self)
-    self.__index = self
-    obj. DBContext = DBContext
-    return obj
+local NameRef = {}
+setmetatable(NameRef, MetadataRef)
+
+local ClassNameRef = {}
+setmetatable(ClassNameRef, MetadataRef)
+ClassNameRef.__index = ClassNameRef
+
+local PropNameRef = {}
+setmetatable(PropNameRef, MetadataRef)
+PropNameRef._index = PropNameRef
+
+--- Ensures that class with given name/id exists (uses classDef.DBContext
+function NameRef:resolve(classDef)
+    -- TODO create name
+    if not self.id then
+        self.id = classDef.DBContext:ensureName(self.name)
+    end
 end
 
----@return string @comment Returns name text by its id. Throws error if id is not set or does not exist
-function NameRef:getName()
-    assert(self.id)
+---@param classDef ClassDef
+function ClassNameRef:resolve(classDef)
+    if self.id or self.name then
+        local cc = classDef.DBContext:LoadClassDefinition(self.id and self.id or self.name)
+        if cc ~= nil then
+            self.id = cc.ClassID
+        else
+            self.id = nil
+        end
+    else
+        error 'Neither name nor id are defined in class name reference'
+    end
 end
 
----@param ensure boolean @comment If true, name will be created in database
----@return number @comment Returns name ID by its text. May be null, if name does not exist and ensure is false
-function NameRef:getID(ensure)
-    assert(self.name)
+--- Ensures that class owner has given property (by name/id)
+---@param classDef ClassDef
+function PropNameRef:resolve(classDef)
+    -- will throw error is property does not exist
+    if not self.id then
+        local pp = classDef:getProperty(self.name)
+        self.id = pp.id
+    end
+end
+
+---@param classDef ClassDef
+function ClassNameRef:isResolved(classDef)
+    return type(self.id) == 'number'
+end
+
+---@param classDef ClassDef
+function PropNameRef:isResolved(classDef)
+    local pp = classDef.Properties[self.id and self.id or self.name]
+    return pp ~= nil
 end
 
 ---@return table
-function NameRef:toJSON()
-    return {
-        id = self.id,
-        name = self.name
-    }
+function NameRef:export()
+    return self
 end
 
-return NameRef
+return NameRef, ClassNameRef, PropNameRef

@@ -149,6 +149,11 @@ function DBContext:getPropIdByClassIdAndPropNameId(classId, propNameId)
     stmt:step()
 end
 
+---@param name string
+function DBContext:ensureName(name)
+    --TODO insert name if it does not exist yet
+end
+
 -- Inserts a new name to .name_props table
 ---@param name string
 ---@return nil
@@ -209,7 +214,7 @@ end
 ---@param classIdOrName number @comment number or string
 ---@param noList boolean @comment If true, class is meant to be used temporarily and will not be added to the DBContextcollection
 ---@see ClassDef
----@return ClassDef
+---@return ClassDef @comment or nil, if not found
 function DBContext:LoadClassDefinition(classIdOrName, noList)
     local result = self.Classes[classId]
     if result then
@@ -222,6 +227,9 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
     end
 
     local cls = self:loadOneRow([[]], {})
+    if not cls then
+        return nil
+    end
     result = ClassDef:loadFromDB(self, cls)
     if not noList then
         self:addClassToList(result)
