@@ -7,18 +7,20 @@
 This file is used as an entry point for testing Flexilite library
 ]]
 
-require 'socket'
-require('mobdebug').start()
 require 'cjson'
-require('index')
+
+require('socket')
+require('mobdebug').start()
+
+local DBContext = require 'DBContext'
+--local lfs = require 'lfs'
 require('io')
-
+require('index')
+--local sqlite = require 'lsqlite3'
 local sqlite = require 'lsqlite3complete'
-local db = sqlite.open_memory()
---db:load_extension('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/bin/libFlexilite')
 
-Flexi:newDBContext(db)
-
+--- Read file
+---@param file string
 local function readAll(file)
     local f = io.open(file, "rb")
     local content = f:read("*all")
@@ -27,21 +29,23 @@ local function readAll(file)
 end
 
 -- load sql scripts into Flexi variables
+-- TODO use relative paths
 Flexi.DBSchemaSQL = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/sql/dbschema.sql')
 Flexi.InitDefaultData = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/sql/init_default_data.sql')
 
-local ok, errorMessage = pcall(function()
+-- Tests for class creation
 
-    for row in db:rows [=[
-    select flexi('create class', 'Orders', '{"ref": 123}', 1);]=] do
-        print(row[1])
-    end
+db = sqlite.open_memory()
+DBContext = Flexi:newDBContext(db)
 
-    db:exec "select flexi('configure');"
-end)
+local sql = "select flexi('configure')"
+db:exec(sql)
 
-if not ok then
-    print(errorMessage)
+-- TODO temp
+local content = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/test/json/Employees.schema.json')
+local sql = "select flexi('create class', 'Employees', '" .. content .. "', 0);"
+for row in db:rows(sql) do
+    print(row[1])
 end
-
+db:close()
 

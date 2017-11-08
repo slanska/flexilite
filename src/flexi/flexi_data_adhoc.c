@@ -83,8 +83,8 @@ typedef struct _UpsertParams_t
 
     /*
     * Similarly to lExpectedClassID - value is passed in ID column or 0.
-     * Takes priority over $id special property passed in JSON payload
-     * (if $id is passed, it should match lExpectedObjectID)
+     * Takes priority over id special property passed in JSON payload
+     * (if id is passed, it should match lExpectedObjectID)
     */
     sqlite3_int64 lExpectedObjectID;
 
@@ -372,7 +372,7 @@ static int _row_id(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
  * if array - _processArrayProp
  * if object - _processObjectProp
  *
- * get $id, get $class
+ * get id, get $class
  * if !insert -> load existing object (skip new properties)
  * validate object
  * save object
@@ -629,7 +629,7 @@ _upsertObject(_UpsertParams_t *pp)
     // Save object
     if (pp->level == 1)
     {
-        // Verify $id
+        // Verify id
         if (pp->lExpectedObjectID != 0)
         {
             //            flexi_Object_getExistingPropByID()

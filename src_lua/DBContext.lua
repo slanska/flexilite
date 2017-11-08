@@ -24,6 +24,7 @@ Handles 'flexi' function
 local json = require 'cjson'
 
 local ClassDef = require('ClassDef')
+local PropertyDef = require('PropertyDef')
 local UserInfo = require('UserInfo')
 
 ---@class DBContext
@@ -39,7 +40,7 @@ function DBContext:new(db)
     assert(db)
 
     local result = {
-        DB = db,
+        db = db,
 
         -- Cache of most used statements, key is statement SQL
         Statements = {},
@@ -52,6 +53,10 @@ function DBContext:new(db)
         Classes = {},
 
         Functions = {},
+
+        -- helper constructors
+        ClassDef = ClassDef,
+        PropertyDef = PropertyDef,
 
         -- Can be overriden by flexi('config', ...)
         config = {
@@ -73,17 +78,18 @@ function DBContext:flexiAction(ctx, action, ...)
         error('Flexi action ' .. action .. ' not found')
     end
 
+    local args = { ... }
     -- Start transaction
     self.db:exec 'begin'
 
     local ok, errorMsg = pcall(function()
-        result = ff(self, ...)
+        result = ff(self, unpack(args))
         self.db:exec 'commit'
     end)
 
     if not ok then
         self.db:exec 'rollback'
-        error(errorMsg)
+        error( errorMsg)
     end
 
     return result
@@ -96,8 +102,14 @@ end
 -- (alias to sqlite3_stmt)
 function DBContext:getStatement(sql)
     local result = self.Statements[sql]
+    local errorCode
     if not result then
-        result = self.DB:prepare(sql)
+        result, errorCode = self.db:prepare(sql)
+        if not result then
+            local errMsg = string.format("%d: %s", self.db:error_code(), self.db:error_message())
+            error(errMsg)
+        end
+
         self.Statements[sql] = result
     end
 

@@ -56,8 +56,8 @@ static int _parseSpecialProperties(struct flexi_ClassDef_t *pClassDef, const cha
     {
         char *zTemp = zSql;
         const char *zp = zSpecProps[ii];
-        zSql = sqlite3_mprintf("%s%s\n json_extract(:1, '$.specialProperties.%s.$id') as %s_id," // 3 * ii + 0
-                                       "json_extract(:1, '$.specialProperties.%s.$name') as %s_name," // 3 * ii + 1
+        zSql = sqlite3_mprintf("%s%s\n json_extract(:1, '$.specialProperties.%s.id') as %s_id," // 3 * ii + 0
+                                       "json_extract(:1, '$.specialProperties.%s.name') as %s_name," // 3 * ii + 1
                                        "json_extract(:1, '$.specialProperties.%s') as %s", // 3 * ii + 2
                                zTemp, sep, zp, zp, zp, zp, zp, zp);
         sep[0] = ',';
@@ -107,8 +107,8 @@ static int _parseRangeProperties(struct flexi_ClassDef_t *pClassDef, const char 
     for (int ii = 0; ii < strlen(zCols); ii += 2, zp += 2)
     {
         char *zTemp = zSql;
-        zSql = sqlite3_mprintf("%s%c\njson_extract(:1, '$.rangeIndexing.%.2s.$id') as %.2s_id, "
-                                       "json_extract(:1, '$.rangeIndexing.%.2s.$name') as %.2s_name",
+        zSql = sqlite3_mprintf("%s%c\njson_extract(:1, '$.rangeIndexing.%.2s.id') as %.2s_id, "
+                                       "json_extract(:1, '$.rangeIndexing.%.2s.name') as %.2s_name",
                                zTemp, sep, zp, zp, zp, zp);
         sqlite3_free(zTemp);
         sep = ',';
@@ -149,8 +149,8 @@ static int _parseFullTextProperties(struct flexi_ClassDef_t *pClassDef, const ch
         char *zTemp = zSql;
         int idx = ii + 1;
         zSql = sqlite3_mprintf("%s%c\n"
-                                       "json_extract(:1, '$.fullTextIndexing.X%d.$id') as X%d_id,"
-                                       "json_extract(:1, '$.fullTextIndexing.X%d.$name') as X%d_name",
+                                       "json_extract(:1, '$.fullTextIndexing.X%d.id') as X%d_id,"
+                                       "json_extract(:1, '$.fullTextIndexing.X%d.name') as X%d_name",
                                zTemp, c, idx, idx, idx, idx);
 
         sqlite3_free(zTemp);
@@ -191,10 +191,10 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
     sqlite3_stmt *pRulesStmt = NULL;
     char *zRulesJson = NULL;
 
-    char *zSql = "select json_extract(value, '$.classRef.$id')," // 0
-            "json_extract(value, '$.classRef.$name'), " // 1
-            "json_extract(value, '$.dynamic.selectorProp.$id'), " // 2
-            "json_extract(value, '$.dynamic.selectorProp.$name'), " // 3
+    char *zSql = "select json_extract(value, '$.classRef.id')," // 0
+            "json_extract(value, '$.classRef.name'), " // 1
+            "json_extract(value, '$.dynamic.selectorProp.id'), " // 2
+            "json_extract(value, '$.dynamic.selectorProp.name'), " // 3
             "json_extract(value, '$.dynamic.rules') " // 4
             "from json_each(:1, '$.mixins')";
     CHECK_STMT_PREPARE(pClassDef->pCtx->db, zSql, &pStmt);
@@ -229,8 +229,8 @@ static int _parseMixins(struct flexi_ClassDef_t *pClassDef, const char *zClassDe
 
         CHECK_CALL(getColumnAsText(&zRulesJson, pStmt, 4));
         char *zRulesSql = "select json_extract(value, '$.regex') as regex," // 0
-                "json_extract(value, '$.classRef.$id') as classId," // 1
-                "json_extract(value, '$.classRef.$name') as className" // 2
+                "json_extract(value, '$.classRef.id') as classId," // 1
+                "json_extract(value, '$.classRef.name') as className" // 2
                 "from json_each(:1);";
         CHECK_STMT_PREPARE(pClassDef->pCtx->db, zRulesSql, &pRulesStmt);
         CHECK_CALL(sqlite3_bind_text(pRulesStmt, 1, zRulesJson, -1, NULL));

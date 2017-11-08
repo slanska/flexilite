@@ -619,14 +619,14 @@ export class SQLiteSchemaParser {
         if (many2many) {
             classDef.storage = 'flexi-rel';
             classDef.storageFlexiRel.master = {
-                ownProperty: {$name: tblInfo.outFKeys[0].from},
-                refClass: {$name: tblInfo.outFKeys[0].table},
-                refProperty: {$name: tblInfo.outFKeys[0].to}
+                ownProperty: {name: tblInfo.outFKeys[0].from},
+                refClass: {name: tblInfo.outFKeys[0].table},
+                refProperty: {name: tblInfo.outFKeys[0].to}
             };
             classDef.storageFlexiRel.master = {
-                ownProperty: {$name: tblInfo.outFKeys[1].from},
-                refClass: {$name: tblInfo.outFKeys[1].table},
-                refProperty: {$name: tblInfo.outFKeys[1].to}
+                ownProperty: {name: tblInfo.outFKeys[1].from},
+                refClass: {name: tblInfo.outFKeys[1].table},
+                refProperty: {name: tblInfo.outFKeys[1].to}
             };
 
             // No need to process indexing as this class will be used as a virtual table with no data
@@ -641,9 +641,10 @@ export class SQLiteSchemaParser {
 
         if (extCol) {
             // set mixin class
-            classDef.mixin = {classRef: {$name: extCol.table}};
-            extCol.processed = true;
-            _.remove(tblInfo.outFKeys, extCol);
+            // FIXME
+            // classDef.properties[pkCols[0].name] = {rules: {type: 'mixin'}, refDef: {classRef: {name: extCol.table}}};
+            // extCol.processed = true;
+            // _.remove(tblInfo.outFKeys, extCol);
         }
 
         /*
@@ -676,7 +677,7 @@ export class SQLiteSchemaParser {
                     propName += `_${fk.from}`;
 
                 pp.refDef = {
-                    classRef: {$name: fk.table},
+                    classRef: {name: fk.table},
                 };
                 classDef.properties[propName] = pp;
                 // TODO on_update, on_delete
@@ -728,7 +729,7 @@ export class SQLiteSchemaParser {
                         else {
                             let ftsCol = ftsCols.shift();
                             classDef.fullTextIndexing = (classDef.fullTextIndexing || {}) as any;
-                            classDef.fullTextIndexing[ftsCol] = {$name: col.name} as IMetadataRef;
+                            classDef.fullTextIndexing[ftsCol] = {name: col.name} as IMetadataRef;
                             prop.index = 'fulltext';
                         }
                     }
@@ -745,8 +746,8 @@ export class SQLiteSchemaParser {
                         else {
                             let rtCol = rtCols.shift();
                             classDef.rangeIndexing = classDef.rangeIndexing || {} as any;
-                            classDef.rangeIndexing[rtCol + '0'] = {$name: col.name};
-                            classDef.rangeIndexing[rtCol + '1'] = {$name: col.name};
+                            classDef.rangeIndexing[rtCol + '0'] = {name: col.name};
+                            classDef.rangeIndexing[rtCol + '1'] = {name: col.name};
                             prop.index = 'range';
                         }
                     }
@@ -799,12 +800,12 @@ export class SQLiteSchemaParser {
             });
 
         if (uniqOtherIndexes.length > 0) {
-            classDef.specialProperties.uid = {$name: tblInfo.columns[uniqOtherIndexes[0].columns[0].cid].name};
+            classDef.specialProperties.uid = {name: tblInfo.columns[uniqOtherIndexes[0].columns[0].cid].name};
             _.forEach(uniqOtherIndexes, (idx: ISQLiteIndexInfo) => {
                 let col = tblInfo.columns[idx.columns[0].cid];
                 let prop = classDef.properties[col.name];
                 if (prop.rules.type === 'binary' && prop.rules.maxLength === 16) {
-                    classDef.specialProperties.autoUuid = {$name: tblInfo.columns[idx.columns[0].cid].name};
+                    classDef.specialProperties.autoUuid = {name: tblInfo.columns[idx.columns[0].cid].name};
                 }
             });
         }
@@ -831,11 +832,11 @@ export class SQLiteSchemaParser {
 
         if (uniqTxtIndexes.length > 0) {
             // Items assigned to code, name, description
-            classDef.specialProperties.code = {$name: tblInfo.columns[uniqTxtIndexes[0].columns[0].cid].name};
+            classDef.specialProperties.code = {name: tblInfo.columns[uniqTxtIndexes[0].columns[0].cid].name};
             if (!classDef.specialProperties.uid)
                 classDef.specialProperties.uid = classDef.specialProperties.code;
-            classDef.specialProperties.name = {$name: tblInfo.columns[uniqTxtIndexes[uniqTxtIndexes.length > 1 ? 1 : 0].columns[0].cid].name};
-            classDef.specialProperties.description = {$name: tblInfo.columns[_.last(uniqTxtIndexes).columns[0].cid].name};
+            classDef.specialProperties.name = {name: tblInfo.columns[uniqTxtIndexes[uniqTxtIndexes.length > 1 ? 1 : 0].columns[0].cid].name};
+            classDef.specialProperties.description = {name: tblInfo.columns[_.last(uniqTxtIndexes).columns[0].cid].name};
         }
     }
 

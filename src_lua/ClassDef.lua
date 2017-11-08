@@ -32,11 +32,30 @@ local function fromJSON(self, json)
 
     self.Properties = {}
 
-    for k, p in pairs(dd.properties) do
+    --[[ This function can be called in 2 contexts:
+     1) from raw JSON, during create/alter class/property
+     2) from database saved
+     in (1) nameOrId will be property name (string), property def will not have name or name id
+     in (2) nameOrId will be property id (number), property def will have name and name id
+    ]]
+    for nameOrId, p in pairs(dd.properties) do
         if not self.Properties[p.ID] then
-            local prop = PropertyDef:fromJSON(self, p)
-            self.Properties[p.Name] = prop
-            self.Properties[p.ID] = prop
+            local prop = PropertyDef:import(self, p)
+
+            -- Determine mode
+            if type(nameOrId) == 'number' and p.Prop.name and p.Prop.id then
+                -- Database contexts
+                self.Properties[nameOrId] = prop
+                self.Properties[p.Prop.name] = prop
+            else
+                if type(nameOrId) ~= 'string' then
+                    error('Invalid type of property name: ' .. nameOrId)
+                end
+
+                -- Raw JSON context
+                prop.Prop.name = nameOrId
+                self.Properties[nameOrId] = prop
+            end
         end
     end
 

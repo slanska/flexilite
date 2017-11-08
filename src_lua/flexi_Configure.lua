@@ -5,7 +5,12 @@
 
 ---@param self DBContext
 local function Configure(self, options)
-    self.db:exec(Flexi.DBSchemaSQL)
+    local result = self.db:exec(Flexi.DBSchemaSQL)
+    if result ~= 0 then
+        local errMsg = string.format("%d: %s", self.db:error_code(), self.db:error_message())
+        error(errMsg)
+    end
+
     if options then
         -- default culture
         -- default JSON output for flexi_data

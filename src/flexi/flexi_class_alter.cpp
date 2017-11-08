@@ -195,7 +195,7 @@ static int
 _initEnumProp()
 {
     // If property exists and defined as scalar prop, its current values will be treated
-    // as uid/name/$id of enum item
+    // as uid/name/id of enum item
 
     // Scan existing data, extract distinct values, find matching items in enum def.
     return 0;
@@ -207,7 +207,7 @@ _initEnumProp()
 static int
 _initRefProp()
 {
-    // If property exists and defined as scalar prop, its current values will be treated as uid/$id/code/name
+    // If property exists and defined as scalar prop, its current values will be treated as uid/id/code/name
     // from the references class
 
     // Scan existing data and normalize it

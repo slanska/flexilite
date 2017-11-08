@@ -55,7 +55,7 @@ For resolve class:
 ]]
 
 require 'math'
-require 'bit'
+local bit = type(jit) == 'table' and require('bit') or require('bit32')
 local NameRef, ClassNameRef, PropNameRef = require 'NameRef'
 local EnumDef = require 'EnumDef'
 
@@ -67,25 +67,29 @@ local MAX_INTEGER = 9007199254740992
 local MIN_INTEGER = -MAX_INTEGER
 
 -- CTLV flags
-local CTLV_INDEX = 1
-local CTLV_REF_STD = 3
--- 4(5) - ref: A -> B. When A deleted, delete B
-local CTLV_DELETE_B_WHEN_A = 5
--- 6(7) - when B deleted, delete A
-local CTLV_DELETE_A_WHEN_B = 7
--- 8(9) - when A or B deleted, delete counterpart
-local CTLV_DELETE_COUNTERPART = 9
---10(11) - cannot delete A until this reference exists
-local CTLV_CANNOT_DELETE_A_UNTIL_B = 11
---12(13) - cannot delete B until this reference exists
-local CTLV_CANNOT_DELETE_B_UNTIL_A = 13
---14(15) - cannot delete A nor B until this reference exist
-local CTLV_CANNOT_DELETE_UNTIL_COUNTERPART = 15
+local CTLV_FLAGS = {
+    INDEX = 1,
+    REF_STD = 3,
+    -- 4(5) - ref: A -> B. When A deleted, delete B
+    DELETE_B_WHEN_A = 5,
+    -- 6(7) - when B deleted, delete A
+    DELETE_A_WHEN_B = 7,
+    -- 8(9) - when A or B deleted, delete counterpart
+    DELETE_COUNTERPART = 9,
+    --10(11) - cannot delete A until this reference exists
+    CANNOT_DELETE_A_UNTIL_B = 11,
+    --12(13) - cannot delete B until this reference exists
+    CANNOT_DELETE_B_UNTIL_A = 13,
+    --14(15) - cannot delete A nor B until this reference exist
+    CANNOT_DELETE_UNTIL_COUNTERPART = 15,
 
-local CTLV_NAME_ID = 16
-local CTLV_FTX_INDEX = 32
-local CTLV_NO_TRACK_CHANGES = 64
-local CTLV_UNIQUE = 128
+    NAME_ID = 16,
+    FTX_INDEX = 32,
+    NO_TRACK_CHANGES = 64,
+    UNIQUE = 128,
+    DATE = 256,
+    TIMESPAN = 512,
+}
 
 ---@class PropertyDef
 local PropertyDef = {
@@ -173,11 +177,10 @@ function PropertyDef:base()
 end
 
 ---@param ClassDef ClassDef
----@param propName string
 ---@param srcData table @comment already parsed source data
 -- from class definition or separate property definition
-function PropertyDef.import(ClassDef, propName, srcData)
-    return PropertyDef.loadFromDB(ClassDef, { Name = propName }, srcData)
+function PropertyDef.import(ClassDef, srcData)
+    return PropertyDef.loadFromDB(ClassDef, { }, srcData)
 end
 
 ---@param ClassDef ClassDef
@@ -196,6 +199,8 @@ function PropertyDef.loadFromDB(ClassDef, obj, srcData)
 
     obj.ClassDef = ClassDef
     obj.D = srcData
+    obj.Prop = { name = obj.Property, id = obj.NameID }
+    setmetatable(obj.Prop, NameRef)
 
     obj:initMetadataRefs()
 
@@ -470,20 +475,22 @@ end
 saveToDB
 ===============================================================================
 ]]
+---@param propId number
+---@param propName string
 function PropertyDef:saveToDB()
     assert(self.ClassDef and self.ClassDef.DBContext)
 
-    -- TODO resolveReferences
-
-    -- TODO save name
-    -- TODO calc ctlv, ctlvPlan
-    -- TODO update indexes etc
+    assert(self.Prop and self.Prop:isResolved())
 
     local stmt = self.ClassDef.DBContext.getStatement [[
-
+        insert or replace into [flexi_prop] (PropertyID, ClassID, NameID, ctlv, ctlvPlan)
+        values (:1, :2, :3, :4, :5);
     ]]
 
-    stmt:bind {}
+    -- Detect column mapping
+
+    stmt:bind { [1] = self.PropertyID, [2] = self.ClassDef.ClassID, [3] = self.Prop.id,
+        [3] = self.ctlv, [4] = self.ctlvPlan }
     local result = stmt:step()
     if result ~= 0 then
         -- todo error
@@ -500,28 +507,7 @@ export
 -- Internal properties are not included
 function PropertyDef:export()
     return self.D
-
-    --local result = {
-    --    rules = self.D.rules,
-    --    index = self.D.index,
-    --    noTrackChanges = self.noTrackChanges,
-    --    defaultValue = self.defaultValue,
-    --}
-    --
-    --return result
 end
-
---function MixinPropertyDef:export()
---
---end
---
---function ReferencePropertyDef:export()
---
---end
---
---function EnumPropertyDef:export()
---
---end
 
 --[[
 ===============================================================================
@@ -546,6 +532,10 @@ function IntegerPropertyDef:getNativeType()
     return 'integer'
 end
 
+function EnumPropertyDef:getNativeType()
+    return 'text'
+end
+
 function BoolPropertyDef:getNativeType()
     return 'integer'
 end
@@ -562,7 +552,25 @@ Applies property definition to the database. Called on property save
 ===============================================================================
 ]]
 function PropertyDef:applyDef()
+    -- resolve property name
+    self.Prop:resolve(self.ClassDef)
 
+    -- set ctlv
+    self.ctlv = 0
+    local idx = string.lower(self.D.index)
+    if idx == 'index' then
+        self.ctlv = bit.bor(self.ctlv, CTLV_FLAGS.INDEX)
+    elseif idx == 'unique' then
+        self.ctlv = bit.bor(self.ctlv, CTLV_FLAGS.UNIQUE)
+    elseif idx == 'fulltext' then
+        self.ctlv = bit.bor(self.ctlv, CTLV_FLAGS.FTX_INDEX)
+    end
+
+    if self.D.noTrackChanges then
+        self.ctlv = bit.bor(self.ctlv, CTLV_FLAGS.NO_TRACK_CHANGES)
+    end
+
+    self.ctlvPlan = self.ctlv
 end
 
 function MixinPropertyDef:applyDef()
@@ -577,6 +585,10 @@ function ReferencePropertyDef:applyDef()
     self:base().applyDef(self)
 
     if self.D.refDef then
+        if self.D.refDef.reverseProperty then
+            self.D.refDef.reverseProperty:resolve(self.ClassDef)
+        end
+
         if self.D.refDef.dynamic then
             if self.D.refDef.dynamic.selectorProp then
                 self.D.refDef.dynamic.selectorProp:resolve(self.ClassDef)

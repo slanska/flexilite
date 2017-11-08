@@ -3,15 +3,12 @@
 --- DateTime: 2017-11-01 11:34 PM
 ---
 
-local JSON = require('cjson')
 local AlterClass, MergeClassDefinitions = require('flexi_AlterClass')
-local ClassDef = require 'ClassDef'
 
 ---@param self DBContext
 local function ResolveClasses(self)
 
 end
-
 
 ---
 --- Creates a new class
@@ -37,12 +34,6 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
         createVirtualTable = self.config.createVirtualTable
     end
 
-    -- Validate props
-
-    -- Check if all referenced classes are resolved. Otherwise, mark class as unresolved
-
-    -- Apply for all properties
-
     if createVirtualTable then
         -- TODO Is this right way?
 
@@ -51,7 +42,35 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
         self.db:exec(sqlStr)
     else
         -- load class definition
-        local cls = ClassDef:fromJSONString(self, classDefAsJSONString)
+        local cls = self.ClassDef:fromJSONString(self, classDefAsJSONString)
+
+        for name, propData in pairs(cls.Properties) do
+            if not self:isNameValid(name) then
+                error('Invalid property name: ' .. name)
+            end
+
+            local prop = self.PropertyDef.import(cls, propData)
+            prop:initMetadataRefs()
+
+            local isValid, errorMsg = prop:isValidDef()
+            if not isValid then
+                error(errorMsg)
+            end
+        end
+
+        for name, p in pairs(cls.Properties) do
+            p:applyDef()
+            local propID = p:saveToDB(nil, name)
+            cls.Properties[propID] = p
+        end
+
+        cls.D.Unresolved = false
+        for id, p in ipairs(cls.Properties) do
+            if p:hasUnresolvedReferences() then
+                cls.D.Unresolved = true
+                break
+            end
+        end
 
         local classNameID
         local stmt = self:getStatement "insert into [.classes] (NameID, OriginalData) values (:1, :2);"

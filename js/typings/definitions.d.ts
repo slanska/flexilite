@@ -161,13 +161,13 @@ declare type RelationRule =
  */
 interface IMetadataRef {
     /*
-     User supplied value. During save will be converted to $id which will be used thereafter
+     User supplied value. During save will be converted to id which will be used thereafter
      */
-    $name?: string;
+    name?: string;
     /*
      or
      */
-    $id?: number;
+    id?: number;
 }
 
 declare interface TMixinPropertyDef {
@@ -207,11 +207,11 @@ declare interface IReferencePropertyDef extends TMixinPropertyDef {
 }
 
 /*
- Enum definition: either $id or $name or items
+ Enum definition: either id or name or items
  Possible scenarios:
- a) $id > 0, items must be null, $name is ignored: existing enum def by $id will be used
- b) $name is set, $id is null or 0, items are null: existing enum def by $name will be used
- c) items are not null. New enum will be created. If $name is set, it will be its new name, otherwise name
+ a) id > 0, items must be null, name is ignored: existing enum def by id will be used
+ b) name is set, id is null or 0, items are null: existing enum def by name will be used
+ c) items are not null. New enum will be created. If name is set, it will be its new name, otherwise name
   will be composed from class name and property name
  */
 declare interface IEnumPropertyDef extends IMetadataRef {

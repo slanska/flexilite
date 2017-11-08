@@ -123,8 +123,8 @@ int flexi_prop_def_parse(struct flexi_PropDef_t *pProp, const char *zPropName, c
             "coalesce(json_extract(:1, '$.rules.minValue'), 0) as minValue," // 11
             "coalesce(json_extract(:1, '$.rules.maxValue'), 0) as maxValue," // 12
             "coalesce(json_extract(:1, '$.rules.regex'), 0) as regex," // 13
-            "coalesce(json_extract(:1, '$.enumDef.$id'), 0) as enumDef_id," // 14
-            "json_extract(:1, '$.enumDef.$name') as enumDef_name" // 15
+            "coalesce(json_extract(:1, '$.enumDef.id'), 0) as enumDef_id," // 14
+            "json_extract(:1, '$.enumDef.name') as enumDef_name" // 15
     ;
     flexi_Context_stmtInit(pCtx, STMT_PROP_PARSE, zPropParseSQL, &st);
 

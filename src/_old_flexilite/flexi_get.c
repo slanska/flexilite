@@ -295,7 +295,7 @@ static void sqlFlexiGetFunc(
     // Arg 2 can be either schema JSON (text value) or schema ID (integer value)
     sqlite3_value *schemaData = argv[2];
 
-    // Check if either $id, dataJSON or schemaData is null
+    // Check if either id, dataJSON or schemaData is null
     if (sqlite3_value_type(schemaData) == SQLITE_NULL
         || sqlite3_value_type(argv[3]) == SQLITE_NULL
         || sqlite3_value_type(argv[0]) == SQLITE_NULL)

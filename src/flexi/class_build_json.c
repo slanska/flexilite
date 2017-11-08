@@ -65,7 +65,7 @@ _internalAppendMetaDataRef(struct _BuildInternalClassDefJSON_Ctx *ctx,
         assert(result == SQLITE_OK);
     }
 
-    StringBuilder_appendJsonElem(sb, "$id", -1);
+    StringBuilder_appendJsonElem(sb, "id", -1);
     StringBuilder_appendRaw(sb, ":", 1);
     sprintf(zID, "%"
             PRId64, ref->id);
@@ -75,7 +75,7 @@ _internalAppendMetaDataRef(struct _BuildInternalClassDefJSON_Ctx *ctx,
     if (ref->id == 0)
     {
         StringBuilder_appendRaw(sb, ",", 1);
-        StringBuilder_appendJsonElem(sb, "$name", -1);
+        StringBuilder_appendJsonElem(sb, "name", -1);
         StringBuilder_appendRaw(sb, ":", 1);
         StringBuilder_appendJsonElem(sb, ref->name, -1);
     }

@@ -557,7 +557,7 @@
         },
         "mixin": {
             "classRef": {
-                "$name": "Orders"
+                "name": "Orders"
             }
         }
     },
@@ -613,7 +613,7 @@
                 },
                 "refDef": {
                     "classRef": {
-                        "$name": "Products"
+                        "name": "Products"
                     }
                 }
             },
@@ -625,7 +625,7 @@
                 },
                 "refDef": {
                     "classRef": {
-                        "$name": "Orders"
+                        "name": "Orders"
                     }
                 }
             }
@@ -669,7 +669,7 @@
                 },
                 "refDef": {
                     "classRef": {
-                        "$name": "Regions"
+                        "name": "Regions"
                     }
                 }
             }
@@ -703,7 +703,7 @@
                 },
                 "refDef": {
                     "classRef": {
-                        "$name": "Territories"
+                        "name": "Territories"
                     }
                 }
             },
@@ -715,7 +715,7 @@
                 },
                 "refDef": {
                     "classRef": {
-                        "$name": "Employees"
+                        "name": "Employees"
                     }
                 }
             }
@@ -826,7 +826,7 @@
                 },
                 "refDef": {
                     "classRef": {
-                        "$name": "Suppliers"
+                        "name": "Suppliers"
                     }
                 }
             },
@@ -838,7 +838,7 @@
                 },
                 "refDef": {
                     "classRef": {
-                        "$name": "Categories"
+                        "name": "Categories"
                     }
                 }
             }
@@ -971,7 +971,7 @@
                 },
                 "refDef": {
                     "classRef": {
-                        "$name": "Customers"
+                        "name": "Customers"
                     }
                 }
             }

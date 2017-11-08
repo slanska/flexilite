@@ -362,8 +362,8 @@ end
 ]===]
 
 function st.test_identifiers_names()
-  --local stmt = assert_userdata( st.db:prepare({"name", "id"}, "INSERT INTO test VALUES (:id, $name)")  )
-  local stmt = assert_userdata( st.db:prepare("INSERT INTO test VALUES (:id, $name)")  )
+  --local stmt = assert_userdata( st.db:prepare({"name", "id"}, "INSERT INTO test VALUES (:id, name)")  )
+  local stmt = assert_userdata( st.db:prepare("INSERT INTO test VALUES (:id, name)")  )
   assert_number( stmt:bind_names({name="Good morning", id=4}) )
   assert_number( stmt:step() )
   assert_number( stmt:reset() )
@@ -378,7 +378,7 @@ end
 --[===[
 function st:test_identifiers_multi_names()
   local stmt = assert_table( st.db:prepare( {"name", "id1", "id2"},[[
-    INSERT INTO test VALUES (:id1, $name); INSERT INTO test VALUES ($id2, :name) ]]))
+    INSERT INTO test VALUES (:id1, name); INSERT INTO test VALUES ($id2, :name) ]]))
   assert( stmt:bind_values("Hoho", 4, 5) )
   assert( stmt:exec() )
   st.check_content{ "Hello World", "Hello Lua", "Hello sqlite3", "Hoho", "Hoho" }
@@ -401,7 +401,7 @@ end
 --[===[
 function st:test_colon_identifiers_multi_names()
   local stmt = assert_table( st.db:prepare( {":name", ":id1", ":id2"},[[
-    INSERT INTO test VALUES (:id1, $name); INSERT INTO test VALUES ($id2, :name) ]]))
+    INSERT INTO test VALUES (:id1, name); INSERT INTO test VALUES ($id2, :name) ]]))
   assert( stmt:bind_values("Hoho", 4, 5) )
   assert( stmt:exec() )
   st.check_content{ "Hello World", "Hello Lua", "Hello sqlite3", "Hoho", "Hoho" }
@@ -409,7 +409,7 @@ end
 
 
 function st.test_dollar_identifiers_names()
-  local stmt = assert_table( st.db:prepare({"$name", "$id"}, "INSERT INTO test VALUES (:id, $name)")  )
+  local stmt = assert_table( st.db:prepare({"name", "$id"}, "INSERT INTO test VALUES (:id, name)")  )
   assert_table( stmt:bind_values("Good morning", 4) )
   assert_table( stmt:exec() )
   st.check_content{ "Hello World", "Hello Lua", "Hello sqlite3", "Good morning" }
@@ -419,8 +419,8 @@ function st.test_dollar_identifiers_names()
 end
 
 function st.test_dollar_identifiers_multi_names()
-  local stmt = assert_table( st.db:prepare( {"$name", "$id1", "$id2"},[[
-    INSERT INTO test VALUES (:id1, $name); INSERT INTO test VALUES ($id2, :name) ]]))
+  local stmt = assert_table( st.db:prepare( {"name", "$id1", "$id2"},[[
+    INSERT INTO test VALUES (:id1, name); INSERT INTO test VALUES ($id2, :name) ]]))
   assert( stmt:bind_values("Hoho", 4, 5) )
   assert( stmt:exec() )
   st.check_content{ "Hello World", "Hello Lua", "Hello sqlite3", "Hoho", "Hoho" }

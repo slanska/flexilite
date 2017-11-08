@@ -10,10 +10,10 @@ name
 id
 ]]
 
----@class NameRef
+---@class MetadataRef
 local MetadataRef = {
 
-    ---@comment '==' operator
+    --- '==' operator for name refs
     ---@overload
     ---@param a MetadataRef
     ---@param b MetadataRef
@@ -25,6 +25,13 @@ local MetadataRef = {
             return true
         end
         return a.name and b.name and a.name == b.name
+    end,
+
+    --- () method object
+    ---@param self MetadataRef
+    ---@return string @comment name value. So that. ref() -> ref.name
+    __call = function (self)
+        return self.name
     end
 }
 
@@ -40,6 +47,7 @@ setmetatable(PropNameRef, MetadataRef)
 PropNameRef._index = PropNameRef
 
 --- Ensures that class with given name/id exists (uses classDef.DBContext
+---@param classDef ClassDef
 function NameRef:resolve(classDef)
     -- TODO create name
     if not self.id then
@@ -69,6 +77,11 @@ function PropNameRef:resolve(classDef)
         local pp = classDef:getProperty(self.name)
         self.id = pp.id
     end
+end
+
+---@param classDef ClassDef
+function NameRef:isResolved(classDef)
+    return self.id ~= nil
 end
 
 ---@param classDef ClassDef

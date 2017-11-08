@@ -32,13 +32,14 @@ function Flexi.flexiFunction(ctx, action, ...)
 end
 
 function Flexi:newDBContext(db)
-    local result = {
-        db = db,
-        ClassDefs = {} }
+    --local result = {
+    --    db = db,
+    --    ClassDefs = {} }
 
+    local result = DBContext:new(db)
     self.Contexts[db] = result
 
-    result = setmetatable(result, DBContext)
+    --result = setmetatable(result, DBContext)
 
     db:create_function('flexi', -1, function(ctx, action, ...)
         local vv = DBContext.flexiAction(result, ctx, action, ...)
