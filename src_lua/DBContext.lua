@@ -70,6 +70,15 @@ function DBContext:new(db)
     return result
 end
 
+--- Throws SQLite error if result ~= SQLITE_OK
+---@param opResult number @comment SQLite integer result. 0 = OK
+function DBContext:checkSqlite(opResult)
+    if opResult ~= 0 then
+        local errMsg = string.format("%d: %s", self.db:error_code(), self.db:error_message())
+        error(errMsg)
+    end
+end
+
 -- Callback to sqlite 'flexi' function
 function DBContext:flexiAction(ctx, action, ...)
     local result
@@ -102,12 +111,10 @@ end
 -- (alias to sqlite3_stmt)
 function DBContext:getStatement(sql)
     local result = self.Statements[sql]
-    local errorCode
     if not result then
-        result, errorCode = self.db:prepare(sql)
+        result = self.db:prepare(sql)
         if not result then
-            local errMsg = string.format("%d: %s", self.db:error_code(), self.db:error_message())
-            error(errMsg)
+            self:checkSqlite(1)
         end
 
         self.Statements[sql] = result
@@ -147,7 +154,7 @@ function DBContext:isNameValid(name)
 end
 
 function DBContext:getNameID(name)
-    local row = self:loadOneRow() 'select NameID from [.names] where [Value] = :1;'
+    local row = self:loadOneRow 'select NameID from [.names] where [Value] = :1;'
     if not row then
         error('Name [' .. name .. '] not found')
     end
@@ -157,8 +164,10 @@ end
 
 function DBContext:getPropIdByClassIdAndPropNameId(classId, propNameId)
     local stmt = self:getStatement "select PropertyID from [flexi_prop] where ClassID = :1 and NameID = :2;"
-    stmt:bind { [1] = classId, [2] = propNameId }
-    stmt:step()
+    self:checkSqlite(stmt:bind_names { [1] = classId, [2] = propNameId })
+    local result = stmt:step()
+
+    -- TODO
 end
 
 ---@param name string
@@ -176,8 +185,8 @@ function DBContext:insertName(name)
     insert or replace into [.names] ([Value], NameID)
                 values (:1, (select ID from [.names_props] where Value = :1 limit 1));
     ]]
-    stmt:bind { [1] = name }
-    stmt:step()
+    self:checkSqlite(stmt:bind_names { [1] = name })
+    local result = stmt:step()
 end
 
 function DBContext:getPropIdByClassIdAndName(classId, propName)
@@ -188,8 +197,8 @@ function DBContext:getPropIdByClassIdAndName(classId, propName)
         and ClassID = :2 limit 1;
     ]]
 
-    stmt:bind { [1] = propName, [2] = classId }
-    stmt:step()
+    self:checkSqlite(stmt:bind { [1] = propName, [2] = classId })
+    local result = stmt:step()
 end
 
 --- Utility function to load one row from database.
@@ -200,7 +209,11 @@ end
 --- or nil, if no record is found
 function DBContext:loadOneRow(sql, params)
     local stmt = self:getStatement(sql)
-    stmt:bind(params)
+    local ok = stmt:bind_names(params)
+    if ok ~= 0 then
+        local errorMsg = self.db:error_message()
+        error()
+    end
     for r in stmt:rows() do
         return r
     end
@@ -238,7 +251,9 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
         return result
     end
 
-    local cls = self:loadOneRow([[]], {})
+    -- TODO
+    local cls = self:loadOneRow([=[select from [.classes] where
+    ]=], {})
     if not cls then
         return nil
     end
@@ -288,7 +303,7 @@ end
 ---@param action string
 -- (optional) to provide help for specific action
 function DBContext:flexi_Help(action)
-
+    -- TODO concate help from all actions
 end
 
 -- Handles select flexi('current user', ...)
@@ -325,6 +340,10 @@ function DBContext:flexi_UnlockClass(className)
 
 end
 
+function DBContext:flexi_ping()
+    return 'pong'
+end
+
 -- Should be after all FLEXI functions are defined
 flexiFuncs = {
     ['create class'] = require 'flexi_CreateClass',
@@ -353,7 +372,9 @@ flexiFuncs = {
     ['help'] = DBContext.flexi_Help,
     ['lock class'] = DBContext.flexi_LockClass,
     ['unlock class'] = DBContext.flexi_UnlockClass,
-    ['invalidate class'] = {},
+    ['invalidate class'] = {}, -- TODO
+    ['hard delete'] = {}, -- TODO
+    ['purge'] = {}, -- TODO
 
 }
 
