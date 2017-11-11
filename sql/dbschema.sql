@@ -29,10 +29,12 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
 --  Column 'type' defines which sort of entity it is: 0 - name, 1 - property name
 --  The reason why 2 entities are combined into single table is to share IDs.
 --  Objects may have attributes which are not defined in .classes.Data.properties
---  (if .classes.Data.allowNotDefinedProps = 1). Such attributes will be stored as IDs to .names table,
---  where ID will be for record with type = 0 (name). Normally, object properties defined in schema will be referencing
---  rows with type = 1 (property). Having both types of entities in one table allows shared space for names. Both types are exposed as
---  updatable views (.names and flexi_prop), so their implementation will not be much different from real table
+--  (if .classes.Data.allowNotDefinedProps = true). Such attributes will be stored as IDs to .names table,
+--  where ID will be for record with type = 0 (name). Normally, object properties defined in
+--  schema will be referencing rows with type = 1 (property). Having both types of entities
+--  in one table allows shared space for names and unified auto-generated IDs.
+--  Both types are exposed as updatable views (.names and flexi_prop), so their
+--  usage will not be much different from real table
 --  
 --  When a new property is created, a new row gets inserted with Type = 1. Also, if needed row for Name (with Type = 0) gets inserted as well.
 ------------------------------------------------------------------------------------------

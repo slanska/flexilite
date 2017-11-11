@@ -20,7 +20,7 @@ end
 ---@return string
 local function CreateClass(self, className, classDefAsJSONString, createVirtualTable)
     -- check if class with this name already exists
-    local classID = self:getClassIdByName(className)
+    local classID = self:getClassIdByName(className, false)
     if classID ~= 0 then
         error('Class ' .. className .. ' already exists')
     end
@@ -30,7 +30,7 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
         error('Invalid class name' .. className)
     end
 
-    if type(createVirtualTable) == 'nil' then
+    if createVirtualTable == nil then
         createVirtualTable = self.config.createVirtualTable
     end
 

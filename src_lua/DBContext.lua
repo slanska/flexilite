@@ -30,8 +30,9 @@ local UserInfo = require('UserInfo')
 ---@class DBContext
 local DBContext = {}
 
--- Forward declaration
+-- Forward declarations
 local flexiFuncs
+local flexiHelp
 
 --- Creates a new DBContext, associated with sqlite database connection
 ---@param db sqlite3
@@ -70,6 +71,7 @@ function DBContext:new(db)
     return result
 end
 
+--- Utility function to check status returned by SQLite call
 --- Throws SQLite error if result ~= SQLITE_OK
 ---@param opResult number @comment SQLite integer result. 0 = OK
 function DBContext:checkSqlite(opResult)
@@ -135,15 +137,17 @@ end
 
 --- Finds class ID by its name
 ---@param className string
+---@param errorIfNotFound boolean @comment optional. If true and class does not exist,
+---error will be thrown
 ---@return number
-function DBContext:getClassIdByName(className)
+function DBContext:getClassIdByName(className, errorIfNotFound)
     local row = self:loadOneRow([[
     select ClassID from [.classes] where NameID = (select ID from [.names_props] where Value = :1 limit 1);
     ]], { [1] = className })
-    if not row then
+    if not row and errorIfNotFound then
         error('Class [' .. className .. '] not found')
     end
-    return row.ClassID
+    return row and row.ClassID or nil
 end
 
 --- Checks if string is a valid name
@@ -187,38 +191,58 @@ function DBContext:insertName(name)
     ]]
     self:checkSqlite(stmt:bind_names { [1] = name })
     local result = stmt:step()
+    if result ~= 0 then
+
+    end
 end
 
+--- Gets property ID by property class ID and property name
+--- Property must exist. If it is not found, error will be thrown
+---@param classId number
+---@param propName string
+---@return number @comment Property.ID
 function DBContext:getPropIdByClassIdAndName(classId, propName)
-    -- todo
-    local stmt = self:getStatement [[
+    local row = self:loadOneRow([[
         select ID from [.names_props] where
         PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1)
         and ClassID = :2 limit 1;
-    ]]
-
-    self:checkSqlite(stmt:bind { [1] = propName, [2] = classId })
-    local result = stmt:step()
+    ]], { [1] = propName, [2] = classId }, true)
+    return row.ID
 end
 
 --- Utility function to load one row from database.
 ---@param sql string
 ---@param params table
 --- table of params to bind
----@return table
+---@param errorIfNotFound boolean @comment optional.
+---If true and record is not found, error will be thrown
+---@return table @comment columns will be converted to table fields
 --- or nil, if no record is found
-function DBContext:loadOneRow(sql, params)
+function DBContext:loadOneRow(sql, params, errorIfNotFound)
     local stmt = self:getStatement(sql)
     local ok = stmt:bind_names(params)
     if ok ~= 0 then
-        local errorMsg = self.db:error_message()
-        error()
+        self:checkSqlite(ok)
     end
     for r in stmt:rows() do
         return r
     end
 
     return nil
+end
+
+--- Utility function to get statement, bind parameters, and return iterator to iterate through rows
+---@param sql string
+---@param params table
+---@return iterator
+function DBContext:loadRows(sql, params)
+    local stmt = self:getStatement(sql)
+    local ok = stmt:bind_names(params)
+    if ok ~= 0 then
+        self:checkSqlite(ok)
+    end
+
+    return stmt:rows()
 end
 
 -- Utility method. Adds instance of ClassDef to DBContext.Classes collection
@@ -251,9 +275,15 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
         return result
     end
 
-    -- TODO
-    local cls = self:loadOneRow([=[select from [.classes] where
-    ]=], {})
+    local sql = type(classIdOrName) == 'string' and
+    [[
+        select * from [.classes] where NameID = (select ID from [.names_props] where Value = :1 limit 1);
+    ]]
+    or
+    [[
+        select * from [.classes] where ClassID = :1 limit 1);
+    ]]
+    local cls = self:loadOneRow(sql, { [1] = classIdOrName })
     if not cls then
         return nil
     end
@@ -303,7 +333,23 @@ end
 ---@param action string
 -- (optional) to provide help for specific action
 function DBContext:flexi_Help(action)
-    -- TODO concate help from all actions
+    local result = { 'Usage:' }
+
+    local function addActionInfo()
+        table.insert(result, table.concat(info[3], ', ') .. ':')
+        table.insert(result, info[1])
+    end
+
+    if type(action) == 'string' then
+        local ff = flexiFuncs[string.lower(action)]
+        addActionInfo(flexiHelp[ff])
+    else
+        for func, info in pairs(flexiHelp) do
+            addActionInfo(info)
+        end
+    end
+
+    return table.concat(result, '\n')
 end
 
 -- Handles select flexi('current user', ...)
@@ -344,38 +390,105 @@ function DBContext:flexi_ping()
     return 'pong'
 end
 
--- Should be after all FLEXI functions are defined
+--- Purges previously softly deleted data
+---@param className string @comment if set, will purge deleted data for that class only
+---@param propName string @comment if set, will purge deleted data for that property only
+function DBContext:flexi_vacuum(className, propName)
+    -- TODO Hard delete data
+end
+
+--- Apply translation for given symnames
+---@param values table
+function DBContext:flexi_translate(values)
+
+end
+
+local flexi_CreateClass = require 'flexi_CreateClass'
+local flexi_AlterClass = require 'flexi_AlterClass'
+local flexi_DropClass = require 'flexi_DropClass'
+local flexi_CreateProperty = require 'flexi_CreateProperty'
+local flexi_AlterProperty = require 'flexi_AlterProperty'
+local flexi_DropProperty = require 'flexi_DropProperty'
+local flexi_Configure = require 'flexi_Configure'
+local flexi_PropToObject = require 'flexi_PropToObject'
+local flexi_ObjectToProp = require 'flexi_ObjectToProp'
+local flexi_SplitProperty = require 'flexi_SplitProperty'
+local flexi_MergeProperty = require 'flexi_MergeProperty'
+local TriggerAPI = require 'Triggers'
+
+-- Initialization should be after all FLEXI functions are defined
+-- Variables are declared above
+
+-- Dictionary by action functions, to get metadata about actions
+-- Values are 2 item arrays: 1st item - short info, 2nd item - full info
+flexiHelp = {
+    [flexi_CreateClass] = { '', [[]] },
+    [flexi_AlterClass] = { '', [[]] },
+    [flexi_DropClass] = { '', [[]] },
+    [flexi_CreateProperty] = { '', [[]] },
+    [flexi_AlterProperty] = { '', [[]] },
+    [flexi_DropProperty] = { '', [[]] },
+    [flexi_Configure] = { '', [[]] },
+    [DBContext.flexi_ping] = { '', [[]] },
+    [DBContext.flexi_CurrentUser] = { '', [[]] },
+    [flexi_PropToObject] = { '', [[]] },
+    [flexi_ObjectToProp] = { '', [[]] },
+    [flexi_SplitProperty] = { '', [[]] },
+    [flexi_MergeProperty] = { '', [[]] },
+    [DBContext.flexi_Schema] = { '', [[]] },
+    [DBContext.flexi_Help] = { '', [[]] },
+    [DBContext.flexi_LockClass] = { '', [[]] },
+    [DBContext.flexi_UnlockClass] = { '', [[]] },
+    [DBContext.flexi_vacuum] = { '', [[]] },
+    [DBContext.flexi_translate] = { '', [[]] },
+}
+
+-- Dictionary by action names
 flexiFuncs = {
-    ['create class'] = require 'flexi_CreateClass',
-    ['class create'] = require 'flexi_CreateClass',
-    ['alter class'] = require 'flexi_AlterClass',
-    ['class alter'] = require 'flexi_AlterClass',
-    ['drop class'] = require 'flexi_DropClass',
-    ['class drop'] = require 'flexi_DropClass',
-    ['create property'] = require 'flexi_CreateProperty',
-    ['property create'] = require 'flexi_CreateProperty',
-    ['alter property'] = require 'flexi_AlterProperty',
-    ['property alter'] = require 'flexi_AlterProperty',
-    ['drop property'] = require 'flexi_DropProperty',
-    ['property drop'] = require 'flexi_DropProperty',
-    ['configure'] = require 'flexi_Configure',
+    ['create class'] = flexi_CreateClass,
+    ['class create'] = flexi_CreateClass,
+    ['alter class'] = flexi_AlterClass,
+    ['class alter'] = flexi_AlterClass,
+    ['drop class'] = flexi_DropClass,
+    ['class drop'] = flexi_DropClass,
+    ['create property'] = flexi_CreateProperty,
+    ['property create'] = flexi_CreateProperty,
+    ['alter property'] = flexi_AlterProperty,
+    ['property alter'] = flexi_AlterProperty,
+    ['drop property'] = flexi_DropProperty,
+    ['property drop'] = flexi_DropProperty,
+    ['configure'] = flexi_Configure,
 
     ['ping'] = DBContext.flexi_ping,
 
     ['current user'] = DBContext.flexi_CurrentUser,
 
-    ['property to object'] = require 'flexi_PropToObject',
-    ['object to property'] = require 'flexi_ObjectToProp',
-    ['split property'] = require 'flexi_SplitProperty',
-    ['merge property'] = require 'flexi_MergeProperty',
+    ['property to object'] = flexi_PropToObject,
+    ['object to property'] = flexi_ObjectToProp,
+    ['split property'] = flexi_SplitProperty,
+    ['merge property'] = flexi_MergeProperty,
     ['schema'] = DBContext.flexi_Schema,
     ['help'] = DBContext.flexi_Help,
     ['lock class'] = DBContext.flexi_LockClass,
     ['unlock class'] = DBContext.flexi_UnlockClass,
-    ['invalidate class'] = {}, -- TODO
-    ['hard delete'] = {}, -- TODO
-    ['purge'] = {}, -- TODO
+    --['invalidate class'] = {},
+    ['hard delete'] = DBContext.flexi_vacuum,
+    ['purge'] = DBContext.flexi_vacuum,
+    ['vacuum'] = DBContext.flexi_vacuum,
+    ['translate'] = DBContext.flexi_translate,
+    ['create trigger'] = TriggerAPI.Create,
+    ['trigger create'] = TriggerAPI.Create,
+    ['drop trigger'] = TriggerAPI.Drop,
+    ['trigger drop'] = TriggerAPI.Drop,
+
 
 }
+
+-- Run once - find all synonyms for actions
+for actionName, func in pairs(flexiFuncs) do
+    local info = flexiHelp[func] -- should be array of 2 or 3 items
+    info[3] = info[3] or {}
+    table.insert(info[3], actionName)
+end
 
 return DBContext

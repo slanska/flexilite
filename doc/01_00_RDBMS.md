@@ -99,7 +99,6 @@ which is better suited for real business cases.
 #### Multi-tenancy or "Databases within databases"
 
 In special cases there is a need to keep sort of databases-within-database. Here are the examples:
-
     - alarm system monitoring company, maintaining many accounts with various types of individually 
     configured alarm systems
     - equipment vendor, with customer account database, and individual configuration for every pease
