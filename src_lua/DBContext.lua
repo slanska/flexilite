@@ -28,7 +28,7 @@ local ClassDef = require('ClassDef')
 local PropertyDef = require('PropertyDef')
 local UserInfo = require('UserInfo')
 
----@class DBContext
+--- @class DBContext
 local DBContext = {}
 
 -- Forward declarations
@@ -36,8 +36,8 @@ local flexiFuncs
 local flexiHelp
 
 --- Creates a new DBContext, associated with sqlite database connection
----@param db sqlite3
----@return DBContext
+--- @param db sqlite3
+--- @return DBContext
 function DBContext:new(db)
     assert(db)
 
@@ -46,14 +46,11 @@ function DBContext:new(db)
 
         -- Cache of most used statements, key is statement SQL
         Statements = {},
-
         MemDB = nil,
-
         UserInfo = UserInfo:new(),
 
         -- Collection of classes. Each class is referenced twice - by ID and Name
         Classes = {},
-
         Functions = {},
 
         -- helper constructors
@@ -74,7 +71,7 @@ end
 
 --- Utility function to check status returned by SQLite call
 --- Throws SQLite error if result ~= SQLITE_OK
----@param opResult number @comment SQLite integer result. 0 = OK
+--- @param opResult number @comment SQLite integer result. 0 = OK
 function DBContext:checkSqlite(opResult)
     if opResult ~= 0 then
         local errMsg = string.format("%d: %s", self.db:error_code(), self.db:error_message())
@@ -101,7 +98,7 @@ function DBContext:flexiAction(ctx, action, ...)
 
     if not ok then
         self.db:exec 'rollback'
-        error( errorMsg)
+        error(errorMsg)
     end
 
     return result
@@ -109,8 +106,8 @@ end
 
 -- Utility method to obtain prepared sqlite statement
 -- All prepared statements are kept in DBContext.Statements pool and accessed by sql as key
----@param sql string
----@return stmt
+--- @param sql string
+--- @return stmt
 -- (alias to sqlite3_stmt)
 function DBContext:getStatement(sql)
     local result = self.Statements[sql]
@@ -137,10 +134,10 @@ function DBContext:close()
 end
 
 --- Finds class ID by its name
----@param className string
----@param errorIfNotFound boolean @comment optional. If true and class does not exist,
----error will be thrown
----@return number @comment class ID or 0 if not found
+--- @param className string
+--- @param errorIfNotFound boolean @comment optional. If true and class does not exist,
+--- error will be thrown
+--- @return number @comment class ID or 0 if not found
 function DBContext:getClassIdByName(className, errorIfNotFound)
     local row = self:loadOneRow([[
     select ClassID from [.classes] where NameID = (select ID from [.names_props] where Value = :1 limit 1);
@@ -151,11 +148,11 @@ function DBContext:getClassIdByName(className, errorIfNotFound)
     return row and row.ClassID or 0
 end
 
----@param nameID number
----@return string
+--- @param nameID number
+--- @return string
 function DBContext:getNameValueByID(nameID)
     local row = self:loadOneRow([[select [Value] from [.names_props] where ID = :1 limit 1;]],
-    { [1] = nameID })
+        { [1] = nameID })
     if row then
         return row.Value
     end
@@ -164,21 +161,21 @@ function DBContext:getNameValueByID(nameID)
 end
 
 --- Checks if string is a valid name
----@param name string
----@return boolean
+--- @param name string
+--- @return boolean
 function DBContext:isNameValid(name)
     return string.match(name, '[_%a][_%w]*') == name
 end
 
 ---
----@param classId number
----@param propName string
----@param errorIfNotFound boolean @collection optional, If true and property
+--- @param classId number
+--- @param propName string
+--- @param errorIfNotFound boolean @collection optional, If true and property
 --- does not exist, error will be thrown
----@return number @collection property ID or -1 if property does not exist
+--- @return number @collection property ID or -1 if property does not exist
 function DBContext:getPropIdByClassAndNameIds(classId, propName, errorIfNotFound)
     local row = self:loadOneRow([[select PropertyID from [flexi_prop] where ClassID = :1 and NameID = :2;"]],
-    { [1] = classId, [2] = propName }, errorIfNotFound)
+        { [1] = classId, [2] = propName }, errorIfNotFound)
     if row then
         return row.PropertyID
     end
@@ -186,24 +183,25 @@ function DBContext:getPropIdByClassAndNameIds(classId, propName, errorIfNotFound
     return -1
 end
 
----@param name string
----@return number @comment nameID
+--- @param name string
+--- @return number @comment nameID
 function DBContext:insertName(name)
     local sql = [[insert or replace into [.names] ([Value], NameID)
               values (:1, (select ID from [.names_props] where Value = :1 limit 1));]]
-    local stmt = self:getStatement(sql)
-    stmt:bind_names({ [1] = name })
-    local result = stmt:exec()
-    self:checkSqlite(result == sqlite3.SQLITE_DONE and 0 or result)
+    local row = self:loadOneRow(sql, { [1] = name })
+    --    local stmt = self:getStatement(sql)
+    --    stmt:bind_names()
+    --    local result = stmt:exec()
+    --    self:checkSqlite(result == sqlite3.SQLITE_DONE and 0 or result)
     --TODO Use last insert id?
     return self:getNameID(name)
 end
 
 --- Returns symname ID by its text value
----@param name string
----@return number
+--- @param name string
+--- @return number
 function DBContext:getNameID(name)
-    local row = self:loadOneRow 'select NameID from [.names] where [Value] = :1;'
+    local row = self:loadOneRow('select NameID from [.names] where [Value] = :1;', { [1] = name })
     if not row then
         error('Name [' .. name .. '] not found')
     end
@@ -219,49 +217,18 @@ function DBContext:getPropIdByClassIdAndPropNameId(classId, propNameId)
     -- TODO
 end
 
----@param name string
+--- @param name string
 function DBContext:ensureName(name)
-    --TODO insert name if it does not exist yet
-end
-
--- Inserts a new name to .name_props table
----@param name string
----@return nil
-function DBContext:insertName(name)
-    -- todo returns name id
-
-    local stmt = self:getStatement [[
-    insert or replace into [.names] ([Value], NameID)
-                values (:1, (select ID from [.names_props] where Value = :1 limit 1));
-    ]]
-    self:checkSqlite(stmt:bind_names { [1] = name })
-    local result = stmt:step()
-    if result ~= 0 then
-
-    end
-end
-
---- Gets property ID by property class ID and property name
---- Property must exist. If it is not found, error will be thrown
----@param classId number
----@param propName string
----@return number @comment Property.ID
-function DBContext:getPropIdByClassIdAndName(classId, propName)
-    local row = self:loadOneRow([[
-        select ID from [.names_props] where
-        PropNameID = (select ID from [.names_props] where [Value] = :1 limit 1)
-        and ClassID = :2 limit 1;
-    ]], { [1] = propName, [2] = classId }, true)
-    return row.ID
+    return self:insertName(name)
 end
 
 --- Utility function to load one row from database.
----@param sql string
----@param params table
+--- @param sql string
+--- @param params table
 --- table of params to bind
----@param errorIfNotFound boolean @comment optional.
----If true and record is not found, error will be thrown
----@return table @comment columns will be converted to table fields
+--- @param errorIfNotFound boolean @comment optional.
+--- If true and record is not found, error will be thrown
+--- @return table @comment columns will be converted to table fields
 --- or nil, if no record is found
 function DBContext:loadOneRow(sql, params, errorIfNotFound)
     local stmt = self:getStatement(sql)
@@ -273,13 +240,17 @@ function DBContext:loadOneRow(sql, params, errorIfNotFound)
         return r
     end
 
+    if errorIfNotFound then
+        error('Row not found')
+    end
+
     return nil
 end
 
 --- Utility function to get statement, bind parameters, and return iterator to iterate through rows
----@param sql string
----@param params table
----@return iterator
+--- @param sql string
+--- @param params table
+--- @return iterator
 function DBContext:loadRows(sql, params)
     local stmt = self:getStatement(sql)
     local ok = stmt:bind_names(params)
@@ -291,8 +262,8 @@ function DBContext:loadRows(sql, params)
 end
 
 -- Utility method. Adds instance of ClassDef to DBContext.Classes collection
----@param classDef ClassDef
----@return nil
+--- @param classDef ClassDef
+--- @return nil
 function DBContext:addClassToList(classDef)
     assert(classDef)
     assert(type(classDef.ID) == 'number')
@@ -305,10 +276,10 @@ end
 -- First checks if class def has been already loaded, and if so, simply returns it
 -- Otherwise, will load class definition from database and add it to the context class def collection
 -- If class is not found, will throw error
----@param classIdOrName number @comment number or string
----@param noList boolean @comment If true, class is meant to be used temporarily and will not be added to the DBContextcollection
----@see ClassDef
----@return ClassDef @comment or nil, if not found
+--- @param classIdOrName number @comment number or string
+--- @param noList boolean @comment If true, class is meant to be used temporarily and will not be added to the DBContextcollection
+--- @see ClassDef
+--- @return ClassDef @comment or nil, if not found
 function DBContext:LoadClassDefinition(classIdOrName, noList)
     local result = self.Classes[classId]
     if result then
@@ -321,13 +292,13 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
     end
 
     local sql = type(classIdOrName) == 'string' and
-    [[
-        select * from [.classes] where NameID = (select ID from [.names_props] where Value = :1 limit 1);
-    ]]
-    or
-    [[
-        select * from [.classes] where ClassID = :1 limit 1);
-    ]]
+            [[
+                select * from [.classes] where NameID = (select ID from [.names_props] where Value = :1 limit 1);
+            ]]
+            or
+            [[
+                select * from [.classes] where ClassID = :1 limit 1);
+            ]]
     local cls = self:loadOneRow(sql, { [1] = classIdOrName })
     if not cls then
         return nil
@@ -341,9 +312,9 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
 end
 
 -- Returns schema definition for entire database, single class, or single property
----@param className string
+--- @param className string
 -- (optional)
----@param propertyName string
+--- @param propertyName string
 -- (optional)
 function DBContext:flexi_Schema(className, propertyName)
     local result
@@ -353,12 +324,10 @@ function DBContext:flexi_Schema(className, propertyName)
 
         local stmt = self:getStatement [[select name, id from [.classes]; ]]
         stmt:reset()
-        ---@type ClassDef
+        --- @type ClassDef
         for row in stmt:rows() do
             -- Temp load - do not add to collection
             local cls = self:LoadClassDefinition(row.id)
-
-
         end
 
     elseif not propertyName then
@@ -375,7 +344,7 @@ function DBContext:flexi_Schema(className, propertyName)
 end
 
 -- Handler for select flexi('help', ...)
----@param action string
+--- @param action string
 -- (optional) to provide help for specific action
 function DBContext:flexi_Help(action)
     local result = { 'Usage:' }
@@ -398,7 +367,7 @@ function DBContext:flexi_Help(action)
 end
 
 -- Handles select flexi('current user', ...)
----@param userInfo table
+--- @param userInfo table
 -- string (userID) or table (UserInfo)
 function DBContext:flexi_CurrentUser(userInfo, roles, culture)
     if not userInfo and not roles and not culture then
@@ -424,11 +393,9 @@ function DBContext:flexi_CurrentUser(userInfo, roles, culture)
 end
 
 function DBContext:flexi_LockClass(className)
-
 end
 
 function DBContext:flexi_UnlockClass(className)
-
 end
 
 function DBContext:flexi_ping()
@@ -437,16 +404,15 @@ function DBContext:flexi_ping()
 end
 
 --- Purges previously softly deleted data
----@param className string @comment if set, will purge deleted data for that class only
----@param propName string @comment if set, will purge deleted data for that property only
+--- @param className string @comment if set, will purge deleted data for that class only
+--- @param propName string @comment if set, will purge deleted data for that property only
 function DBContext:flexi_vacuum(className, propName)
     -- TODO Hard delete data
 end
 
 --- Apply translation for given symnames
----@param values table
+--- @param values table
 function DBContext:flexi_translate(values)
-
 end
 
 local flexi_CreateClass = require 'flexi_CreateClass'
@@ -506,11 +472,8 @@ flexiFuncs = {
     ['drop property'] = flexi_DropProperty,
     ['property drop'] = flexi_DropProperty,
     ['configure'] = flexi_Configure,
-
     ['ping'] = DBContext.flexi_ping,
-
     ['current user'] = DBContext.flexi_CurrentUser,
-
     ['property to object'] = flexi_PropToObject,
     ['object to property'] = flexi_ObjectToProp,
     ['split property'] = flexi_SplitProperty,
@@ -528,8 +491,6 @@ flexiFuncs = {
     ['trigger create'] = TriggerAPI.Create,
     ['drop trigger'] = TriggerAPI.Drop,
     ['trigger drop'] = TriggerAPI.Drop,
-
-
 }
 
 -- Run once - find all synonyms for actions

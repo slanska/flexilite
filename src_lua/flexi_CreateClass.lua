@@ -48,7 +48,7 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
         -- load class definition. Properties will be initialized and added to Properties
         local cls = self.ClassDef:fromJSONString(self, classDefAsJSONString)
 
-        -- Validate class and its properties. Resolve if needed
+        -- Validate class and its properties
         for name, prop in pairs(cls.Properties) do
             if not self:isNameValid(name) then
                 error('Invalid property name: ' .. name)
@@ -58,8 +58,6 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
             if not isValid then
                 error(errorMsg)
             end
-
-            prop:resolve(self)
         end
 
         -- Apply definition
