@@ -10,6 +10,7 @@ name
 id
 ]]
 
+---Abstract base class for name dereference
 ---@class MetadataRef
 local MetadataRef = {
 
@@ -37,6 +38,7 @@ local MetadataRef = {
 
 local NameRef = {}
 setmetatable(NameRef, MetadataRef)
+NameRef.__index = NameRef
 
 local ClassNameRef = {}
 setmetatable(ClassNameRef, MetadataRef)

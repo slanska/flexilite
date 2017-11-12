@@ -61,20 +61,24 @@ local function fromJSON(self, data)
     end
 
     ---@param dictName string
-    function dictFromJSON(dictName)
+    local function dictFromJSON(dictName)
         self[dictName] = {}
         local tt = data[dictName]
         if tt then
             for k, v in pairs(tt) do
-                self[dictName][k] = NameRef:fromJSON(self.DBContext, Bv)
+                if type(v) ~= 'table' then
+                    v = { name = v }
+                end
+                setmetatable(v, NameRef)
+                self[dictName][k] = v
             end
         end
     end
 
-    dictToJSON('specialProperties')
-    dictToJSON('rangeIndexing')
-    dictToJSON('fullTextIndexing')
-    dictToJSON('columnMapping')
+    dictFromJSON('specialProperties')
+    dictFromJSON('rangeIndexing')
+    dictFromJSON('fullTextIndexing')
+    dictFromJSON('columnMapping')
 end
 
 --- Loads class definition from database
@@ -102,7 +106,7 @@ function ClassDef:fromJSON(DBContext, data)
     }
     setmetatable(obj, self)
     self.__index = self
-    fromJSON(self, data)
+    fromJSON(obj, data)
     return obj
 end
 
@@ -153,7 +157,7 @@ function ClassDef:toJSON()
     }
 
     ---@return nil
-    function dictToJSON(dictName)
+    local function dictToJSON(dictName)
         local dict = self[dictName]
         if dict then
             result[dictName] = {}

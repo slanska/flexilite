@@ -5,19 +5,19 @@
 
 local AlterClass, MergeClassDefinitions = require('flexi_AlterClass')
 
----@param self DBContext
+--- @param self DBContext
 local function ResolveClasses(self)
-
+    -- TODO Find unresolved classes and try to resolve them
 end
 
 ---
 --- Creates a new class
 --- if createVirtualTable == true, virtual table will be created
----@param self DBContext
----@param className string
----@param classDefAsJSONString string
----@param createVirtualTable boolean
----@return string
+--- @param self DBContext
+--- @param className string
+--- @param classDefAsJSONString string
+--- @param createVirtualTable boolean
+--- @return string
 local function CreateClass(self, className, classDefAsJSONString, createVirtualTable)
     -- check if class with this name already exists
     local classID = self:getClassIdByName(className, false)
@@ -45,29 +45,31 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
         local sqlStr = string.format("create virtual table [' .. className .. '] using flexi_data ('%q');", classDefAsJSONString)
         self.db:exec(sqlStr)
     else
-        -- load class definition
+        -- load class definition. Properties will be initialized and added to Properties
         local cls = self.ClassDef:fromJSONString(self, classDefAsJSONString)
 
-        for name, propData in pairs(cls.Properties) do
+        -- Validate class and its properties. Resolve if needed
+        for name, prop in pairs(cls.Properties) do
             if not self:isNameValid(name) then
                 error('Invalid property name: ' .. name)
             end
-
-            local prop = self.PropertyDef.import(cls, propData)
-            prop:initMetadataRefs()
 
             local isValid, errorMsg = prop:isValidDef()
             if not isValid then
                 error(errorMsg)
             end
+
+            prop:resolve(self)
         end
 
+        -- Apply definition
         for name, p in pairs(cls.Properties) do
             p:applyDef()
             local propID = p:saveToDB(nil, name)
             cls.Properties[propID] = p
         end
 
+        -- Check if class is fully resolved, i.e. does not have references to non-existing classes
         cls.D.Unresolved = false
         for id, p in ipairs(cls.Properties) do
             if p:hasUnresolvedReferences() then
@@ -86,7 +88,6 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
 
         return 'Class [' .. className .. '] created'
     end
-
 end
 
 return CreateClass
