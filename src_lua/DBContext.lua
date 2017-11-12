@@ -21,7 +21,8 @@ Handles 'flexi' function
 
 ]]
 
-local json = require 'cjson'
+require 'cjson'
+--local json = require 'cjson'
 
 local ClassDef = require('ClassDef')
 local PropertyDef = require('PropertyDef')
@@ -139,7 +140,7 @@ end
 ---@param className string
 ---@param errorIfNotFound boolean @comment optional. If true and class does not exist,
 ---error will be thrown
----@return number
+---@return number @comment class ID or 0 if not found
 function DBContext:getClassIdByName(className, errorIfNotFound)
     local row = self:loadOneRow([[
     select ClassID from [.classes] where NameID = (select ID from [.names_props] where Value = :1 limit 1);
@@ -147,7 +148,19 @@ function DBContext:getClassIdByName(className, errorIfNotFound)
     if not row and errorIfNotFound then
         error('Class [' .. className .. '] not found')
     end
-    return row and row.ClassID or nil
+    return row and row.ClassID or 0
+end
+
+---@param nameID number
+---@return string
+function DBContext:getNameValueByID(nameID)
+    local row = self:loadOneRow([[select [Value] from [.names_props] where ID = :1 limit 1;]],
+    { [1] = nameID })
+    if row then
+        return row.Value
+    end
+
+    return nil
 end
 
 --- Checks if string is a valid name
@@ -157,6 +170,38 @@ function DBContext:isNameValid(name)
     return string.match(name, '[_%a][_%w]*') == name
 end
 
+---
+---@param classId number
+---@param propName string
+---@param errorIfNotFound boolean @collection optional, If true and property
+--- does not exist, error will be thrown
+---@return number @collection property ID or -1 if property does not exist
+function DBContext:getPropIdByClassAndNameIds(classId, propName, errorIfNotFound)
+    local row = self:loadOneRow([[select PropertyID from [flexi_prop] where ClassID = :1 and NameID = :2;"]],
+    { [1] = classId, [2] = propName }, errorIfNotFound)
+    if row then
+        return row.PropertyID
+    end
+
+    return -1
+end
+
+---@param name string
+---@return number @comment nameID
+function DBContext:insertName(name)
+    local sql = [[insert or replace into [.names] ([Value], NameID)
+              values (:1, (select ID from [.names_props] where Value = :1 limit 1));]]
+    local stmt = self:getStatement(sql)
+    stmt:bind_names({ [1] = name })
+    local result = stmt:exec()
+    self:checkSqlite(result == sqlite3.SQLITE_DONE and 0 or result)
+    --TODO Use last insert id?
+    return self:getNameID(name)
+end
+
+--- Returns symname ID by its text value
+---@param name string
+---@return number
 function DBContext:getNameID(name)
     local row = self:loadOneRow 'select NameID from [.names] where [Value] = :1;'
     if not row then
@@ -387,6 +432,7 @@ function DBContext:flexi_UnlockClass(className)
 end
 
 function DBContext:flexi_ping()
+    -- TODO check if flexilite is configured - tables exist etc.
     return 'pong'
 end
 
@@ -441,6 +487,8 @@ flexiHelp = {
     [DBContext.flexi_UnlockClass] = { '', [[]] },
     [DBContext.flexi_vacuum] = { '', [[]] },
     [DBContext.flexi_translate] = { '', [[]] },
+    [TriggerAPI.Drop] = { '', [[]] },
+    [TriggerAPI.Create] = { '', [[]] },
 }
 
 -- Dictionary by action names

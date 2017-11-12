@@ -30,6 +30,10 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
         error('Invalid class name' .. className)
     end
 
+    if createVirtualTable == 0 then
+        createVirtualTable = false
+    end
+
     if createVirtualTable == nil then
         createVirtualTable = self.config.createVirtualTable
     end

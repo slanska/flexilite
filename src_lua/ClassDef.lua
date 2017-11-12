@@ -14,6 +14,8 @@ Loads class def from DB
 Validates existing data with new class definition
 ]]
 
+local json = require 'cjson'
+
 local PropertyDef = require('PropertyDef')
 local NameRef = require('NameRef')
 
@@ -24,12 +26,11 @@ local NameRef = require('NameRef')
 ---@class ClassDef
 local ClassDef = {}
 
+---
 ---@private
 ---@param self ClassDef
----@param json string @comment As it is stored in [.classes].Data
-local function fromJSON(self, json)
-    local dd = json.decode(json)
-
+---@param data table @comment As it is stored in [.classes].Data
+local function fromJSON(self, data)
     self.Properties = {}
 
     --[[ This function can be called in 2 contexts:
@@ -38,9 +39,9 @@ local function fromJSON(self, json)
      in (1) nameOrId will be property name (string), property def will not have name or name id
      in (2) nameOrId will be property id (number), property def will have name and name id
     ]]
-    for nameOrId, p in pairs(dd.properties) do
+    for nameOrId, p in pairs(data.properties) do
         if not self.Properties[p.ID] then
-            local prop = PropertyDef:import(self, p)
+            local prop = PropertyDef.import(self, p)
 
             -- Determine mode
             if type(nameOrId) == 'number' and p.Prop.name and p.Prop.id then
@@ -62,7 +63,7 @@ local function fromJSON(self, json)
     ---@param dictName string
     function dictFromJSON(dictName)
         self[dictName] = {}
-        local tt = dd[dictName]
+        local tt = data[dictName]
         if tt then
             for k, v in pairs(tt) do
                 self[dictName][k] = NameRef:fromJSON(self.DBContext, Bv)
@@ -94,14 +95,14 @@ end
 -- Initializes raw table (normally loaded from database) as ClassDef object
 ---@public
 ---@param DBContext DBContext
----@param json string
-function ClassDef:fromJSON(DBContext, json)
+---@param json table
+function ClassDef:fromJSON(DBContext, data)
     local obj = {
         DBContext = DBContext
     }
     setmetatable(obj, self)
     self.__index = self
-    fromJSON(self, json)
+    fromJSON(self, data)
     return obj
 end
 

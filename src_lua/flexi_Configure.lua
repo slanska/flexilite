@@ -5,6 +5,8 @@
 
 ---@param self DBContext
 local function Configure(self, options)
+    -- TODO check if flexi tables already exist
+
     local result = self.db:exec(Flexi.DBSchemaSQL)
     if result ~= 0 then
         local errMsg = string.format("%d: %s", self.db:error_code(), self.db:error_message())
@@ -13,8 +15,10 @@ local function Configure(self, options)
 
     if options then
         -- default culture
-        -- default JSON output for flexi_data
+        -- default JSON output mode for flexi_data
         -- create virtual table
+        -- supportedCultures
+        -- defaultUser
     end
 end
 

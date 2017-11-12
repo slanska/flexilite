@@ -116,6 +116,7 @@ setmetatable(BoolPropertyDef, PropertyDef)
 ---@class NumberPropertyDef
 local NumberPropertyDef = {}
 setmetatable(NumberPropertyDef, PropertyDef)
+NumberPropertyDef.__index = PropertyDef
 
 ---@class MoneyPropertyDef
 local MoneyPropertyDef = {}
@@ -132,6 +133,7 @@ setmetatable(EnumPropertyDef, PropertyDef)
 ---@class DateTimePropertyDef
 local DateTimePropertyDef = {}
 setmetatable(DateTimePropertyDef, NumberPropertyDef)
+DateTimePropertyDef.__index = NumberPropertyDef
 
 ---@class TimeSpanPropertyDef
 local TimeSpanPropertyDef = {}
@@ -188,14 +190,14 @@ end
 ---@param srcData table @comment Parsed json table, as a part of class definition
 function PropertyDef.loadFromDB(ClassDef, obj, srcData)
     assert(ClassDef)
+    assert(srcData and srcData.rules and srcData.rules.type)
 
-    local pt = propTypes[string.lower(srcData.type)]
+    local pt = propTypes[string.lower(srcData.rules.type)]
     if not pt then
         error('Unknown property type ' .. srcData.type)
     end
 
-    setmetatable(srcData, pt)
-    pt.__index = pt
+    setmetatable(obj, pt)
 
     obj.ClassDef = ClassDef
     obj.D = srcData
