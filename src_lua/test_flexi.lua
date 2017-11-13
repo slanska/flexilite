@@ -9,9 +9,6 @@ This file is used as an entry point for testing Flexilite library
 
 require 'cjson'
 
-require('socket')
-require('mobdebug').start()
-
 local DBContext = require 'DBContext'
 --local lfs = require 'lfs'
 require('io')

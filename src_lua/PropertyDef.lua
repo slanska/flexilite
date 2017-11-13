@@ -491,24 +491,19 @@ function PropertyDef:saveToDB()
 
     assert(self.Prop and self.Prop:isResolved())
 
-    local stmt = self.ClassDef.DBContext.getStatement [[
-        insert or replace into [flexi_prop] (PropertyID, ClassID, NameID, ctlv, ctlvPlan)
-        values (:1, :2, :3, :4, :5);
-    ]]
+    -- TODO Detect column mapping
 
-    -- Detect column mapping
+    self.ClassDef.DBContext:execStatement(
+    [[insert or replace into [flexi_prop] (PropertyID, ClassID, NameID, ctlv, ctlvPlan)
+        values (:p, :c, :n, :f, :f2);]], {
+        p = self.PropertyID,
+        c = self.ClassDef.ClassID,
+        n = self.Prop.id,
+        f = self.ctlv,
+        f2 = self.ctlvPlan
+    })
 
-    stmt:bind {
-        [1] = self.PropertyID,
-        [2] = self.ClassDef.ClassID,
-        [3] = self.Prop.id,
-        [3] = self.ctlv,
-        [4] = self.ctlvPlan
-    }
-    local result = stmt:step()
-    if result ~= 0 then
-        -- todo error
-    end
+    return self.ClassDef.DBContext:getPropIdByClassIdAndPropNameId(self.ClassDef.ClassID, self.Prop.id)
 end
 
 --[[
@@ -690,7 +685,7 @@ function ReferencePropertyDef:hasUnresolvedReferences()
     -- Check dynamic rules
     if self.D.refDef and self.D.refDef.dynamic then
         if self.D.refDef.dynamic.selectorProp
-                and not self.D.refDef.dynamic.selectorProp:isResolved() then
+        and not self.D.refDef.dynamic.selectorProp:isResolved() then
             return false
         end
 

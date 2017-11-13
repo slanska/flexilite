@@ -73,7 +73,8 @@ end
 --- Throws SQLite error if result ~= SQLITE_OK
 --- @param opResult number @comment SQLite integer result. 0 = OK
 function DBContext:checkSqlite(opResult)
-    if opResult ~= 0 then
+    if opResult ~= sqlite3.OK and opResult ~= sqlite3.DONE
+    and opResult ~= sqlite3.ROW then
         local errMsg = string.format("%d: %s", self.db:error_code(), self.db:error_message())
         error(errMsg)
     end
@@ -118,6 +119,8 @@ function DBContext:getStatement(sql)
         end
 
         self.Statements[sql] = result
+    else
+        result:reset()
     end
 
     return result
@@ -140,8 +143,8 @@ end
 --- @return number @comment class ID or 0 if not found
 function DBContext:getClassIdByName(className, errorIfNotFound)
     local row = self:loadOneRow([[
-    select ClassID from [.classes] where NameID = (select ID from [.names_props] where Value = :1 limit 1);
-    ]], { [1] = className })
+    select ClassID from [.classes] where NameID = (select ID from [.names_props] where Value = :v limit 1);
+    ]], { v = className })
     if not row and errorIfNotFound then
         error('Class [' .. className .. '] not found')
     end
@@ -151,8 +154,8 @@ end
 --- @param nameID number
 --- @return string
 function DBContext:getNameValueByID(nameID)
-    local row = self:loadOneRow([[select [Value] from [.names_props] where ID = :1 limit 1;]],
-        { [1] = nameID })
+    local row = self:loadOneRow([[select [Value] from [.names_props] where ID = :v limit 1;]],
+    { v = nameID })
     if row then
         return row.Value
     end
@@ -174,8 +177,8 @@ end
 --- does not exist, error will be thrown
 --- @return number @collection property ID or -1 if property does not exist
 function DBContext:getPropIdByClassAndNameIds(classId, propName, errorIfNotFound)
-    local row = self:loadOneRow([[select PropertyID from [flexi_prop] where ClassID = :1 and NameID = :2;"]],
-        { [1] = classId, [2] = propName }, errorIfNotFound)
+    local row = self:loadOneRow([[select PropertyID from [flexi_prop] where ClassID = :c and NameID = :n;"]],
+    { c = classId, n = propName }, errorIfNotFound)
     if row then
         return row.PropertyID
     end
@@ -186,23 +189,36 @@ end
 --- @param name string
 --- @return number @comment nameID
 function DBContext:insertName(name)
-    local sql = [[insert or replace into [.names] ([Value], NameID)
-              values (:1, (select ID from [.names_props] where Value = :1 limit 1));]]
-    local row = self:loadOneRow(sql, { [1] = name })
-    --    local stmt = self:getStatement(sql)
-    --    stmt:bind_names()
-    --    local result = stmt:exec()
-    --    self:checkSqlite(result == sqlite3.SQLITE_DONE and 0 or result)
+    local sql = [[insert  into [.names_props] ([Value], Type) select :v, 0
+        where not exists (select ID from [.names_props] where [Value] = :v limit 1);]]
+    self:execStatement(sql, { v = name })
     --TODO Use last insert id?
     return self:getNameID(name)
+end
+
+--- @param sql string
+--- @param params table
+function DBContext:execStatement(sql, params)
+    local stmt = self:getStatement(sql)
+    self:checkSqlite(stmt:bind_names(params))
+    local result = stmt:step()
+    if result ~= sqlite3.DONE and result ~= sqlite3.ROW then
+        self:checkSqlite(result)
+    end
+
+    -- return?
+
 end
 
 --- Returns symname ID by its text value
 --- @param name string
 --- @return number
 function DBContext:getNameID(name)
-    local row = self:loadOneRow('select NameID from [.names] where [Value] = :1;', { [1] = name })
+    local row = self:loadOneRow('select NameID from [.names] where [Value] = :n;', { n = name })
     if not row then
+
+        local cnt = self:loadOneRow([[select * from [.names_props];]], {})
+        print(cnt)
         error('Name [' .. name .. '] not found')
     end
 
@@ -210,8 +226,8 @@ function DBContext:getNameID(name)
 end
 
 function DBContext:getPropIdByClassIdAndPropNameId(classId, propNameId)
-    local stmt = self:getStatement "select PropertyID from [flexi_prop] where ClassID = :1 and NameID = :2;"
-    self:checkSqlite(stmt:bind_names { [1] = classId, [2] = propNameId })
+    local stmt = self:getStatement "select PropertyID from [flexi_prop] where ClassID = :c and NameID = :n;"
+    self:checkSqlite(stmt:bind_names { c = classId, n = propNameId })
     local result = stmt:step()
 
     -- TODO
@@ -232,11 +248,8 @@ end
 --- or nil, if no record is found
 function DBContext:loadOneRow(sql, params, errorIfNotFound)
     local stmt = self:getStatement(sql)
-    local ok = stmt:bind_names(params)
-    if ok ~= 0 then
-        self:checkSqlite(ok)
-    end
-    for r in stmt:rows() do
+    self:checkSqlite( stmt:bind_names(params))
+    for r in stmt:nrows() do
         return r
     end
 
@@ -292,14 +305,14 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
     end
 
     local sql = type(classIdOrName) == 'string' and
-            [[
-                select * from [.classes] where NameID = (select ID from [.names_props] where Value = :1 limit 1);
-            ]]
-            or
-            [[
-                select * from [.classes] where ClassID = :1 limit 1);
-            ]]
-    local cls = self:loadOneRow(sql, { [1] = classIdOrName })
+    [[
+        select * from [.classes] where NameID = (select ID from [.names_props] where Value = :v limit 1);
+    ]]
+    or
+    [[
+        select * from [.classes] where ClassID = :v limit 1);
+    ]]
+    local cls = self:loadOneRow(sql, { v = classIdOrName })
     if not cls then
         return nil
     end
