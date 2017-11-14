@@ -214,6 +214,7 @@ end
 --- @param name string
 --- @return number
 function DBContext:getNameID(name)
+    assert(name)
     local row = self:loadOneRow('select NameID from [.names] where [Value] = :n;', { n = name })
     if not row then
 
@@ -225,12 +226,18 @@ function DBContext:getNameID(name)
     return row.NameID
 end
 
+--- Returns property ID based on its class ID and associated name ID
+---@param classId number
+---@param propNameId number
+---@return number @comment -1 if not found, valid ID otherwise
 function DBContext:getPropIdByClassIdAndPropNameId(classId, propNameId)
-    local stmt = self:getStatement "select PropertyID from [flexi_prop] where ClassID = :c and NameID = :n;"
-    self:checkSqlite(stmt:bind_names { c = classId, n = propNameId })
-    local result = stmt:step()
+    local row = self:loadOneRow("select PropertyID from [flexi_prop] where ClassID = :c and NameID = :n;",
+    { c = classId, n = propNameId })
+    if not row then
+        return -1
+    end
 
-    -- TODO
+    return row.PropertyID
 end
 
 --- @param name string

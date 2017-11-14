@@ -3,6 +3,8 @@
 --- DateTime: 2017-11-01 11:34 PM
 ---
 
+local json = require 'cjson'
+
 local AlterClass, MergeClassDefinitions = require('flexi_AlterClass')
 
 --- @param self DBContext
@@ -47,6 +49,7 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
     else
         -- load class definition. Properties will be initialized and added to Properties
         local cls = self.ClassDef:fromJSONString(self, classDefAsJSONString)
+        cls.Name.name = className
 
         -- Validate class and its properties
         for name, prop in pairs(cls.Properties) do
@@ -60,31 +63,32 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
             end
         end
 
+        cls.PropertiesByID = {}
         -- Apply definition
         for name, p in pairs(cls.Properties) do
             p:applyDef()
             local propID = p:saveToDB(nil, name)
-            cls.Properties[propID] = p
+            cls.PropertiesByID[propID] = p
         end
 
         -- Check if class is fully resolved, i.e. does not have references to non-existing classes
-        cls.D.Unresolved = false
+        cls.Unresolved = false
         for id, p in ipairs(cls.Properties) do
             if p:hasUnresolvedReferences() then
-                cls.D.Unresolved = true
+                cls.Unresolved = true
                 break
             end
         end
 
-        local classNameID
-        local stmt = self:getStatement "insert into [.classes] (NameID, OriginalData) values (:1, :2);"
-        stmt:reset()
-        stmt:bind { [1] = classNameID, [2] = nil } -- TODO
-        stmt:step()
+        cls.Name:resolve(cls)
+        local classAsJson = json.encode(cls:internalToJSON())
+        self:execStatement("insert into [.classes] (NameID, OriginalData) values (:1, :2);",
+        { ['1'] = cls.Name.id, ['2'] = classAsJson })
+        cls.ClassID = self.db:last_insert_rowid()
 
         -- TODO Check if there unresolved classes
 
-        return 'Class [' .. className .. '] created'
+        return string.format('Class [%s] created with ID=[%d]', className, cls.ClassID)
     end
 end
 

@@ -106,6 +106,7 @@ local PropertyDef = {
 
 PropertyDef.__index = PropertyDef
 
+-- Forward declarations
 local propTypes;
 
 -- Subclasses for specific property types
@@ -492,18 +493,35 @@ function PropertyDef:saveToDB()
     assert(self.Prop and self.Prop:isResolved())
 
     -- TODO Detect column mapping
+    local LockedCol = nil
 
-    self.ClassDef.DBContext:execStatement(
-    [[insert or replace into [flexi_prop] (PropertyID, ClassID, NameID, ctlv, ctlvPlan)
-        values (:p, :c, :n, :f, :f2);]], {
-        p = self.PropertyID,
-        c = self.ClassDef.ClassID,
-        n = self.Prop.id,
-        f = self.ctlv,
-        f2 = self.ctlvPlan
-    })
+    if self.ID and tonumber(self.ID) > 0 then
+        -- Update existing
+        self.ClassDef.DBContext:execStatement([[update [.names_props]
+        set PropNameID = :nameID, ctlv = :ctlv, ctlvPlan = :ctlvPlan, LockedCol = :LockedCol
+        where ID = :id]],
+        {
+            nameID = self.Prop.id,
+            ctlv = self.ctlv,
+            ctlvPlan = self.ctlvPlan,
+            LockedCol = LockedCol,
+            id = self.PropertyID
+        })
+    else
+        -- Insert new
+        self.ClassDef.DBContext:execStatement(
+        [[insert into [.names_props] (ClassID, PropNameID, ctlv, ctlvPlan, Type, LockedCol)
+            values (:ClassID, :NameID, :ctlv, :ctlvPlan, 1, :LockedCol);]], {
+            ClassID = self.ClassDef.ClassID,
+            NameID = self.Prop.id,
+            ctlv = self.ctlv,
+            ctlvPlan = self.ctlvPlan,
+            LockedCol = LockedCol
+        })
 
-    return self.ClassDef.DBContext:getPropIdByClassIdAndPropNameId(self.ClassDef.ClassID, self.Prop.id)
+        self.PropertyID = self.ClassDef.DBContext.db:last_insert_rowid()
+    end
+    return self.PropertyID
 end
 
 --[[
@@ -699,6 +717,46 @@ function ReferencePropertyDef:hasUnresolvedReferences()
     end
 
     return true
+end
+
+--[[
+internalToJSON
+]]
+
+--- Returns deep clone of table, without metatable assignment
+---@return table
+function deepCloneNoMetatable(t)
+    if type(t) ~= 'table' then
+        return t
+    end
+    local result = {}
+    for k, v in pairs(t) do
+        result[k] = deepCloneNoMetatable(v)
+    end
+    return result
+end
+
+--- Returns table representation of property definition as it will be used for class definition
+--- serialization to JSON
+---@return table
+function PropertyDef:internalToJSON()
+    return deepCloneNoMetatable(self.D)
+end
+
+function MixinPropertyDef:internalToJSON()
+    local result = PropertyDef.internalToJSON(self)
+
+    result.refDef = deepCloneNoMetatable(self.refDef)
+
+    return result
+end
+
+function EnumPropertyDef:internalToJSON()
+    local result = PropertyDef.internalToJSON(self)
+
+    result.refDef = deepCloneNoMetatable(self.enumDef)
+
+    return result
 end
 
 -- map for property types

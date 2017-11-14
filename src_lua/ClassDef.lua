@@ -31,7 +31,12 @@ local ClassDef = {}
 ---@param self ClassDef
 ---@param data table @comment As it is stored in [.classes].Data
 local function fromJSON(self, data)
+    -- Properties by name
     self.Properties = {}
+    -- Properties by ID
+    self.PropertiesByID = {}
+    self.Name = {}
+    setmetatable(self.Name, NameRef)
 
     --[[ This function can be called in 2 contexts:
      1) from raw JSON, during create/alter class/property
@@ -46,7 +51,7 @@ local function fromJSON(self, data)
             -- Determine mode
             if type(nameOrId) == 'number' and p.Prop.name and p.Prop.id then
                 -- Database contexts
-                self.Properties[nameOrId] = prop
+                self.PropertiesByID[nameOrId] = prop
                 self.Properties[p.Prop.name] = prop
             else
                 if type(nameOrId) ~= 'string' then
@@ -153,7 +158,7 @@ function ClassDef:toJSON()
     local result = {
         id = self.ID,
         name = self.Name,
-        allowAnyProps = self.D.allowAnyProps,
+        allowAnyProps = self.allowAnyProps,
     }
 
     ---@return nil
@@ -176,6 +181,20 @@ function ClassDef:toJSON()
     dictToJSON('fullTextIndexing')
     dictToJSON('rangeIndexing')
     dictToJSON('columnMapping')
+
+    return result
+end
+
+--- Returns internal representation of class definition, as it is stored in [.classes] db table
+---@return table
+function ClassDef:internalToJSON()
+    local result = {}
+
+    for propID, prop in pairs(self.PropertiesByID) do
+        result[tostring(propID)] = prop:internalToJSON()
+    end
+
+    -- TODO Other attributes?
 
     return result
 end
