@@ -8,12 +8,13 @@ This file is used as an entry point for testing Flexilite library
 ]]
 
 require 'cjson'
+local path = require 'pl.path'
+
+local __dirname = path.abspath('..')
 
 local DBContext = require 'DBContext'
---local lfs = require 'lfs'
 require('io')
 require('index')
---local sqlite = require 'lsqlite3'
 local sqlite = require 'lsqlite3complete'
 
 --- Read file
@@ -27,8 +28,8 @@ end
 
 -- load sql scripts into Flexi variables
 -- TODO use relative paths
-Flexi.DBSchemaSQL = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/sql/dbschema.sql')
-Flexi.InitDefaultData = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/sql/init_default_data.sql')
+Flexi.DBSchemaSQL = readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
+Flexi.InitDefaultData = readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
 
 -- Tests for class creation
 
@@ -38,11 +39,17 @@ DBContext = Flexi:newDBContext(db)
 local sql = "select flexi('configure')"
 db:exec(sql)
 
--- TODO temp
-local content = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/test/json/Employees.schema.json')
-local sql = "select flexi('create class', 'Employees', '" .. content .. "', 0);"
+local content = readAll(path.join(__dirname, 'test', 'json', 'Employees.schema.json'))
+--sql = "select flexi('create class', 'Employees', '" .. content .. "', 0);"
+--for row in db:rows(sql) do
+--    print(row[1])
+--end
+
+content = readAll(path.join(__dirname, 'test', 'json', 'Northwind.db3.schema.json'))
+sql = "select flexi('create schema', '" .. content .. "');"
 for row in db:rows(sql) do
     print(row[1])
 end
+
 db:close()
 

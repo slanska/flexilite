@@ -10,7 +10,8 @@ Implementation of flexi_data virtual table Update API: insert, update, delete
 ]]
 
 ---@param self DBContext
-local function updateObject(self)
+---@param data table
+local function updateObject(self, data)
 
 end
 
@@ -43,9 +44,10 @@ end
 ---@param newRowID number
 --- if null, it is delete. Otherwise, based on oldRowID, it is either insert or update
 ---@param dataJSON string
---- data payload. Can be single object or array of objects. Objects may have $class and $id attributes
+--- data payload. Can be single object or array of objects. If className is not set,
+---payload should be object, with className as keys
 ---@param queryJSON string
---- (optional) filter to apply
+--- filter to apply - optional, for update and delete
 local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, queryJSON)
     local data = json.decode(dataJSON)
 
@@ -64,7 +66,6 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
         -- Object
         updateObject(self, data)
     end
-
 end
 
 return flexi_DataUpdate

@@ -175,15 +175,17 @@ MixinPropertyDef.__index = MixinPropertyDef
 --- @class ReferencePropertyDef
 local ReferencePropertyDef = {}
 setmetatable(ReferencePropertyDef, MixinPropertyDef)
+ReferencePropertyDef.__index = ReferencePropertyDef
 
 --- @class NestedObjectPropertyDef
 local NestedObjectPropertyDef = {}
 setmetatable(NestedObjectPropertyDef, ReferencePropertyDef)
-
+NestedObjectPropertyDef.__index = NestedObjectPropertyDef
 
 --- @class ComputedPropertyDef
 local ComputedPropertyDef = {}
 setmetatable(ComputedPropertyDef, PropertyDef)
+ComputedPropertyDef.__index = ComputedPropertyDef
 
 --- @param ClassDef ClassDef
 --- @param srcData table @comment already parsed source data

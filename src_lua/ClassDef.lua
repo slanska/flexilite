@@ -119,6 +119,9 @@ end
 ---@param jsonString string
 ---@return ClassDef
 function ClassDef:fromJSONString(DBContext, jsonString)
+    if type(jsonString) == 'table' then
+        return self:fromJSON(DBContext, jsonString)
+    end
     return self:fromJSON(DBContext, json.decode(jsonString))
 end
 

@@ -454,7 +454,8 @@ local TriggerAPI = require 'Triggers'
 -- Dictionary by action functions, to get metadata about actions
 -- Values are 2 item arrays: 1st item - short info, 2nd item - full info
 flexiHelp = {
-    [flexi_CreateClass] = { '', [[]] },
+    [flexi_CreateClass.CreateClass] = { '', [[]] },
+    [flexi_CreateClass.CreateSchema] = { '', [[]] },
     [flexi_AlterClass] = { '', [[]] },
     [flexi_DropClass] = { '', [[]] },
     [flexi_CreateProperty] = { '', [[]] },
@@ -479,8 +480,11 @@ flexiHelp = {
 
 -- Dictionary by action names
 flexiFuncs = {
-    ['create class'] = flexi_CreateClass,
-    ['class create'] = flexi_CreateClass,
+    ['schema create'] = flexi_CreateClass.CreateSchema,
+    ['create schema'] = flexi_CreateClass.CreateSchema,
+    ['create class'] = flexi_CreateClass.CreateClass,
+    ['class create'] = flexi_CreateClass.CreateClass,
+    ['create'] = flexi_CreateClass.CreateClass,
     ['alter class'] = flexi_AlterClass,
     ['class alter'] = flexi_AlterClass,
     ['drop class'] = flexi_DropClass,
@@ -502,7 +506,6 @@ flexiFuncs = {
     ['help'] = DBContext.flexi_Help,
     ['lock class'] = DBContext.flexi_LockClass,
     ['unlock class'] = DBContext.flexi_UnlockClass,
-    --['invalidate class'] = {},
     ['hard delete'] = DBContext.flexi_vacuum,
     ['purge'] = DBContext.flexi_vacuum,
     ['vacuum'] = DBContext.flexi_vacuum,
@@ -511,6 +514,8 @@ flexiFuncs = {
     ['trigger create'] = TriggerAPI.Create,
     ['drop trigger'] = TriggerAPI.Drop,
     ['trigger drop'] = TriggerAPI.Drop,
+
+    -- TODO ['convert custom eav'] = ConvertCustomEAV,
 }
 
 -- Run once - find all synonyms for actions

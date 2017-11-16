@@ -72,11 +72,12 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
         end
 
         -- Check if class is fully resolved, i.e. does not have references to non-existing classes
+        local unresolved = {}
         cls.Unresolved = false
         for id, p in ipairs(cls.Properties) do
             if p:hasUnresolvedReferences() then
                 cls.Unresolved = true
-                break
+                --table.insert(unresolved, string.format(""))
             end
         end
 
@@ -92,4 +93,15 @@ local function CreateClass(self, className, classDefAsJSONString, createVirtualT
     end
 end
 
-return CreateClass
+--- Creates multiple classes
+---@param self DBContext
+---@param schemaJson string
+---@param createVirtualTable boolean
+local function CreateSchema(self, schemaJson, createVirtualTable)
+    local schema = json.decode(schemaJson)
+    for className, classDef in pairs(schema) do
+        CreateClass(self, className, classDef, createVirtualTable)
+    end
+end
+
+return { CreateClass = CreateClass, CreateSchema = CreateSchema }
