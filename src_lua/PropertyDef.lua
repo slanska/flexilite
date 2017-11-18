@@ -232,6 +232,7 @@ function MixinPropertyDef:initMetadataRefs()
 
     if self.D and self.D.refDef and self.D.refDef.classRef then
         setmetatable(self.D.refDef.classRef, ClassNameRef)
+
     end
 end
 
@@ -327,6 +328,8 @@ isValidDef
 -- true if propDef is valid; false otherwise
 function PropertyDef:isValidDef()
     assert(self, 'Property not defined')
+
+    --TODO check property name
 
     -- Check common property settings
     -- minOccurrences & maxOccurences
@@ -606,6 +609,7 @@ function MixinPropertyDef:applyDef()
     PropertyDef.applyDef(self)
 
     if self.D.refDef and self.D.refDef.classRef then
+        print("applyDef: " .. self.Prop.name .. ", classRef: ", self.D.refDef.classRef)
         self.D.refDef.classRef:resolve(self.ClassDef)
     end
 end

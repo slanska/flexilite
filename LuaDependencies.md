@@ -7,3 +7,4 @@
 * luarocks install luasocket
 * luarocks install luacheck
 * luarocks install busted
+* luarocks install penlight

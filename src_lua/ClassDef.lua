@@ -61,6 +61,12 @@ local function fromJSON(self, data)
                 -- Raw JSON context
                 prop.Prop.name = nameOrId
                 self.Properties[nameOrId] = prop
+
+                -- TODO temp
+                if prop.D.refDef and prop.D.refDef.classRef then
+                    print("initMetadataRefs: " .. prop.Prop.name .. ", classRef: ", prop.D.refDef.classRef)
+
+                end
             end
         end
     end
