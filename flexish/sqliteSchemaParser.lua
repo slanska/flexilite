@@ -543,18 +543,31 @@ function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
     end)
 
     table.sort(uniqOtherIndexes,
-    function(idx)
-        local tt = classDef.properties[tblInfo.columns[idx.columns[1].cid].name].rules.type
-        if tt == 'integer' then
+    function(A, B)
+
+        local function getTypeWeight(item)
+            local result = classDef.properties[tblInfo.columns[item.columns[1].cid].name].rules.type
+            if result == 'integer' then
+                return 0
+            end
+            if result == 'number' then
+                return 1
+            end
+            if result == 'binary' then
+                return 2
+            end
+            return 3
+        end
+
+        local v1 = getTypeWeight(A)
+        local v2 = getTypeWeight(B)
+        if v1 == v2 then
             return 0
         end
-        if tt == 'number' then
+        if v1 > v2 then
             return 1
         end
-        if tt == 'binary' then
-            return 2
-        end
-        return 3
+        return -1
     end )
 
     if #uniqMultiIndexes > 0 then
@@ -584,8 +597,16 @@ function SQLiteSchemaParser:processUniqueTextIndexes(tblInfo, classDef)
     local uniqTxtIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
         return #idx.columns == 1 and idx.unique == 1
     end)
-    table.sort(uniqTxtIndexes, function(idx)
-        return classDef.properties[tblInfo.columns[idx.columns[1].cid].name].rules.maxLength
+    table.sort(uniqTxtIndexes, function(A, B)
+        local v1 = classDef.properties[tblInfo.columns[A.columns[1].cid].name].rules.maxLength
+        local v2 = classDef.properties[tblInfo.columns[B.columns[1].cid].name].rules.maxLength
+        if v1 == v2 then
+            return 0
+        end
+        if v1 < v2 then
+            return -1
+        end
+        return 1
     end)
 
     if #uniqTxtIndexes > 0 then
