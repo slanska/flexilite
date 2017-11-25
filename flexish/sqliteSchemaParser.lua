@@ -219,7 +219,7 @@ end
      ]]
 ---@param tblDef ISQLiteTableInfo
 ---@return ITableInfo
-function loadTableInfo(tblDef)
+function SQLiteSchemaParser:loadTableInfo(tblDef)
     -- Init resulting dictionary
     -- IClassDefinition
     local modelDef = {
@@ -630,8 +630,8 @@ function SQLiteSchemaParser:parseSchema()
     self.outSchema = {}
     self.tableInfo = {}
 
-    local tables = { self.db:nrows("select * from sqlite_master where type = 'table' and name not like 'sqlite%';") }
-    for i, item in ipairs(tables) do
+    local stmt, errMsg = self.db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
+    for item in stmt:nrows() do
         local tblInfo = self:loadTableInfo(item)
         self:processFlexiliteClassDef(tblInfo)
     end

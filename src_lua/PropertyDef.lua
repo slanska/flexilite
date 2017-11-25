@@ -3,6 +3,8 @@
 --- DateTime: 2017-10-31 3:18 PM
 ---
 
+local class = require 'pl.class'
+
 --[[
 Property definition
 Keeps name, id, reference to class definition
@@ -210,9 +212,7 @@ function PropertyDef.loadFromDB(ClassDef, obj, srcData)
 
     obj.ClassDef = ClassDef
     obj.D = srcData
-    obj.Prop = { name = obj.Property, id = obj.NameID }
-    setmetatable(obj.Prop, NameRef)
-
+    obj.Prop = NameRef(obj.Property, obj.NameID)
     obj:initMetadataRefs()
 
     return obj
@@ -232,7 +232,6 @@ function MixinPropertyDef:initMetadataRefs()
 
     if self.D and self.D.refDef and self.D.refDef.classRef then
         setmetatable(self.D.refDef.classRef, ClassNameRef)
-
     end
 end
 
@@ -267,11 +266,13 @@ function EnumPropertyDef:initMetadataRefs()
         end
 
         if self.D.enumDef.items then
-            for _, v in pairs(self.D.enumDef.items) do
-                if v.name then
-                    setmetatable(v.name, NameRef)
+            local newItems = {}
+            for i, v in pairs(self.D.enumDef.items) do
+                if v and v.name then
+                    newItems[1] = NameRef(v.name, v.id)
                 end
             end
+            self.D.enumDef.items = newItems
         end
     end
 end
