@@ -119,19 +119,18 @@ function SQLiteSchemaParser:sqliteColToFlexiProp(sqliteCol)
 
     if sqliteCol.type ~= nil then
         -- Parse column type to extract length and type
-        local _, _, tt, ll = string.find(sqliteCol, '^%s*(%a+)%s*%[%s*(%d+)%s*%]%s*$')
+        local _, _, tt, ll = string.find(sqliteCol.type, '^%s*(%a+)%s*%(%s*(%d+)%s*%)%s*$')
         if tt and ll then
             tt = string.lower(tt)
-            ll = tonumber(ll)
-            p.rules = sqliteTypesToFlexiTypes[string.lower(sqliteCol.type)]
-            if p.rules then
-                p.rules.maxLength = ll
-                return p
+            local rr = sqliteTypesToFlexiTypes[tt]
+            if rr then
+                p.rules = rr
+                p.rules.maxLength = tonumber(ll)
             end
         else
-            p = sqliteTypesToFlexiTypes[string.lower(sqliteCol.type)]
-            if p.rules then
-                return p
+            local rr = sqliteTypesToFlexiTypes[string.lower(sqliteCol.type)]
+            if rr then
+                p.rules = rr
             end
         end
     end
@@ -241,7 +240,8 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
     }
     table.insert(self.tableInfo, tableInfo)
 
-    for _, col in self.db:nrows(string.format("pragma table_info ('%s');", tblDef.name)) do
+    local tbl_info_st = self.db:prepare(string.format("pragma table_info ('%s');", tblDef.name))
+    for col in tbl_info_st:nrows() do
         -- Process columns
         if col.pk > 1 and not tableInfo.multiPKey then
             tableInfo.multiPKey = true
@@ -254,6 +254,7 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
             }
             table.insert(self.results, msg)
         end
+
         local prop = self:sqliteColToFlexiProp(col)
 
         prop.rules.maxOccurences = 1
@@ -277,7 +278,11 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
     -- Process indexes
     local deferredIdxCols = {}
     -- ISQLiteIndexInfo[]
-    local indexes = { self.db:nrows(string.format("pragma index_list('%s')", tblDef.name)) }
+    local idx_list_st = self.db:prepare(string.format("pragma index_list('%s')", tblDef.name))
+    local indexes = {}
+    for v in idx_list_st:nrows() do
+        table.insert(indexes, v)
+    end
     -- Check if primary key is included into list of indexes
     local pkIdx = table.find(indexes, function(ix)
         return ix.origin == 'pk'
@@ -312,7 +317,12 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
     -- Process all supported indexes
     for i, idx in pairs(tableInfo.supportedIndexes) do
         idx.columns = idx.columns or {};
-        table.insert(deferredIdxCols, { self.db:nrows(string.format("pragma index_info('%s');", idx.name)) })
+        local idx_info_st = self.db:prepare(string.format("pragma index_info('%s');", idx.name))
+        local cc = {}
+        for v in idx_info_st:nrows() do
+            table.insert(cc, v)
+        end
+        table.insert(deferredIdxCols, cc)
     end
 
     -- Process index columns
@@ -323,8 +333,12 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
     end
 
     -- Process foreign keys
-    local fkInfo = self.db:nrows(string.format("pragma foreign_key_list('%s')", tblDef.name))
-    if #fkInfo.length > 0 then
+    local fkInfo = {}
+    for v in self.db:nrows(string.format("pragma foreign_key_list('%s')", tblDef.name)) do
+        table.insert(fkInfo, v)
+    end
+
+    if #fkInfo > 0 then
         for i, fk in ipairs(fkInfo) do
             fk.srcTable = tableInfo.table
             fk.processed = false
@@ -440,7 +454,7 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
                 rules = {
                     type = 'reference',
                     minOccurences = cc.rules.minOccurences,
-                    maxOccurences = -(bits.lshift(31))
+                    maxOccurences = -(bits.lshift(1, 31))
                 }
             }
             local propName = fk.table -- FIXME Pluralize
@@ -478,6 +492,9 @@ function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
 
     -- Pool of full text columns
     local ftsCols = { 'X1', 'X2', 'X3', 'X4' }
+
+    -- Pool of rtree columns
+    local rtCols = { 'A', 'B', 'C', 'D', 'E' }
 
     for i, idx in ipairs(nonUniqueIndexes) do
         local col = tblInfo.columns[idx.columns[1].cid]
@@ -544,6 +561,9 @@ function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
 
     table.sort(uniqOtherIndexes,
     function(A, B)
+        if not A or not B then
+            return 0
+        end
 
         local function getTypeWeight(item)
             local result = classDef.properties[tblInfo.columns[item.columns[1].cid].name].rules.type
@@ -570,7 +590,7 @@ function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
         return -1
     end )
 
-    if #uniqMultiIndexes > 0 then
+    if #uniqOtherIndexes > 0 then
         classDef.specialProperties.uid = { name = tblInfo.columns[uniqOtherIndexes[1].columns[1].cid].name }
         for i, idx in ipairs(uniqOtherIndexes) do
             local col = tblInfo.columns[idx.columns[1].cid]
@@ -598,6 +618,10 @@ function SQLiteSchemaParser:processUniqueTextIndexes(tblInfo, classDef)
         return #idx.columns == 1 and idx.unique == 1
     end)
     table.sort(uniqTxtIndexes, function(A, B)
+        if not A or not B then
+            return 0
+        end
+
         local v1 = classDef.properties[tblInfo.columns[A.columns[1].cid].name].rules.maxLength
         local v2 = classDef.properties[tblInfo.columns[B.columns[1].cid].name].rules.maxLength
         if v1 == v2 then
