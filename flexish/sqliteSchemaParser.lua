@@ -188,16 +188,17 @@ end
     /*
      Processes indexes specification using following rules:
      1) primary and unique indexes on single columns are processed as is
-     2) unique indexes as well as partial indexes are not supported. Warning will be generated
-     TODO: create composite computed properties
-     3) DESC clause in index definition is ignored. Warning will be generated.
-     4) non-unique indexes on text columns are converted to FTS indexes
-     5) all numeric and datetime columns included into non-unique indexes (both single and multi column)
+     2) multi column (composite) unique indexes are supported if number of columns is 2..4.
+     3) partial indexes and composite unique indexes with column count > 4 are not supported. Warning will be generated
+
+     4) DESC clause in index definition is ignored. Warning will be generated.
+     5) non-unique indexes on text columns are converted to FTS indexes
+     6) all numeric and datetime columns included into non-unique indexes (both single and multi column)
      are considered to participate in RTree index. Maximum 5 columns can be RTree-indexed. Priority is given
-     6) Columns from non-unique indexes that were not included into FTS nor RTree indexes will be indexed. Note:
+     7) Columns from non-unique indexes that were not included into FTS nor RTree indexes will be indexed. Note:
      for multi-column indexes only first columns in index definitions will be processed.
-     7) All columns from non-unique indexes that were not included into FTS, RTree or regular indexes will NOT be indexed
-     Warning be generated
+     8) All columns from non-unique indexes that were not included into FTS, RTree or regular indexes will NOT be indexed
+     Warning will be generated
      */
 
     /*
@@ -209,7 +210,6 @@ end
      or its max length is shortest among other unique text columns, it gets role "code"
      4) If unique column name ends with "*Name", it gets role "name",
      */
-
 
     /*
      Loads all metadata for the SQLite table (columns, indexes, foreign keys)
@@ -478,7 +478,7 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     -- Set indexing
     self:processUniqueNonTextIndexes(tblInfo, classDef)
     self:processUniqueTextIndexes(tblInfo, classDef)
-    self:processUniqueMutiColumnIndexes(tblInfo, self)
+    self:processUniqueMultiColumnIndexes(tblInfo, self)
     self:processNonUniqueIndexes(tblInfo, classDef)
 end
 
@@ -530,22 +530,22 @@ function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
 end
 
 ---@param tblInfo ITableInfo
-function SQLiteSchemaParser:processUniqueMutiColumnIndexes(tblInfo)
+function SQLiteSchemaParser:processUniqueMultiColumnIndexes(tblInfo)
     local uniqMultiIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
         return #idx.columns > 1 and idx.unique == 1
     end)
 
     for i, idx in ipairs(uniqMultiIndexes) do
-        -- Unique multi column indexes are not supported
-        -- TODO add support
-        local msg = string.format(
-        "Index [%s] by %s is ignored as multi-column unique indexes are not supported by Flexilite",
-        idx.name, self:getIndexColumnNames(tblInfo, idx))
+        if #idx.columns > 4 then
+            local msg = string.format( "Index [%s] by %s is ignored as multi-column unique indexes are not supported by Flexilite",
+            idx.name, self:getIndexColumnNames(tblInfo, idx))
+            table.insert(self.results, {
+                type = 'warn',
+                message = msg,
+                tableName = tblInfo.table })
+        else
 
-        table.insert(self.results, {
-            type = 'warn',
-            message = msg,
-            tableName = tblInfo.table })
+        end
     end
 end
 

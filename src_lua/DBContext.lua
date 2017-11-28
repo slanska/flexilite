@@ -515,6 +515,49 @@ flexiFuncs = {
     ['drop trigger'] = TriggerAPI.Drop,
     ['trigger drop'] = TriggerAPI.Drop,
 
+    --[[
+
+        /*
+     Change class ID of given objects. Updates schemas and possibly columns A..J to match new class schema
+     */
+    move to another class
+
+        /*
+     Removes duplicated objects. Updates references to point to a new object. When resolving conflict, selects object
+     with larger number of references to it, or object that was updated more recently.
+     */
+    remove duplicates
+
+        /*
+     Splits objects vertically, i.e. one set of properties goes to class A, another - to class B.
+     Resulting objects do not have any relation to each other
+     */
+    structural split
+
+        /*
+     Joins 2 non related objects into single object, using optional property map. Corresponding objects will be found using sourceKeyPropIDs
+     and targetKeyPropIDs
+     */
+    structural merge
+
+    reorderArrayItems
+
+        /*
+     Returns report on results of last refactoring action
+     */
+    getLastActionReport
+
+        /*
+     Retrieves list of invalid objects for the given class (objects which do not pass property rules)
+     Returns list of object IDs.
+     @className - class name to perform validation on
+     @markAsnInvalid - if set to true, invalid objects will be marked with CTLO_HAS_INVALID_DATA
+     Note that all objects will be affected and valid objects will get this flag cleared.
+     */
+     get invalid objects
+
+    ]]
+
     -- TODO ['convert custom eav'] = ConvertCustomEAV,
 }
 

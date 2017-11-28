@@ -14,7 +14,7 @@ end
 
 ---
 --- Creates a new class
---- if createVirtualTable == true, virtual table will be created
+--- if createVirtualTable == true, use 'CREATE VIRTUAL TABLE ... USING flexi_data ... '
 --- @param self DBContext
 --- @param className string
 --- @param classDefAsJSONString string

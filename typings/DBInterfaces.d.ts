@@ -2,9 +2,6 @@
  * Created by slanska on 2016-03-26.
  */
 
-///<reference path="../../../../src/typings/DBDefinitions.ts"/>
-///<reference path="../../../typings/definitions.d.ts"/>
-
 /*
  Set of interfaces and constants to Flexilite's driver for SQLite database tables
  */
