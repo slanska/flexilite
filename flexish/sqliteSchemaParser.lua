@@ -10,11 +10,11 @@ local SQLiteSchemaParser = {}
 table.find = function(tbl, func)
     for i, v in pairs(tbl) do
         if func(v) then
-            return v
+            return v, i
         end
     end
 
-    return nil
+    return nil, -1
 end
 
 table.filter = function(tbl, func)
@@ -421,16 +421,15 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
         return;
     end
 
-    local extCol = table.find(tblInfo.outFKeys, function(fk)
+    local extCol, extColIdx = table.find(tblInfo.outFKeys, function(fk)
         return pkCols and #pkCols == 1 and pkCols[1].name == fk.from
     end)
 
     if extCol then
-        --    // set mixin property
-        --// FIXME
-        --// classDef.properties[pkCols[0].name] = {rules: {type: 'mixin'}, refDef: {classRef: {name: extCol.table}}};
-        --// extCol.processed = true;
-        --// _.remove(tblInfo.outFKeys, extCol);
+        -- set mixin property
+        classDef.properties[pkCols[1].name] = { rules = { type = 'mixin' }, refDef = { classRef = { name = extCol.table } } }
+        extCol.processed = true
+        table.remove(tblInfo.outFKeys, extColIdx)
     end
 
     --[[

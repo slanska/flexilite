@@ -8,4 +8,5 @@ return
 {
     command = 'schema',
     database = '../data/Northwind.db3',
+    output = '../test/json/Northwind.db3.schema.json'
 }

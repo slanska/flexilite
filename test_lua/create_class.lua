@@ -3,14 +3,14 @@
 --- DateTime: 2017-11-04 12:14 PM
 ---
 
-package.path = '../src_lua/?.lua;' .. package.path
+local path = require 'pl.path'
+package.path = path.abspath(path.relpath('../src_lua')) .. '/?.lua;' .. package.path
 
 require 'socket'
-require('mobdebug').start()
 require 'cjson'
 
---local DBContext = require '/Users/ruslanskorynin/Documents/Github/slanska/flexilite/src_lua/DBContext'
---local lfs = require 'lfs'
+local DBContext = require 'DBContext'
+
 require('io')
 require('index')
 local sqlite = require 'lsqlite3complete'
@@ -26,8 +26,8 @@ end
 
 -- load sql scripts into Flexi variables
 -- TODO use relative paths
-Flexi.DBSchemaSQL = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/sql/dbschema.sql')
-Flexi.InitDefaultData = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/sql/init_default_data.sql')
+Flexi.DBSchemaSQL = readAll( path.abspath(path.relpath('../sql/dbschema.sql')))
+Flexi.InitDefaultData = readAll(path.abspath(path.relpath('../sql/init_default_data.sql')))
 
 -- Tests for class creation
 
@@ -38,7 +38,7 @@ db:exec(sql)
 
 Flexi:newDBContext(db)
 -- TODO temp
-local content = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/test/json/Employees.schema.json')
+local content = readAll(path.abspath(path.relpath('../test/json/Employees.schema.json')))
 sql = "select flexi('create class', 'Employees', '" .. content .. "', 0);"
 for row in db:rows(sql) do
     print(row[1])
@@ -59,7 +59,7 @@ describe('Create class', function()
 
     it('Create Employees table', function()
         -- TODO temp
-        local content = readAll('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/test/json/Employees.schema.json')
+        local content = readAll(path.abspath(path.relpath('../test/json/Employees.schema.json')))
         local sql = "select flexi('create class', 'Employees', '" .. content .. "', 0);"
         for row in db:rows(sql) do
             print(row[1])
