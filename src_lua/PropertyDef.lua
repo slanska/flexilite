@@ -58,8 +58,10 @@ For resolve class:
 
 require 'math'
 local bit = type(jit) == 'table' and require('bit') or require('bit32')
-local NameRef, ClassNameRef, PropNameRef = require 'NameRef'
+local name_ref = require 'NameRef'
 local EnumDef = require 'EnumDef'
+
+local NameRef, ClassNameRef, PropNameRef = name_ref.NameRef, name_ref.ClassNameRef, name_ref.PropNameRef
 
 -- Candidates for common.lua
 local MAX_NUMBER = 1.7976931348623157e+308

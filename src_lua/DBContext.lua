@@ -21,7 +21,7 @@ Handles 'flexi' function
 
 ]]
 
-require 'cjson'
+local json = require 'cjson'
 --local json = require 'cjson'
 
 local ClassDef = require('ClassDef')
@@ -319,11 +319,12 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
     [[
         select * from [.classes] where ClassID = :v limit 1);
     ]]
-    local cls = self:loadOneRow(sql, { v = classIdOrName })
-    if not cls then
+    local classObj = self:loadOneRow(sql, { v = classIdOrName })
+    if not classObj then
+        -- TODO error?
         return nil
     end
-    result = ClassDef:loadFromDB(self, cls)
+    result = ClassDef:loadFromDB(self, classObj)
     if not noList then
         self:addClassToList(result)
     end

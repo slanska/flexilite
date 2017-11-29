@@ -97,4 +97,4 @@ local function AlterClass(self, className, newClassDefJSON, createVTable, invali
     self:addClassToList(newClass)
 end
 
-return AlterClass, MergeClassDefinitions
+return { AlterClass = AlterClass, MergeClassDefinitions = MergeClassDefinitions }

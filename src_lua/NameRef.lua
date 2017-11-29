@@ -97,4 +97,4 @@ function PropNameRef:isResolved(classDef)
     return pp ~= nil
 end
 
-return NameRef, ClassNameRef, PropNameRef
+return { NameRef = NameRef, ClassNameRef = ClassNameRef, PropNameRef = PropNameRef }

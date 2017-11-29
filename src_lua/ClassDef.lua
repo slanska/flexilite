@@ -17,7 +17,8 @@ Validates existing data with new class definition
 local json = require 'cjson'
 
 local PropertyDef = require('PropertyDef')
-local NameRef = require('NameRef')
+local name_ref = require('NameRef')
+local NameRef = name_ref.NameRef
 
 --[[
 
@@ -95,16 +96,16 @@ end
 --- Loads class definition from database
 ---@public
 ---@param DBContext DBContext
----@param obj table
+---@param classObj table
 --- (optional)
-function ClassDef:loadFromDB (DBContext, obj)
-    assert(obj)
-    setmetatable(obj, self)
+function ClassDef:loadFromDB (DBContext, classObj)
+    assert(classObj)
+    setmetatable(classObj, self)
     self.__index = self
-    obj.DBContext = DBContext
-    obj:fromJSON(obj.Data)
-    obj.Data = nil
-    return obj
+    classObj.DBContext = DBContext
+    classObj:fromJSON(classObj.Data)
+    classObj.Data = nil
+    return classObj
 end
 
 -- Initializes raw table (normally loaded from database) as ClassDef object
