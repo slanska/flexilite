@@ -8,9 +8,10 @@ local json = require 'cjson'
 local alt_cls = require('flexi_AlterClass')
 local AlterClass, MergeClassDefinitions = alt_cls.AlterClass, alt_cls.MergeClassDefinitions
 
+--- Find unresolved classes and try to resolve them
 --- @param self DBContext
 local function ResolveClasses(self)
-    -- TODO Find unresolved classes and try to resolve them
+    -- TODO
 end
 
 ---@param self DBContext
@@ -80,7 +81,8 @@ local function CreateClassFromJsonObject(self, className, classDefAsTable, creat
         local classDefAsJSONString = json.encode(classDefAsTable)
         local classAsJson = json.encode(classDefAsTable:internalToJSON())
         self:execStatement("insert into [.classes] (NameID, OriginalData, Data) values (:1, :2, :3);",
-        { ['1'] = classDefAsTable.Name.id,
+        {
+            ['1'] = classDefAsTable.Name.id,
             ['2'] = classDefAsJSONString,
             ['3'] = classAsJson })
         classDefAsTable.ClassID = self.db:last_insert_rowid()
@@ -101,8 +103,8 @@ end
 --- @return string
 local function CreateClass(self, className, classDefAsJSONString, createVirtualTable)
     -- check if class with this name already exists
-    local cls = self.ClassDef:fromJSONString(self, classDefAsJSONString)
-    return CreateClassFromJsonObject(self, className, cls, createVirtualTable)
+    local clsObject = self.ClassDef:fromJSONString(self, classDefAsJSONString)
+    return CreateClassFromJsonObject(self, className, clsObject, createVirtualTable)
 end
 
 --- Creates multiple classes
@@ -111,8 +113,10 @@ end
 ---@param createVirtualTable boolean
 local function CreateSchema(self, schemaJson, createVirtualTable)
     local schema = json.decode(schemaJson)
-    for className, classDef in pairs(schema) do
-        CreateClassFromJsonObject(self, className, classDef, createVirtualTable)
+    for className, clsDef in pairs(schema) do
+        print("Creating class [%s]", className)
+        local clsObject = self.ClassDef:fromJSON(self, clsDef)
+        CreateClassFromJsonObject(self, className, clsObject, createVirtualTable)
     end
 end
 
