@@ -93,17 +93,17 @@ local function fromJSON(self, data)
     dictFromJSON('columnMapping')
 end
 
---- Loads class definition from database
+--- Creates class definition from database row (.classes table)
 ---@public
 ---@param DBContext DBContext
----@param classObj table
---- (optional)
+---@param classObj table @comment [.classes] row
+---@return ClassDef
 function ClassDef:loadFromDB (DBContext, classObj)
+    -- todo confirm class def structure
     assert(classObj)
     setmetatable(classObj, self)
     self.__index = self
-    classObj.DBContext = DBContext
-    classObj:fromJSON(classObj.Data)
+    classObj:fromJSON(DBContext, classObj.Data)
     classObj.Data = nil
     return classObj
 end

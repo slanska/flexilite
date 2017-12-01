@@ -14,11 +14,14 @@ local function ResolveClasses(self)
     -- TODO
 end
 
+--- Internal function to create class
 ---@param self DBContext
 ---@param className string
 ---@param classDefAsTable table @comment decoded JSON
 ---@param createVirtualTable boolean
-local function CreateClassFromJsonObject(self, className, classDefAsTable, createVirtualTable)
+---@param classDefAsJson string @comment optional. If passed, same as encoded classDefAsTable
+--- Used to avoid multiple to/from JSON conversion
+local function CreateClassFromJsonObject(self, className, classDefAsTable, createVirtualTable, classDefAsJson)
     local classID = self:getClassIdByName(className, false)
     if classID ~= 0 then
         error('Class ' .. className .. ' already exists')
@@ -44,11 +47,16 @@ local function CreateClassFromJsonObject(self, className, classDefAsTable, creat
         local sqlStr = string.format("create virtual table [' .. className .. '] using flexi_data ('%q');", classDefAsJSONString)
         self.db:exec(sqlStr)
     else
+        if not classDefAsJson then
+            classDefAsJson = json.encode(classDefAsTable)
+        end
+
+        local clsObject = self.ClassDef:fromJSON(self, classDefAsTable)
         -- load class definition. Properties will be initialized and added to Properties
-        classDefAsTable.Name.name = className
+        clsObject.Name.name = className
 
         -- Validate class and its properties
-        for name, prop in pairs(classDefAsTable.Properties) do
+        for name, prop in pairs(clsObject.Properties) do
             if not self:isNameValid(name) then
                 error('Invalid property name: ' .. name)
             end
@@ -59,37 +67,37 @@ local function CreateClassFromJsonObject(self, className, classDefAsTable, creat
             end
         end
 
-        classDefAsTable.PropertiesByID = {}
+        clsObject.PropertiesByID = {}
         -- Apply definition
-        for name, p in pairs(classDefAsTable.Properties) do
+        for name, p in pairs(clsObject.Properties) do
             p:applyDef()
             local propID = p:saveToDB(nil, name)
-            classDefAsTable.PropertiesByID[propID] = p
+            clsObject.PropertiesByID[propID] = p
         end
 
         -- Check if class is fully resolved, i.e. does not have references to non-existing classes
         local unresolved = {}
-        classDefAsTable.Unresolved = false
-        for id, p in ipairs(classDefAsTable.Properties) do
+        clsObject.Unresolved = false
+        for id, p in ipairs(clsObject.Properties) do
             if p:hasUnresolvedReferences() then
-                classDefAsTable.Unresolved = true
+                clsObject.Unresolved = true
                 --table.insert(unresolved, string.format(""))
             end
         end
 
-        classDefAsTable.Name:resolve(classDefAsTable)
-        local classDefAsJSONString = json.encode(classDefAsTable)
-        local classAsJson = json.encode(classDefAsTable:internalToJSON())
+        clsObject.Name:resolve(clsObject)
+        local classAsJson = json.encode(clsObject:internalToJSON())
         self:execStatement("insert into [.classes] (NameID, OriginalData, Data) values (:1, :2, :3);",
         {
-            ['1'] = classDefAsTable.Name.id,
-            ['2'] = classDefAsJSONString,
+            ['1'] = clsObject.Name.id,
+            ['2'] = classDefAsJson,
             ['3'] = classAsJson })
-        classDefAsTable.ClassID = self.db:last_insert_rowid()
+        clsObject.ClassID = self.db:last_insert_rowid()
+        self:addClassToList(clsObject)
 
         -- TODO Check if there unresolved classes
 
-        return string.format('Class [%s] created with ID=[%d]', className, classDefAsTable.ClassID)
+        return string.format('Class [%s] created with ID=[%d]', className, clsObject.ClassID)
     end
 end
 
@@ -102,9 +110,9 @@ end
 --- @param createVirtualTable boolean
 --- @return string
 local function CreateClass(self, className, classDefAsJSONString, createVirtualTable)
-    -- check if class with this name already exists
-    local clsObject = self.ClassDef:fromJSONString(self, classDefAsJSONString)
-    return CreateClassFromJsonObject(self, className, clsObject, createVirtualTable)
+    local classDefAsTable = json.decode(classDefAsJSONString)
+    return CreateClassFromJsonObject(    self, className, classDefAsTable,
+    createVirtualTable, classDefAsJSONString)
 end
 
 --- Creates multiple classes
@@ -115,8 +123,7 @@ local function CreateSchema(self, schemaJson, createVirtualTable)
     local schema = json.decode(schemaJson)
     for className, clsDef in pairs(schema) do
         print("Creating class [%s]", className)
-        local clsObject = self.ClassDef:fromJSON(self, clsDef)
-        CreateClassFromJsonObject(self, className, clsObject, createVirtualTable)
+        CreateClassFromJsonObject(self, className, clsDef, createVirtualTable, nil)
     end
 end
 
