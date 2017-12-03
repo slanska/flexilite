@@ -19,32 +19,51 @@ local json = require 'cjson'
 local PropertyDef = require('PropertyDef')
 local name_ref = require('NameRef')
 local NameRef = name_ref.NameRef
+local class = require 'pl.class'
 
 --[[
 
 ]]
 
 ---@class ClassDef
-local ClassDef = {}
+local ClassDef = class() --[[{
 
----
----@private
----@param self ClassDef
----@param data table @comment As it is stored in [.classes].Data
-local function fromJSON(self, data)
+}]]
+
+--- ClassDef constructor
+---@param params table @comment {DBContext, newClassName, data: table | string | json}
+function ClassDef:_init(params)
+    self.DBContext = params.DBContext
+
     -- Properties by name
     self.Properties = {}
     -- Properties by ID
     self.PropertiesByID = {}
     self.Name = {}
     setmetatable(self.Name, NameRef)
+    local data
 
-    --[[ This function can be called in 2 contexts:
-     1) from raw JSON, during create/alter class/property
-     2) from database saved
-     in (1) nameOrId will be property name (string), property def will not have name or name id
-     in (2) nameOrId will be property id (number), property def will have name and name id
-    ]]
+    if params.newClassName then
+        -- New class initialization. params.data is either string or JSON
+        data = params.data
+        if type(data) == 'string' then
+            data = json.decode(params.data)
+        end
+
+        self.Name.name = params.newClassName
+        self.D = {}
+    else
+        -- Loading existing class from DB. params.data is [.classes] row
+        -- todo confirm class def structure
+        assert(type(params.data) == 'table')
+        self.Name.id = params.data.NameID
+        self.Name.name = params.data.Name
+        self.ClassID = params.data.ClassID
+
+        self.D = params.data
+        data = json.decode(params.data.Data)
+    end
+
     for nameOrId, p in pairs(data.properties) do
         if not self.Properties[p.ID] then
             local prop = PropertyDef.import(self, p)
@@ -93,44 +112,110 @@ local function fromJSON(self, data)
     dictFromJSON('columnMapping')
 end
 
---- Creates class definition from database row (.classes table)
----@public
----@param DBContext DBContext
----@param classObj table @comment [.classes] row
----@return ClassDef
-function ClassDef:loadFromDB (DBContext, classObj)
-    -- todo confirm class def structure
-    assert(classObj)
-    setmetatable(classObj, self)
-    self.__index = self
-    classObj:fromJSON(DBContext, classObj.Data)
-    classObj.Data = nil
-    return classObj
-end
+-----
+-----@private
+-----@param self ClassDef
+-----@param data table @comment As it is stored in [.classes].Data
+--local function fromJSON(self, data)
+--    -- Properties by name
+--    self.Properties = {}
+--    -- Properties by ID
+--    self.PropertiesByID = {}
+--    self.Name = {}
+--    setmetatable(self.Name, NameRef)
+--
+--    --[[ This function can be called in 2 contexts:
+--     1) from raw JSON, during create/alter class/property
+--     2) from database saved
+--     in (1) nameOrId will be property name (string), property def will not have name or name id
+--     in (2) nameOrId will be property id (number), property def will have name and name id
+--    ]]
+--    for nameOrId, p in pairs(data.properties) do
+--        if not self.Properties[p.ID] then
+--            local prop = PropertyDef.import(self, p)
+--
+--            -- Determine mode
+--            if type(nameOrId) == 'number' and p.Prop.name and p.Prop.id then
+--                -- Database contexts
+--                self.PropertiesByID[nameOrId] = prop
+--                self.Properties[p.Prop.name] = prop
+--            else
+--                if type(nameOrId) ~= 'string' then
+--                    error('Invalid type of property name: ' .. nameOrId)
+--                end
+--
+--                -- Raw JSON context
+--                prop.Prop.name = nameOrId
+--                self.Properties[nameOrId] = prop
+--
+--                -- TODO temp
+--                if prop.D.refDef and prop.D.refDef.classRef then
+--                    print("initMetadataRefs: " .. prop.Prop.name .. ", classRef: ", prop.D.refDef.classRef)
+--
+--                end
+--            end
+--        end
+--    end
+--
+--    ---@param dictName string
+--    local function dictFromJSON(dictName)
+--        self[dictName] = {}
+--        local tt = data[dictName]
+--        if tt then
+--            for k, v in pairs(tt) do
+--                if type(v) ~= 'table' then
+--                    v = { name = v }
+--                end
+--                setmetatable(v, NameRef)
+--                self[dictName][k] = v
+--            end
+--        end
+--    end
+--
+--    dictFromJSON('specialProperties')
+--    dictFromJSON('rangeIndexing')
+--    dictFromJSON('fullTextIndexing')
+--    dictFromJSON('columnMapping')
+--end
+--
+----- Creates class definition from database row (.classes table)
+-----@public
+-----@param DBContext DBContext
+-----@param classObj table @comment [.classes] row
+-----@return ClassDef
+--function ClassDef:loadFromDB (DBContext, classObj)
+--    -- todo confirm class def structure
+--    assert(classObj)
+--    setmetatable(classObj, self)
+--    self.__index = self
+--    classObj:fromJSON(DBContext, classObj.Data)
+--    classObj.Data = nil
+--    return classObj
+--end
 
--- Initializes raw table (normally loaded from database) as ClassDef object
----@public
----@param DBContext DBContext
----@param json table
-function ClassDef:fromJSON(DBContext, data)
-    local obj = {
-        DBContext = DBContext
-    }
-    setmetatable(obj, self)
-    self.__index = self
-    fromJSON(obj, data)
-    return obj
-end
-
----@param DBContext DBContext
----@param jsonString string
----@return ClassDef
-function ClassDef:fromJSONString(DBContext, jsonString)
-    if type(jsonString) == 'table' then
-        return self:fromJSON(DBContext, jsonString)
-    end
-    return self:fromJSON(DBContext, json.decode(jsonString))
-end
+---- Initializes raw table (normally loaded from database) as ClassDef object
+-----@public
+-----@param DBContext DBContext
+-----@param json table
+--function ClassDef:fromJSON(DBContext, data)
+--    local obj = {
+--        DBContext = DBContext
+--    }
+--    setmetatable(obj, self)
+--    self.__index = self
+--    fromJSON(obj, data)
+--    return obj
+--end
+--
+-----@param DBContext DBContext
+-----@param jsonString string
+-----@return ClassDef
+--function ClassDef:fromJSONString(DBContext, jsonString)
+--    if type(jsonString) == 'table' then
+--        return self:fromJSON(DBContext, jsonString)
+--    end
+--    return self:fromJSON(DBContext, json.decode(jsonString))
+--end
 
 function ClassDef:selfValidate()
     -- todo implement
@@ -196,12 +281,13 @@ function ClassDef:toJSON()
 end
 
 --- Returns internal representation of class definition, as it is stored in [.classes] db table
+---Properties are indexed by property IDs
 ---@return table
 function ClassDef:internalToJSON()
-    local result = {}
+    local result = { properties = {} }
 
     for propID, prop in pairs(self.PropertiesByID) do
-        result[tostring(propID)] = prop:internalToJSON()
+        result.properties[tostring(propID)] = prop:internalToJSON()
     end
 
     -- TODO Other attributes?

@@ -286,8 +286,8 @@ end
 --- @return nil
 function DBContext:addClassToList(classDef)
     assert(classDef)
-    assert(type(classDef.ID) == 'number')
-    self.Classes[classDef.ID] = classDef
+    assert(type(classDef.ClassID) == 'number')
+    self.Classes[classDef.ClassID] = classDef
     self.Classes[classDef.Name.name] = classDef
 end
 
@@ -310,20 +310,18 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
         return result
     end
 
-    local sql = type(classIdOrName) == 'string' and
-    [[
-        select * from [.classes] where NameID = (select ID from [.names_props] where Value = :v limit 1);
-    ]]
-    or
-    [[
-        select * from [.classes] where ClassID = :v limit 1);
-    ]]
-    local classObj = self:loadOneRow(sql, { v = classIdOrName })
-    if not classObj then
+    local sql = [[select c.* from (select *, (select Value from [.names_props] where ID = NameID limit 1) as Name from [.classes]) as c]]
+    if type(classIdOrName) == 'string' then
+        sql = sql .. [[ where c.Name = :1 limit 1; ]]
+    else
+        sql = sql .. [[ where c.ClassID = :1 limit 1;]]
+    end
+    local classRow = self:loadOneRow(sql, { ['1'] = classIdOrName })
+    if not classRow then
         -- TODO error?
         return nil
     end
-    result = ClassDef:loadFromDB(self, classObj)
+    result = ClassDef { data = classRow, DBContext = self }
     if not noList then
         self:addClassToList(result)
     end
