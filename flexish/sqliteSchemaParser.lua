@@ -6,6 +6,7 @@
 local bits = require 'bit32'
 local class = require 'pl.class'
 local SQLiteSchemaParser = class()
+local tablex = require 'pl.tablex'
 
 table.find = function(tbl, func)
     for i, v in pairs(tbl) do
@@ -115,13 +116,13 @@ function SQLiteSchemaParser:sqliteColToFlexiProp(sqliteCol)
         local _, _, tt, ll = string.find(sqliteCol.type, '^%s*(%a+)%s*%(%s*(%d+)%s*%)%s*$')
         if tt and ll then
             tt = string.lower(tt)
-            local rr = sqliteTypesToFlexiTypes[tt]
+            local rr = tablex.deepcopy( sqliteTypesToFlexiTypes[tt])
             if rr then
                 p.rules = rr
                 p.rules.maxLength = tonumber(ll)
             end
         else
-            local rr = sqliteTypesToFlexiTypes[string.lower(sqliteCol.type)]
+            local rr = tablex.deepcopy( sqliteTypesToFlexiTypes[string.lower(sqliteCol.type)])
             if rr then
                 p.rules = rr
             end
@@ -204,12 +205,12 @@ end
 function SQLiteSchemaParser:loadTableInfo(tblDef)
     -- Init resulting dictionary
     -- IClassDefinition
-    local modelDef = {
+    local classDef = {
         properties = {},
         specialProperties = {}
     }
 
-    self.outSchema[tblDef.name] = modelDef
+    self.outSchema[tblDef.name] = classDef
 
     -- ITableInfo
     local tableInfo = {
@@ -240,8 +241,14 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
 
         local prop = self:sqliteColToFlexiProp(col)
 
-        prop.rules.maxOccurences = 1
-        prop.rules.minOccurences = tonumber(col.notnull)
+        prop.rules.maxOccurrences = 1
+        prop.rules.minOccurrences = tonumber(col.notnull)
+
+        -- clean default values for typical case
+        if prop.rules.minOccurrences == 0 and prop.rules.maxOccurrences == 1 then
+            prop.rules.minOccurrences = nil
+            prop.rules.maxOccurrences = nil
+        end
 
         if col.pk == 1 and not tableInfo.multiPKey then
             -- TODO Handle multiple column PKEY
@@ -256,7 +263,7 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
             prop.defaultValue = defVal
         end
 
-        modelDef.properties[col.name] = prop
+        classDef.properties[col.name] = prop
 
         tableInfo.columns[col.cid + 1] = col
         tableInfo.columnCount = tableInfo.columnCount + 1
@@ -359,6 +366,7 @@ function SQLiteSchemaParser:getIndexColumnNames(tbl, idx)
 end
 
 ---@param tblInfo ITableInfo
+---@return IClassDef
 function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     local classDef = self.outSchema[tblInfo.table]
     local pkCols = table.filter(tblInfo.columns, function(cc)
@@ -464,6 +472,8 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     self:processUniqueTextIndexes(tblInfo, classDef)
     self:processUniqueMultiColumnIndexes(tblInfo, classDef)
     self:processNonUniqueIndexes(tblInfo, classDef)
+
+    return classDef
 end
 
 ---@param tblInfo ITableInfo
@@ -647,7 +657,7 @@ function SQLiteSchemaParser:parseSchema()
     local stmt, errMsg = self.db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
     for item in stmt:nrows() do
         local tblInfo = self:loadTableInfo(item)
-        self:processFlexiliteClassDef(tblInfo)
+        local classDef = self:processFlexiliteClassDef(tblInfo)
     end
 
     return self.outSchema

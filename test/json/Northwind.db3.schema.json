@@ -18,17 +18,17 @@
       "RegionDescription": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
+          "maxLength": 50
         }
       },
       "RegionID": {
         "index": "unique",
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       }
     }
@@ -38,79 +38,61 @@
       "PhotoPath": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 255
         }
       },
       "LastName": {
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
+          "maxLength": 20
         }
       },
       "HireDate": {
         "rules": {
-          "type": "date",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "type": "date"
         }
       },
       "Title": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 30
         }
       },
       "Country": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
       "HomePhone": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 24
         }
       },
       "Extension": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 4
         }
       },
       "BirthDate": {
         "rules": {
-          "type": "date",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "type": "date"
         }
       },
       "Notes": {
         "rules": {
           "type": "binary",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 2147483647
         }
       },
       "Region": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
@@ -118,57 +100,47 @@
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 10
         }
       },
       "Address": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 60
         }
       },
       "City": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
       "FirstName": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
+          "maxLength": 10
         }
       },
       "EmployeeID": {
         "index": "unique",
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       },
       "Photo": {
         "rules": {
           "type": "binary",
-          "minOccurences": 0,
-          "subtype": "image",
-          "maxOccurences": 1
+          "subtype": "image"
         }
       },
       "TitleOfCourtesy": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 25
         }
       }
     },
@@ -206,7 +178,6 @@
         },
         "rules": {
           "type": "reference",
-          "minOccurences": 1,
           "maxOccurences": 2147483647
         }
       },
@@ -214,23 +185,23 @@
         "index": "unique",
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       },
       "TerritoryDescription": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
+          "maxLength": 50
         }
       },
       "RegionID": {
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       }
     }
@@ -240,24 +211,18 @@
       "ContactName": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 30
         }
       },
       "Fax": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 24
         }
       },
       "Region": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
@@ -265,65 +230,51 @@
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 10
         }
       },
       "HomePage": {
         "rules": {
           "type": "binary",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 2147483647
         }
       },
       "Address": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 60
         }
       },
       "City": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
       "ContactTitle": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 30
         }
       },
       "Phone": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 24
         }
       },
       "CompanyName": {
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
+          "maxLength": 40
         }
       },
       "Country": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
@@ -331,8 +282,8 @@
         "index": "unique",
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       }
     },
@@ -365,45 +316,37 @@
       "UnitsOnOrder": {
         "defaultValue": 0,
         "rules": {
-          "minValue": -32768,
           "maxValue": 32767,
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "minValue": -32768
         }
       },
       "QuantityPerUnit": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 20
         }
       },
       "ReorderLevel": {
         "defaultValue": 0,
         "rules": {
-          "minValue": -32768,
           "maxValue": 32767,
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "minValue": -32768
         }
       },
       "ProductID": {
         "index": "unique",
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       },
       "UnitPrice": {
         "defaultValue": 0,
         "rules": {
-          "type": "money",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "type": "money"
         }
       },
       "Suppliers": {
@@ -414,7 +357,6 @@
         },
         "rules": {
           "type": "reference",
-          "minOccurences": 0,
           "maxOccurences": 2147483647
         }
       },
@@ -426,58 +368,49 @@
         },
         "rules": {
           "type": "reference",
-          "minOccurences": 0,
           "maxOccurences": 2147483647
         }
       },
       "DiscontinuedDate": {
         "rules": {
-          "type": "date",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "type": "date"
         }
       },
       "CategoryID": {
         "index": "range",
         "rules": {
-          "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "type": "integer"
         }
       },
       "Discontinued": {
         "defaultValue": "0",
         "rules": {
           "type": "boolean",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       },
       "SupplierID": {
         "index": "range",
         "rules": {
-          "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "type": "integer"
         }
       },
       "ProductName": {
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
+          "maxLength": 40
         }
       },
       "UnitsInStock": {
         "defaultValue": 0,
         "rules": {
-          "minValue": -32768,
           "maxValue": 32767,
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "minValue": -32768
         }
       }
     },
@@ -511,23 +444,22 @@
         },
         "rules": {
           "type": "reference",
-          "minOccurences": 1,
           "maxOccurences": 2147483647
         }
       },
       "TerritoryID": {
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       },
       "EmployeeID": {
         "index": "unique",
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       },
       "Territories": {
@@ -538,7 +470,6 @@
         },
         "rules": {
           "type": "reference",
-          "minOccurences": 1,
           "maxOccurences": 2147483647
         }
       }
@@ -550,25 +481,19 @@
       "ContactName": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 30
         }
       },
       "Fax": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 24
         }
       },
       "Region": {
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
@@ -576,25 +501,19 @@
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 10
         }
       },
       "Address": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 60
         }
       },
       "City": {
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
@@ -602,42 +521,36 @@
         "index": "unique",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
           "maxLength": 5
         }
       },
       "Phone": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 24
         }
       },
       "CompanyName": {
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
+          "maxLength": 40
         }
       },
       "Country": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
       "ContactTitle": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 30
         }
       }
     },
@@ -663,33 +576,28 @@
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
           "maxLength": 15
         }
       },
       "Description": {
         "rules": {
-          "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "type": "text"
         }
       },
       "Picture": {
         "rules": {
           "type": "binary",
-          "minOccurences": 0,
-          "subtype": "image",
-          "maxOccurences": 1
+          "subtype": "image"
         }
       },
       "CategoryID": {
         "index": "unique",
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       }
     },
@@ -726,8 +634,6 @@
       "ShipRegion": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
@@ -735,16 +641,14 @@
         "index": "unique",
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       },
       "OrderDate": {
         "index": "index",
         "rules": {
-          "type": "date",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "type": "date"
         }
       },
       "Customers": {
@@ -755,89 +659,68 @@
         },
         "rules": {
           "type": "reference",
-          "minOccurences": 0,
           "maxOccurences": 2147483647
         }
       },
       "ShipCity": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
       "ShippedDate": {
         "index": "index",
         "rules": {
-          "type": "date",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "type": "date"
         }
       },
       "EmployeeID": {
         "index": "range",
         "rules": {
-          "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "type": "integer"
         }
       },
       "ShipPostalCode": {
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 10
         }
       },
       "ShipName": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 40
         }
       },
       "CustomerID": {
         "index": "fulltext",
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 5
         }
       },
       "ShipAddress": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 60
         }
       },
       "ShipCountry": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
       "RequiredDate": {
         "rules": {
-          "type": "date",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "type": "date"
         }
       },
       "Freight": {
         "defaultValue": 0,
         "rules": {
-          "type": "money",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "type": "money"
         }
       }
     },
@@ -870,135 +753,107 @@
       "PhotoPath": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 255
         }
       },
       "LastName": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
+          "maxLength": 20
         }
       },
       "HireDate": {
         "rules": {
-          "type": "date",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "type": "date"
         }
       },
       "Title": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 30
         }
       },
       "Country": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
       "HomePhone": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 24
         }
       },
       "Extension": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 4
         }
       },
       "BirthDate": {
         "rules": {
-          "type": "date",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "type": "date"
         }
       },
       "Notes": {
         "rules": {
           "type": "binary",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 2147483647
         }
       },
       "Region": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
       "PostalCode": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 10
         }
       },
       "Address": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 60
         }
       },
       "City": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
           "maxLength": 15
         }
       },
       "FirstName": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
+          "maxLength": 10
         }
       },
       "EmployeeID": {
         "index": "unique",
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       },
       "Photo": {
         "rules": {
           "type": "binary",
-          "minOccurences": 0,
-          "subtype": "image",
-          "maxOccurences": 1
+          "subtype": "image"
         }
       },
       "TitleOfCourtesy": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "maxLength": 25
         }
       }
     }
@@ -1032,16 +887,16 @@
       "CustomsDescription": {
         "rules": {
           "type": "text",
-          "minOccurences": 0,
-          "maxOccurences": 1,
-          "maxLength": 15
+          "minOccurrences": 1,
+          "maxOccurrences": 1,
+          "maxLength": 100
         }
       },
       "ExciseTax": {
         "rules": {
           "type": "money",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       }
     }
@@ -1064,7 +919,6 @@
         },
         "rules": {
           "type": "reference",
-          "minOccurences": 1,
           "maxOccurences": 2147483647
         }
       },
@@ -1072,42 +926,42 @@
         "index": "unique",
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       },
       "Discount": {
         "defaultValue": 0,
         "rules": {
           "type": "number",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       },
       "Quantity": {
         "defaultValue": 1,
         "rules": {
-          "minValue": -32768,
+          "maxOccurrences": 1,
           "maxValue": 32767,
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "minOccurrences": 1,
+          "minValue": -32768
         }
       },
       "UnitPrice": {
         "defaultValue": 0,
         "rules": {
           "type": "money",
-          "maxOccurences": 1,
-          "minOccurences": 0
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       },
       "ProductID": {
         "index": "range",
         "rules": {
           "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "maxOccurrences": 1,
+          "minOccurrences": 1
         }
       }
     },

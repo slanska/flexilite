@@ -65,3 +65,11 @@ to link to source code and set breakpoints
 * extend flexiActions - function to table, with help and description
 * toJSON, flexi schema
 * try to bundle .lua files into DLL using luajit -b 
+* Flexish. Schema generate:
+    - Name, Description special properties - use any text field, if it is the only text or only indexed text field
+    e.g. Regions should have name and description = RegionDescription
+    - &#10003; maxLength == 15 for all text properties
+    - Employees does not have specialProperties -> {name=LastName}
+    - Products.Category - maxOccurrences should be 1, not maxint. 
+    - Products: prop Category (singular), not Categories (plural)
+    
