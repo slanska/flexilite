@@ -36,7 +36,7 @@ function Flexi:newDBContext(db)
     --    db = db,
     --    ClassDefs = {} }
 
-    local result = DBContext:new(db)
+    local result = DBContext(db)
     self.Contexts[db] = result
     result.Vars = {}
 

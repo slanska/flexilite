@@ -4,8 +4,8 @@
 ---
 
 local bits = require 'bit32'
-
-local SQLiteSchemaParser = {}
+local class = require 'pl.class'
+local SQLiteSchemaParser = class()
 
 table.find = function(tbl, func)
     for i, v in pairs(tbl) do
@@ -56,24 +56,17 @@ table.isEqual = function(A, B)
 end
 
 ---@param db sqlite3.Database
-function SQLiteSchemaParser:new(db)
-    local result = {
-        -- ClassDefCollection
-        outSchema = {},
+function SQLiteSchemaParser:_init(db)
+    -- ClassDefCollection
+    self.outSchema = {}
 
-        -- ITableInfo[]
-        tableInfo = {},
+    -- ITableInfo[]
+    self.tableInfo = {}
 
-        --FlexishResults
-        results = {},
+    --FlexishResults
+    self.results = {}
 
-        db = db,
-    }
-
-    setmetatable(result, self)
-    self.__index = self
-
-    return result
+    self.db = db
 end
 
 local sqliteTypesToFlexiTypes = {
@@ -148,8 +141,6 @@ Canonical conditions:
 
 If conditions 1-4 are met, this table is considered as a many-to-many list.
 Foreign key info in SQLite comes from detail/linked table, so it is either N:1 or 1:1
-
-*/
 ]]
 function SQLiteSchemaParser:processMany2ManyRelations()
     --[[
@@ -161,8 +152,6 @@ function SQLiteSchemaParser:processMany2ManyRelations()
     Assume that there are tables A and B, with ID columns a and b.
     As and Bs are pluralized form of table names
     Properties will be named: As, or As_a (if As already used) and Bs or Bs_b, respectively
-
-    */
     ]]
 
     for i, it in ipairs(self.tableInfo) do
@@ -185,7 +174,6 @@ function SQLiteSchemaParser:findTableInfoByName(tableName)
 end
 
 --[[
-    /*
      Processes indexes specification using following rules:
      1) primary and unique indexes on single columns are processed as is
      2) multi column (composite) unique indexes are supported if number of columns is 2..4.
@@ -199,9 +187,7 @@ end
      for multi-column indexes only first columns in index definitions will be processed.
      8) All columns from non-unique indexes that were not included into FTS, RTree or regular indexes will NOT be indexed
      Warning will be generated
-     */
 
-    /*
      Applies some guessing about role of columns based on their indexing and naming
      The following rules are applied:
      1) primary not autoincrement or unique non-text column gets role "uid"
@@ -209,12 +195,9 @@ end
      3) If unique column name ends with '*Code'
      or its max length is shortest among other unique text columns, it gets role "code"
      4) If unique column name ends with "*Name", it gets role "name",
-     */
 
-    /*
      Loads all metadata for the SQLite table (columns, indexes, foreign keys)
      Builds complete ITableInfo and returns promise for it
-     */
      ]]
 ---@param tblDef ISQLiteTableInfo
 ---@return ITableInfo
@@ -266,12 +249,16 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
         end
 
         if col.dflt_value then
-            prop.defaultValue = col.dflt_value
+            local defVal = col.dflt_value
+            if prop.rules.type == 'number' or prop.rules.type == 'integer' or prop.rules.type == 'money' then
+                defVal = tonumber(defVal)
+            end
+            prop.defaultValue = defVal
         end
 
         modelDef.properties[col.name] = prop
 
-        tableInfo.columns[col.cid] = col
+        tableInfo.columns[col.cid + 1] = col
         tableInfo.columnCount = tableInfo.columnCount + 1
     end
 
@@ -366,7 +353,7 @@ end
 function SQLiteSchemaParser:getIndexColumnNames(tbl, idx)
     local result = {}
     for i, c in ipairs(idx.columns) do
-        table.insert(result, tbl.columns[c.cid].name)
+        table.insert(result, tbl.columns[c.cid + 1].name)
     end
     return table.concat(result, ',')
 end
@@ -382,11 +369,8 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
              Process foreign keys. Defines reference properties.
          There are 3 cases:
          1) normal 1:N, (1 is defined in inFKeys, N - in outFKeys)
-         2) extending 1:1, when outFKeys column is primary column
+         2) mixin 1:1, when outFKeys column is primary column
          3) many-to-many M:N, via special table with 2 columns which are foreign keys to other table(s)
-
-         Note: currently Flexilite does not support multi-column primary keys, thus multi-column
-         foreign keys are not supported either
     ]]
 
     local many2many = false
@@ -453,7 +437,7 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
                 rules = {
                     type = 'reference',
                     minOccurences = cc.rules.minOccurences,
-                    maxOccurences = -(bits.lshift(1, 31))
+                    maxOccurences = bits.lshift(1, 31) - 1
                 }
             }
             local propName = fk.table -- FIXME Pluralize
@@ -478,7 +462,7 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     -- Set indexing
     self:processUniqueNonTextIndexes(tblInfo, classDef)
     self:processUniqueTextIndexes(tblInfo, classDef)
-    self:processUniqueMultiColumnIndexes(tblInfo, self)
+    self:processUniqueMultiColumnIndexes(tblInfo, classDef)
     self:processNonUniqueIndexes(tblInfo, classDef)
 end
 
@@ -496,7 +480,7 @@ function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
     local rtCols = { 'A', 'B', 'C', 'D', 'E' }
 
     for i, idx in ipairs(nonUniqueIndexes) do
-        local col = tblInfo.columns[idx.columns[1].cid]
+        local col = tblInfo.columns[idx.columns[1].cid + 1]
         local prop = classDef.properties[col.name]
 
         if prop.rules.type == 'text' then
@@ -530,21 +514,28 @@ function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
 end
 
 ---@param tblInfo ITableInfo
-function SQLiteSchemaParser:processUniqueMultiColumnIndexes(tblInfo)
+function SQLiteSchemaParser:processUniqueMultiColumnIndexes(tblInfo, classDef)
     local uniqMultiIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
-        return #idx.columns > 1 and idx.unique == 1
+        return #idx.columns > 1 and idx.unique == 1 and idx.partial == 0
     end)
 
     for i, idx in ipairs(uniqMultiIndexes) do
         if #idx.columns > 4 then
-            local msg = string.format( "Index [%s] by %s is ignored as multi-column unique indexes are not supported by Flexilite",
+            local msg = string.format( "Index [%s] by %s is ignored as multi-column unique indexes with more than 4 columns are not supported by Flexilite",
             idx.name, self:getIndexColumnNames(tblInfo, idx))
             table.insert(self.results, {
                 type = 'warn',
                 message = msg,
                 tableName = tblInfo.table })
         else
-
+            classDef.indexes = classDef.indexes or {}
+            classDef.indexes[idx.name] = {
+                type = 'unique',
+                properties = {}
+            }
+            for i, cc in ipairs(idx.columns) do
+                classDef.indexes[idx.name].properties[i] = { name = cc.name }
+            end
         end
     end
 end
@@ -553,7 +544,7 @@ end
 ---@param classDef IClassDefinition
 function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
     local uniqOtherIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
-        local tt = classDef.properties[tblInfo.columns[idx.columns[1].cid].name].rules.type
+        local tt = classDef.properties[tblInfo.columns[idx.columns[1].cid + 1].name].rules.type
         return #idx.columns == 1 and idx.unique == 1 and (tt == 'integer' or tt == 'number' or tt == 'datetime'
         or tt == 'binary')
     end)
@@ -565,7 +556,7 @@ function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
         end
 
         local function getTypeWeight(item)
-            local result = classDef.properties[tblInfo.columns[item.columns[1].cid].name].rules.type
+            local result = classDef.properties[tblInfo.columns[item.columns[1].cid + 1].name].rules.type
             if result == 'integer' then
                 return 0
             end
@@ -590,12 +581,12 @@ function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
     end )
 
     if #uniqOtherIndexes > 0 then
-        classDef.specialProperties.uid = { name = tblInfo.columns[uniqOtherIndexes[1].columns[1].cid].name }
+        classDef.specialProperties.uid = { name = tblInfo.columns[uniqOtherIndexes[1].columns[1].cid + 1].name }
         for i, idx in ipairs(uniqOtherIndexes) do
-            local col = tblInfo.columns[idx.columns[1].cid]
+            local col = tblInfo.columns[idx.columns[1].cid + 1]
             local prop = classDef.properties[col.name]
             if prop.rules.type == 'binary' and prop.rules.maxLength == 16 then
-                classDef.specialProperties.autoUuid = { name = tblInfo.columns[idx.columns[1].cid].name }
+                classDef.specialProperties.autoUuid = { name = tblInfo.columns[idx.columns[1].cid + 1].name }
             end
         end
     end
@@ -621,8 +612,8 @@ function SQLiteSchemaParser:processUniqueTextIndexes(tblInfo, classDef)
             return 0
         end
 
-        local v1 = classDef.properties[tblInfo.columns[A.columns[1].cid].name].rules.maxLength
-        local v2 = classDef.properties[tblInfo.columns[B.columns[1].cid].name].rules.maxLength
+        local v1 = classDef.properties[tblInfo.columns[A.columns[1].cid + 1].name].rules.maxLength
+        local v2 = classDef.properties[tblInfo.columns[B.columns[1].cid + 1].name].rules.maxLength
         if v1 == v2 then
             return 0
         end
@@ -634,13 +625,13 @@ function SQLiteSchemaParser:processUniqueTextIndexes(tblInfo, classDef)
 
     if #uniqTxtIndexes > 0 then
         -- Items assigned to code, name, description
-        classDef.specialProperties.code = { name = tblInfo.columns[uniqTxtIndexes[1].columns[1].cid].name }
+        classDef.specialProperties.code = { name = tblInfo.columns[uniqTxtIndexes[1].columns[1].cid + 1].name }
         if not classDef.specialProperties.uid then
             classDef.specialProperties.uid = classDef.specialProperties.code
         end
 
-        classDef.specialProperties.name = { name = tblInfo.columns[uniqTxtIndexes[#uniqTxtIndexes > 1 and 2 or 1].columns[1].cid].name };
-        classDef.specialProperties.description = { name = tblInfo.columns[uniqTxtIndexes[#uniqTxtIndexes].columns[1].cid].name };
+        classDef.specialProperties.name = { name = tblInfo.columns[uniqTxtIndexes[#uniqTxtIndexes > 1 and 2 or 1].columns[1].cid + 1].name };
+        classDef.specialProperties.description = { name = tblInfo.columns[uniqTxtIndexes[#uniqTxtIndexes].columns[1].cid + 1].name };
     end
 end
 

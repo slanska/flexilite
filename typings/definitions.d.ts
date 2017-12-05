@@ -517,6 +517,11 @@ interface IClassDefinition {
          Auto generated short ID (7-16 characters)
          */
         autoShortId?: IMetadataRef;
+
+        /*
+        Object owner
+         */
+        owner?: IMetadataRef;
     }
 
     /*
@@ -573,8 +578,21 @@ interface IClassDefinition {
         detail: IStorageFlexiRelProperty;
     },
 
-    indexes?: { [indexName: string]: {properties: string | IIndexDef[],
-            type?: PropertyIndexMode }}
+    /*
+    Alternative way to define indexes (in addition to property's indexing)
+    Also, used for multi-column unique indexes
+     */
+    indexes?: {
+        [indexName: string]: {
+            properties: string | IIndexDef[],
+            type?: PropertyIndexMode
+        }
+    },
+
+    /*
+    User defined arbitrary data
+     */
+    meta?: object;
 }
 
 interface IStorageFlexiRelProperty {

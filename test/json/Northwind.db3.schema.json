@@ -207,7 +207,7 @@
         "rules": {
           "type": "reference",
           "minOccurences": 1,
-          "maxOccurences": -2147483648
+          "maxOccurences": 2147483647
         }
       },
       "TerritoryID": {
@@ -363,7 +363,7 @@
     },
     "properties": {
       "UnitsOnOrder": {
-        "defaultValue": "0",
+        "defaultValue": 0,
         "rules": {
           "minValue": -32768,
           "maxValue": 32767,
@@ -381,7 +381,7 @@
         }
       },
       "ReorderLevel": {
-        "defaultValue": "0",
+        "defaultValue": 0,
         "rules": {
           "minValue": -32768,
           "maxValue": 32767,
@@ -399,7 +399,7 @@
         }
       },
       "UnitPrice": {
-        "defaultValue": "0",
+        "defaultValue": 0,
         "rules": {
           "type": "money",
           "maxOccurences": 1,
@@ -415,7 +415,7 @@
         "rules": {
           "type": "reference",
           "minOccurences": 0,
-          "maxOccurences": -2147483648
+          "maxOccurences": 2147483647
         }
       },
       "Categories": {
@@ -427,7 +427,7 @@
         "rules": {
           "type": "reference",
           "minOccurences": 0,
-          "maxOccurences": -2147483648
+          "maxOccurences": 2147483647
         }
       },
       "DiscontinuedDate": {
@@ -471,7 +471,7 @@
         }
       },
       "UnitsInStock": {
-        "defaultValue": "0",
+        "defaultValue": 0,
         "rules": {
           "minValue": -32768,
           "maxValue": 32767,
@@ -489,16 +489,37 @@
     "specialProperties": {}
   },
   "EmployeesTerritories": {
-    "specialProperties": {},
+    "indexes": {
+      "sqlite_autoindex_EmployeesTerritories_1": {
+        "type": "unique",
+        "properties": [
+          {
+            "name": "EmployeeID"
+          },
+          {
+            "name": "TerritoryID"
+          }
+        ]
+      }
+    },
     "properties": {
-      "TerritoryID": {
+      "Employees": {
         "refDef": {
           "classRef": {
-            "name": "Territories"
+            "name": "Employees"
           }
         },
         "rules": {
-          "type": "mixin"
+          "type": "reference",
+          "minOccurences": 1,
+          "maxOccurences": 2147483647
+        }
+      },
+      "TerritoryID": {
+        "rules": {
+          "type": "integer",
+          "maxOccurences": 1,
+          "minOccurences": 1
         }
       },
       "EmployeeID": {
@@ -509,19 +530,20 @@
           "minOccurences": 1
         }
       },
-      "Employees": {
+      "Territories": {
         "refDef": {
           "classRef": {
-            "name": "Employees"
+            "name": "Territories"
           }
         },
         "rules": {
           "type": "reference",
           "minOccurences": 1,
-          "maxOccurences": -2147483648
+          "maxOccurences": 2147483647
         }
       }
-    }
+    },
+    "specialProperties": {}
   },
   "Customers": {
     "properties": {
@@ -734,7 +756,7 @@
         "rules": {
           "type": "reference",
           "minOccurences": 0,
-          "maxOccurences": -2147483648
+          "maxOccurences": 2147483647
         }
       },
       "ShipCity": {
@@ -811,7 +833,7 @@
         }
       },
       "Freight": {
-        "defaultValue": "0",
+        "defaultValue": 0,
         "rules": {
           "type": "money",
           "maxOccurences": 1,
@@ -983,13 +1005,13 @@
   },
   "InternationalOrders": {
     "specialProperties": {
-      "code": {
+      "uid": {
         "name": "OrderID"
       },
       "name": {
         "name": "OrderID"
       },
-      "uid": {
+      "code": {
         "name": "OrderID"
       },
       "description": {
@@ -997,24 +1019,14 @@
       }
     },
     "properties": {
-      "Orders": {
+      "OrderID": {
         "refDef": {
           "classRef": {
             "name": "Orders"
           }
         },
         "rules": {
-          "type": "reference",
-          "minOccurences": 1,
-          "maxOccurences": -2147483648
-        }
-      },
-      "OrderID": {
-        "index": "unique",
-        "rules": {
-          "type": "integer",
-          "maxOccurences": 1,
-          "minOccurences": 1
+          "type": "mixin"
         }
       },
       "CustomsDescription": {
@@ -1035,8 +1047,27 @@
     }
   },
   "OrderDetails": {
-    "specialProperties": {},
+    "rangeIndexing": {
+      "E0": {
+        "name": "ProductID"
+      },
+      "E1": {
+        "name": "ProductID"
+      }
+    },
     "properties": {
+      "Products": {
+        "refDef": {
+          "classRef": {
+            "name": "Products"
+          }
+        },
+        "rules": {
+          "type": "reference",
+          "minOccurences": 1,
+          "maxOccurences": 2147483647
+        }
+      },
       "OrderID": {
         "index": "unique",
         "rules": {
@@ -1046,7 +1077,7 @@
         }
       },
       "Discount": {
-        "defaultValue": "0",
+        "defaultValue": 0,
         "rules": {
           "type": "number",
           "maxOccurences": 1,
@@ -1054,7 +1085,7 @@
         }
       },
       "Quantity": {
-        "defaultValue": "1",
+        "defaultValue": 1,
         "rules": {
           "minValue": -32768,
           "maxValue": 32767,
@@ -1064,7 +1095,7 @@
         }
       },
       "UnitPrice": {
-        "defaultValue": "0",
+        "defaultValue": 0,
         "rules": {
           "type": "money",
           "maxOccurences": 1,
@@ -1072,16 +1103,14 @@
         }
       },
       "ProductID": {
-        "index": "index",
-        "refDef": {
-          "classRef": {
-            "name": "Products"
-          }
-        },
+        "index": "range",
         "rules": {
-          "type": "mixin"
+          "type": "integer",
+          "maxOccurences": 1,
+          "minOccurences": 1
         }
       }
-    }
+    },
+    "specialProperties": {}
   }
 }

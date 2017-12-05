@@ -21,7 +21,7 @@ local function generateSchema(cli_args)
         error(errMsg)
     end
 
-    local sqliteParser = SQLiteSchemaParser:new(db)
+    local sqliteParser = SQLiteSchemaParser(db)
     local schema = sqliteParser:parseSchema()
     local schemaJson = json.encode(schema)
 

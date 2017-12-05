@@ -22,14 +22,14 @@ Handles 'flexi' function
 ]]
 
 local json = require 'cjson'
---local json = require 'cjson'
+local class = require 'pl.class'
 
 local ClassDef = require('ClassDef')
 local PropertyDef = require('PropertyDef')
 local UserInfo = require('UserInfo')
 
 --- @class DBContext
-local DBContext = {}
+local DBContext = class()
 
 -- Forward declarations
 local flexiFuncs
@@ -38,35 +38,28 @@ local flexiHelp
 --- Creates a new DBContext, associated with sqlite database connection
 --- @param db sqlite3
 --- @return DBContext
-function DBContext:new(db)
+function DBContext:_init(db)
     assert(db)
 
-    local result = {
-        db = db,
+    self.db = db
 
-        -- Cache of most used statements, key is statement SQL
-        Statements = {},
-        MemDB = nil,
-        UserInfo = UserInfo:new(),
+    -- Cache of most used statements, key is statement SQL
+    self.Statements = {}
+    self.MemDB = nil
+    self.UserInfo = UserInfo()
 
-        -- Collection of classes. Each class is referenced twice - by ID and Name
-        Classes = {},
-        Functions = {},
+    -- Collection of classes. Each class is referenced twice - by ID and Name
+    self.Classes = {}
+    self.Functions = {}
 
-        -- helper constructors
-        ClassDef = ClassDef,
-        PropertyDef = PropertyDef,
+    -- helper constructors
+    self.ClassDef = ClassDef
+    self.PropertyDef = PropertyDef
 
-        -- Can be overriden by flexi('config', ...)
-        config = {
-            createVirtualTable = false
-        }
+    -- Can be overriden by flexi('config', ...)
+    self.config = {
+        createVirtualTable = false
     }
-
-    setmetatable(result, self)
-    self.__index = self
-
-    return result
 end
 
 --- Utility function to check status returned by SQLite call
@@ -300,7 +293,7 @@ end
 --- @see ClassDef
 --- @return ClassDef @comment or nil, if not found
 function DBContext:LoadClassDefinition(classIdOrName, noList)
-    local result = self.Classes[classId]
+    local result = self.Classes[classIdOrName]
     if result then
         if type(classIdOrName) == 'string' then
             assert(result.Name == classIdOrName)

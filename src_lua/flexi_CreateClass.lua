@@ -102,7 +102,8 @@ local function CreateClass(self, className, classDef, createVirtualTable)
             ['4'] = clsObject.D.Unresolved,
             ['5'] = clsObject.D.ctloMask
         })
-        clsObject.ClassID = self.db:last_insert_rowid()
+        clsObject.D.ClassID = self.db:last_insert_rowid()
+        clsObject.ClassID = clsObject.D.ClassID
         self:addClassToList(clsObject)
 
         -- TODO Check if there unresolved classes

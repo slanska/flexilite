@@ -3,18 +3,14 @@
 --- DateTime: 2017-11-01 11:37 PM
 ---
 
-local UserInfo = {}
+local class = require 'pl.class'
 
-function UserInfo:new(o)
-    o = o or {
-        UserID = '',
-        Roles = {},
-        Culture = {}
-    }
+local UserInfo = class()
 
-    setmetatable(o, self)
-    self.__index = self
-    return o
+function UserInfo:_init(o)
+    self.UserID = ''
+    self.Roles = {}
+    self.Culture = {}
 end
 
 -- sqlite function handler
