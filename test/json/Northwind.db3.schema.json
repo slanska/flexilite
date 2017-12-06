@@ -1,16 +1,7 @@
 {
   "Regions": {
     "specialProperties": {
-      "code": {
-        "name": "RegionID"
-      },
-      "name": {
-        "name": "RegionID"
-      },
       "uid": {
-        "name": "RegionID"
-      },
-      "description": {
         "name": "RegionID"
       }
     },
@@ -156,16 +147,7 @@
   },
   "Territories": {
     "specialProperties": {
-      "code": {
-        "name": "TerritoryID"
-      },
-      "name": {
-        "name": "TerritoryID"
-      },
       "uid": {
-        "name": "TerritoryID"
-      },
-      "description": {
         "name": "TerritoryID"
       }
     },
@@ -606,20 +588,7 @@
         "name": "CategoryName"
       }
     },
-    "specialProperties": {
-      "code": {
-        "name": "CategoryID"
-      },
-      "name": {
-        "name": "CategoryID"
-      },
-      "uid": {
-        "name": "CategoryID"
-      },
-      "description": {
-        "name": "CategoryID"
-      }
-    }
+    "specialProperties": {}
   },
   "Orders": {
     "rangeIndexing": {
@@ -736,16 +705,7 @@
   },
   "PreviousEmployees": {
     "specialProperties": {
-      "code": {
-        "name": "EmployeeID"
-      },
-      "name": {
-        "name": "EmployeeID"
-      },
       "uid": {
-        "name": "EmployeeID"
-      },
-      "description": {
         "name": "EmployeeID"
       }
     },
@@ -859,20 +819,7 @@
     }
   },
   "InternationalOrders": {
-    "specialProperties": {
-      "uid": {
-        "name": "OrderID"
-      },
-      "name": {
-        "name": "OrderID"
-      },
-      "code": {
-        "name": "OrderID"
-      },
-      "description": {
-        "name": "OrderID"
-      }
-    },
+    "specialProperties": {},
     "properties": {
       "OrderID": {
         "refDef": {

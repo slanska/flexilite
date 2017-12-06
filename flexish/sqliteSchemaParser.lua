@@ -135,10 +135,10 @@ end
 --[[
 Iterates over list of tables and tries to find candidates for many-to-many relation tables.
 Canonical conditions:
-1) table should have only 2 columns (A & B)
-2) table should have primary index on both columns (A and B)
-3) Both columns are foreign keys to some tables
-4) there is an index on column B (optional, not required)
+1) table must have only 2 columns (A & B)
+2) table must have primary index on both columns
+3) Both columns must be foreign keys to some tables
+4) there is an index on column B (this is optional, not required)
 
 If conditions 1-4 are met, this table is considered as a many-to-many list.
 Foreign key info in SQLite comes from detail/linked table, so it is either N:1 or 1:1
@@ -366,6 +366,93 @@ function SQLiteSchemaParser:getIndexColumnNames(tbl, idx)
 end
 
 ---@param tblInfo ITableInfo
+---@param classDef IClassDef
+function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
+
+    ---@param colNames table @of string
+    local function findReqCol(colNames)
+        for i, cc in ipairs(tblInfo.columns) do
+            if cc.required == 1 then
+                local result = table.find(colName, function(cn)
+                    return string.lower(cc.name) == string.lower( cn)
+                end)
+
+                if result then
+                    return { name = cc.name }
+                end
+            end
+        end
+    end
+
+    local uniqOtherIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
+        return idx.unique == 1
+    end)
+
+    --[[ Wild guessing about special properties
+         -uid: integer or text (shortest), unique index, required or 'uid' or 'id'
+         name: text(second in length), required or 'name'. Index is not required
+         description: text(largest), required or 'description'. Index is not required
+         -code: text (shortest), unique index, required or 'code'
+         nonUniqueId: integer or text (shortest), non unique index, required or 'uid' or 'id'
+         createTime: date/datetime, required, 'created', 'createDate'
+         updateTime: date/time, required, 'updated', 'updateDate', 'lastUpdated'
+         -autoUuid: binary(16), unique index, required
+         -autoShortId: text(<=16), unique index, required
+         owner: 'owner', 'user', 'createdBy'
+     ]]
+
+    -- Check unique indexes: candidates for uid, code, autoUuid, autoShortId
+    if #uniqOtherIndexes > 0 then
+        local codePropCandidate, namePropCodeCandidate, codePropName, namePropName
+        for i, idx in ipairs(uniqOtherIndexes) do
+            if #idx.columns == 1 then
+                local col = tblInfo.columns[idx.columns[1].cid + 1]
+                local prop = classDef.properties[col.name]
+                if prop.rules.type == 'binary' then
+                    if prop.rules.maxLength == 16 then
+                        -- looks like GUID
+                        classDef.specialProperties.autoUuid = { name = tblInfo.columns[idx.columns[1].cid + 1].name }
+                    end
+                elseif prop.rules.type == 'text' then
+                    if not codePropCandidate or prop.rules.maxLength < codePropCandidate.rules.maxLength then
+                        codePropName = col.name
+                        codePropCandidate = prop
+                    end
+
+                    if not namePropCodeCandidate
+                    or (prop ~= codePropCandidate
+                    and namePropCodeCandidate.rules.maxLength < codePropCandidate.rules.maxLength
+                    and namePropCodeCandidate.rules.maxLength < prop.rules.maxLength) then
+                        namePropName = col.name
+                        namePropCodeCandidate = prop
+                    end
+                elseif prop.rules.type == 'integer' then
+                    if not classDef.specialProperties.uid then
+                        classDef.specialProperties.uid = { name = tblInfo.columns[uniqOtherIndexes[1].columns[1].cid + 1].name }
+                    end
+                end
+            end
+        end
+
+        if codePropCandidate then
+            classDef.specialProperties.code = { name = codePropName }
+        else
+            -- find 'code' column
+            classDef.specialProperties.code = findReqCol { 'code' }
+        end
+
+        if namePropCodeCandidate then
+            classDef.specialProperties.name = { name = namePropName }
+        else
+            -- find 'name' column
+            classDef.specialProperties.code = findReqCol { 'name' }
+        end
+    end
+    classDef.specialProperties.description = findReqCol { 'description' }
+    classDef.specialProperties.owner = findReqCol { 'owner', 'createdby', 'userid', 'user' }
+end
+
+---@param tblInfo ITableInfo
 ---@return IClassDef
 function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     local classDef = self.outSchema[tblInfo.table]
@@ -472,6 +559,7 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     self:processUniqueTextIndexes(tblInfo, classDef)
     self:processUniqueMultiColumnIndexes(tblInfo, classDef)
     self:processNonUniqueIndexes(tblInfo, classDef)
+    self:processSpecialProps(tblInfo, classDef)
 
     return classDef
 end
@@ -590,17 +678,11 @@ function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
         return -1
     end )
 
-    if #uniqOtherIndexes > 0 then
-        classDef.specialProperties.uid = { name = tblInfo.columns[uniqOtherIndexes[1].columns[1].cid + 1].name }
-        for i, idx in ipairs(uniqOtherIndexes) do
-            local col = tblInfo.columns[idx.columns[1].cid + 1]
-            local prop = classDef.properties[col.name]
-            if prop.rules.type == 'binary' and prop.rules.maxLength == 16 then
-                classDef.specialProperties.autoUuid = { name = tblInfo.columns[idx.columns[1].cid + 1].name }
-            end
-        end
-    end
+
 end
+
+-- Check required fields. Candidates for name, description, nonUniqueId, createTime, updateTime,
+-- owner
 
 ---@param tblInfo ITableInfo
 ---@param classDef IClassDefinition
@@ -617,32 +699,32 @@ function SQLiteSchemaParser:processUniqueTextIndexes(tblInfo, classDef)
     local uniqTxtIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
         return #idx.columns == 1 and idx.unique == 1
     end)
-    table.sort(uniqTxtIndexes, function(A, B)
-        if not A or not B then
-            return 0
-        end
+    --table.sort(uniqTxtIndexes, function(A, B)
+    --    if not A or not B then
+    --        return 0
+    --    end
+    --
+    --    local v1 = classDef.properties[tblInfo.columns[A.columns[1].cid + 1].name].rules.maxLength
+    --    local v2 = classDef.properties[tblInfo.columns[B.columns[1].cid + 1].name].rules.maxLength
+    --    if v1 == v2 then
+    --        return 0
+    --    end
+    --    if v1 < v2 then
+    --        return -1
+    --    end
+    --    return 1
+    --end)
 
-        local v1 = classDef.properties[tblInfo.columns[A.columns[1].cid + 1].name].rules.maxLength
-        local v2 = classDef.properties[tblInfo.columns[B.columns[1].cid + 1].name].rules.maxLength
-        if v1 == v2 then
-            return 0
-        end
-        if v1 < v2 then
-            return -1
-        end
-        return 1
-    end)
-
-    if #uniqTxtIndexes > 0 then
-        -- Items assigned to code, name, description
-        classDef.specialProperties.code = { name = tblInfo.columns[uniqTxtIndexes[1].columns[1].cid + 1].name }
-        if not classDef.specialProperties.uid then
-            classDef.specialProperties.uid = classDef.specialProperties.code
-        end
-
-        classDef.specialProperties.name = { name = tblInfo.columns[uniqTxtIndexes[#uniqTxtIndexes > 1 and 2 or 1].columns[1].cid + 1].name };
-        classDef.specialProperties.description = { name = tblInfo.columns[uniqTxtIndexes[#uniqTxtIndexes].columns[1].cid + 1].name };
-    end
+    --if #uniqTxtIndexes > 0 then
+    --    -- Items assigned to code, name, description
+    --    classDef.specialProperties.code = { name = tblInfo.columns[uniqTxtIndexes[1].columns[1].cid + 1].name }
+    --    if not classDef.specialProperties.uid then
+    --        classDef.specialProperties.uid = classDef.specialProperties.code
+    --    end
+    --
+    --    classDef.specialProperties.name = { name = tblInfo.columns[uniqTxtIndexes[#uniqTxtIndexes > 1 and 2 or 1].columns[1].cid + 1].name };
+    --    classDef.specialProperties.description = { name = tblInfo.columns[uniqTxtIndexes[#uniqTxtIndexes].columns[1].cid + 1].name };
+    --end
 end
 
 --[[

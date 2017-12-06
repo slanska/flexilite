@@ -26,9 +26,7 @@ local class = require 'pl.class'
 ]]
 
 ---@class ClassDef
-local ClassDef = class() --[[{
-
-}]]
+local ClassDef = class()
 
 --- ClassDef constructor
 ---@param params table @comment {DBContext, newClassName, data: table | string | json}
@@ -191,4 +189,3 @@ function ClassDef:internalToJSON()
 end
 
 return ClassDef
-

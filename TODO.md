@@ -72,4 +72,5 @@ to link to source code and set breakpoints
     - Employees does not have specialProperties -> {name=LastName}
     - Products.Category - maxOccurrences should be 1, not maxint. 
     - Products: prop Category (singular), not Categories (plural)
+    - Define reverse properties for FKEY
     
