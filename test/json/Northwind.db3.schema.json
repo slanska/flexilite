@@ -1,917 +1,917 @@
 {
-  "Regions": {
-    "specialProperties": {
-      "uid": {
-        "name": "RegionID"
-      }
-    },
-    "properties": {
-      "RegionDescription": {
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 50
-        }
-      },
-      "RegionID": {
-        "index": "unique",
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      }
-    }
-  },
-  "Employees": {
-    "properties": {
-      "PhotoPath": {
-        "rules": {
-          "type": "text",
-          "maxLength": 255
-        }
-      },
-      "LastName": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 20
-        }
-      },
-      "HireDate": {
-        "rules": {
-          "type": "date"
-        }
-      },
-      "Title": {
-        "rules": {
-          "type": "text",
-          "maxLength": 30
-        }
-      },
-      "Country": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "HomePhone": {
-        "rules": {
-          "type": "text",
-          "maxLength": 24
-        }
-      },
-      "Extension": {
-        "rules": {
-          "type": "text",
-          "maxLength": 4
-        }
-      },
-      "BirthDate": {
-        "rules": {
-          "type": "date"
-        }
-      },
-      "Notes": {
-        "rules": {
-          "type": "binary",
-          "maxLength": 2147483647
-        }
-      },
-      "Region": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "PostalCode": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "maxLength": 10
-        }
-      },
-      "Address": {
-        "rules": {
-          "type": "text",
-          "maxLength": 60
-        }
-      },
-      "City": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "FirstName": {
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 10
-        }
-      },
-      "EmployeeID": {
-        "index": "unique",
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      },
-      "Photo": {
-        "rules": {
-          "type": "binary",
-          "subtype": "image"
-        }
-      },
-      "TitleOfCourtesy": {
-        "rules": {
-          "type": "text",
-          "maxLength": 25
-        }
-      }
-    },
-    "fullTextIndexing": {
-      "X4": {
-        "name": "PostalCode"
-      },
-      "X3": {
-        "name": "LastName"
-      }
-    },
-    "specialProperties": {}
-  },
-  "Territories": {
-    "specialProperties": {
-      "uid": {
-        "name": "TerritoryID"
-      }
-    },
-    "properties": {
-      "Regions": {
-        "refDef": {
-          "classRef": {
-            "name": "Regions"
-          }
-        },
-        "rules": {
-          "type": "reference",
-          "maxOccurences": 2147483647
-        }
-      },
-      "TerritoryID": {
-        "index": "unique",
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      },
-      "TerritoryDescription": {
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 50
-        }
-      },
-      "RegionID": {
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      }
-    }
-  },
-  "Suppliers": {
-    "properties": {
-      "ContactName": {
-        "rules": {
-          "type": "text",
-          "maxLength": 30
-        }
-      },
-      "Fax": {
-        "rules": {
-          "type": "text",
-          "maxLength": 24
-        }
-      },
-      "Region": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "PostalCode": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "maxLength": 10
-        }
-      },
-      "HomePage": {
-        "rules": {
-          "type": "binary",
-          "maxLength": 2147483647
-        }
-      },
-      "Address": {
-        "rules": {
-          "type": "text",
-          "maxLength": 60
-        }
-      },
-      "City": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "ContactTitle": {
-        "rules": {
-          "type": "text",
-          "maxLength": 30
-        }
-      },
-      "Phone": {
-        "rules": {
-          "type": "text",
-          "maxLength": 24
-        }
-      },
-      "CompanyName": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 40
-        }
-      },
-      "Country": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "SupplierID": {
-        "index": "unique",
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      }
-    },
-    "fullTextIndexing": {
-      "X4": {
-        "name": "PostalCode"
-      },
-      "X3": {
-        "name": "CompanyName"
-      }
-    },
-    "specialProperties": {}
-  },
-  "Products": {
-    "rangeIndexing": {
-      "E1": {
-        "name": "SupplierID"
-      },
-      "D0": {
-        "name": "CategoryID"
-      },
-      "E0": {
-        "name": "SupplierID"
-      },
-      "D1": {
-        "name": "CategoryID"
-      }
-    },
-    "properties": {
-      "UnitsOnOrder": {
-        "defaultValue": 0,
-        "rules": {
-          "maxValue": 32767,
-          "type": "integer",
-          "minValue": -32768
-        }
-      },
-      "QuantityPerUnit": {
-        "rules": {
-          "type": "text",
-          "maxLength": 20
-        }
-      },
-      "ReorderLevel": {
-        "defaultValue": 0,
-        "rules": {
-          "maxValue": 32767,
-          "type": "integer",
-          "minValue": -32768
-        }
-      },
-      "ProductID": {
-        "index": "unique",
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      },
-      "UnitPrice": {
-        "defaultValue": 0,
-        "rules": {
-          "type": "money"
-        }
-      },
-      "Suppliers": {
-        "refDef": {
-          "classRef": {
-            "name": "Suppliers"
-          }
-        },
-        "rules": {
-          "type": "reference",
-          "maxOccurences": 2147483647
-        }
-      },
-      "Categories": {
-        "refDef": {
-          "classRef": {
-            "name": "Categories"
-          }
-        },
-        "rules": {
-          "type": "reference",
-          "maxOccurences": 2147483647
-        }
-      },
-      "DiscontinuedDate": {
-        "rules": {
-          "type": "date"
-        }
-      },
-      "CategoryID": {
-        "index": "range",
-        "rules": {
-          "type": "integer"
-        }
-      },
-      "Discontinued": {
-        "defaultValue": "0",
-        "rules": {
-          "type": "boolean",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      },
-      "SupplierID": {
-        "index": "range",
-        "rules": {
-          "type": "integer"
-        }
-      },
-      "ProductName": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 40
-        }
-      },
-      "UnitsInStock": {
-        "defaultValue": 0,
-        "rules": {
-          "maxValue": 32767,
-          "type": "integer",
-          "minValue": -32768
-        }
-      }
-    },
-    "fullTextIndexing": {
-      "X4": {
-        "name": "ProductName"
-      }
-    },
-    "specialProperties": {}
-  },
-  "EmployeesTerritories": {
-    "indexes": {
-      "sqlite_autoindex_EmployeesTerritories_1": {
-        "type": "unique",
-        "properties": [
-          {
-            "name": "EmployeeID"
-          },
-          {
-            "name": "TerritoryID"
-          }
-        ]
-      }
-    },
-    "properties": {
-      "Employees": {
-        "refDef": {
-          "classRef": {
-            "name": "Employees"
-          }
-        },
-        "rules": {
-          "type": "reference",
-          "maxOccurences": 2147483647
-        }
-      },
-      "TerritoryID": {
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      },
-      "EmployeeID": {
-        "index": "unique",
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      },
-      "Territories": {
-        "refDef": {
-          "classRef": {
-            "name": "Territories"
-          }
-        },
-        "rules": {
-          "type": "reference",
-          "maxOccurences": 2147483647
-        }
-      }
-    },
-    "specialProperties": {}
-  },
-  "Customers": {
-    "properties": {
-      "ContactName": {
-        "rules": {
-          "type": "text",
-          "maxLength": 30
-        }
-      },
-      "Fax": {
-        "rules": {
-          "type": "text",
-          "maxLength": 24
-        }
-      },
-      "Region": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "PostalCode": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "maxLength": 10
-        }
-      },
-      "Address": {
-        "rules": {
-          "type": "text",
-          "maxLength": 60
-        }
-      },
-      "City": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "CustomerID": {
-        "index": "unique",
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 5
-        }
-      },
-      "Phone": {
-        "rules": {
-          "type": "text",
-          "maxLength": 24
-        }
-      },
-      "CompanyName": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 40
-        }
-      },
-      "Country": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "ContactTitle": {
-        "rules": {
-          "type": "text",
-          "maxLength": 30
-        }
-      }
-    },
-    "fullTextIndexing": {
-      "X2": {
-        "name": "CompanyName"
-      },
-      "X1": {
-        "name": "City"
-      },
-      "X4": {
-        "name": "Region"
-      },
-      "X3": {
-        "name": "PostalCode"
-      }
-    },
-    "specialProperties": {}
-  },
-  "Categories": {
-    "properties": {
-      "CategoryName": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 15
-        }
-      },
-      "Description": {
-        "rules": {
-          "type": "text"
-        }
-      },
-      "Picture": {
-        "rules": {
-          "type": "binary",
-          "subtype": "image"
-        }
-      },
-      "CategoryID": {
-        "index": "unique",
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      }
-    },
-    "fullTextIndexing": {
-      "X4": {
-        "name": "CategoryName"
-      }
-    },
-    "specialProperties": {}
-  },
-  "Orders": {
-    "rangeIndexing": {
-      "E0": {
-        "name": "EmployeeID"
-      },
-      "E1": {
-        "name": "EmployeeID"
-      }
-    },
-    "properties": {
-      "ShipRegion": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "OrderID": {
-        "index": "unique",
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      },
-      "OrderDate": {
-        "index": "index",
-        "rules": {
-          "type": "date"
-        }
-      },
-      "Customers": {
-        "refDef": {
-          "classRef": {
-            "name": "Customers"
-          }
-        },
-        "rules": {
-          "type": "reference",
-          "maxOccurences": 2147483647
-        }
-      },
-      "ShipCity": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "ShippedDate": {
-        "index": "index",
-        "rules": {
-          "type": "date"
-        }
-      },
-      "EmployeeID": {
-        "index": "range",
-        "rules": {
-          "type": "integer"
-        }
-      },
-      "ShipPostalCode": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "maxLength": 10
-        }
-      },
-      "ShipName": {
-        "rules": {
-          "type": "text",
-          "maxLength": 40
-        }
-      },
-      "CustomerID": {
-        "index": "fulltext",
-        "rules": {
-          "type": "text",
-          "maxLength": 5
-        }
-      },
-      "ShipAddress": {
-        "rules": {
-          "type": "text",
-          "maxLength": 60
-        }
-      },
-      "ShipCountry": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "RequiredDate": {
-        "rules": {
-          "type": "date"
-        }
-      },
-      "Freight": {
-        "defaultValue": 0,
-        "rules": {
-          "type": "money"
-        }
-      }
-    },
-    "fullTextIndexing": {
-      "X4": {
-        "name": "ShipPostalCode"
-      },
-      "X3": {
-        "name": "CustomerID"
-      }
-    },
-    "specialProperties": {}
-  },
-  "PreviousEmployees": {
-    "specialProperties": {
-      "uid": {
-        "name": "EmployeeID"
-      }
-    },
-    "properties": {
-      "PhotoPath": {
-        "rules": {
-          "type": "text",
-          "maxLength": 255
-        }
-      },
-      "LastName": {
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 20
-        }
-      },
-      "HireDate": {
-        "rules": {
-          "type": "date"
-        }
-      },
-      "Title": {
-        "rules": {
-          "type": "text",
-          "maxLength": 30
-        }
-      },
-      "Country": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "HomePhone": {
-        "rules": {
-          "type": "text",
-          "maxLength": 24
-        }
-      },
-      "Extension": {
-        "rules": {
-          "type": "text",
-          "maxLength": 4
-        }
-      },
-      "BirthDate": {
-        "rules": {
-          "type": "date"
-        }
-      },
-      "Notes": {
-        "rules": {
-          "type": "binary",
-          "maxLength": 2147483647
-        }
-      },
-      "Region": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "PostalCode": {
-        "rules": {
-          "type": "text",
-          "maxLength": 10
-        }
-      },
-      "Address": {
-        "rules": {
-          "type": "text",
-          "maxLength": 60
-        }
-      },
-      "City": {
-        "rules": {
-          "type": "text",
-          "maxLength": 15
-        }
-      },
-      "FirstName": {
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 10
-        }
-      },
-      "EmployeeID": {
-        "index": "unique",
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      },
-      "Photo": {
-        "rules": {
-          "type": "binary",
-          "subtype": "image"
-        }
-      },
-      "TitleOfCourtesy": {
-        "rules": {
-          "type": "text",
-          "maxLength": 25
-        }
-      }
-    }
-  },
-  "InternationalOrders": {
-    "specialProperties": {},
-    "properties": {
-      "OrderID": {
-        "refDef": {
-          "classRef": {
-            "name": "Orders"
-          }
-        },
-        "rules": {
-          "type": "mixin"
-        }
-      },
-      "CustomsDescription": {
-        "rules": {
-          "type": "text",
-          "minOccurrences": 1,
-          "maxOccurrences": 1,
-          "maxLength": 100
-        }
-      },
-      "ExciseTax": {
-        "rules": {
-          "type": "money",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      }
-    }
-  },
-  "OrderDetails": {
-    "rangeIndexing": {
-      "E0": {
-        "name": "ProductID"
-      },
-      "E1": {
-        "name": "ProductID"
-      }
-    },
-    "properties": {
-      "Products": {
-        "refDef": {
-          "classRef": {
-            "name": "Products"
-          }
-        },
-        "rules": {
-          "type": "reference",
-          "maxOccurences": 2147483647
-        }
-      },
-      "OrderID": {
-        "index": "unique",
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      },
-      "Discount": {
-        "defaultValue": 0,
-        "rules": {
-          "type": "number",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      },
-      "Quantity": {
-        "defaultValue": 1,
-        "rules": {
-          "maxOccurrences": 1,
-          "maxValue": 32767,
-          "type": "integer",
-          "minOccurrences": 1,
-          "minValue": -32768
-        }
-      },
-      "UnitPrice": {
-        "defaultValue": 0,
-        "rules": {
-          "type": "money",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      },
-      "ProductID": {
-        "index": "range",
-        "rules": {
-          "type": "integer",
-          "maxOccurrences": 1,
-          "minOccurrences": 1
-        }
-      }
-    },
-    "specialProperties": {}
-  }
+	"Regions": {
+		"specialProperties": {
+			"uid": {
+				"name": "RegionID"
+			}
+		},
+		"properties": {
+			"RegionDescription": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 50
+				}
+			},
+			"RegionID": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		}
+	},
+	"Employees": {
+		"properties": {
+			"PhotoPath": {
+				"rules": {
+					"type": "text",
+					"maxLength": 255
+				}
+			},
+			"LastName": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 20
+				}
+			},
+			"HireDate": {
+				"rules": {
+					"type": "date"
+				}
+			},
+			"Title": {
+				"rules": {
+					"type": "text",
+					"maxLength": 30
+				}
+			},
+			"Country": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"HomePhone": {
+				"rules": {
+					"type": "text",
+					"maxLength": 24
+				}
+			},
+			"Extension": {
+				"rules": {
+					"type": "text",
+					"maxLength": 4
+				}
+			},
+			"BirthDate": {
+				"rules": {
+					"type": "date"
+				}
+			},
+			"Notes": {
+				"rules": {
+					"type": "binary",
+					"maxLength": 2147483647
+				}
+			},
+			"Region": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"PostalCode": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"maxLength": 10
+				}
+			},
+			"Address": {
+				"rules": {
+					"type": "text",
+					"maxLength": 60
+				}
+			},
+			"City": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"FirstName": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 10
+				}
+			},
+			"EmployeeID": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"Photo": {
+				"rules": {
+					"type": "binary",
+					"subtype": "image"
+				}
+			},
+			"TitleOfCourtesy": {
+				"rules": {
+					"type": "text",
+					"maxLength": 25
+				}
+			}
+		},
+		"fullTextIndexing": {
+			"X4": {
+				"name": "PostalCode"
+			},
+			"X3": {
+				"name": "LastName"
+			}
+		},
+		"specialProperties": 		{}
+	},
+	"Territories": {
+		"specialProperties": {
+			"uid": {
+				"name": "TerritoryID"
+			}
+		},
+		"properties": {
+			"Regions": {
+				"refDef": {
+					"classRef": {
+						"name": "Regions"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"TerritoryID": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"TerritoryDescription": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 50
+				}
+			},
+			"RegionID": {
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		}
+	},
+	"Suppliers": {
+		"properties": {
+			"ContactName": {
+				"rules": {
+					"type": "text",
+					"maxLength": 30
+				}
+			},
+			"Fax": {
+				"rules": {
+					"type": "text",
+					"maxLength": 24
+				}
+			},
+			"Region": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"PostalCode": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"maxLength": 10
+				}
+			},
+			"HomePage": {
+				"rules": {
+					"type": "binary",
+					"maxLength": 2147483647
+				}
+			},
+			"Address": {
+				"rules": {
+					"type": "text",
+					"maxLength": 60
+				}
+			},
+			"City": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"ContactTitle": {
+				"rules": {
+					"type": "text",
+					"maxLength": 30
+				}
+			},
+			"Phone": {
+				"rules": {
+					"type": "text",
+					"maxLength": 24
+				}
+			},
+			"CompanyName": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 40
+				}
+			},
+			"Country": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"SupplierID": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		},
+		"fullTextIndexing": {
+			"X4": {
+				"name": "PostalCode"
+			},
+			"X3": {
+				"name": "CompanyName"
+			}
+		},
+		"specialProperties": 		{}
+	},
+	"Products": {
+		"rangeIndexing": {
+			"E1": {
+				"name": "SupplierID"
+			},
+			"D0": {
+				"name": "CategoryID"
+			},
+			"E0": {
+				"name": "SupplierID"
+			},
+			"D1": {
+				"name": "CategoryID"
+			}
+		},
+		"properties": {
+			"UnitsOnOrder": {
+				"defaultValue": 0,
+				"rules": {
+					"maxValue": 32767,
+					"type": "integer",
+					"minValue": -32768
+				}
+			},
+			"QuantityPerUnit": {
+				"rules": {
+					"type": "text",
+					"maxLength": 20
+				}
+			},
+			"ReorderLevel": {
+				"defaultValue": 0,
+				"rules": {
+					"maxValue": 32767,
+					"type": "integer",
+					"minValue": -32768
+				}
+			},
+			"ProductID": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"UnitPrice": {
+				"defaultValue": 0,
+				"rules": {
+					"type": "money"
+				}
+			},
+			"Suppliers": {
+				"refDef": {
+					"classRef": {
+						"name": "Suppliers"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"Categories": {
+				"refDef": {
+					"classRef": {
+						"name": "Categories"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"DiscontinuedDate": {
+				"rules": {
+					"type": "date"
+				}
+			},
+			"CategoryID": {
+				"index": "range",
+				"rules": {
+					"type": "integer"
+				}
+			},
+			"Discontinued": {
+				"defaultValue": "0",
+				"rules": {
+					"type": "boolean",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"SupplierID": {
+				"index": "range",
+				"rules": {
+					"type": "integer"
+				}
+			},
+			"ProductName": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 40
+				}
+			},
+			"UnitsInStock": {
+				"defaultValue": 0,
+				"rules": {
+					"maxValue": 32767,
+					"type": "integer",
+					"minValue": -32768
+				}
+			}
+		},
+		"fullTextIndexing": {
+			"X4": {
+				"name": "ProductName"
+			}
+		},
+		"specialProperties": 		{}
+	},
+	"EmployeesTerritories": {
+		"indexes": {
+			"sqlite_autoindex_EmployeesTerritories_1": {
+				"type": "unique",
+				"properties": [
+					{
+						"name": "EmployeeID"
+					},
+					{
+						"name": "TerritoryID"
+					}
+				]
+			}
+		},
+		"properties": {
+			"Employees": {
+				"refDef": {
+					"classRef": {
+						"name": "Employees"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"TerritoryID": {
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"EmployeeID": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"Territories": {
+				"refDef": {
+					"classRef": {
+						"name": "Territories"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			}
+		},
+		"specialProperties": 		{}
+	},
+	"Customers": {
+		"properties": {
+			"ContactName": {
+				"rules": {
+					"type": "text",
+					"maxLength": 30
+				}
+			},
+			"Fax": {
+				"rules": {
+					"type": "text",
+					"maxLength": 24
+				}
+			},
+			"Region": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"PostalCode": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"maxLength": 10
+				}
+			},
+			"Address": {
+				"rules": {
+					"type": "text",
+					"maxLength": 60
+				}
+			},
+			"City": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"CustomerID": {
+				"index": "unique",
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 5
+				}
+			},
+			"Phone": {
+				"rules": {
+					"type": "text",
+					"maxLength": 24
+				}
+			},
+			"CompanyName": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 40
+				}
+			},
+			"Country": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"ContactTitle": {
+				"rules": {
+					"type": "text",
+					"maxLength": 30
+				}
+			}
+		},
+		"fullTextIndexing": {
+			"X2": {
+				"name": "CompanyName"
+			},
+			"X1": {
+				"name": "City"
+			},
+			"X4": {
+				"name": "Region"
+			},
+			"X3": {
+				"name": "PostalCode"
+			}
+		},
+		"specialProperties": 		{}
+	},
+	"Categories": {
+		"properties": {
+			"CategoryName": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 15
+				}
+			},
+			"Description": {
+				"rules": {
+					"type": "text"
+				}
+			},
+			"Picture": {
+				"rules": {
+					"type": "binary",
+					"subtype": "image"
+				}
+			},
+			"CategoryID": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		},
+		"fullTextIndexing": {
+			"X4": {
+				"name": "CategoryName"
+			}
+		},
+		"specialProperties": 		{}
+	},
+	"Orders": {
+		"rangeIndexing": {
+			"E0": {
+				"name": "EmployeeID"
+			},
+			"E1": {
+				"name": "EmployeeID"
+			}
+		},
+		"properties": {
+			"ShipRegion": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"OrderID": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"OrderDate": {
+				"index": "index",
+				"rules": {
+					"type": "date"
+				}
+			},
+			"Customers": {
+				"refDef": {
+					"classRef": {
+						"name": "Customers"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"ShipCity": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"ShippedDate": {
+				"index": "index",
+				"rules": {
+					"type": "date"
+				}
+			},
+			"EmployeeID": {
+				"index": "range",
+				"rules": {
+					"type": "integer"
+				}
+			},
+			"ShipPostalCode": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"maxLength": 10
+				}
+			},
+			"ShipName": {
+				"rules": {
+					"type": "text",
+					"maxLength": 40
+				}
+			},
+			"CustomerID": {
+				"index": "fulltext",
+				"rules": {
+					"type": "text",
+					"maxLength": 5
+				}
+			},
+			"ShipAddress": {
+				"rules": {
+					"type": "text",
+					"maxLength": 60
+				}
+			},
+			"ShipCountry": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"RequiredDate": {
+				"rules": {
+					"type": "date"
+				}
+			},
+			"Freight": {
+				"defaultValue": 0,
+				"rules": {
+					"type": "money"
+				}
+			}
+		},
+		"fullTextIndexing": {
+			"X4": {
+				"name": "ShipPostalCode"
+			},
+			"X3": {
+				"name": "CustomerID"
+			}
+		},
+		"specialProperties": 		{}
+	},
+	"PreviousEmployees": {
+		"specialProperties": {
+			"uid": {
+				"name": "EmployeeID"
+			}
+		},
+		"properties": {
+			"PhotoPath": {
+				"rules": {
+					"type": "text",
+					"maxLength": 255
+				}
+			},
+			"LastName": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 20
+				}
+			},
+			"HireDate": {
+				"rules": {
+					"type": "date"
+				}
+			},
+			"Title": {
+				"rules": {
+					"type": "text",
+					"maxLength": 30
+				}
+			},
+			"Country": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"HomePhone": {
+				"rules": {
+					"type": "text",
+					"maxLength": 24
+				}
+			},
+			"Extension": {
+				"rules": {
+					"type": "text",
+					"maxLength": 4
+				}
+			},
+			"BirthDate": {
+				"rules": {
+					"type": "date"
+				}
+			},
+			"Notes": {
+				"rules": {
+					"type": "binary",
+					"maxLength": 2147483647
+				}
+			},
+			"Region": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"PostalCode": {
+				"rules": {
+					"type": "text",
+					"maxLength": 10
+				}
+			},
+			"Address": {
+				"rules": {
+					"type": "text",
+					"maxLength": 60
+				}
+			},
+			"City": {
+				"rules": {
+					"type": "text",
+					"maxLength": 15
+				}
+			},
+			"FirstName": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 10
+				}
+			},
+			"EmployeeID": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"Photo": {
+				"rules": {
+					"type": "binary",
+					"subtype": "image"
+				}
+			},
+			"TitleOfCourtesy": {
+				"rules": {
+					"type": "text",
+					"maxLength": 25
+				}
+			}
+		}
+	},
+	"InternationalOrders": {
+		"specialProperties": 		{},
+		"properties": {
+			"OrderID": {
+				"refDef": {
+					"classRef": {
+						"name": "Orders"
+					}
+				},
+				"rules": {
+					"type": "mixin"
+				}
+			},
+			"CustomsDescription": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 100
+				}
+			},
+			"ExciseTax": {
+				"rules": {
+					"type": "money",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		}
+	},
+	"OrderDetails": {
+		"rangeIndexing": {
+			"E0": {
+				"name": "ProductID"
+			},
+			"E1": {
+				"name": "ProductID"
+			}
+		},
+		"properties": {
+			"Products": {
+				"refDef": {
+					"classRef": {
+						"name": "Products"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"OrderID": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"Discount": {
+				"defaultValue": 0,
+				"rules": {
+					"type": "number",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"Quantity": {
+				"defaultValue": 1,
+				"rules": {
+					"maxOccurrences": 1,
+					"maxValue": 32767,
+					"type": "integer",
+					"minOccurrences": 1,
+					"minValue": -32768
+				}
+			},
+			"UnitPrice": {
+				"defaultValue": 0,
+				"rules": {
+					"type": "money",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"ProductID": {
+				"index": "range",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		},
+		"specialProperties": 		{}
+	}
 }

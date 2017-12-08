@@ -8,3 +8,9 @@
 [submodule "lib/lua-cjson"]
 	path = lib/lua-cjson
 	url = https://github.com/mpx/lua-cjson.git
+[submodule "lib/lua-prettycjson"]
+	path = lib/lua-prettycjson
+	url = https://github.com/bungle/lua-resty-prettycjson.git
+[submodule "lib/lua-schema"]
+	path = lib/lua-schema
+	url = https://github.com/sschoener/lua-schema.git

@@ -10,6 +10,12 @@ local os = require 'os'
 local path = require 'pl.path'
 local lapp = require 'pl.lapp'
 
+-- set lua path
+package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua'))
+    .. ';' .. package.path
+
+local prettyJson = require "prettycjson"
+
 ---@param cli_args table
 local function generateSchema(cli_args)
     if not path.isabs( cli_args.database) then
@@ -23,7 +29,7 @@ local function generateSchema(cli_args)
 
     local sqliteParser = SQLiteSchemaParser(db)
     local schema = sqliteParser:parseSchema()
-    local schemaJson = json.encode(schema)
+    local schemaJson = prettyJson(schema) -- json.encode(schema)
 
     if cli_args.output == nil or cli_args.output == '' then
         io.stdout:write(schemaJson)

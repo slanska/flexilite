@@ -153,7 +153,7 @@ set(EXT_FILES
         src/flexi/PropertyDef.cpp
         src/flexi/PropertyDef.h
         #        src/DukContext.h src/DukContext.cpp
-        )
+        flexish/main.c)
 
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
