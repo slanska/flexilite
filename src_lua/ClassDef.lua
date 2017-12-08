@@ -16,6 +16,13 @@ Validates existing data with new class definition
 
 local json = require 'cjson'
 
+local schema = require 'schema'
+
+-- define schema for class definition
+local classSchema = schema.Record {
+
+}
+
 local PropertyDef = require('PropertyDef')
 local name_ref = require('NameRef')
 local NameRef = name_ref.NameRef

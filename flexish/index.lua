@@ -5,14 +5,13 @@
 
 local sqlite3 = require 'lsqlite3complete'
 local SQLiteSchemaParser = require 'sqliteSchemaParser'
-local json = require 'cjson'
 local os = require 'os'
 local path = require 'pl.path'
 local lapp = require 'pl.lapp'
 
 -- set lua path
 package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua'))
-    .. ';' .. package.path
+.. ';' .. package.path
 
 local prettyJson = require "prettycjson"
 
@@ -86,4 +85,3 @@ if not ff then
 end
 
 local result = ff(cli_args)
-

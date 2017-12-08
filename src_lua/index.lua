@@ -9,6 +9,12 @@ Creates new DBContexts
 Disposes DBContext on db connection closing
 ]]
 
+local path = require 'pl.path'
+
+-- Configure Lua path for libraries
+package.path = string.format('%s;%s;%s',
+path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua')),
+path.abspath(path.relpath('../lib/lua-schema/?.lua')), package.path)
 
 local DBContext = require('DBContext')
 

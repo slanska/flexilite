@@ -5,6 +5,14 @@
 
 local class = require 'pl.class'
 
+local schema = require 'schema'
+
+-- define schema for name definition
+local nameSchema = schema.Record {
+    id = schema.Number,
+    name = schema.String
+}
+
 --[[
 NameRef class.
 Properties:
@@ -46,6 +54,10 @@ function NameRef:resolve(classDef)
     if not self.id then
         self.id = classDef.DBContext:ensureName(self.name)
     end
+end
+
+function MetadataRef:validate()
+    schema.CheckSchema(self, nameSchema())
 end
 
 ---@param classDef ClassDef

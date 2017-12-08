@@ -1,0 +1,721 @@
+{
+	"Genre": {
+		"specialProperties": {
+			"uid": {
+				"name": "GenreId"
+			}
+		},
+		"properties": {
+			"Name": {
+				"rules": {
+					"type": "text",
+					"maxLength": 120
+				}
+			},
+			"GenreId": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		}
+	},
+	"Customer": {
+		"rangeIndexing": {
+			"E0": {
+				"name": "SupportRepId"
+			},
+			"E1": {
+				"name": "SupportRepId"
+			}
+		},
+		"properties": {
+			"State": {
+				"rules": {
+					"type": "text",
+					"maxLength": 40
+				}
+			},
+			"LastName": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 20
+				}
+			},
+			"FirstName": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 40
+				}
+			},
+			"Fax": {
+				"rules": {
+					"type": "text",
+					"maxLength": 24
+				}
+			},
+			"Email": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 60
+				}
+			},
+			"Company": {
+				"rules": {
+					"type": "text",
+					"maxLength": 80
+				}
+			},
+			"SupportRepId": {
+				"index": "range",
+				"rules": {
+					"type": "integer"
+				}
+			},
+			"Country": {
+				"rules": {
+					"type": "text",
+					"maxLength": 40
+				}
+			},
+			"City": {
+				"rules": {
+					"type": "text",
+					"maxLength": 40
+				}
+			},
+			"Phone": {
+				"rules": {
+					"type": "text",
+					"maxLength": 24
+				}
+			},
+			"PostalCode": {
+				"rules": {
+					"type": "text",
+					"maxLength": 10
+				}
+			},
+			"Address": {
+				"rules": {
+					"type": "text",
+					"maxLength": 70
+				}
+			},
+			"Employee": {
+				"refDef": {
+					"classRef": {
+						"name": "Employee"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"CustomerId": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		},
+		"specialProperties": {
+			"uid": {
+				"name": "CustomerId"
+			},
+			"description": {
+				"name": "LastName"
+			}
+		}
+	},
+	"Playlist": {
+		"specialProperties": {
+			"uid": {
+				"name": "PlaylistId"
+			}
+		},
+		"properties": {
+			"PlaylistId": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"Name": {
+				"rules": {
+					"type": "text",
+					"maxLength": 120
+				}
+			}
+		}
+	},
+	"InvoiceLine": {
+		"rangeIndexing": {
+			"E1": {
+				"name": "TrackId"
+			},
+			"D0": {
+				"name": "InvoiceId"
+			},
+			"E0": {
+				"name": "TrackId"
+			},
+			"D1": {
+				"name": "InvoiceId"
+			}
+		},
+		"properties": {
+			"Track": {
+				"refDef": {
+					"classRef": {
+						"name": "Track"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"InvoiceLineId": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"TrackId": {
+				"index": "range",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"Quantity": {
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"UnitPrice": {
+				"rules": {
+					"type": "any",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"InvoiceId": {
+				"index": "range",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		},
+		"specialProperties": {
+			"uid": {
+				"name": "InvoiceLineId"
+			}
+		}
+	},
+	"Album": {
+		"rangeIndexing": {
+			"E0": {
+				"name": "ArtistId"
+			},
+			"E1": {
+				"name": "ArtistId"
+			}
+		},
+		"properties": {
+			"Title": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 160
+				}
+			},
+			"Artist": {
+				"refDef": {
+					"classRef": {
+						"name": "Artist"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"ArtistId": {
+				"index": "range",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"AlbumId": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		},
+		"specialProperties": {
+			"uid": {
+				"name": "AlbumId"
+			},
+			"description": {
+				"name": "Title"
+			}
+		}
+	},
+	"Track": {
+		"rangeIndexing": {
+			"D0": {
+				"name": "GenreId"
+			},
+			"C1": {
+				"name": "AlbumId"
+			},
+			"E1": {
+				"name": "MediaTypeId"
+			},
+			"D1": {
+				"name": "GenreId"
+			},
+			"E0": {
+				"name": "MediaTypeId"
+			},
+			"C0": {
+				"name": "AlbumId"
+			}
+		},
+		"properties": {
+			"Bytes": {
+				"rules": {
+					"type": "integer"
+				}
+			},
+			"Milliseconds": {
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"Genre": {
+				"refDef": {
+					"classRef": {
+						"name": "Genre"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"TrackId": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"GenreId": {
+				"index": "range",
+				"rules": {
+					"type": "integer"
+				}
+			},
+			"Name": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 200
+				}
+			},
+			"Composer": {
+				"rules": {
+					"type": "text",
+					"maxLength": 220
+				}
+			},
+			"MediaTypeId": {
+				"index": "range",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"AlbumId": {
+				"index": "range",
+				"rules": {
+					"type": "integer"
+				}
+			},
+			"Album": {
+				"refDef": {
+					"classRef": {
+						"name": "Album"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"MediaType": {
+				"refDef": {
+					"classRef": {
+						"name": "MediaType"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"UnitPrice": {
+				"rules": {
+					"type": "any",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		},
+		"specialProperties": {
+			"uid": {
+				"name": "TrackId"
+			},
+			"description": {
+				"name": "Name"
+			}
+		}
+	},
+	"Artist": {
+		"specialProperties": {
+			"uid": {
+				"name": "ArtistId"
+			}
+		},
+		"properties": {
+			"Name": {
+				"rules": {
+					"type": "text",
+					"maxLength": 120
+				}
+			},
+			"ArtistId": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		}
+	},
+	"PlaylistTrack": {
+		"rangeIndexing": {
+			"E0": {
+				"name": "TrackId"
+			},
+			"E1": {
+				"name": "TrackId"
+			}
+		},
+		"properties": {
+			"PlaylistId": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"Track": {
+				"refDef": {
+					"classRef": {
+						"name": "Track"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"TrackId": {
+				"index": "range",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		},
+		"specialProperties": {
+			"uid": {
+				"name": "PlaylistId"
+			}
+		}
+	},
+	"Employee": {
+		"rangeIndexing": {
+			"E0": {
+				"name": "ReportsTo"
+			},
+			"E1": {
+				"name": "ReportsTo"
+			}
+		},
+		"properties": {
+			"HireDate": {
+				"rules": {
+					"type": "date"
+				}
+			},
+			"Email": {
+				"rules": {
+					"type": "text",
+					"maxLength": 60
+				}
+			},
+			"Fax": {
+				"rules": {
+					"type": "text",
+					"maxLength": 24
+				}
+			},
+			"LastName": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 20
+				}
+			},
+			"EmployeeId": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"State": {
+				"rules": {
+					"type": "text",
+					"maxLength": 40
+				}
+			},
+			"Country": {
+				"rules": {
+					"type": "text",
+					"maxLength": 40
+				}
+			},
+			"PostalCode": {
+				"rules": {
+					"type": "text",
+					"maxLength": 10
+				}
+			},
+			"Title": {
+				"rules": {
+					"type": "text",
+					"maxLength": 30
+				}
+			},
+			"ReportsTo": {
+				"index": "range",
+				"rules": {
+					"type": "integer"
+				}
+			},
+			"City": {
+				"rules": {
+					"type": "text",
+					"maxLength": 40
+				}
+			},
+			"Phone": {
+				"rules": {
+					"type": "text",
+					"maxLength": 24
+				}
+			},
+			"FirstName": {
+				"rules": {
+					"type": "text",
+					"minOccurrences": 1,
+					"maxOccurrences": 1,
+					"maxLength": 20
+				}
+			},
+			"BirthDate": {
+				"rules": {
+					"type": "date"
+				}
+			},
+			"Employee": {
+				"refDef": {
+					"classRef": {
+						"name": "Employee"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"Address": {
+				"rules": {
+					"type": "text",
+					"maxLength": 70
+				}
+			}
+		},
+		"specialProperties": {
+			"uid": {
+				"name": "EmployeeId"
+			},
+			"description": {
+				"name": "FirstName"
+			}
+		}
+	},
+	"MediaType": {
+		"specialProperties": {
+			"uid": {
+				"name": "MediaTypeId"
+			}
+		},
+		"properties": {
+			"MediaTypeId": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"Name": {
+				"rules": {
+					"type": "text",
+					"maxLength": 120
+				}
+			}
+		}
+	},
+	"Invoice": {
+		"rangeIndexing": {
+			"E0": {
+				"name": "CustomerId"
+			},
+			"E1": {
+				"name": "CustomerId"
+			}
+		},
+		"properties": {
+			"BillingPostalCode": {
+				"rules": {
+					"type": "text",
+					"maxLength": 10
+				}
+			},
+			"Total": {
+				"rules": {
+					"type": "any",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"InvoiceDate": {
+				"rules": {
+					"type": "date",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"Customer": {
+				"refDef": {
+					"classRef": {
+						"name": "Customer"
+					}
+				},
+				"rules": {
+					"type": "reference",
+					"maxOccurences": 2147483647
+				}
+			},
+			"BillingState": {
+				"rules": {
+					"type": "text",
+					"maxLength": 40
+				}
+			},
+			"CustomerId": {
+				"index": "range",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			},
+			"BillingAddress": {
+				"rules": {
+					"type": "text",
+					"maxLength": 70
+				}
+			},
+			"BillingCity": {
+				"rules": {
+					"type": "text",
+					"maxLength": 40
+				}
+			},
+			"BillingCountry": {
+				"rules": {
+					"type": "text",
+					"maxLength": 40
+				}
+			},
+			"InvoiceId": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
+			}
+		},
+		"specialProperties": {
+			"uid": {
+				"name": "InvoiceId"
+			}
+		}
+	}
+}

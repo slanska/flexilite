@@ -70,7 +70,11 @@ to link to source code and set breakpoints
     e.g. Regions should have name and description = RegionDescription
     - &#10003; maxLength == 15 for all text properties
     - Employees does not have specialProperties -> {name=LastName}
-    - Products.Category - maxOccurrences should be 1, not maxint. 
+    - Product.Categories? should be Product.Category
+    - Products.Categories - maxOccurrences should be 1, not maxint. 
     - Products: prop Category (singular), not Categories (plural)
     - Define reverse properties for FKEY
-    
+    - main.c - compile Flexish into standalone exe. (use CMakeLists.txt to list files and compile lua to .o files)
+    - define schemas for name, property, class. Use it for validation of class/property def
+    - generate dynamic schema for object, to validate input data 
+    - handle non existing database - report error

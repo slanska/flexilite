@@ -9,13 +9,13 @@ local SQLiteSchemaParser = class()
 local tablex = require 'pl.tablex'
 
 table.find = function(tbl, func)
-    for i, v in pairs(tbl) do
-        if func(v) then
-            return v, i
+    for k, v in pairs(tbl) do
+        if func(v, k) then
+            return v, k
         end
     end
 
-    return nil, -1
+    return nil, nil
 end
 
 table.filter = function(tbl, func)
@@ -70,6 +70,7 @@ function SQLiteSchemaParser:_init(db)
     self.db = db
 end
 
+-- Mapping between SQLite column types and Flexilite property types
 local sqliteTypesToFlexiTypes = {
     ['text'] = { type = 'text' },
     ['nvarchar'] = { type = 'text' },
@@ -103,7 +104,6 @@ local sqliteTypesToFlexiTypes = {
     ['integer'] = { type = 'integer' },
     ['smallint'] = { type = 'integer', minValue = -32768, maxValue = 32767 },
     ['tinyint'] = { type = 'integer', minValue = 0, maxValue = 255 },
-
 }
 
 ---@param sqliteCol ISQLiteColumn
@@ -365,91 +365,156 @@ function SQLiteSchemaParser:getIndexColumnNames(tbl, idx)
     return table.concat(result, ',')
 end
 
+---@param classDef IClassDef
+---@param prop IPropertyDef
+---@return string
+function SQLiteSchemaParser:findPropName( classDef, prop)
+    for name, p in pairs(classDef.properties) do
+        if p == prop then
+            return name
+        end
+    end
+
+    return nil
+end
+
 ---@param tblInfo ITableInfo
 ---@param classDef IClassDef
 function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
 
-    ---@param colNames table @of string
-    local function findReqCol(colNames)
-        for i, cc in ipairs(tblInfo.columns) do
-            if cc.required == 1 then
-                local result = table.find(colName, function(cn)
-                    return string.lower(cc.name) == string.lower( cn)
-                end)
+    -- This dictionary defines weights for property types to be used when guessing for special properties
+    local propTypeMetadata = {
+        ['integer'] = 10000 + 0,
+        ['number'] = 10000 + 1,
+        ['money'] = 10000 + 1,
+        ['text'] = 10000 + 2, -- leave range for text's maxLength
+        ['date'] = 10000 + 258,
+        ['timespan'] = 10000 + 259,
+        ['boolean'] = 10000 + 260,
+        ['binary'] = 10000 + 261,
+    }
 
-                if result then
-                    return { name = cc.name }
-                end
-            end
+    -- Calculates weight of column based on type and index
+    ---@param prop IPropertyDef
+    ---@return number
+    local function getColumnWeight(prop)
+        local weight = propTypeMetadata[prop.rules.type]
+        if not weight then
+            return 100000
         end
+
+        if prop.rules.maxLength then
+            weight = weight + prop.rules.maxLength
+        end
+
+        --        local prop = classDef.properties[tblInfo.columns[A.columns[1].cid + 1].name]
+        -- check if this property is indexed
+        if prop.index == 'index' or prop.index == 'fulltext' or prop.index == 'range' then
+            weight = weight - 5000
+        elseif prop.index == 'unique' then
+            weight = weight - 10000
+        end
+
+        return weight
     end
 
-    local uniqOtherIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
-        return idx.unique == 1
+    -- get all not-null props, sorted by their weight
+    local notNullPropsMap = table.filter(classDef.properties, function(p)
+        return p.rules.minOccurrences and p.rules.minOccurrences > 0
     end)
 
-    --[[ Wild guessing about special properties
-         -uid: integer or text (shortest), unique index, required or 'uid' or 'id'
-         name: text(second in length), required or 'name'. Index is not required
-         description: text(largest), required or 'description'. Index is not required
-         -code: text (shortest), unique index, required or 'code'
-         nonUniqueId: integer or text (shortest), non unique index, required or 'uid' or 'id'
-         createTime: date/datetime, required, 'created', 'createDate'
-         updateTime: date/time, required, 'updated', 'updateDate', 'lastUpdated'
-         -autoUuid: binary(16), unique index, required
-         -autoShortId: text(<=16), unique index, required
-         owner: 'owner', 'user', 'createdBy'
-     ]]
+    local notNullProps = tablex.values(notNullPropsMap)
 
-    -- Check unique indexes: candidates for uid, code, autoUuid, autoShortId
-    if #uniqOtherIndexes > 0 then
-        local codePropCandidate, namePropCodeCandidate, codePropName, namePropName
-        for i, idx in ipairs(uniqOtherIndexes) do
-            if #idx.columns == 1 then
-                local col = tblInfo.columns[idx.columns[1].cid + 1]
-                local prop = classDef.properties[col.name]
-                if prop.rules.type == 'binary' then
-                    if prop.rules.maxLength == 16 then
-                        -- looks like GUID
-                        classDef.specialProperties.autoUuid = { name = tblInfo.columns[idx.columns[1].cid + 1].name }
-                    end
-                elseif prop.rules.type == 'text' then
-                    if not codePropCandidate or prop.rules.maxLength < codePropCandidate.rules.maxLength then
-                        codePropName = col.name
-                        codePropCandidate = prop
-                    end
+    table.sort(notNullProps,
+    function(A, B)
+        local aw = getColumnWeight(A)
+        local bw = getColumnWeight(B)
+        return aw < bw
+    end)
 
-                    if not namePropCodeCandidate
-                    or (prop ~= codePropCandidate
-                    and namePropCodeCandidate.rules.maxLength < codePropCandidate.rules.maxLength
-                    and namePropCodeCandidate.rules.maxLength < prop.rules.maxLength) then
-                        namePropName = col.name
-                        namePropCodeCandidate = prop
-                    end
-                elseif prop.rules.type == 'integer' then
-                    if not classDef.specialProperties.uid then
-                        classDef.specialProperties.uid = { name = tblInfo.columns[uniqOtherIndexes[1].columns[1].cid + 1].name }
+    if #notNullProps == 0 then
+        return
+    end
+
+    -- Wild guessing about special properties
+    -- uid - non autoinc primary key or single column unique index (shortest, if there are few unique single column indexes)
+    if notNullProps[1].index == 'unique' then
+        local propName = self:findPropName(classDef, notNullProps[1])
+        classDef.specialProperties.uid = { name = propName }
+        table.remove(notNullProps, 1)
+    end
+
+    -- code - next (after UID) unique index on single required text column (or column named 'code')
+    if notNullProps[1] and notNullProps[1].index == 'unique' and notNullProps[1].rules.type == 'text' then
+        local propName = self:findPropName(classDef, notNullProps[1])
+        classDef.specialProperties.code = { name = propName }
+        table.remove(notNullProps, 1)
+    end
+
+    -- name - next (after Code) unique text index or shortest required indexed text column (or 'name')
+    if notNullProps[1] and ((notNullProps[1].index == 'unique' or notNullProps[1].index == 'index') and notNullProps[1].rules.type == 'text')
+    or (#notNullProps == 1 and notNullProps[1].rules.type == 'text') then
+        local propName = self:findPropName(classDef, notNullProps[1])
+        classDef.specialProperties.name = { name = propName }
+        table.remove(notNullProps, 1)
+    end
+
+    -- autoUuid: binary(16), unique index, required or column 'guid', 'uuid'
+    if notNullProps[1] and notNullProps[1].index == 'unique' and notNullProps[1].rules.type == 'binary'
+    and notNullProps[1].rules.maxLength == 16 then
+        local propName = self:findPropName(classDef, notNullProps[1])
+        classDef.specialProperties.name = { name = propName }
+        table.remove(notNullProps, 1)
+    end
+
+    if #notNullProps == 0 then
+        return
+    end
+
+    ---@param colNames table @of string
+    ---@param type string
+    local function findReqCol(colNames, types)
+        if type(types) ~= 'table' then
+            types = { types }
+        end
+        local result = table.find(classDef.properties, function(p, name)
+            for i, colName in ipairs(colNames) do
+                if string.lower(name) == string.lower(colName) then
+                    for _, tt in ipairs(types) do
+                        if p.rules.type == tt then
+                            return true
+                        end
                     end
                 end
             end
-        end
 
-        if codePropCandidate then
-            classDef.specialProperties.code = { name = codePropName }
-        else
-            -- find 'code' column
-            classDef.specialProperties.code = findReqCol { 'code' }
-        end
+            return false
+        end )
 
-        if namePropCodeCandidate then
-            classDef.specialProperties.name = { name = namePropName }
-        else
-            -- find 'name' column
-            classDef.specialProperties.code = findReqCol { 'name' }
+        return result
+    end
+
+    -- description - next (after Name) required text column (or 'description')
+    for i, p in ipairs(notNullProps) do
+        if p.rules.type == 'text' then
+            local propName = self:findPropName(classDef, p)
+            classDef.specialProperties.description = { name = propName }
+            table.remove(notNullProps, i)
+            break
         end
     end
-    classDef.specialProperties.description = findReqCol { 'description' }
-    classDef.specialProperties.owner = findReqCol { 'owner', 'createdby', 'userid', 'user' }
+    if not classDef.specialProperties.description then
+        classDef.specialProperties.description = findReqCol({ 'description' }, 'text')
+    end
+
+    -- owner - text or integer column named 'owner', 'created_by', 'createdby', 'assignedto'
+    classDef.specialProperties.owner = findReqCol({ 'owner', 'created_by', 'createdby', 'assignedto', 'assigned_to' }, { 'text', 'integer' })
+
+    -- createTime - date/datetime required column 'created', 'create_date', 'insert_date'
+    classDef.specialProperties.createTime = findReqCol({ 'createtime', 'created', 'create_time', 'create_date', 'createdate' }, { 'time', 'date' })
+
+    -- updateTime - date/datetime required column 'last_changed', 'update_date', 'updated', 'last_modified', 'modify_date', 'change_date'
+    classDef.specialProperties.updateTime = findReqCol({ 'updatetime', 'updated', 'update_time', 'update_date', 'updatedate', 'last_changed', 'lastchanged', 'last_updated', 'lastupdated', 'last_modified', 'lastmodified' }, { 'time', 'date' })
 end
 
 ---@param tblInfo ITableInfo
@@ -458,7 +523,7 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     local classDef = self.outSchema[tblInfo.table]
     local pkCols = table.filter(tblInfo.columns, function(cc)
         return cc.pk > 0
-    end)
+    end )
 
     --[[
              Process foreign keys. Defines reference properties.
@@ -502,7 +567,7 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
 
     local extCol, extColIdx = table.find(tblInfo.outFKeys, function(fk)
         return pkCols and #pkCols == 1 and pkCols[1].name == fk.from
-    end)
+    end )
 
     if extCol then
         -- set mixin property
@@ -569,7 +634,7 @@ end
 function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
     local nonUniqueIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
         return idx.unique ~= 1
-    end)
+    end )
 
     -- Pool of full text columns
     local ftsCols = { 'X1', 'X2', 'X3', 'X4' }
@@ -583,7 +648,8 @@ function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
 
         if prop.rules.type == 'text' then
             if not prop.index then
-                if #ftsCols == 0 then
+                -- No available full text indexes or text is too short
+                if #ftsCols == 0 or prop.rules.maxLength <= 40 then
                     prop.index = 'index'
                 else
                     local ftsCol = table.remove(ftsCols)
@@ -645,7 +711,7 @@ function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
         local tt = classDef.properties[tblInfo.columns[idx.columns[1].cid + 1].name].rules.type
         return #idx.columns == 1 and idx.unique == 1 and (tt == 'integer' or tt == 'number' or tt == 'datetime'
         or tt == 'binary')
-    end)
+    end )
 
     table.sort(uniqOtherIndexes,
     function(A, B)
@@ -677,8 +743,6 @@ function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
         end
         return -1
     end )
-
-
 end
 
 -- Check required fields. Candidates for name, description, nonUniqueId, createTime, updateTime,
@@ -698,33 +762,7 @@ function SQLiteSchemaParser:processUniqueTextIndexes(tblInfo, classDef)
     ]]
     local uniqTxtIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
         return #idx.columns == 1 and idx.unique == 1
-    end)
-    --table.sort(uniqTxtIndexes, function(A, B)
-    --    if not A or not B then
-    --        return 0
-    --    end
-    --
-    --    local v1 = classDef.properties[tblInfo.columns[A.columns[1].cid + 1].name].rules.maxLength
-    --    local v2 = classDef.properties[tblInfo.columns[B.columns[1].cid + 1].name].rules.maxLength
-    --    if v1 == v2 then
-    --        return 0
-    --    end
-    --    if v1 < v2 then
-    --        return -1
-    --    end
-    --    return 1
-    --end)
-
-    --if #uniqTxtIndexes > 0 then
-    --    -- Items assigned to code, name, description
-    --    classDef.specialProperties.code = { name = tblInfo.columns[uniqTxtIndexes[1].columns[1].cid + 1].name }
-    --    if not classDef.specialProperties.uid then
-    --        classDef.specialProperties.uid = classDef.specialProperties.code
-    --    end
-    --
-    --    classDef.specialProperties.name = { name = tblInfo.columns[uniqTxtIndexes[#uniqTxtIndexes > 1 and 2 or 1].columns[1].cid + 1].name };
-    --    classDef.specialProperties.description = { name = tblInfo.columns[uniqTxtIndexes[#uniqTxtIndexes].columns[1].cid + 1].name };
-    --end
+    end )
 end
 
 --[[

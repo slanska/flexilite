@@ -3,8 +3,6 @@
 --- DateTime: 2017-10-31 3:18 PM
 ---
 
-local class = require 'pl.class'
-
 --[[
 Property definition
 Keeps name, id, reference to class definition
@@ -56,6 +54,18 @@ For resolve class:
 
 ]]
 
+local class = require 'pl.class'
+
+local schema = require 'schema'
+
+-- define schema for property definition
+local propertySchema = schema.Record {
+    rules = schema.Record {
+        type = schema.OneOf('any', 'string', 'text'),
+
+    }
+}
+
 require 'math'
 local bit = type(jit) == 'table' and require('bit') or require('bit32')
 local name_ref = require 'NameRef'
@@ -95,8 +105,10 @@ local CTLV_FLAGS = {
 }
 
 --- @class PropertyDef
-local PropertyDef = {
-    rules = {
+local PropertyDef = class()
+
+function PropertyDef:_init()
+    self.rules = {
         -- Assume text property by default (if no type is set)
         type = 'text',
 
@@ -106,49 +118,47 @@ local PropertyDef = {
         -- By default scalar value
         maxOccurrences = 1
     }
-}
-
-PropertyDef.__index = PropertyDef
+end
 
 -- Forward declarations
 local propTypes;
 
 -- Subclasses for specific property types
 --- @class BoolPropertyDef
-local BoolPropertyDef = {}
-setmetatable(BoolPropertyDef, PropertyDef)
-BoolPropertyDef.__index = BoolPropertyDef
+local BoolPropertyDef = class(PropertyDef)
+--setmetatable(BoolPropertyDef, PropertyDef)
+--BoolPropertyDef.__index = BoolPropertyDef
 
 -- Base property type for all range-able types
 --- @class NumberPropertyDef
-local NumberPropertyDef = {}
-setmetatable(NumberPropertyDef, PropertyDef)
-NumberPropertyDef.__index = NumberPropertyDef
+local NumberPropertyDef = class(PropertyDef)
+--setmetatable(NumberPropertyDef, PropertyDef)
+--NumberPropertyDef.__index = NumberPropertyDef
 
 --- @class MoneyPropertyDef
-local MoneyPropertyDef = {}
-setmetatable(MoneyPropertyDef, NumberPropertyDef)
-MoneyPropertyDef.__index = MoneyPropertyDef
+local MoneyPropertyDef = class(NumberPropertyDef)
+--setmetatable(MoneyPropertyDef, NumberPropertyDef)
+--MoneyPropertyDef.__index = MoneyPropertyDef
 
 --- @class IntegerPropertyDef
-local IntegerPropertyDef = {}
-setmetatable(IntegerPropertyDef, NumberPropertyDef)
-IntegerPropertyDef.__index = IntegerPropertyDef
+local IntegerPropertyDef = class(NumberPropertyDef)
+--setmetatable(IntegerPropertyDef, NumberPropertyDef)
+--IntegerPropertyDef.__index = IntegerPropertyDef
 
 --- @class EnumPropertyDef
-local EnumPropertyDef = {}
-setmetatable(EnumPropertyDef, PropertyDef)
-EnumPropertyDef.__index = EnumPropertyDef
+local EnumPropertyDef = class(PropertyDef)
+--setmetatable(EnumPropertyDef, PropertyDef)
+--EnumPropertyDef.__index = EnumPropertyDef
 
 --- @class DateTimePropertyDef
-local DateTimePropertyDef = {}
-setmetatable(DateTimePropertyDef, NumberPropertyDef)
-DateTimePropertyDef.__index = DateTimePropertyDef
+local DateTimePropertyDef = class(NumberPropertyDef)
+--setmetatable(DateTimePropertyDef, NumberPropertyDef)
+--DateTimePropertyDef.__index = DateTimePropertyDef
 
 --- @class TimeSpanPropertyDef
-local TimeSpanPropertyDef = {}
-setmetatable(TimeSpanPropertyDef, DateTimePropertyDef)
-TimeSpanPropertyDef.__index = TimeSpanPropertyDef
+local TimeSpanPropertyDef = class(DateTimePropertyDef)
+--setmetatable(TimeSpanPropertyDef, DateTimePropertyDef)
+--TimeSpanPropertyDef.__index = TimeSpanPropertyDef
 
 --- @class TextPropertyDef
 local TextPropertyDef = {}
@@ -156,40 +166,40 @@ setmetatable(TextPropertyDef, PropertyDef)
 TextPropertyDef.__index = TextPropertyDef
 
 --- @class SymNamePropertyDef
-local SymNamePropertyDef = {}
-setmetatable(SymNamePropertyDef, TextPropertyDef)
-SymNamePropertyDef.__index = SymNamePropertyDef
+local SymNamePropertyDef = class(TextPropertyDef)
+--setmetatable(SymNamePropertyDef, TextPropertyDef)
+--SymNamePropertyDef.__index = SymNamePropertyDef
 
 --- @class BlobPropertyDef
-local BlobPropertyDef = {}
-setmetatable(BlobPropertyDef, PropertyDef)
-BlobPropertyDef.__index = BlobPropertyDef
+local BlobPropertyDef = class(PropertyDef)
+--setmetatable(BlobPropertyDef, PropertyDef)
+--BlobPropertyDef.__index = BlobPropertyDef
 
 --- @class UuidPropertyDef
-local UuidPropertyDef = {}
-setmetatable(UuidPropertyDef, BlobPropertyDef)
-UuidPropertyDef.__index = UuidPropertyDef
+local UuidPropertyDef = class(BlobPropertyDef)
+--setmetatable(UuidPropertyDef, BlobPropertyDef)
+--UuidPropertyDef.__index = UuidPropertyDef
 
 -- Base type for all reference-able properties
 --- @class MixinPropertyDef
-local MixinPropertyDef = {}
-setmetatable(MixinPropertyDef, PropertyDef)
-MixinPropertyDef.__index = MixinPropertyDef
+local MixinPropertyDef = class(PropertyDef)
+--setmetatable(MixinPropertyDef, PropertyDef)
+--MixinPropertyDef.__index = MixinPropertyDef
 
 --- @class ReferencePropertyDef
-local ReferencePropertyDef = {}
-setmetatable(ReferencePropertyDef, MixinPropertyDef)
-ReferencePropertyDef.__index = ReferencePropertyDef
+local ReferencePropertyDef = class(MixinPropertyDef)
+--setmetatable(ReferencePropertyDef, MixinPropertyDef)
+--ReferencePropertyDef.__index = ReferencePropertyDef
 
 --- @class NestedObjectPropertyDef
-local NestedObjectPropertyDef = {}
-setmetatable(NestedObjectPropertyDef, ReferencePropertyDef)
-NestedObjectPropertyDef.__index = NestedObjectPropertyDef
+local NestedObjectPropertyDef = class(ReferencePropertyDef)
+--setmetatable(NestedObjectPropertyDef, ReferencePropertyDef)
+--NestedObjectPropertyDef.__index = NestedObjectPropertyDef
 
 --- @class ComputedPropertyDef
-local ComputedPropertyDef = {}
-setmetatable(ComputedPropertyDef, PropertyDef)
-ComputedPropertyDef.__index = ComputedPropertyDef
+local ComputedPropertyDef = class(PropertyDef)
+--setmetatable(ComputedPropertyDef, PropertyDef)
+--ComputedPropertyDef.__index = ComputedPropertyDef
 
 --- @param ClassDef ClassDef
 --- @param srcData table @comment already parsed source data

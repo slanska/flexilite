@@ -3,6 +3,9 @@
 		"specialProperties": {
 			"uid": {
 				"name": "RegionID"
+			},
+			"name": {
+				"name": "RegionDescription"
 			}
 		},
 		"properties": {
@@ -25,6 +28,17 @@
 		}
 	},
 	"Employees": {
+		"specialProperties": {
+			"name": {
+				"name": "LastName"
+			},
+			"uid": {
+				"name": "EmployeeID"
+			},
+			"description": {
+				"name": "FirstName"
+			}
+		},
 		"properties": {
 			"PhotoPath": {
 				"rules": {
@@ -33,7 +47,7 @@
 				}
 			},
 			"LastName": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"minOccurrences": 1,
@@ -88,7 +102,7 @@
 				}
 			},
 			"PostalCode": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"maxLength": 10
@@ -134,21 +148,15 @@
 					"maxLength": 25
 				}
 			}
-		},
-		"fullTextIndexing": {
-			"X4": {
-				"name": "PostalCode"
-			},
-			"X3": {
-				"name": "LastName"
-			}
-		},
-		"specialProperties": 		{}
+		}
 	},
 	"Territories": {
 		"specialProperties": {
 			"uid": {
 				"name": "TerritoryID"
+			},
+			"description": {
+				"name": "TerritoryDescription"
 			}
 		},
 		"properties": {
@@ -189,6 +197,14 @@
 		}
 	},
 	"Suppliers": {
+		"specialProperties": {
+			"uid": {
+				"name": "SupplierID"
+			},
+			"name": {
+				"name": "CompanyName"
+			}
+		},
 		"properties": {
 			"ContactName": {
 				"rules": {
@@ -209,7 +225,7 @@
 				}
 			},
 			"PostalCode": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"maxLength": 10
@@ -246,7 +262,7 @@
 				}
 			},
 			"CompanyName": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"minOccurrences": 1,
@@ -268,16 +284,7 @@
 					"minOccurrences": 1
 				}
 			}
-		},
-		"fullTextIndexing": {
-			"X4": {
-				"name": "PostalCode"
-			},
-			"X3": {
-				"name": "CompanyName"
-			}
-		},
-		"specialProperties": 		{}
+		}
 	},
 	"Products": {
 		"rangeIndexing": {
@@ -379,7 +386,7 @@
 				}
 			},
 			"ProductName": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"minOccurrences": 1,
@@ -396,12 +403,14 @@
 				}
 			}
 		},
-		"fullTextIndexing": {
-			"X4": {
+		"specialProperties": {
+			"name": {
 				"name": "ProductName"
+			},
+			"uid": {
+				"name": "ProductID"
 			}
-		},
-		"specialProperties": 		{}
+		}
 	},
 	"EmployeesTerritories": {
 		"indexes": {
@@ -456,9 +465,21 @@
 				}
 			}
 		},
-		"specialProperties": 		{}
+		"specialProperties": {
+			"uid": {
+				"name": "EmployeeID"
+			}
+		}
 	},
 	"Customers": {
+		"specialProperties": {
+			"uid": {
+				"name": "CustomerID"
+			},
+			"name": {
+				"name": "CompanyName"
+			}
+		},
 		"properties": {
 			"ContactName": {
 				"rules": {
@@ -473,14 +494,14 @@
 				}
 			},
 			"Region": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"maxLength": 15
 				}
 			},
 			"PostalCode": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"maxLength": 10
@@ -493,7 +514,7 @@
 				}
 			},
 			"City": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"maxLength": 15
@@ -515,7 +536,7 @@
 				}
 			},
 			"CompanyName": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"minOccurrences": 1,
@@ -535,27 +556,20 @@
 					"maxLength": 30
 				}
 			}
-		},
-		"fullTextIndexing": {
-			"X2": {
-				"name": "CompanyName"
-			},
-			"X1": {
-				"name": "City"
-			},
-			"X4": {
-				"name": "Region"
-			},
-			"X3": {
-				"name": "PostalCode"
-			}
-		},
-		"specialProperties": 		{}
+		}
 	},
 	"Categories": {
+		"specialProperties": {
+			"uid": {
+				"name": "CategoryID"
+			},
+			"name": {
+				"name": "CategoryName"
+			}
+		},
 		"properties": {
 			"CategoryName": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"minOccurrences": 1,
@@ -582,13 +596,7 @@
 					"minOccurrences": 1
 				}
 			}
-		},
-		"fullTextIndexing": {
-			"X4": {
-				"name": "CategoryName"
-			}
-		},
-		"specialProperties": 		{}
+		}
 	},
 	"Orders": {
 		"rangeIndexing": {
@@ -650,7 +658,7 @@
 				}
 			},
 			"ShipPostalCode": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"maxLength": 10
@@ -663,7 +671,7 @@
 				}
 			},
 			"CustomerID": {
-				"index": "fulltext",
+				"index": "index",
 				"rules": {
 					"type": "text",
 					"maxLength": 5
@@ -693,20 +701,19 @@
 				}
 			}
 		},
-		"fullTextIndexing": {
-			"X4": {
-				"name": "ShipPostalCode"
-			},
-			"X3": {
-				"name": "CustomerID"
+		"specialProperties": {
+			"uid": {
+				"name": "OrderID"
 			}
-		},
-		"specialProperties": 		{}
+		}
 	},
 	"PreviousEmployees": {
 		"specialProperties": {
 			"uid": {
 				"name": "EmployeeID"
+			},
+			"description": {
+				"name": "FirstName"
 			}
 		},
 		"properties": {
@@ -819,7 +826,11 @@
 		}
 	},
 	"InternationalOrders": {
-		"specialProperties": 		{},
+		"specialProperties": {
+			"description": {
+				"name": "CustomsDescription"
+			}
+		},
 		"properties": {
 			"OrderID": {
 				"refDef": {
@@ -912,6 +923,10 @@
 				}
 			}
 		},
-		"specialProperties": 		{}
+		"specialProperties": {
+			"uid": {
+				"name": "OrderID"
+			}
+		}
 	}
 }
