@@ -2,7 +2,7 @@
 
 Concept of Relational Database Management Systems (RDBMS) was introduced in
 1970s, in the era of quite expensive, low capacity storage,
-with certain restrictiions on how to access data. Core element
+with certain restrictions on how to access data. Core element
 of RDBMS is the _record_ - sequence of bytes of fixed size, mapped to _structure_.
 Structure is defined set of fields of various types, with known size in bytes and offset from
 structure beginning. At that time it was the only possible way to describe big collections
@@ -29,15 +29,19 @@ huge time and effort spending (in no specific order):
  
 RDBMS does not provide natively support for enumerated values, i.e. application domain specific
 lists of predefined constants. This is normally resolved with:
-    - define enumerations on application level only, and simply store values in database. Enumerations
-    just do not exist in scope of database
-    - create separate tables for every enumeration type. In serious applications number of such tiny tables
-    may reach hundreds, with all respective maintenance burden - from 
-    - create few (or just one) tables to keep all enum items, with special field - EnumType, and custom implementation
-    of referential integrity  
+
+- define enumerations on application level only, and simply store values in database. Enumerations
+just do not exist in scope of database
+
+- create separate tables for every enumeration type. In serious applications number of such tiny tables
+may reach hundreds, with all respective maintenance burden including but not limited
+to referential integrity, UI forms etc.
+ 
+- create few (or just one) tables to keep all enum items, with special field - EnumType, and custom implementation
+of referential integrity  
     
 At some point, sooner or later, as application needs to support multiple languages, 
-it would be required to have those enum items translated too. Resulting table structure, in such advanced version,
+it would require to have those enum items translated too. Resulting table structure, in such advanced version,
  would like this:
 
 |EnumType|ID|Culture|Text|OrdinalPosition  
@@ -46,23 +50,25 @@ Also, some enumerations are subject to be extended by end-user. Which lead again
 custom implementation, usually, individually for evert enumeration type. 
 Finally, when doing search, it is often needed to include actual text values into search, within selected language.
 
+For any real application just enum support means hundred of development and testing hours.
+
 #### 2. Lists (aka Arrays aka Vectors)
 
 Standard RDBMS do not support value list (aka arrays aka vectors). So, if requirement is to have, say,
-multiple tags per record (kind of extended enums), additional table needs to created. Which brings us to
+multiple tags per record (kind of extended enums) or few email addresses, additional table needs to created. Which brings us to
 the next section.
 
 #### Many-to-many relation
 
 Standard RDBMS were designed to support one-to-many or one-to-one relations (and even this area is really half baked, as 
-we will conclude in the next section). Many-to-many relation needs one more table to create and maintain,
+we will cover in the next section). Many-to-many relation needs one more table to create and maintain,
 
 
 #### Half defined relations
 
 Despite of "R" _relations_ are actually half baked in RDBMS. Even though relations are defined via foreign key,
 so they are generally known to the database, this knowledge adds very little to real usage - one needs
-to apply the definition every time when 2 tables have to be joined together. Unnecessary complication.
+to apply the definition every time when 2 tables have to be joined together. This is unnecessary complication.
 
 
 #### User defined fields
@@ -76,13 +82,17 @@ a lot of development and testing effort.
 #### Sparse columns
 
 Medical, scientific, manufacturing and other types of databases often deal with sparse columns, where 
-in any given record only small percentage of column definitions has not null values. Even though 
+in any given record only small percentage of column definitions has not null values. Table may need thousands fields to be defined
+and only dozens of them would be actually used for any given record. Even though 
 to accomplish this requirement many databases offer special features (like sparse columns MS SQL), it is not part 
 of SQL ANSI standard.
 
 #### Polymorphic collections
 
-
+Records in RDBMS must follow the same structure, standard approach does not support having different types of records in the same collection,
+which is typical requirement in real life scenarios. To accomplish this, developers invent custom structures, like 1:1 tables.
+Some databases have support for table inheritance (PostgreSQL, as a example)
+ 
 
 #### Ordinal position in collection
 
@@ -94,14 +104,15 @@ implemented in non generic way, per case basis.
 
 In real life cases object are naturally formed in hierarchy. RDBMS deal with plain records only. 
 Custom application logic would be needed to transform plain lists of records into hierarchical structure,
-which is better suited for real business cases. 
+which is better suited for real business cases. Every case turns to be overcomplicated, custom, error prone implementation. 
 
 #### Multi-tenancy or "Databases within databases"
 
 In special cases there is a need to keep sort of databases-within-database. Here are the examples:
     - alarm system monitoring company, maintaining many accounts with various types of individually 
-    configured alarm systems
-    - equipment vendor, with customer account database, and individual configuration for every pease
+    configured alarm systems. So, there is a 'primary' database with customers, accounts etc. and specific equipment configuration
+    which also needs to be structured like normal database and operated as such.
+    - equipment vendor, with customer account database, and individual configuration for every piece
     of equipment. 
     
 Accomplishing this kind of requirements usually end in custom EAV or similar solution.
@@ -110,7 +121,7 @@ Accomplishing this kind of requirements usually end in custom EAV or similar sol
 
 At some point during application lifecycle and database size growth need in efficient fuzzy text search arises.
 This part is not standardized in ANSI SQL, and requires a good portion of design, implementation, testing
-and application adjustment.
+and application adjustment. It becomes even more cumbersome for large existing and already deployed applications.
 
 #### Metadata
 
@@ -119,7 +130,8 @@ Standard RDBMS do not have support for custom meta data, associated with tables 
 
 #### Schema migration
 
-Database schema goes through evolution together with growing business needs and changing vision.
+Database schema goes through evolution together with growing business needs and changing vision of business analysts,
+stockholders, developers and customers.
 Because of strict design of RDBMS schema evolution becomes tedious and unnecessary complicated process
 of preparing scripts for schema change, scripts for data migration, intermediate backup and restore actions,
-additional testing. 
+additional testing and a lot of changes in application code. 

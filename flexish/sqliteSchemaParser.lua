@@ -132,6 +132,15 @@ function SQLiteSchemaParser:sqliteColToFlexiProp(sqliteCol)
     return p
 end
 
+-- Returns unique property name based on suggestedPropName. If possible, uses suggestedPropName as result
+---@param tblInfo ISQLiteTableInfo
+---@param classDef IClassDef
+---@param suggestedPropName string
+---@return string
+function SQLiteSchemaParser:getUniqPropName(tblInfo, classDef, suggestedPropName)
+
+end
+
 --[[
 Iterates over list of tables and tries to find candidates for many-to-many relation tables.
 Canonical conditions:
@@ -556,7 +565,7 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     --[[
              Process foreign keys. Defines reference properties.
          There are 3 cases:
-         1) normal 1:N, (1 is defined in inFKeys, N - in outFKeys)
+         1) normal 1:N, (1 is defined in inFKeys, N - in outFKeys). Reverse property is created in counterpart class
          2) mixin 1:1, when outFKeys column is primary column
          3) many-to-many M:N, via special table with 2 columns which are foreign keys to other table(s)
     ]]
@@ -599,7 +608,8 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
 
     if extCol then
         -- set mixin property
-        classDef.properties[pkCols[1].name] = { rules = { type = 'mixin' }, refDef = { classRef = { name = extCol.table } } }
+        classDef.properties[extCol.table] = { rules = { type = 'mixin' }, refDef = { classRef = { name = extCol.table } } }
+        --classDef.properties[pkCols[1].name] = { rules = { type = 'mixin' }, refDef = { classRef = { name = extCol.table } } }
         extCol.processed = true
         table.remove(tblInfo.outFKeys, extColIdx)
     end

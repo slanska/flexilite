@@ -155,6 +155,98 @@ set(EXT_FILES
         #        src/DukContext.h src/DukContext.cpp
         flexish/main.c)
 
+set(LUA_FILES
+        # src_lua/
+        src_lua/NameRef.lua
+        src_lua/UserInfo.lua
+        src_lua/flexi_CreateClass.lua
+        src_lua/flexi_DropClass.lua
+        src_lua/flexi_SplitProperty.lua
+        src_lua/ClassDef.lua
+        src_lua/flexi_AlterClass.lua
+        src_lua/flexi_CreateProperty.lua
+        src_lua/flexi_DropProperty.lua
+        src_lua/flexi_StructuralMerge.lua
+        src_lua/DBContext.lua
+        src_lua/PropertyDef.lua
+        src_lua/flexi_AlterProperty.lua
+        src_lua/flexi_DataBestIndex.lua
+        src_lua/flexi_MergeProperty.lua
+        src_lua/flexi_StructuralSplit.lua
+        src_lua/EnumDef.lua
+        src_lua/QueryBuilder.lua
+        src_lua/flexi_Configure.lua
+        src_lua/flexi_DataFilter.lua
+        src_lua/flexi_ObjectToProp.lua
+        src_lua/index.lua
+        src_lua/JulianDate.lua
+        src_lua/Triggers.lua
+        src_lua/flexi_ConvertCustomEAV.lua
+        src_lua/flexi_DataUpdate.lua
+        src_lua/flexi_PropToObject.lua
+
+        #lib
+        lib/lua-prettycjson/lib/resty/prettycjson.lua
+        lib/lua-schema/schema.lua
+
+        #penlight
+        )
+
+# Variable to store compiled Lua files
+#SET(oLuaFiles)
+
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/src_lua")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-prettycjson/lib/resty")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-schema")
+
+set(outLuaFiles)
+
+# Generate commands to compile and embed Lua files
+#foreach (lua_file ${LUA_FILES})
+#    set(fullInLua "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}")
+#    SET(oLuaFile "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/${lua_file}.o")
+#    STRING(MAKE_C_IDENTIFIER ${lua_file} luaTarget)
+#    MESSAGE(STATUS "Generating Lua compile for ${lua_file} - ${luaTarget}")
+#
+#    ADD_CUSTOM_COMMAND(
+#            OUTPUT ${oLuaFile}
+#            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#            COMMAND luajit -b "${fullInLua}" "${oLuaFile}"
+#            COMMENT "Compiling ${lua_file}.lua to .o"
+#            DEPENDS ${fullInLua}
+#    )
+#
+#    set(outLuaFiles ${outLuaFiles} ${oLuaFile})
+#endforeach (lua_file)
+
+foreach (lua_file ${LUA_FILES})
+    MESSAGE(STATUS "Generating Lua compile for ${lua_file}")
+    SET(oLuaFile "cmake-build-debug/lua/${lua_file}.o")
+    execute_process(COMMAND luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+            )
+
+    SET(luaTarget)
+    STRING(MAKE_C_IDENTIFIER ${lua_file} luaTarget)
+
+    MESSAGE(STATUS "Lua target:  ${luaTarget}")
+
+    ADD_CUSTOM_TARGET(Compiling_Lua_${luaTarget}
+            ALL
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMAND luajit -b "${lua_file}" "${oLuaFile}"
+            COMMENT "Compiling ${lua_file}.lua to .o"
+            DEPENDS ${lua_file}
+            )
+
+endforeach (lua_file)
+
+ADD_CUSTOM_COMMAND(
+        OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/libLuaModules.a"
+        COMMAND ar rcus "${CMAKE_CURRENT_SOURCE_DIR}/libLuaModules.a" "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/src_lua/*.o"
+        COMMENT "Building Lua Modules Library"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".dll")
@@ -165,19 +257,13 @@ set(CMAKE_FIND_LIBRARY_PREFIXES "")
 
 add_subdirectory(lib/luajit-2.1)
 
-#add_subdirectory(lib/lua-cjson)
-
 add_library(Flexilite SHARED ${EXT_FILES})
 
 target_link_libraries(Flexilite PUBLIC luajit-static)
-
-#set_target_properties(Flexilite PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-#set_target_properties(Flexilite PROPERTIES COMPILE_FLAGS "-m64" LINK_FLAGS "-m64")
 
 add_custom_target(install_${PROJECT_NAME}
         make install
         DEPENDS ${PROJECT_NAME}
         COMMENT "Installing ${PROJECT_NAME}")
-
 
 add_subdirectory(test)
