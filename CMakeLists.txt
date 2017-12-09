@@ -80,6 +80,120 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_definitions(-DRESOURCES_GENERATED
         )
 
+set(LUA_FILES
+        # src_lua/
+        src_lua/NameRef.lua
+        src_lua/UserInfo.lua
+        src_lua/flexi_CreateClass.lua
+        src_lua/flexi_DropClass.lua
+        src_lua/flexi_SplitProperty.lua
+        src_lua/ClassDef.lua
+        src_lua/flexi_AlterClass.lua
+        src_lua/flexi_CreateProperty.lua
+        src_lua/flexi_DropProperty.lua
+        src_lua/flexi_StructuralMerge.lua
+        src_lua/DBContext.lua
+        src_lua/PropertyDef.lua
+        src_lua/flexi_AlterProperty.lua
+        src_lua/flexi_DataBestIndex.lua
+        src_lua/flexi_MergeProperty.lua
+        src_lua/flexi_StructuralSplit.lua
+        src_lua/EnumDef.lua
+        src_lua/QueryBuilder.lua
+        src_lua/flexi_Configure.lua
+        src_lua/flexi_DataFilter.lua
+        src_lua/flexi_ObjectToProp.lua
+        src_lua/index.lua
+        src_lua/JulianDate.lua
+        src_lua/Triggers.lua
+        src_lua/flexi_ConvertCustomEAV.lua
+        src_lua/flexi_DataUpdate.lua
+        src_lua/flexi_PropToObject.lua
+
+        #lib
+        lib/lua-prettycjson/lib/resty/prettycjson.lua
+        lib/lua-schema/schema.lua
+
+        #penlight
+        lib/lua-penlight/lua/pl/Date.lua
+        lib/lua-penlight/lua/pl/Set.lua
+        lib/lua-penlight/lua/pl/comprehension.lua
+        lib/lua-penlight/lua/pl/func.lua
+        lib/lua-penlight/lua/pl/lexer.lua
+        lib/lua-penlight/lua/pl/pretty.lua
+        lib/lua-penlight/lua/pl/stringx.lua
+        lib/lua-penlight/lua/pl/types.lua
+        lib/lua-penlight/lua/pl/List.lua
+        lib/lua-penlight/lua/pl/app.lua
+        lib/lua-penlight/lua/pl/config.lua
+        lib/lua-penlight/lua/pl/import_into.lua
+        lib/lua-penlight/lua/pl/luabalanced.lua
+        lib/lua-penlight/lua/pl/seq.lua
+        lib/lua-penlight/lua/pl/tablex.lua
+        lib/lua-penlight/lua/pl/url.lua
+        lib/lua-penlight/lua/pl/Map.lua
+        lib/lua-penlight/lua/pl/array2d.lua
+        lib/lua-penlight/lua/pl/data.lua
+        lib/lua-penlight/lua/pl/init.lua
+        lib/lua-penlight/lua/pl/operator.lua
+        lib/lua-penlight/lua/pl/sip.lua
+        lib/lua-penlight/lua/pl/template.lua
+        lib/lua-penlight/lua/pl/utils.lua
+        lib/lua-penlight/lua/pl/MultiMap.lua
+        lib/lua-penlight/lua/pl/class.lua
+        lib/lua-penlight/lua/pl/dir.lua
+        lib/lua-penlight/lua/pl/input.lua
+        lib/lua-penlight/lua/pl/path.lua
+        lib/lua-penlight/lua/pl/strict.lua
+        lib/lua-penlight/lua/pl/test.lua
+        lib/lua-penlight/lua/pl/xml.lua
+        lib/lua-penlight/lua/pl/OrderedMap.lua
+        lib/lua-penlight/lua/pl/compat.lua
+        lib/lua-penlight/lua/pl/file.lua
+        lib/lua-penlight/lua/pl/lapp.lua
+        lib/lua-penlight/lua/pl/permute.lua
+        lib/lua-penlight/lua/pl/stringio.lua
+        lib/lua-penlight/lua/pl/text.lua
+
+        # sandbox
+        lib/lua-sandbox/sandbox.lua
+        )
+
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/src_lua")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-prettycjson/lib/resty")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-schema")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-penlight/lua/pl")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-sandbox")
+
+# Variable to store compiled Lua files
+set(oLuaFiles)
+
+# Generate commands to compile and embed Lua files
+foreach (lua_file ${LUA_FILES})
+    MESSAGE(STATUS "Generating Lua compile for ${lua_file}")
+    SET(oLuaFile "cmake-build-debug/lua/${lua_file}.o")
+    execute_process(COMMAND luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
+
+    SET(luaTarget)
+    STRING(MAKE_C_IDENTIFIER ${lua_file} luaTarget)
+
+    ADD_CUSTOM_TARGET(Compiling_Lua_${luaTarget}
+            ALL
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMAND luajit -b "${lua_file}" "${oLuaFile}"
+            COMMENT "Compiling ${lua_file}.lua to .o"
+            DEPENDS ${lua_file}
+            )
+    set(oLuaFiles ${oLuaFiles} ${oLuaFile})
+endforeach (lua_file)
+
+ADD_CUSTOM_COMMAND(
+        OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/libLuaModules.a"
+        COMMAND ar rcus "${CMAKE_CURRENT_SOURCE_DIR}/libLuaModules.a" "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/src_lua/*.o"
+        COMMENT "Building Lua Modules Library"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 set(EXT_FILES
         # version of lsqlite for extension library (using sqlite3ext.h instead of sqlite3.h)
         src/lua-sqlite/lsqlite3.c
@@ -152,100 +266,9 @@ set(EXT_FILES
         src/flexi/ClassDef.h
         src/flexi/PropertyDef.cpp
         src/flexi/PropertyDef.h
-        #        src/DukContext.h src/DukContext.cpp
-        flexish/main.c)
-
-set(LUA_FILES
-        # src_lua/
-        src_lua/NameRef.lua
-        src_lua/UserInfo.lua
-        src_lua/flexi_CreateClass.lua
-        src_lua/flexi_DropClass.lua
-        src_lua/flexi_SplitProperty.lua
-        src_lua/ClassDef.lua
-        src_lua/flexi_AlterClass.lua
-        src_lua/flexi_CreateProperty.lua
-        src_lua/flexi_DropProperty.lua
-        src_lua/flexi_StructuralMerge.lua
-        src_lua/DBContext.lua
-        src_lua/PropertyDef.lua
-        src_lua/flexi_AlterProperty.lua
-        src_lua/flexi_DataBestIndex.lua
-        src_lua/flexi_MergeProperty.lua
-        src_lua/flexi_StructuralSplit.lua
-        src_lua/EnumDef.lua
-        src_lua/QueryBuilder.lua
-        src_lua/flexi_Configure.lua
-        src_lua/flexi_DataFilter.lua
-        src_lua/flexi_ObjectToProp.lua
-        src_lua/index.lua
-        src_lua/JulianDate.lua
-        src_lua/Triggers.lua
-        src_lua/flexi_ConvertCustomEAV.lua
-        src_lua/flexi_DataUpdate.lua
-        src_lua/flexi_PropToObject.lua
-
-        #lib
-        lib/lua-prettycjson/lib/resty/prettycjson.lua
-        lib/lua-schema/schema.lua
-
-        #penlight
+        flexish/main.c
+        ${oLuaFiles}
         )
-
-# Variable to store compiled Lua files
-#SET(oLuaFiles)
-
-execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/src_lua")
-execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-prettycjson/lib/resty")
-execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-schema")
-
-set(outLuaFiles)
-
-# Generate commands to compile and embed Lua files
-#foreach (lua_file ${LUA_FILES})
-#    set(fullInLua "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}")
-#    SET(oLuaFile "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/${lua_file}.o")
-#    STRING(MAKE_C_IDENTIFIER ${lua_file} luaTarget)
-#    MESSAGE(STATUS "Generating Lua compile for ${lua_file} - ${luaTarget}")
-#
-#    ADD_CUSTOM_COMMAND(
-#            OUTPUT ${oLuaFile}
-#            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-#            COMMAND luajit -b "${fullInLua}" "${oLuaFile}"
-#            COMMENT "Compiling ${lua_file}.lua to .o"
-#            DEPENDS ${fullInLua}
-#    )
-#
-#    set(outLuaFiles ${outLuaFiles} ${oLuaFile})
-#endforeach (lua_file)
-
-foreach (lua_file ${LUA_FILES})
-    MESSAGE(STATUS "Generating Lua compile for ${lua_file}")
-    SET(oLuaFile "cmake-build-debug/lua/${lua_file}.o")
-    execute_process(COMMAND luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
-            )
-
-    SET(luaTarget)
-    STRING(MAKE_C_IDENTIFIER ${lua_file} luaTarget)
-
-    MESSAGE(STATUS "Lua target:  ${luaTarget}")
-
-    ADD_CUSTOM_TARGET(Compiling_Lua_${luaTarget}
-            ALL
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            COMMAND luajit -b "${lua_file}" "${oLuaFile}"
-            COMMENT "Compiling ${lua_file}.lua to .o"
-            DEPENDS ${lua_file}
-            )
-
-endforeach (lua_file)
-
-ADD_CUSTOM_COMMAND(
-        OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/libLuaModules.a"
-        COMMAND ar rcus "${CMAKE_CURRENT_SOURCE_DIR}/libLuaModules.a" "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/src_lua/*.o"
-        COMMENT "Building Lua Modules Library"
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-)
 
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")

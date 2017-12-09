@@ -14,3 +14,9 @@
 [submodule "lib/lua-schema"]
 	path = lib/lua-schema
 	url = https://github.com/sschoener/lua-schema.git
+[submodule "lib/lua-penlight"]
+	path = lib/lua-penlight
+	url = https://github.com/stevedonovan/Penlight.git
+[submodule "lib/lua-sandbox"]
+	path = lib/lua-sandbox
+	url = https://github.com/APItools/sandbox.lua.git
