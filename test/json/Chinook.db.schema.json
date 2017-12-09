@@ -3,6 +3,9 @@
 		"specialProperties": {
 			"uid": {
 				"name": "GenreId"
+			},
+			"name": {
+				"name": "Name"
 			}
 		},
 		"properties": {
@@ -143,6 +146,9 @@
 		"specialProperties": {
 			"uid": {
 				"name": "PlaylistId"
+			},
+			"name": {
+				"name": "Name"
 			}
 		},
 		"properties": {
@@ -284,7 +290,7 @@
 			"uid": {
 				"name": "AlbumId"
 			},
-			"description": {
+			"name": {
 				"name": "Title"
 			}
 		}
@@ -419,6 +425,9 @@
 		"specialProperties": {
 			"uid": {
 				"name": "ArtistId"
+			},
+			"name": {
+				"name": "Name"
 			}
 		},
 		"properties": {
@@ -611,6 +620,9 @@
 		"specialProperties": {
 			"uid": {
 				"name": "MediaTypeId"
+			},
+			"name": {
+				"name": "Name"
 			}
 		},
 		"properties": {

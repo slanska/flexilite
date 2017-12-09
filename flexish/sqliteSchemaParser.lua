@@ -451,6 +451,23 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
         table.remove(notNullProps, 1)
     end
 
+    -- autoUuid: binary(16), unique index, required or column 'guid', 'uuid'
+    if notNullProps[1] and notNullProps[1].index == 'unique' and notNullProps[1].rules.type == 'binary'
+    and notNullProps[1].rules.maxLength == 16 then
+        local propName = self:findPropName(classDef, notNullProps[1])
+        classDef.specialProperties.name = { name = propName }
+        table.remove(notNullProps, 1)
+    end
+
+    -- remove all non text columns at the beginning
+    while #notNullProps > 0 do
+        local tt = notNullProps[1].rules.type
+        if tt ~= 'integer' and tt ~= 'number' and tt ~= 'money' then
+            break
+        end
+        table.remove(notNullProps, 1)
+    end
+
     -- name - next (after Code) unique text index or shortest required indexed text column (or 'name')
     if notNullProps[1] and ((notNullProps[1].index == 'unique' or notNullProps[1].index == 'index') and notNullProps[1].rules.type == 'text')
     or (#notNullProps == 1 and notNullProps[1].rules.type == 'text') then
@@ -459,12 +476,23 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
         table.remove(notNullProps, 1)
     end
 
-    -- autoUuid: binary(16), unique index, required or column 'guid', 'uuid'
-    if notNullProps[1] and notNullProps[1].index == 'unique' and notNullProps[1].rules.type == 'binary'
-    and notNullProps[1].rules.maxLength == 16 then
-        local propName = self:findPropName(classDef, notNullProps[1])
-        classDef.specialProperties.name = { name = propName }
-        table.remove(notNullProps, 1)
+    -- if there is only text property in the class, treat it as name
+    if not classDef.specialProperties.name then
+        local txtProp, txtPropName = nil, nil
+        for name, p in pairs(classDef.properties) do
+            if p.rules.type == 'text' then
+                if txtProp then
+                    -- not the first one -> reset and stop
+                    txtProp = nil
+                    break
+                end
+                txtProp = p
+                txtPropName = name
+            end
+        end
+        if txtProp then
+            classDef.specialProperties.name = { name = txtPropName }
+        end
     end
 
     if #notNullProps == 0 then

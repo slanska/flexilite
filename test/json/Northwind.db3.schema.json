@@ -155,7 +155,7 @@
 			"uid": {
 				"name": "TerritoryID"
 			},
-			"description": {
+			"name": {
 				"name": "TerritoryDescription"
 			}
 		},
@@ -827,7 +827,7 @@
 	},
 	"InternationalOrders": {
 		"specialProperties": {
-			"description": {
+			"name": {
 				"name": "CustomsDescription"
 			}
 		},
