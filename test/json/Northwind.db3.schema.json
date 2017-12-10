@@ -827,12 +827,15 @@
 	},
 	"InternationalOrders": {
 		"specialProperties": {
+			"uid": {
+				"name": "OrderID"
+			},
 			"name": {
 				"name": "CustomsDescription"
 			}
 		},
 		"properties": {
-			"OrderID": {
+			"Orders": {
 				"refDef": {
 					"classRef": {
 						"name": "Orders"
@@ -840,6 +843,14 @@
 				},
 				"rules": {
 					"type": "mixin"
+				}
+			},
+			"OrderID": {
+				"index": "unique",
+				"rules": {
+					"type": "integer",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
 				}
 			},
 			"CustomsDescription": {

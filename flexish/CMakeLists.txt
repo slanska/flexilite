@@ -1,0 +1,4 @@
+set(SOURCE
+        main.c
+
+        )

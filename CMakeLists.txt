@@ -177,14 +177,16 @@ foreach (lua_file ${LUA_FILES})
     SET(luaTarget)
     STRING(MAKE_C_IDENTIFIER ${lua_file} luaTarget)
 
-    ADD_CUSTOM_TARGET(Compiling_Lua_${luaTarget}
+    ADD_CUSTOM_COMMAND(
+            OUTPUT "${oLuaFile}"
             ALL
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             COMMAND luajit -b "${lua_file}" "${oLuaFile}"
             COMMENT "Compiling ${lua_file}.lua to .o"
             DEPENDS ${lua_file}
-            )
+    )
     set(oLuaFiles ${oLuaFiles} ${oLuaFile})
+    set_source_files_properties(${oLuaFile} PROPERTIES GENERATED TRUE)
 endforeach (lua_file)
 
 ADD_CUSTOM_COMMAND(
