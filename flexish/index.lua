@@ -28,7 +28,7 @@ local function generateSchema(cli_args)
 
     local sqliteParser = SQLiteSchemaParser(db)
     local schema = sqliteParser:parseSchema()
-    local schemaJson = prettyJson(schema) -- json.encode(schema)
+    local schemaJson = prettyJson(schema)
 
     if cli_args.output == nil or cli_args.output == '' then
         io.stdout:write(schemaJson)
@@ -61,7 +61,7 @@ if not arg[1] then
 else
     cli_args = lapp [[
     Flexilite Shell Utility
-    <command> (string) 'schema' | 'load' | 'query' | 'help' | 'config'
+    <command> (string) 'schema' | 'load' | 'query' | 'help' | 'config' | 'dump'
     <database> (string) Path to SQLite database file
     -o, --output (file-out default '') Output file path
     -c, --config (file-in default '') Path to config file
@@ -76,6 +76,7 @@ local commandMap = {
     ['load'] = loadData,
     ['query'] = queryDatabase,
     ['config'] = configDatabase,
+    ['dump'] = configDatabase,
 }
 
 local ff = commandMap[cli_args.command]

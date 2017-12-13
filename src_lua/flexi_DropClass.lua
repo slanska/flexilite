@@ -5,7 +5,7 @@
 
 local function DropClass(self, className)
     local a = 1
-    local b = '' .. tostring(a) .. ' b'
+    local b = '' .. tostring(a)
 end
 
 return DropClass
