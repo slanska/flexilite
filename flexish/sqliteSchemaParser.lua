@@ -226,7 +226,7 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
     self.outSchema[tblDef.name] = classDef
 
     -- ITableInfo
-    local tableInfo = {
+    local tblInfo = {
         -- Table name
         table = tblDef.name,
 
@@ -248,23 +248,28 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
         -- true if composite primary key
         multiPKey = false
     }
-    table.insert(self.tableInfo, tableInfo)
+    table.insert(self.tableInfo, tblInfo)
 
     local tbl_info_st = self.db:prepare(string.format("pragma table_info ('%s');", tblDef.name))
+    -- Load columns
     for col in tbl_info_st:nrows() do
-        -- Process columns
-        if col.pk > 1 and not tableInfo.multiPKey then
-            tableInfo.multiPKey = true
+        if col.pk > 1 and not tblInfo.multiPKey then
+            tblInfo.multiPKey = true
 
             -- IFlexishResultItem
             local msg = {
                 type = 'warn',
                 message = 'Multi-column primary key is not supported',
-                tableName = tableInfo.table
+                tableName = tblInfo.table
             }
             table.insert(self.results, msg)
         end
+        tblInfo.columns[col.cid + 1] = col
+        tblInfo.columnCount = tblInfo.columnCount + 1
+    end
 
+    -- Create properties
+    for idx, col in ipairs(tblInfo.columns) do
         local prop = self:sqliteColToFlexiProp(col)
 
         prop.rules.maxOccurrences = 1
@@ -276,7 +281,7 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
             prop.rules.maxOccurrences = nil
         end
 
-        if col.pk == 1 and not tableInfo.multiPKey then
+        if col.pk == 1 and not tblInfo.multiPKey then
             -- TODO Handle multiple column PKEY
             prop.index = 'unique'
         end
@@ -290,9 +295,6 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
         end
 
         classDef.properties[col.name] = prop
-
-        tableInfo.columns[col.cid + 1] = col
-        tableInfo.columnCount = tableInfo.columnCount + 1
     end
 
     -- Process indexes
@@ -309,7 +311,7 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
     end)
 
     if not pkIdx then
-        local pkCol = table.find(tableInfo.columns, function(cc)
+        local pkCol = table.find(tblInfo.columns, function(cc)
             return cc.pk == 1
         end)
         if pkCol then
@@ -328,14 +330,14 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
         end
     end
 
-    tableInfo.indexes = indexes;
+    tblInfo.indexes = indexes;
 
-    tableInfo.supportedIndexes = table.filter(indexes, function(idx)
+    tblInfo.supportedIndexes = table.filter(indexes, function(idx)
         return idx.partial == 0 and (string.lower(idx.origin) == 'c' or string.lower(idx.origin) == 'pk');
     end)
 
     -- Process all supported indexes
-    for i, idx in pairs(tableInfo.supportedIndexes) do
+    for i, idx in pairs(tblInfo.supportedIndexes) do
         idx.columns = idx.columns or {};
         local idx_info_st = self.db:prepare(string.format("pragma index_info('%s');", idx.name))
         local cc = {}
@@ -348,28 +350,34 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
     -- Process index columns
     for ii, idxCols in ipairs(deferredIdxCols) do
         for i, idxCol in ipairs(idxCols) do
-            table.insert(tableInfo.supportedIndexes[ii].columns, idxCol)
+            table.insert(tblInfo.supportedIndexes[ii].columns, idxCol)
         end
     end
 
+    return tblInfo;
+end
+
+-- Loads and processes foreign key definitions
+---@param tblInfo ITableInfo
+function SQLiteSchemaParser:processFKeys(tblInfo)
     -- Process foreign keys
     local fkInfo = {}
-    for v in self.db:nrows(string.format("pragma foreign_key_list('%s')", tblDef.name)) do
+    for v in self.db:nrows(string.format("pragma foreign_key_list('%s')", tblInfo.table)) do
         table.insert(fkInfo, v)
     end
 
     if #fkInfo > 0 then
         for i, fk in ipairs(fkInfo) do
-            fk.srcTable = tableInfo.table
+            fk.srcTable = tblInfo.table
             fk.processed = false
-            table.insert(tableInfo.outFKeys, fk)
+            table.insert(tblInfo.outFKeys, fk)
 
             local outTbl = self:findTableInfoByName(fk.table)
             if not outTbl then
                 table.insert(self.results, {
                     type = 'error',
-                    message = "Table specified in FKEY not found",
-                    tableName = fk.table
+                    message = string.format("Table [%s] specified in FKEY not found", fk.table),
+                    tableName = tblInfo.table
                 })
                 break
             end
@@ -377,8 +385,6 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
             table.insert(outTbl.inFKeys, fk)
         end
     end
-
-    return tableInfo;
 end
 
 ---@param tbl ITableInfo
@@ -404,6 +410,7 @@ function SQLiteSchemaParser:findPropName( classDef, prop)
     return nil
 end
 
+-- Try to find matching properties for special purposes (IClassDef.specialProperties)
 ---@param tblInfo ITableInfo
 ---@param classDef IClassDef
 function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
@@ -583,7 +590,7 @@ function SQLiteSchemaParser:processReferences(tblInfo)
         return cc.pk > 0
     end )
 
-    --[[
+    --[[ TODO uses logic below for creating suggestion comments for the class
          Process foreign keys. Defines reference properties.
          There are following cases:
          1) normal 1:N, (1 is defined in inFKeys, N - in outFKeys). Reverse property is created in counterpart class
@@ -595,51 +602,51 @@ function SQLiteSchemaParser:processReferences(tblInfo)
     ]]
 
     -- Detect many2many case
-    local many2many = false
-    if tblInfo.columnCount == 2 and #tblInfo.outFKeys == 2
-    and #tblInfo.inFKeys == 1 then
-        --[[
-    Candidate for many-to-many association
-    Full condition: both columns are required
-    Both columns are in outFKeys
-    Primary key is on columns A and B
-    There is another non unique index on column B
-    ]]
-        many2many = table.isEqual(table.map(tblInfo.columns, 'name'), table.map(tblInfo.outFKeys, 'from'))
-    end
-
-    if many2many then
-        classDef.storage = 'flexi-rel'
-        classDef.storageFlexiRel.master = {
-            ownProperty = { text = tblInfo.outFKeys[1].from },
-            refClass = { text = tblInfo.outFKeys[1].table },
-            refProperty = { text = tblInfo.outFKeys[1].to }
-        }
-
-        -- TODO ???
-        classDef.storageFlexiRel.master = {
-            ownProperty = { text = tblInfo.outFKeys[2].from },
-            refClass = { text = tblInfo.outFKeys[2].table },
-            refProperty = { text = tblInfo.outFKeys[2].to }
-        }
-
-        -- No need to process indexing as this class will be used as a virtual table with no data
-        return;
-    end
-
-    -- Detect "mixin"
-    local extCol, extColIdx = table.find(tblInfo.outFKeys, function(fk)
-        return pkCols and #pkCols == 1 and pkCols[1].name == fk.from
-    end )
-
-    if extCol then
-        -- set mixin property
-        classDef.properties[extCol.table] = { rules = { type = 'mixin' }, refDef = { classRef = { text = extCol.table } } }
-        --classDef.properties[pkCols[1].name] = { rules = { type = 'mixin' }, refDef = { classRef = { text = extCol.table } } }
-        extCol.processed = true
-        table.remove(tblInfo.outFKeys, extColIdx)
-        return
-    end
+    --local many2many = false
+    --if tblInfo.columnCount == 2 and #tblInfo.outFKeys == 2
+    --and #tblInfo.inFKeys == 1 then
+    --    --[[
+    --Candidate for many-to-many association
+    --Full condition: both columns are required
+    --Both columns are in outFKeys
+    --Primary key is on columns A and B
+    --There is another non unique index on column B
+    --]]
+    --    many2many = table.isEqual(table.map(tblInfo.columns, 'name'), table.map(tblInfo.outFKeys, 'from'))
+    --end
+    --
+    --if many2many then
+    --    classDef.storage = 'flexi-rel'
+    --    classDef.storageFlexiRel.master = {
+    --        ownProperty = { text = tblInfo.outFKeys[1].from },
+    --        refClass = { text = tblInfo.outFKeys[1].table },
+    --        refProperty = { text = tblInfo.outFKeys[1].to }
+    --    }
+    --
+    --    -- TODO ???
+    --    classDef.storageFlexiRel.master = {
+    --        ownProperty = { text = tblInfo.outFKeys[2].from },
+    --        refClass = { text = tblInfo.outFKeys[2].table },
+    --        refProperty = { text = tblInfo.outFKeys[2].to }
+    --    }
+    --
+    --    -- No need to process indexing as this class will be used as a virtual table with no data
+    --    return;
+    --end
+    --
+    ---- Detect "mixin"
+    --local extCol, extColIdx = table.find(tblInfo.outFKeys, function(fk)
+    --    return pkCols and #pkCols == 1 and pkCols[1].name == fk.from
+    --end )
+    --
+    --if extCol then
+    --    -- set mixin property
+    --    classDef.properties[extCol.table] = { rules = { type = 'mixin' }, refDef = { classRef = { text = extCol.table } } }
+    --    --classDef.properties[pkCols[1].name] = { rules = { type = 'mixin' }, refDef = { classRef = { text = extCol.table } } }
+    --    extCol.processed = true
+    --    table.remove(tblInfo.outFKeys, extColIdx)
+    --    return
+    --end
 
     --[[
          Processing what has left and create reference properties
@@ -658,35 +665,37 @@ function SQLiteSchemaParser:processReferences(tblInfo)
         -- N : 1
         if not fk.processed then
             local cc = classDef.properties[fk.from]
-            local pp = {
-                rules = {
-                    type = 'enum',
-                    minOccurences = cc.rules.minOccurences,
-                    maxOccurences = bits.lshift(1, 31) - 1
-                }
-            }
-            local propName = fk.table -- FIXME Pluralize
-            -- Guess reference/enum property name
-            if classDef.properties[propName] then
-                propName = string.format("%s_%s", propName, fk.from)
-            end
+            cc.rules.type = 'enum'
 
-            pp.refDef = {
+            --local pp = {
+            --    rules = {
+            --        type = 'enum',
+            --        minOccurences = cc.rules.minOccurences,
+            --        maxOccurences = bits.lshift(1, 31) - 1
+            --    }
+            --}
+            --local propName = fk.table -- FIXME Pluralize
+            ---- Guess reference/enum property name
+            --if classDef.properties[propName] then
+            --    propName = string.format("%s_%s", propName, fk.from)
+            --end
+
+            cc.refDef = {
                 classRef = { text = fk.table }
             }
 
             table.insert(self.referencedTableNames, fk.table)
 
-            classDef.properties[propName] = pp
+            --classDef.properties[propName] = pp
             -- TODO set on update, on delete
             fk.processed = true
         end
     end
 
-    for i, fk in ipairs(tblInfo.inFKeys) do
-        -- 1 : N
-        -- TODO
-    end
+    --for i, fk in ipairs(tblInfo.inFKeys) do
+    --    -- 1 : N
+    --    -- TODO
+    --end
 
 end
 
@@ -870,8 +879,15 @@ function SQLiteSchemaParser:parseSchema()
 
     local stmt, errMsg = self.db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
     for item in stmt:nrows() do
-        local tblInfo = self:loadTableInfo(item)
-        local classDef = self:processFlexiliteClassDef(tblInfo)
+        self:loadTableInfo(item)
+    end
+
+    for tableName, tblInfo in pairs(self.tableInfo) do
+        self:processFKeys(tblInfo)
+    end
+
+    for tableName, tblInfo in pairs(self.tableInfo) do
+        self:processFlexiliteClassDef(tblInfo)
     end
 
     for idx, tblName in ipairs(self.referencedTableNames) do

@@ -152,25 +152,17 @@
 	},
 	"Territories": {
 		"specialProperties": {
+			"name": {
+				"text": "TerritoryDescription"
+			},
 			"uid": {
 				"text": "TerritoryID"
 			},
-			"name": {
+			"description": {
 				"text": "TerritoryDescription"
 			}
 		},
 		"properties": {
-			"Regions": {
-				"refDef": {
-					"classRef": {
-						"text": "Regions"
-					}
-				},
-				"rules": {
-					"type": "enum",
-					"maxOccurences": 2147483647
-				}
-			},
 			"TerritoryID": {
 				"index": "unique",
 				"rules": {
@@ -188,8 +180,13 @@
 				}
 			},
 			"RegionID": {
+				"refDef": {
+					"classRef": {
+						"text": "Regions"
+					}
+				},
 				"rules": {
-					"type": "integer",
+					"type": "enum",
 					"maxOccurrences": 1,
 					"minOccurrences": 1
 				}
@@ -287,18 +284,12 @@
 		}
 	},
 	"Products": {
-		"rangeIndexing": {
-			"E1": {
-				"text": "SupplierID"
+		"specialProperties": {
+			"name": {
+				"text": "ProductName"
 			},
-			"D0": {
-				"text": "CategoryID"
-			},
-			"E0": {
-				"text": "SupplierID"
-			},
-			"D1": {
-				"text": "CategoryID"
+			"uid": {
+				"text": "ProductID"
 			}
 		},
 		"properties": {
@@ -338,37 +329,20 @@
 					"type": "money"
 				}
 			},
-			"Suppliers": {
-				"refDef": {
-					"classRef": {
-						"text": "Suppliers"
-					}
-				},
-				"rules": {
-					"type": "enum",
-					"maxOccurences": 2147483647
-				}
-			},
-			"Categories": {
-				"refDef": {
-					"classRef": {
-						"text": "Categories"
-					}
-				},
-				"rules": {
-					"type": "enum",
-					"maxOccurences": 2147483647
-				}
-			},
 			"DiscontinuedDate": {
 				"rules": {
 					"type": "date"
 				}
 			},
 			"CategoryID": {
-				"index": "range",
+				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "Categories"
+					}
+				},
 				"rules": {
-					"type": "integer"
+					"type": "enum"
 				}
 			},
 			"Discontinued": {
@@ -380,9 +354,14 @@
 				}
 			},
 			"SupplierID": {
-				"index": "range",
+				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "Suppliers"
+					}
+				},
 				"rules": {
-					"type": "integer"
+					"type": "enum"
 				}
 			},
 			"ProductName": {
@@ -402,14 +381,6 @@
 					"minValue": -32768
 				}
 			}
-		},
-		"specialProperties": {
-			"name": {
-				"text": "ProductName"
-			},
-			"uid": {
-				"text": "ProductID"
-			}
 		}
 	},
 	"EmployeesTerritories": {
@@ -427,7 +398,7 @@
 			}
 		},
 		"properties": {
-			"Employees": {
+			"EmployeeID": {
 				"refDef": {
 					"classRef": {
 						"text": "Employees"
@@ -435,25 +406,11 @@
 				},
 				"rules": {
 					"type": "enum",
-					"maxOccurences": 2147483647
+					"maxOccurrences": 1,
+					"minOccurrences": 1
 				}
 			},
 			"TerritoryID": {
-				"rules": {
-					"type": "integer",
-					"maxOccurrences": 1,
-					"minOccurrences": 1
-				}
-			},
-			"EmployeeID": {
-				"index": "unique",
-				"rules": {
-					"type": "integer",
-					"maxOccurrences": 1,
-					"minOccurrences": 1
-				}
-			},
-			"Territories": {
 				"refDef": {
 					"classRef": {
 						"text": "Territories"
@@ -461,15 +418,12 @@
 				},
 				"rules": {
 					"type": "enum",
-					"maxOccurences": 2147483647
+					"maxOccurrences": 1,
+					"minOccurrences": 1
 				}
 			}
 		},
-		"specialProperties": {
-			"uid": {
-				"text": "EmployeeID"
-			}
-		}
+		"specialProperties": 		{}
 	},
 	"Customers": {
 		"specialProperties": {
@@ -628,17 +582,6 @@
 					"type": "date"
 				}
 			},
-			"Customers": {
-				"refDef": {
-					"classRef": {
-						"text": "Customers"
-					}
-				},
-				"rules": {
-					"type": "enum",
-					"maxOccurences": 2147483647
-				}
-			},
 			"ShipCity": {
 				"rules": {
 					"type": "text",
@@ -672,8 +615,13 @@
 			},
 			"CustomerID": {
 				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "Customers"
+					}
+				},
 				"rules": {
-					"type": "text",
+					"type": "enum",
 					"maxLength": 5
 				}
 			},
@@ -827,31 +775,26 @@
 	},
 	"InternationalOrders": {
 		"specialProperties": {
-			"uid": {
-				"text": "OrderID"
-			},
 			"name": {
+				"text": "CustomsDescription"
+			},
+			"description": {
 				"text": "CustomsDescription"
 			}
 		},
 		"properties": {
-			"Orders": {
+			"OrderID": {
+				"rules": {
+					"type": "enum",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				},
 				"refDef": {
 					"classRef": {
 						"text": "Orders"
 					}
 				},
-				"rules": {
-					"type": "mixin"
-				}
-			},
-			"OrderID": {
-				"index": "unique",
-				"rules": {
-					"type": "integer",
-					"maxOccurrences": 1,
-					"minOccurrences": 1
-				}
+				"index": "unique"
 			},
 			"CustomsDescription": {
 				"rules": {
@@ -871,30 +814,17 @@
 		}
 	},
 	"OrderDetails": {
-		"rangeIndexing": {
-			"E0": {
-				"text": "ProductID"
-			},
-			"E1": {
-				"text": "ProductID"
-			}
-		},
+		"specialProperties": 		{},
 		"properties": {
-			"Products": {
+			"OrderID": {
+				"index": "index",
 				"refDef": {
 					"classRef": {
-						"text": "Products"
+						"text": "Orders"
 					}
 				},
 				"rules": {
 					"type": "enum",
-					"maxOccurences": 2147483647
-				}
-			},
-			"OrderID": {
-				"index": "unique",
-				"rules": {
-					"type": "integer",
 					"maxOccurrences": 1,
 					"minOccurrences": 1
 				}
@@ -926,17 +856,17 @@
 				}
 			},
 			"ProductID": {
-				"index": "range",
+				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "Products"
+					}
+				},
 				"rules": {
-					"type": "integer",
+					"type": "enum",
 					"maxOccurrences": 1,
 					"minOccurrences": 1
 				}
-			}
-		},
-		"specialProperties": {
-			"uid": {
-				"text": "OrderID"
 			}
 		}
 	}

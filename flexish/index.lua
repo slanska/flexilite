@@ -30,6 +30,7 @@ local function generateSchema(cli_args)
     local schema = sqliteParser:parseSchema()
     local schemaJson = prettyJson(schema)
 
+    -- Save JSON to file or print to console
     if cli_args.output == nil or cli_args.output == '' then
         io.stdout:write(schemaJson)
     else
@@ -39,6 +40,13 @@ local function generateSchema(cli_args)
         local f = io.open(cli_args.output, 'w')
         f:write(schemaJson)
         f:close()
+    end
+
+    -- Print warnings and other messages
+    if sqliteParser.results then
+        for i, item in ipairs(sqliteParser.results) do
+            print(string.format("%s: [%s] %s", item.tableName, item.type, item.message))
+        end
     end
 end
 

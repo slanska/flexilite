@@ -2,10 +2,10 @@
 	"Genre": {
 		"specialProperties": {
 			"uid": {
-				"name": "GenreId"
+				"text": "GenreId"
 			},
 			"name": {
-				"name": "Name"
+				"text": "Name"
 			}
 		},
 		"properties": {
@@ -26,21 +26,15 @@
 		}
 	},
 	"Customer": {
-		"rangeIndexing": {
-			"E0": {
-				"name": "SupportRepId"
+		"specialProperties": {
+			"uid": {
+				"text": "CustomerId"
 			},
-			"E1": {
-				"name": "SupportRepId"
+			"description": {
+				"text": "LastName"
 			}
 		},
 		"properties": {
-			"State": {
-				"rules": {
-					"type": "text",
-					"maxLength": 40
-				}
-			},
 			"LastName": {
 				"rules": {
 					"type": "text",
@@ -78,9 +72,14 @@
 				}
 			},
 			"SupportRepId": {
-				"index": "range",
+				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "Employee"
+					}
+				},
 				"rules": {
-					"type": "integer"
+					"type": "enum"
 				}
 			},
 			"Country": {
@@ -113,15 +112,10 @@
 					"maxLength": 70
 				}
 			},
-			"Employee": {
-				"refDef": {
-					"classRef": {
-						"name": "Employee"
-					}
-				},
+			"State": {
 				"rules": {
-					"type": "reference",
-					"maxOccurences": 2147483647
+					"type": "text",
+					"maxLength": 40
 				}
 			},
 			"CustomerId": {
@@ -132,23 +126,15 @@
 					"minOccurrences": 1
 				}
 			}
-		},
-		"specialProperties": {
-			"uid": {
-				"name": "CustomerId"
-			},
-			"description": {
-				"name": "LastName"
-			}
 		}
 	},
 	"Playlist": {
 		"specialProperties": {
 			"uid": {
-				"name": "PlaylistId"
+				"text": "PlaylistId"
 			},
 			"name": {
-				"name": "Name"
+				"text": "Name"
 			}
 		},
 		"properties": {
@@ -169,32 +155,12 @@
 		}
 	},
 	"InvoiceLine": {
-		"rangeIndexing": {
-			"E1": {
-				"name": "TrackId"
-			},
-			"D0": {
-				"name": "InvoiceId"
-			},
-			"E0": {
-				"name": "TrackId"
-			},
-			"D1": {
-				"name": "InvoiceId"
+		"specialProperties": {
+			"uid": {
+				"text": "InvoiceLineId"
 			}
 		},
 		"properties": {
-			"Track": {
-				"refDef": {
-					"classRef": {
-						"name": "Track"
-					}
-				},
-				"rules": {
-					"type": "reference",
-					"maxOccurences": 2147483647
-				}
-			},
 			"InvoiceLineId": {
 				"index": "unique",
 				"rules": {
@@ -204,9 +170,14 @@
 				}
 			},
 			"TrackId": {
-				"index": "range",
+				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "Track"
+					}
+				},
 				"rules": {
-					"type": "integer",
+					"type": "enum",
 					"maxOccurrences": 1,
 					"minOccurrences": 1
 				}
@@ -226,27 +197,30 @@
 				}
 			},
 			"InvoiceId": {
-				"index": "range",
+				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "Invoice"
+					}
+				},
 				"rules": {
-					"type": "integer",
+					"type": "enum",
 					"maxOccurrences": 1,
 					"minOccurrences": 1
 				}
 			}
-		},
-		"specialProperties": {
-			"uid": {
-				"name": "InvoiceLineId"
-			}
 		}
 	},
 	"Album": {
-		"rangeIndexing": {
-			"E0": {
-				"name": "ArtistId"
+		"specialProperties": {
+			"name": {
+				"text": "Title"
 			},
-			"E1": {
-				"name": "ArtistId"
+			"uid": {
+				"text": "AlbumId"
+			},
+			"description": {
+				"text": "Title"
 			}
 		},
 		"properties": {
@@ -258,21 +232,15 @@
 					"maxLength": 160
 				}
 			},
-			"Artist": {
+			"ArtistId": {
+				"index": "index",
 				"refDef": {
 					"classRef": {
-						"name": "Artist"
+						"text": "Artist"
 					}
 				},
 				"rules": {
-					"type": "reference",
-					"maxOccurences": 2147483647
-				}
-			},
-			"ArtistId": {
-				"index": "range",
-				"rules": {
-					"type": "integer",
+					"type": "enum",
 					"maxOccurrences": 1,
 					"minOccurrences": 1
 				}
@@ -285,35 +253,15 @@
 					"minOccurrences": 1
 				}
 			}
-		},
-		"specialProperties": {
-			"uid": {
-				"name": "AlbumId"
-			},
-			"name": {
-				"name": "Title"
-			}
 		}
 	},
 	"Track": {
-		"rangeIndexing": {
-			"D0": {
-				"name": "GenreId"
+		"specialProperties": {
+			"uid": {
+				"text": "TrackId"
 			},
-			"C1": {
-				"name": "AlbumId"
-			},
-			"E1": {
-				"name": "MediaTypeId"
-			},
-			"D1": {
-				"name": "GenreId"
-			},
-			"E0": {
-				"name": "MediaTypeId"
-			},
-			"C0": {
-				"name": "AlbumId"
+			"description": {
+				"text": "Name"
 			}
 		},
 		"properties": {
@@ -329,17 +277,6 @@
 					"minOccurrences": 1
 				}
 			},
-			"Genre": {
-				"refDef": {
-					"classRef": {
-						"name": "Genre"
-					}
-				},
-				"rules": {
-					"type": "reference",
-					"maxOccurences": 2147483647
-				}
-			},
 			"TrackId": {
 				"index": "unique",
 				"rules": {
@@ -349,9 +286,14 @@
 				}
 			},
 			"GenreId": {
-				"index": "range",
+				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "Genre"
+					}
+				},
 				"rules": {
-					"type": "integer"
+					"type": "enum"
 				}
 			},
 			"Name": {
@@ -369,39 +311,27 @@
 				}
 			},
 			"MediaTypeId": {
-				"index": "range",
+				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "MediaType"
+					}
+				},
 				"rules": {
-					"type": "integer",
+					"type": "enum",
 					"maxOccurrences": 1,
 					"minOccurrences": 1
 				}
 			},
 			"AlbumId": {
-				"index": "range",
-				"rules": {
-					"type": "integer"
-				}
-			},
-			"Album": {
+				"index": "index",
 				"refDef": {
 					"classRef": {
-						"name": "Album"
+						"text": "Album"
 					}
 				},
 				"rules": {
-					"type": "reference",
-					"maxOccurences": 2147483647
-				}
-			},
-			"MediaType": {
-				"refDef": {
-					"classRef": {
-						"name": "MediaType"
-					}
-				},
-				"rules": {
-					"type": "reference",
-					"maxOccurences": 2147483647
+					"type": "enum"
 				}
 			},
 			"UnitPrice": {
@@ -411,23 +341,15 @@
 					"minOccurrences": 1
 				}
 			}
-		},
-		"specialProperties": {
-			"uid": {
-				"name": "TrackId"
-			},
-			"description": {
-				"name": "Name"
-			}
 		}
 	},
 	"Artist": {
 		"specialProperties": {
 			"uid": {
-				"name": "ArtistId"
+				"text": "ArtistId"
 			},
 			"name": {
-				"name": "Name"
+				"text": "Name"
 			}
 		},
 		"properties": {
@@ -448,64 +370,45 @@
 		}
 	},
 	"PlaylistTrack": {
-		"rangeIndexing": {
-			"E0": {
-				"name": "TrackId"
-			},
-			"E1": {
-				"name": "TrackId"
-			}
-		},
+		"specialProperties": 		{},
 		"properties": {
 			"PlaylistId": {
-				"index": "unique",
-				"rules": {
-					"type": "integer",
-					"maxOccurrences": 1,
-					"minOccurrences": 1
-				}
-			},
-			"Track": {
 				"refDef": {
 					"classRef": {
-						"name": "Track"
+						"text": "Playlist"
 					}
 				},
 				"rules": {
-					"type": "reference",
-					"maxOccurences": 2147483647
-				}
-			},
-			"TrackId": {
-				"index": "range",
-				"rules": {
-					"type": "integer",
+					"type": "enum",
 					"maxOccurrences": 1,
 					"minOccurrences": 1
 				}
-			}
-		},
-		"specialProperties": {
-			"uid": {
-				"name": "PlaylistId"
+			},
+			"TrackId": {
+				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "Track"
+					}
+				},
+				"rules": {
+					"type": "enum",
+					"maxOccurrences": 1,
+					"minOccurrences": 1
+				}
 			}
 		}
 	},
 	"Employee": {
-		"rangeIndexing": {
-			"E0": {
-				"name": "ReportsTo"
+		"specialProperties": {
+			"uid": {
+				"text": "EmployeeId"
 			},
-			"E1": {
-				"name": "ReportsTo"
+			"description": {
+				"text": "FirstName"
 			}
 		},
 		"properties": {
-			"HireDate": {
-				"rules": {
-					"type": "date"
-				}
-			},
 			"Email": {
 				"rules": {
 					"type": "text",
@@ -559,9 +462,14 @@
 				}
 			},
 			"ReportsTo": {
-				"index": "range",
+				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "Employee"
+					}
+				},
 				"rules": {
-					"type": "integer"
+					"type": "enum"
 				}
 			},
 			"City": {
@@ -589,15 +497,9 @@
 					"type": "date"
 				}
 			},
-			"Employee": {
-				"refDef": {
-					"classRef": {
-						"name": "Employee"
-					}
-				},
+			"HireDate": {
 				"rules": {
-					"type": "reference",
-					"maxOccurences": 2147483647
+					"type": "date"
 				}
 			},
 			"Address": {
@@ -606,23 +508,15 @@
 					"maxLength": 70
 				}
 			}
-		},
-		"specialProperties": {
-			"uid": {
-				"name": "EmployeeId"
-			},
-			"description": {
-				"name": "FirstName"
-			}
 		}
 	},
 	"MediaType": {
 		"specialProperties": {
 			"uid": {
-				"name": "MediaTypeId"
+				"text": "MediaTypeId"
 			},
 			"name": {
-				"name": "Name"
+				"text": "Name"
 			}
 		},
 		"properties": {
@@ -643,12 +537,9 @@
 		}
 	},
 	"Invoice": {
-		"rangeIndexing": {
-			"E0": {
-				"name": "CustomerId"
-			},
-			"E1": {
-				"name": "CustomerId"
+		"specialProperties": {
+			"uid": {
+				"text": "InvoiceId"
 			}
 		},
 		"properties": {
@@ -672,17 +563,6 @@
 					"minOccurrences": 1
 				}
 			},
-			"Customer": {
-				"refDef": {
-					"classRef": {
-						"name": "Customer"
-					}
-				},
-				"rules": {
-					"type": "reference",
-					"maxOccurences": 2147483647
-				}
-			},
 			"BillingState": {
 				"rules": {
 					"type": "text",
@@ -690,9 +570,14 @@
 				}
 			},
 			"CustomerId": {
-				"index": "range",
+				"index": "index",
+				"refDef": {
+					"classRef": {
+						"text": "Customer"
+					}
+				},
 				"rules": {
-					"type": "integer",
+					"type": "enum",
 					"maxOccurrences": 1,
 					"minOccurrences": 1
 				}
@@ -722,11 +607,6 @@
 					"maxOccurrences": 1,
 					"minOccurrences": 1
 				}
-			}
-		},
-		"specialProperties": {
-			"uid": {
-				"name": "InvoiceId"
 			}
 		}
 	}
