@@ -593,6 +593,11 @@ interface IClassDefinition {
     User defined arbitrary data
      */
     meta?: object;
+
+    /*
+    Class description. E.g. comments generated for class converted from SQL table
+     */
+    description?: IMetadataRef;
 }
 
 interface IStorageFlexiRelProperty {

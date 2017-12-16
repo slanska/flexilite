@@ -55,14 +55,14 @@ function ClassDef:_init(params)
             data = json.decode(params.data)
         end
 
-        self.Name.name = params.newClassName
+        self.Name.text = params.newClassName
         self.D = {}
     else
         -- Loading existing class from DB. params.data is [.classes] row
         -- todo confirm class def structure
         assert(type(params.data) == 'table')
         self.Name.id = params.data.NameID
-        self.Name.name = params.data.Name
+        self.Name.text = params.data.Name
         self.ClassID = params.data.ClassID
 
         self.D = params.data
@@ -74,22 +74,22 @@ function ClassDef:_init(params)
             local prop = PropertyDef.import(self, p)
 
             -- Determine mode
-            if type(nameOrId) == 'number' and p.Prop.name and p.Prop.id then
+            if type(nameOrId) == 'number' and p.Prop.text and p.Prop.id then
                 -- Database contexts
                 self.PropertiesByID[nameOrId] = prop
-                self.Properties[p.Prop.name] = prop
+                self.Properties[p.Prop.text] = prop
             else
                 if type(nameOrId) ~= 'string' then
                     error('Invalid type of property name: ' .. nameOrId)
                 end
 
                 -- Raw JSON context
-                prop.Prop.name = nameOrId
+                prop.Prop.text = nameOrId
                 self.Properties[nameOrId] = prop
 
                 -- TODO temp
                 if prop.D.refDef and prop.D.refDef.classRef then
-                    print("initMetadataRefs: " .. prop.Prop.name .. ", classRef: ", prop.D.refDef.classRef)
+                    print("initMetadataRefs: " .. prop.Prop.text .. ", classRef: ", prop.D.refDef.classRef)
 
                 end
             end
@@ -103,7 +103,7 @@ function ClassDef:_init(params)
         if tt then
             for k, v in pairs(tt) do
                 if type(v) ~= 'table' then
-                    v = { name = v }
+                    v = { text = v }
                 end
                 setmetatable(v, NameRef)
                 self[dictName][k] = v
@@ -152,7 +152,7 @@ end
 function ClassDef:toJSON()
     local result = {
         id = self.ID,
-        name = self.Name,
+        text = self.Name,
         allowAnyProps = self.allowAnyProps,
     }
 

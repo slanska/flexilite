@@ -68,6 +68,10 @@ function SQLiteSchemaParser:_init(db)
     self.results = {}
 
     self.db = db
+
+    -- List of table names that are references by other tables
+    -- Needed to enforce id and name special properties
+    self.referencedTableNames = {}
 end
 
 -- Mapping between SQLite column types and Flexilite property types
@@ -223,12 +227,25 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
 
     -- ITableInfo
     local tableInfo = {
+        -- Table name
         table = tblDef.name,
+
+        -- Number of columns
         columnCount = 0,
+
+        -- List of columns, by SQLite "cid" value
         columns = {},
+
+        -- List of incoming foreign keys (other tables refer to this one)
         inFKeys = {},
+
+        -- List of outgoing foreign keys (references to other tables)
         outFKeys = {},
+
+        -- true if table is many2many link table
         manyToManyTable = false,
+
+        -- true if composite primary key
         multiPKey = false
     }
     table.insert(self.tableInfo, tableInfo)
@@ -449,14 +466,14 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
     -- uid - non autoinc primary key or single column unique index (shortest, if there are few unique single column indexes)
     if notNullProps[1].index == 'unique' then
         local propName = self:findPropName(classDef, notNullProps[1])
-        classDef.specialProperties.uid = { name = propName }
+        classDef.specialProperties.uid = { text = propName }
         table.remove(notNullProps, 1)
     end
 
     -- code - next (after UID) unique index on single required text column (or column named 'code')
     if notNullProps[1] and notNullProps[1].index == 'unique' and notNullProps[1].rules.type == 'text' then
         local propName = self:findPropName(classDef, notNullProps[1])
-        classDef.specialProperties.code = { name = propName }
+        classDef.specialProperties.code = { text = propName }
         table.remove(notNullProps, 1)
     end
 
@@ -464,7 +481,7 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
     if notNullProps[1] and notNullProps[1].index == 'unique' and notNullProps[1].rules.type == 'binary'
     and notNullProps[1].rules.maxLength == 16 then
         local propName = self:findPropName(classDef, notNullProps[1])
-        classDef.specialProperties.name = { name = propName }
+        classDef.specialProperties.name = { text = propName }
         table.remove(notNullProps, 1)
     end
 
@@ -481,7 +498,7 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
     if notNullProps[1] and ((notNullProps[1].index == 'unique' or notNullProps[1].index == 'index') and notNullProps[1].rules.type == 'text')
     or (#notNullProps == 1 and notNullProps[1].rules.type == 'text') then
         local propName = self:findPropName(classDef, notNullProps[1])
-        classDef.specialProperties.name = { name = propName }
+        classDef.specialProperties.name = { text = propName }
         table.remove(notNullProps, 1)
     end
 
@@ -500,7 +517,7 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
             end
         end
         if txtProp then
-            classDef.specialProperties.name = { name = txtPropName }
+            classDef.specialProperties.name = { text = txtPropName }
         end
     end
 
@@ -535,7 +552,7 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
     for i, p in ipairs(notNullProps) do
         if p.rules.type == 'text' then
             local propName = self:findPropName(classDef, p)
-            classDef.specialProperties.description = { name = propName }
+            classDef.specialProperties.description = { text = propName }
             table.remove(notNullProps, i)
             break
         end
@@ -554,22 +571,30 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
     classDef.specialProperties.updateTime = findReqCol({ 'updatetime', 'updated', 'update_time', 'update_date', 'updatedate', 'last_changed', 'lastchanged', 'last_updated', 'lastupdated', 'last_modified', 'lastmodified' }, { 'time', 'date' })
 end
 
+-- Processes foreign key definitions
+--Converts FKEY definitions to 'enum' properties and adds comments to classes for
+--future schema 1refactoring
 ---@param tblInfo ITableInfo
----@return IClassDef
-function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
+function SQLiteSchemaParser:processReferences(tblInfo)
     local classDef = self.outSchema[tblInfo.table]
+
+    -- get table primary key
     local pkCols = table.filter(tblInfo.columns, function(cc)
         return cc.pk > 0
     end )
 
     --[[
-             Process foreign keys. Defines reference properties.
-         There are 3 cases:
+         Process foreign keys. Defines reference properties.
+         There are following cases:
          1) normal 1:N, (1 is defined in inFKeys, N - in outFKeys). Reverse property is created in counterpart class
+         This property is created as enum, reversed property is also created as enum
          2) mixin 1:1, when outFKeys column is primary column
          3) many-to-many M:N, via special table with 2 columns which are foreign keys to other table(s)
+         4) primary key is multiple, and first column in primary key is foreign
+         key to another table. This will create a master reference property.
     ]]
 
+    -- Detect many2many case
     local many2many = false
     if tblInfo.columnCount == 2 and #tblInfo.outFKeys == 2
     and #tblInfo.inFKeys == 1 then
@@ -586,36 +611,38 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     if many2many then
         classDef.storage = 'flexi-rel'
         classDef.storageFlexiRel.master = {
-            ownProperty = { name = tblInfo.outFKeys[1].from },
-            refClass = { name = tblInfo.outFKeys[1].table },
-            refProperty = { name = tblInfo.outFKeys[1].to }
+            ownProperty = { text = tblInfo.outFKeys[1].from },
+            refClass = { text = tblInfo.outFKeys[1].table },
+            refProperty = { text = tblInfo.outFKeys[1].to }
         }
 
         -- TODO ???
         classDef.storageFlexiRel.master = {
-            ownProperty = { name = tblInfo.outFKeys[2].from },
-            refClass = { name = tblInfo.outFKeys[2].table },
-            refProperty = { name = tblInfo.outFKeys[2].to }
+            ownProperty = { text = tblInfo.outFKeys[2].from },
+            refClass = { text = tblInfo.outFKeys[2].table },
+            refProperty = { text = tblInfo.outFKeys[2].to }
         }
 
         -- No need to process indexing as this class will be used as a virtual table with no data
         return;
     end
 
+    -- Detect "mixin"
     local extCol, extColIdx = table.find(tblInfo.outFKeys, function(fk)
         return pkCols and #pkCols == 1 and pkCols[1].name == fk.from
     end )
 
     if extCol then
         -- set mixin property
-        classDef.properties[extCol.table] = { rules = { type = 'mixin' }, refDef = { classRef = { name = extCol.table } } }
-        --classDef.properties[pkCols[1].name] = { rules = { type = 'mixin' }, refDef = { classRef = { name = extCol.table } } }
+        classDef.properties[extCol.table] = { rules = { type = 'mixin' }, refDef = { classRef = { text = extCol.table } } }
+        --classDef.properties[pkCols[1].name] = { rules = { type = 'mixin' }, refDef = { classRef = { text = extCol.table } } }
         extCol.processed = true
         table.remove(tblInfo.outFKeys, extColIdx)
+        return
     end
 
     --[[
-             Processing what has left and create reference properties
+         Processing what has left and create reference properties
          Reference property gets name based on name of references table
          and, optionally, 'from' column, so for relation between Order->OrderDetails by OrderID
          (for both tables) 2 properties will be created:
@@ -633,19 +660,23 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
             local cc = classDef.properties[fk.from]
             local pp = {
                 rules = {
-                    type = 'reference',
+                    type = 'enum',
                     minOccurences = cc.rules.minOccurences,
                     maxOccurences = bits.lshift(1, 31) - 1
                 }
             }
             local propName = fk.table -- FIXME Pluralize
+            -- Guess reference/enum property name
             if classDef.properties[propName] then
                 propName = string.format("%s_%s", propName, fk.from)
             end
 
             pp.refDef = {
-                classRef = { name = fk.table }
+                classRef = { text = fk.table }
             }
+
+            table.insert(self.referencedTableNames, fk.table)
+
             classDef.properties[propName] = pp
             -- TODO set on update, on delete
             fk.processed = true
@@ -656,6 +687,31 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
         -- 1 : N
         -- TODO
     end
+
+end
+
+-- Enforces class to have ID and Name special properties
+-- This is needed for FKEY imported as 'enum' properties
+---@param tableName string
+---@return nil
+function SQLiteSchemaParser:enforceIdAndNameProps(tableName)
+    local tblInfo = self:findTableInfoByName(tableName)
+    local classDef = self.outSchema[tblInfo.table]
+    if not classDef.specialProperties.uid then
+        -- TODO Any property
+    end
+
+    if not classDef.specialProperties.name then
+        -- TODO Any text property
+    end
+end
+
+---@param tblInfo ITableInfo
+---@return IClassDef
+function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
+    local classDef = self.outSchema[tblInfo.table]
+
+    self:processReferences(tblInfo)
 
     -- Set indexing
     self:processUniqueNonTextIndexes(tblInfo, classDef)
@@ -692,7 +748,7 @@ function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
                 else
                     local ftsCol = table.remove(ftsCols)
                     classDef.fullTextIndexing = classDef.fullTextIndexing or {}
-                    classDef.fullTextIndexing[ftsCol] = { name = col.name }
+                    classDef.fullTextIndexing[ftsCol] = { text = col.name }
                     prop.index = 'fulltext'
                 end
             end
@@ -704,8 +760,8 @@ function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
                 else
                     local rtCol = table.remove(rtCols)
                     classDef.rangeIndexing = classDef.rangeIndexing or {}
-                    classDef.rangeIndexing[rtCol .. '0'] = { name = col.name, }
-                    classDef.rangeIndexing[rtCol .. '1'] = { name = col.name }
+                    classDef.rangeIndexing[rtCol .. '0'] = { text = col.name, }
+                    classDef.rangeIndexing[rtCol .. '1'] = { text = col.name }
                     prop.index = 'range'
                 end
             end
@@ -736,7 +792,7 @@ function SQLiteSchemaParser:processUniqueMultiColumnIndexes(tblInfo, classDef)
                 properties = {}
             }
             for i, cc in ipairs(idx.columns) do
-                classDef.indexes[idx.name].properties[i] = { name = cc.name }
+                classDef.indexes[idx.name].properties[i] = { text = cc.name }
             end
         end
     end
@@ -816,6 +872,10 @@ function SQLiteSchemaParser:parseSchema()
     for item in stmt:nrows() do
         local tblInfo = self:loadTableInfo(item)
         local classDef = self:processFlexiliteClassDef(tblInfo)
+    end
+
+    for idx, tblName in ipairs(self.referencedTableNames) do
+        self:enforceIdAndNameProps(tblName)
     end
 
     return self.outSchema

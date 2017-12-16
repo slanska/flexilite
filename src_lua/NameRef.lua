@@ -10,13 +10,13 @@ local schema = require 'schema'
 -- define schema for name definition
 local nameSchema = schema.Record {
     id = schema.Number,
-    name = schema.String
+    text = schema.String
 }
 
 --[[
 NameRef class.
 Properties:
-name
+text
 id
 ]]
 
@@ -24,10 +24,10 @@ id
 ---@class MetadataRef
 local MetadataRef = class()
 
----@param name string
+---@param text string
 ---@param id number
-function MetadataRef:_init(name, id)
-    self.name = name
+function MetadataRef:_init(text, id)
+    self.text = text
     self.id = id
 end
 
@@ -42,7 +42,7 @@ function MetadataRef.__eq (a, b)
     if a.id and b.id and a.id == b.id then
         return true
     end
-    return a.name and b.name and a.name == b.name
+    return a.text and b.text and a.text == b.text
 end
 
 local NameRef = class(MetadataRef)
@@ -52,7 +52,7 @@ local NameRef = class(MetadataRef)
 function NameRef:resolve(classDef)
     -- TODO create name
     if not self.id then
-        self.id = classDef.DBContext:ensureName(self.name)
+        self.id = classDef.DBContext:ensureName(self.text)
     end
 end
 
@@ -74,15 +74,15 @@ local ClassNameRef = class(MetadataRef)
 
 ---@param classDef ClassDef
 function ClassNameRef:resolve(classDef)
-    if self.id or self.name then
-        local cc = classDef.DBContext:LoadClassDefinition(self.id and self.id or self.name)
+    if self.id or self.text then
+        local cc = classDef.DBContext:LoadClassDefinition(self.id and self.id or self.text)
         if cc ~= nil then
             self.id = cc.ClassID
         else
             self.id = nil
         end
     else
-        error 'Neither name nor id are defined in class name reference'
+        error 'Neither text nor id are defined in class name reference'
     end
 end
 
@@ -98,14 +98,14 @@ local PropNameRef = class(MetadataRef)
 function PropNameRef:resolve(classDef)
     -- will throw error is property does not exist
     if not self.id then
-        local pp = classDef:getProperty(self.name)
+        local pp = classDef:getProperty(self.text)
         self.id = pp.id
     end
 end
 
 ---@param classDef ClassDef
 function PropNameRef:isResolved(classDef)
-    local pp = classDef.Properties[self.id and self.id or self.name]
+    local pp = classDef.Properties[self.id and self.id or self.text]
     return pp ~= nil
 end
 

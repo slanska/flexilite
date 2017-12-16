@@ -280,8 +280,8 @@ function EnumPropertyDef:initMetadataRefs()
         if self.D.enumDef.items then
             local newItems = {}
             for i, v in pairs(self.D.enumDef.items) do
-                if v and v.name then
-                    newItems[1] = NameRef(v.name, v.id)
+                if v and v.text then
+                    newItems[1] = NameRef(v.text, v.id)
                 end
             end
             self.D.enumDef.items = newItems
@@ -622,7 +622,7 @@ function MixinPropertyDef:applyDef()
     PropertyDef.applyDef(self)
 
     if self.D.refDef and self.D.refDef.classRef then
-        print("applyDef: " .. self.Prop.name .. ", classRef: ", self.D.refDef.classRef)
+        print("applyDef: " .. self.Prop.text .. ", classRef: ", self.D.refDef.classRef)
         self.D.refDef.classRef:resolve(self.ClassDef)
     end
 end

@@ -107,7 +107,7 @@ function EnumManager:upsertEnumItems(cls, items)
     -- use flexi_DataUpdate
     local stmt = self.DBContext:getStatement '' -- TODO SQL
     for i, v in ipairs(items) do
-        local nameRef = { name = v.name }
+        local nameRef = { text = v.name }
         setmetatable(nameRef, NameRef)
         nameRef:resolve(cls)
 
