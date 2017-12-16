@@ -46,6 +46,9 @@ end
 ---@param dataJSON string
 --- data payload. Can be single object or array of objects. If className is not set,
 ---payload should be object, with className as keys
+---Examples: 1) single object, class is not null - {"Field1": "String", "Field2": 123...}
+---2) array of objects, class is not null - [{"Field1": "String", "Field2": 123...}, {"Field1": "String2", "Field2": 123...}]
+---2) class is null - {"Class1": [{"Field1": "String", "Field2": 123...}, {"Field1": "String2", "Field2": 123...}]...}
 ---@param queryJSON string
 --- filter to apply - optional, for update and delete
 local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, queryJSON)

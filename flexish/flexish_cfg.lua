@@ -4,11 +4,29 @@
 ---
 
 -- Default command line arguments if not passed
-return
-{
+
+local SchemaNorthwind = {
+    command = 'schema',
+    database = '../data/Northwind.db3',
+    output = '../test/json/Northwind.db3.schema.json',
+}
+
+local DumpNorthwind = {
+    command = 'dump',
+    database = '../data/Northwind.db3',
+    output = '../test/json/Northwind.db3.data.json',
+}
+
+local DumpChinook = {
+    command = 'dump',
+    database = '../data/Chinook_Sqlite.db',
+    output = '../test/json/Chinook.db.data.json',
+}
+
+local SchemaChinook = {
     command = 'schema',
     database = '../data/Chinook_Sqlite.db',
     output = '../test/json/Chinook.db.schema.json',
-    --database = '../data/Northwind.db3',
-    --output = '../test/json/Northwind.db3.schema.json',
 }
+
+return DumpChinook

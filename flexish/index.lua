@@ -8,6 +8,8 @@ local SQLiteSchemaParser = require 'sqliteSchemaParser'
 local os = require 'os'
 local path = require 'pl.path'
 local lapp = require 'pl.lapp'
+local DumpDatabase = require('dumpDatabase')
+local stringx = require 'pl.stringx'
 
 -- set lua path
 package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua'))
@@ -15,11 +17,17 @@ package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua
 
 local prettyJson = require "prettycjson"
 
+-- Checks presense of database path argument and ensures it is stored as absolute path
+local function EnsureAbsPathArg(cli_args, argName)
+    if cli_args[argName] and not path.isabs( cli_args[argName]) then
+        cli_args[argName] = path.abspath(path.relpath(cli_args[argName]))
+    end
+end
+
+-- Generates schema for entire native SQLite database and saves it to the JSON file
 ---@param cli_args table
 local function generateSchema(cli_args)
-    if not path.isabs( cli_args.database) then
-        cli_args.database = path.abspath(path.relpath(cli_args.database))
-    end
+    EnsureAbsPathArg(cli_args, 'database')
 
     local db, errMsg = sqlite3.open(cli_args.database)
     if not db then
@@ -34,9 +42,7 @@ local function generateSchema(cli_args)
     if cli_args.output == nil or cli_args.output == '' then
         io.stdout:write(schemaJson)
     else
-        if not path.isabs(cli_args.output) then
-            cli_args.output = path.abspath(path.relpath(cli_args.output))
-        end
+        EnsureAbsPathArg(cli_args, 'output')
         local f = io.open(cli_args.output, 'w')
         f:write(schemaJson)
         f:close()
@@ -71,10 +77,20 @@ else
     Flexilite Shell Utility
     <command> (string) 'schema' | 'load' | 'query' | 'help' | 'config' | 'dump'
     <database> (string) Path to SQLite database file
+    -t, --table (string) Name of specific SQLite table to process
     -o, --output (file-out default '') Output file path
     -c, --config (file-in default '') Path to config file
     -q, --query (file-in default '') Path to query file
+    -cj, --compactJson (boolean default false) If set, output JSON will be in compact (minified) form
      ]]
+end
+
+-- Dumps entire native SQLite database into single JSON file, ready for INSERT INTO flexi_data (Data) values (:DataInJSON)
+-- or select flexi('load', null, :DataInJSON)
+local function doDumpDatabase(cli_args)
+    EnsureAbsPathArg(cli_args, 'database')
+    EnsureAbsPathArg(cli_args, 'output')
+    DumpDatabase(cli_args.database, cli_args.output, cli_args.table, cli_args.compactJson)
 end
 
 require 'pl.pretty'.dump(cli_args)
@@ -84,7 +100,7 @@ local commandMap = {
     ['load'] = loadData,
     ['query'] = queryDatabase,
     ['config'] = configDatabase,
-    ['dump'] = configDatabase,
+    ['dump'] = doDumpDatabase,
 }
 
 local ff = commandMap[cli_args.command]

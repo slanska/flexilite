@@ -89,3 +89,5 @@ node_modules
 /build/bin/duk-deps.js
 /build/bin/flexilite_test
 /build/bin/flexi-duk.js
+/test/json/Chinook.db.data.json
+/test/json/Northwind.db3.data.json
