@@ -32,8 +32,13 @@ Flexi.DBSchemaSQL = readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
 Flexi.InitDefaultData = readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
 
 -- Tests for class creation
-
-db = sqlite.open_memory()
+local dbPath = path.abspath(path.relpath('../data/Flexilite.db'))
+print('SQLite database: ', dbPath)
+db, errMsg = sqlite.open(dbPath)
+if not db then
+    error(errMsg)
+end
+--db = sqlite.open_memory()
 DBContext = Flexi:newDBContext(db)
 
 local sql = "select flexi('configure')"

@@ -48,12 +48,37 @@ data: Database, statements, user info, class definitions, cache of referenced va
     - Name, Description special properties - use any text field, if it is the only text or only indexed text field
     e.g. Regions should have name and description = RegionDescription
     - &#10003; maxLength == 15 for all text properties
-    - Employees does not have specialProperties -> {name=LastName}
-    - Product.Categories? should be Product.Category
-    - Products.Categories - maxOccurrences should be 1, not maxint. 
-    - Products: prop Category (singular), not Categories (plural)
-    - Define reverse properties for FKEY
+    - &#10003; Employees does not have specialProperties -> {name=LastName}
+    - &#10003; Product.Categories? should be Product.Category
+    - &#10003; Products.Categories - maxOccurrences should be 1, not maxint. 
+    - &#10003; Products: prop Category (singular), not Categories (plural)
+    - &#10003; Define reverse properties for FKEY (not needed)
     - main.c - compile Flexish into standalone exe. (use CMakeLists.txt to list files and compile lua to .o files)
+    - handle non existing database - report error
+    
+* SQL schema:
+    - split .nam_props to .sym_names and .class_props
+    - add vtypes column to .objects (A-P types)
+        3 bit per column, 0 - 7, to keep actual type: date/time, timespan (for float), symname, money (for integer), enum (for text and
+        integer), json (for text)
+    - allocate ColumnMap
+    - save .classes to get ID, then save properties with new ClassID, then update .classes with JSON
+    - columns A - P
     - define schemas for name, property, class. Use it for validation of class/property def
     - generate dynamic schema for object, to validate input data 
-    - handle non existing database - report error
+   
+* Update data:
+    - parse JSON to Lua table
+    - For every object in payload -
+        - validate properties, find property IDs by name
+        - call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable), then for this class
+        - validate data, using dynamically defined schema. If any missing references found, remember them in Lua table
+        - save data, with multi-key, FTS and RTREE update, if applicable
+        - call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for this class
+    - Process unresolved references. If there are still unresolved refs, rollback entire update and raise error 
+    (with complete report?)
+    
+* Query:
+    - parse JSON to Lua table
+    - traverse tree and generate SQL
+         

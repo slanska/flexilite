@@ -1,6 +1,6 @@
 -- TODO Configurable page size?
 -- PRAGMA page_size = 8192;
-PRAGMA journal_mode = WAL;
+--PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = 1;
 PRAGMA encoding = 'UTF-8';
 PRAGMA recursive_triggers = 1;
@@ -10,10 +10,17 @@ PRAGMA recursive_triggers = 1;
 ------------------------------------------------------------------------------------------
 CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
 
--- Class type. 0 for .names
+-- Class ID. 0 for .sym_names
   ClassID,
 
-  -- Mapped columns. Mapping is different for different classes
+  /*
+  Mapped columns. Mapping is different for different classes.
+  There are following typical cases for full text search:
+  - Search for text for all occurrences in all classes
+  (ClassID is omitted)
+  - Search for all occurrences in specific class
+  - Search on certain indexed text properties in specific class
+   */
   [X1], [X2], [X3], [X4], [X5],
 
   -- to allow case insensitive search for different languages
@@ -21,49 +28,22 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.full_text_data] USING fts4 (
 );
 
 ------------------------------------------------------------------------------------------
--- .names_props
+-- .sym_names
 ------------------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------------------
---  .names_props table has rows of 2 types - class properties and symbolic names. 
---  Column 'type' defines which sort of entity it is: 0 - name, 1 - property name
---  The reason why 2 entities are combined into single table is to share IDs.
---  Objects may have attributes which are not defined in .classes.Data.properties
---  (if .classes.Data.allowNotDefinedProps = true). Such attributes will be stored as IDs to .names table,
---  where ID will be for record with type = 0 (name). Normally, object properties defined in
---  schema will be referencing rows with type = 1 (property). Having both types of entities
---  in one table allows shared space for names and unified auto-generated IDs.
---  Both types are exposed as updatable views (.names and flexi_prop), so their
---  usage will not be much different from real table
---  
---  When a new property is created, a new row gets inserted with Type = 1. Also, if needed row for Name (with Type = 0) gets inserted as well.
-------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [.names_props]
+/*
+Symbolic names - pairs of ID and text Value
+ */
+CREATE TABLE IF NOT EXISTS [.sym_names]
 (
-  ID           INTEGER             NOT NULL PRIMARY KEY               AUTOINCREMENT,
+  ID       INTEGER             NOT NULL PRIMARY KEY               AUTOINCREMENT,
 
   /*
-  0 - name
-  1 - class property
+  Flag indicating that record was deleted. Records from .sym_names table are never deleted to avoid problems with possible references
+  Instead soft deleting is used. Such records are considered as source of NULL string during search. They are also deleted from full text
+  index
    */
-  Type         SMALLINT            NOT NULL CHECK (Type IN (0, 1)),
-
-  /*
-  Flag indicating that record was deleted. Records from .names table are never deleted to avoid problems with possible references
-  Instead soft deleting is used. Such records are considered as source of NULL string during search. They are also deleted from
-   */
-  Deleted      BOOLEAN             NOT NULL                           DEFAULT 0,
-
-  /*
-  Actual control flags (already applied).
-  These flags define indexing, logging and other property attributes
-  */
-  [ctlv]       INTEGER             NOT NULL                           DEFAULT 0,
-
-  /*
-  Planned/desired control flags which are not yet applied
-  */
-  [ctlvPlan]   INTEGER             NOT NULL                           DEFAULT 0,
+  Deleted  BOOLEAN             NOT NULL                           DEFAULT 0,
 
   /*
   Name specific columns
@@ -75,55 +55,36 @@ CREATE TABLE IF NOT EXISTS [.names_props]
   to allow FTS on objects with properties with type = PROP_TYPE_NAME
   */
 
-  [Value]      TEXT COLLATE BINARY NULL CHECK (rtrim(ltrim([Value])) <> ''),
+  [Value]  TEXT COLLATE BINARY NULL CHECK (rtrim(ltrim([Value])) <> ''),
 
   /*
   These 2 columns are reserved for future to be used for semantic search.
   */
-  PluralOf     INTEGER             NULL
+  PluralOf INTEGER             NULL
     CONSTRAINT [fkNamesByPluralOf]
-    REFERENCES [.names_props] ([ID])
+    REFERENCES [.sym_names] ([ID])
       ON DELETE SET NULL
       ON UPDATE RESTRICT,
-  AliasOf      INTEGER             NULL
+  AliasOf  INTEGER             NULL
     CONSTRAINT [fkNamesByAliasOf]
-    REFERENCES [.names_props] ([ID])
+    REFERENCES [.sym_names] ([ID])
       ON DELETE SET NULL
-      ON UPDATE RESTRICT,
+      ON UPDATE RESTRICT
 
-  /*
-  Property specific columns
-  */
-  [ClassID]    INTEGER             NULL CONSTRAINT [fkClassPropertiesToClasses]
-  REFERENCES [.classes] ([ClassID])
-    ON DELETE CASCADE
-    ON UPDATE RESTRICT,
-
-  /*
-  ID of property name
-  */
-  [PropNameID] INTEGER             NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.names_props] ([ID])
-    ON DELETE RESTRICT
-    ON UPDATE RESTRICT,
-
-  /*
-  Optional mapping for locked property (A-P)
-   */
-  [LockedCol]  CHAR                NULL CHECK ([LockedCol] IS NULL OR ([LockedCol] >= 'A' AND [LockedCol] <= 'P'))
 );
 
-CREATE TRIGGER IF NOT EXISTS [namesAfterInsert]
+CREATE TRIGGER IF NOT EXISTS [sym_namesAfterInsert]
   AFTER INSERT
-  ON [.names_props]
+  ON [.sym_names]
   FOR EACH ROW
   WHEN new.Value IS NOT NULL
 BEGIN
   INSERT INTO [.full_text_data] (docid, ClassID, X1) VALUES (-new.ID, 0, new.Value);
 END;
 
-CREATE TRIGGER IF NOT EXISTS [namesAfterUpdate]
+CREATE TRIGGER IF NOT EXISTS [sym_namesAfterUpdate]
   AFTER UPDATE
-  ON [.names_props]
+  ON [.sym_names]
   FOR EACH ROW
   WHEN new.Value IS NOT NULL
 BEGIN
@@ -132,9 +93,9 @@ BEGIN
   WHERE docid = -new.ID;
 END;
 
-CREATE TRIGGER IF NOT EXISTS [namesAfterDelete]
+CREATE TRIGGER IF NOT EXISTS [sym_namesAfterDelete]
   AFTER DELETE
-  ON [.names_props]
+  ON [.sym_names]
   FOR EACH ROW
   WHEN old.Value IS NOT NULL
 BEGIN
@@ -142,27 +103,15 @@ BEGIN
   WHERE docid = -old.ID;
 END;
 
--- .names specific indexes
-CREATE UNIQUE INDEX IF NOT EXISTS [namesByValue]
-  ON [.names_props] ([Value])
+CREATE UNIQUE INDEX IF NOT EXISTS [sym_namesByValue]
+  ON [.sym_names] ([Value])
   WHERE [Value] IS NOT NULL;
-CREATE INDEX IF NOT EXISTS [namesByAliasOf]
-  ON [.names_props] ([AliasOf])
+CREATE INDEX IF NOT EXISTS [sym_namesByAliasOf]
+  ON [.sym_names] ([AliasOf])
   WHERE AliasOf IS NOT NULL;
-CREATE INDEX IF NOT EXISTS [namesByPluralOf]
-  ON [.names_props] ([PluralOf])
+CREATE INDEX IF NOT EXISTS [sym_namesByPluralOf]
+  ON [.sym_names] ([PluralOf])
   WHERE PluralOf IS NOT NULL;
-
--- flexi_prop specific indexes
-CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByClassAndName]
-  ON [.names_props]
-  (ClassID, PropNameID)
-  WHERE ClassID IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByMap]
-  ON [.names_props]
-  (ClassID, LockedCol)
-  WHERE ClassID IS NOT NULL AND [LockedCol] IS NOT NULL;
 
 --------------------------------------------------------------------------------
 --  .names view
@@ -173,15 +122,14 @@ CREATE VIEW IF NOT EXISTS [.names] AS
     Value,
     AliasOf,
     PluralOf
-  FROM [.names_props]
-  WHERE Type = 0;
+  FROM [.sym_names];
 
 CREATE TRIGGER IF NOT EXISTS [names_Insert]
   INSTEAD OF INSERT
   ON [.names]
   FOR EACH ROW
 BEGIN
-  INSERT INTO [.names_props] (Value, AliasOf, PluralOf, Type) VALUES (new.Value, new.AliasOf, new.PluralOf, 0);
+  INSERT INTO [.sym_names] (Value, AliasOf, PluralOf) VALUES (new.Value, new.AliasOf, new.PluralOf);
 END;
 
 CREATE TRIGGER IF NOT EXISTS [names_Update]
@@ -189,9 +137,9 @@ CREATE TRIGGER IF NOT EXISTS [names_Update]
   ON [.names]
   FOR EACH ROW
 BEGIN
-  UPDATE [.names_props]
+  UPDATE [.sym_names]
   SET Value = new.Value, AliasOf = new.Value, PluralOf = new.PluralOf
-  WHERE [.names_props].ID = old.NameID;
+  WHERE [.sym_names].ID = old.NameID;
 END;
 
 CREATE TRIGGER IF NOT EXISTS [names_Delete]
@@ -199,8 +147,8 @@ CREATE TRIGGER IF NOT EXISTS [names_Delete]
   ON [.names]
   FOR EACH ROW
 BEGIN
-  DELETE FROM [.names_props]
-  WHERE [.names_props].ID = old.NameID;
+  DELETE FROM [.sym_names]
+  WHERE [.sym_names].ID = old.NameID;
 END;
 
 ------------------------------------------------------------------------------------------
@@ -217,13 +165,14 @@ CREATE TABLE IF NOT EXISTS [.access_rules] (
   [ItemType]   CHAR     NOT NULL,
 
   /*
-  H - hidden
-  R - read only
-  U - updatable
-  A - can add
-  D - can delete
+  Combination of char flags:
+  H - hidden - cannot see existence of the item
+  R - read only - can see, but cannot modify item
+  U - updatable - can see and update existing item (but not delete)
+  A - can add - can add new item
+  D - can delete - can delete existing item
   */
-  [Access]     CHAR     NOT NULL,
+  [Access]     TEXT     NOT NULL,
 
   /*
   ClassID or ObjectID or PropertyID
@@ -271,11 +220,14 @@ END;
 CREATE TABLE IF NOT EXISTS [.classes] (
   [ClassID]     INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   [NameID]      INTEGER NOT NULL CONSTRAINT [fkClassesNameID]
-  REFERENCES [.names_props] ([ID])
+  REFERENCES [.sym_names] ([ID])
     ON DELETE RESTRICT
     ON UPDATE RESTRICT,
 
-  -- System class is used internally by the system and cannot be changed or deleted by end-user
+  /*
+  System class is used internally by the system and cannot be changed or deleted by end-user
+   (via 'flexi' function)
+   */
   [SystemClass] BOOL    NOT NULL             DEFAULT 0,
 
   -- Control bitmask for objects belonging to this class
@@ -290,23 +242,25 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   Data          JSON1   NULL,
 
   /*
-  Class definition as it was provided by user (properties and class references are defined by names)
-  */
-  OriginalData  JSON1   NOT NULL,
-
-  /*
   Whether to create corresponding virtual table or not
    */
   VirtualTable  BOOL    NOT NULL             DEFAULT 0,
 
   /*
-  Set to 1 when class is not resolved (i.e. has references to non-existing classes)
+  Set to 1 when class is not resolved (i.e. has references to non-existing classes).
+  Applicable to newly created classes only. If unresolved, data cannot be added
   */
-  Unresolved    BOOL    NOT NULL             DEFAULT 0
+  Unresolved    BOOL    NOT NULL             DEFAULT 0,
+
+  /*
+  Class is marked as deleted
+   */
+  Deleted       BOOL    NOT NULL             DEFAULT 0
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClasses_byNameID]
-  ON [.classes] ([NameID]);
+  ON [.classes] ([NameID])
+  WHERE Deleted = 0;
 
 CREATE TRIGGER IF NOT EXISTS [trigClassesAfterInsert]
   AFTER INSERT
@@ -404,7 +358,7 @@ CREATE VIEW IF NOT EXISTS [flexi_class] AS
   SELECT
     ClassID,
     (SELECT [Value]
-     FROM [.names_props]
+     FROM [.sym_names]
      WHERE ID = [.classes].NameID
      LIMIT 1)    AS Class,
     Data         AS Definition,
@@ -438,6 +392,62 @@ BEGIN
 END;
 
 ------------------------------------------------------------------------------------------
+-- [.class_props] table
+------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS [.class_props]
+(
+  [ID]         INTEGER NOT NULL PRIMARY KEY               AUTOINCREMENT,
+
+  [ClassID]    INTEGER NULL CONSTRAINT [fkClassPropertiesToClasses]
+  REFERENCES [.classes] ([ClassID])
+    ON DELETE CASCADE
+    ON UPDATE RESTRICT,
+
+  [NameID]     INTEGER NOT NULL CONSTRAINT [fkClassPropsNameID]
+  REFERENCES [.sym_names] ([ID])
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+
+  /*
+  Actual control flags (already applied).
+  These flags define indexing, logging and other property attributes
+  */
+  [ctlv]       INTEGER NOT NULL                           DEFAULT 0,
+
+  /*
+  Planned/desired control flags which are not yet applied
+  */
+  [ctlvPlan]   INTEGER NOT NULL                           DEFAULT 0,
+
+  /*
+  ID of property name
+  */
+  [PropNameID] INTEGER NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.sym_names] ([ID])
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+
+  /*
+  Optional mapping for locked property (A-P)
+   */
+  [ColMap]     CHAR    NULL CHECK ([ColMap] IS NULL OR ([ColMap] >= 'A' AND [ColMap] <= 'P')),
+
+  /*
+  Property is marked as deleted
+   */
+  Deleted      BOOL    NOT NULL                           DEFAULT 0
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByClassAndName]
+  ON [.class_props]
+  (ClassID, PropNameID)
+  WHERE Deleted = 0;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByMap]
+  ON [.class_props]
+  (ClassID, ColMap)
+  WHERE [ColMap] IS NOT NULL AND Deleted = 0;
+
+------------------------------------------------------------------------------------------
 -- [flexi_prop] view
 ------------------------------------------------------------------------------------------
 CREATE VIEW IF NOT EXISTS [flexi_prop] AS
@@ -447,32 +457,32 @@ CREATE VIEW IF NOT EXISTS [flexi_prop] AS
     c.Class                                                          AS Class,
     cp.[PropNameID]                                                  AS NameID,
     (SELECT n.[Value]
-     FROM [.names_props] n
+     FROM [.sym_names] n
      WHERE n.ID = cp.PropNameID
      LIMIT 1)                                                        AS Property,
     cp.ctlv                                                          AS ctlv,
-    -- TODO Needed
+    -- TODO Needed?
     cp.ctlvPlan                                                      AS ctlvPlan,
-    -- TODO Needed
+    -- TODO Needed?
     (json_extract(c.Definition, printf('$.properties.%d', cp.[ID]))) AS Definition
 
-  FROM [.names_props] cp
+  FROM [.class_props] cp
     JOIN [flexi_class] c ON cp.ClassID = c.ClassID
-  WHERE cp.Type = 1 AND cp.Deleted = 0;
+  WHERE cp.Deleted = 0;
 
 CREATE TRIGGER IF NOT EXISTS trigFlexi_Prop_Insert
   INSTEAD OF INSERT
   ON [flexi_prop]
   FOR EACH ROW
 BEGIN
-  --  TODO SELECT flexi('create property', new.Class, new.Property, new.Definition);
+  --  TODO ??? SELECT flexi('create property', new.Class, new.Property, new.Definition);
 
-  INSERT OR IGNORE INTO [.names_props] ([Value], [Type]) VALUES (new.Property, 0);
-  INSERT INTO [.names_props] (Type, PropNameID, ClassID, ctlv, ctlvPlan)
-  VALUES (1, coalesce(new.NameID, (SELECT n.ID
-                                   FROM [.names_props] n
-                                   WHERE n.[Value] = new.Property
-                                   LIMIT 1)),
+  INSERT OR IGNORE INTO [.sym_names] ([Value]) VALUES (new.Property);
+  INSERT INTO [.class_props] (PropNameID, ClassID, ctlv, ctlvPlan)
+  VALUES (coalesce(new.NameID, (SELECT n.ID
+                                FROM [.sym_names] n
+                                WHERE n.[Value] = new.Property
+                                LIMIT 1)),
           new.ClassID, new.ctlv, new.ctlvPlan);
 
   -- TODO Fix unresolved references??? (needed?)
@@ -486,11 +496,12 @@ BEGIN
   --  SELECT flexi('rename property', new.Class, old.Property, new.Property);
   --  SELECT flexi('alter property', new.Class, new.Property, new.Definition);
 
-  INSERT OR IGNORE INTO [.names_props] (Value, Type)
-  VALUES (new.Property, 0);
-  UPDATE [.names_props]
+  INSERT OR IGNORE INTO [.sym_names] (Value)
+  VALUES (new.Property);
+
+  UPDATE [.class_props]
   SET PropNameID = (SELECT ID
-                    FROM [.names_props]
+                    FROM [.sym_names]
                     WHERE Value = new.Property
                     LIMIT 1),
     ClassID      = new.ClassID, ctlv = new.ctlv, ctlvPlan = new.ctlvPlan
@@ -504,7 +515,9 @@ CREATE TRIGGER IF NOT EXISTS trigFlexi_Prop_Delete
 BEGIN
   --  SELECT flexi('drop property', old.Class, old.Property);
 
-  DELETE FROM [.names_props]
+  -- TODO Soft delete?
+
+  DELETE FROM [.class_props]
   WHERE ID = old.PropertyID;
 
   DELETE FROM [.ref-values]
@@ -522,12 +535,54 @@ CREATE TABLE IF NOT EXISTS [.objects] (
     ON UPDATE CASCADE,
 
   /*
+  Direct column mapping for property values (.class_props.ColMap)
+  Values in these columns are treated as records in [.ref-values] with
+  pre-set PropertyID (as it is known by column mapping), ObjectID (as it is shared by [.objects].ObjectID),
+  PropIndex = 0. ctlv flags are stored in ctlo and vtypes fields.
+  Only scalar short properties can be mapped to these columns. E.g. all reference properties,
+  long text properties (maxLength > 255), binary (maxLength > 255) cannot be mapped
+
+   */
+  A                  NULL,
+  B                  NULL,
+  C                  NULL,
+  D                  NULL,
+  E                  NULL,
+  F                  NULL,
+  G                  NULL,
+  H                  NULL,
+  I                  NULL,
+  J                  NULL,
+  K                  NULL,
+  L                  NULL,
+  M                  NULL,
+  N                  NULL,
+  O                  NULL,
+  P                  NULL,
+
+  /*
   This is bit mask which regulates index storage.
-  Bit 0: this object is a WEAK object and must be auto deleted after last reference to this object gets deleted.
-  Bit 49: DON'T track changes
+  Bits 0 - 15: non unique indexes for A - P
+  Bits 16 - 31: unique indexes for A - P
+  Bit 32: this object is a WEAK object and must be auto deleted after last reference to this object gets deleted.
+  Bit 33: DON'T track changes
 
   */
   [ctlo]     INTEGER,
+
+  /*
+  16 groups, 3 bit each. For storing actual value type (
+    0 - default
+    1 - datetime (for FLOAT),
+    2 - timespan (for FLOAT),
+    3 - symbol (for INT)
+    4 - money (for INT) - as integer value with fixed 4 decimal points (exact value for +-1844 trillions)
+    5 - json (for TEXT)
+    6 - enum (for INT or TEXT)
+    7 - reference (used only in .ref-values.ctlv, not applicable for .objects.vtypes])
+    )
+   */
+  [vtypes]   INTEGER,
 
   /*
   Reserved for future use. Will be used to store certain property values directly with object
@@ -537,11 +592,77 @@ CREATE TABLE IF NOT EXISTS [.objects] (
   /*
   Optional data for object/row (font/color/formulas etc. customization)
   */
-  [MetaData]  JSON1   NULL
+  [MetaData] JSON1   NULL
 );
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByClassSchema]
+CREATE INDEX IF NOT EXISTS [idxObjectsByClass]
   ON [.objects] ([ClassID]);
+
+-- Conditional indexes
+CREATE INDEX IF NOT EXISTS [idxObjectsByA] ON [.objects] ([ClassID], [A]) WHERE (ctlo AND (1 << 16)) <> 0 AND [A] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByB] ON [.objects] ([ClassID], [B]) WHERE (ctlo AND (1 << 17)) <> 0 AND [B] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByC] ON [.objects] ([ClassID], [C]) WHERE (ctlo AND (1 << 18)) <> 0 AND [C] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByD] ON [.objects] ([ClassID], [D]) WHERE (ctlo AND (1 << 19)) <> 0 AND [D] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByE] ON [.objects] ([ClassID], [E]) WHERE (ctlo AND (1 << 20)) <> 0 AND [E] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByF] ON [.objects] ([ClassID], [F]) WHERE (ctlo AND (1 << 21)) <> 0 AND [F] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByG] ON [.objects] ([ClassID], [G]) WHERE (ctlo AND (1 << 22)) <> 0 AND [G] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByH] ON [.objects] ([ClassID], [H]) WHERE (ctlo AND (1 << 23)) <> 0 AND [H] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByI] ON [.objects] ([ClassID], [I]) WHERE (ctlo AND (1 << 24)) <> 0 AND [I] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByJ] ON [.objects] ([ClassID], [J]) WHERE (ctlo AND (1 << 25)) <> 0 AND [J] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByE] ON [.objects] ([ClassID], [K]) WHERE (ctlo AND (1 << 26)) <> 0 AND [K] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByF] ON [.objects] ([ClassID], [L]) WHERE (ctlo AND (1 << 27)) <> 0 AND [L] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByG] ON [.objects] ([ClassID], [M]) WHERE (ctlo AND (1 << 28)) <> 0 AND [M] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByH] ON [.objects] ([ClassID], [N]) WHERE (ctlo AND (1 << 29)) <> 0 AND [N] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByI] ON [.objects] ([ClassID], [O]) WHERE (ctlo AND (1 << 30)) <> 0 AND [O] IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS [idxObjectsByJ] ON [.objects] ([ClassID], [P]) WHERE (ctlo AND (1 << 31)) <> 0 AND [P] IS NOT NULL;
+
+-- Unique conditional indexes
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqA] ON [.objects] ([ClassID], [A]) WHERE (ctlo AND (1 << 0)) <> 0 AND [A] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqB] ON [.objects] ([ClassID], [B]) WHERE (ctlo AND (1 << 1)) <> 0 AND [B] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqC] ON [.objects] ([ClassID], [C]) WHERE (ctlo AND (1 << 2)) <> 0 AND [C] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqD] ON [.objects] ([ClassID], [D]) WHERE (ctlo AND (1 << 3)) <> 0 AND [D] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqE] ON [.objects] ([ClassID], [E]) WHERE (ctlo AND (1 << 4)) <> 0 AND [E] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqF] ON [.objects] ([ClassID], [F]) WHERE (ctlo AND (1 << 5)) <> 0 AND [F] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqG] ON [.objects] ([ClassID], [G]) WHERE (ctlo AND (1 << 6)) <> 0 AND [G] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqH] ON [.objects] ([ClassID], [H]) WHERE (ctlo AND (1 << 7)) <> 0 AND [H] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqI] ON [.objects] ([ClassID], [I]) WHERE (ctlo AND (1 << 8)) <> 0 AND [I] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqJ] ON [.objects] ([ClassID], [J]) WHERE (ctlo AND (1 << 9)) <> 0 AND [J] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqE] ON [.objects] ([ClassID], [K]) WHERE (ctlo AND (1 << 10)) <> 0 AND [K] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqF] ON [.objects] ([ClassID], [L]) WHERE (ctlo AND (1 << 11)) <> 0 AND [L] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqG] ON [.objects] ([ClassID], [M]) WHERE (ctlo AND (1 << 12)) <> 0 AND [M] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqH] ON [.objects] ([ClassID], [N]) WHERE (ctlo AND (1 << 13)) <> 0 AND [N] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqI] ON [.objects] ([ClassID], [O]) WHERE (ctlo AND (1 << 14)) <> 0 AND [O] IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqJ] ON [.objects] ([ClassID], [P]) WHERE (ctlo AND (1 << 15)) <> 0 AND [P] IS NOT NULL;
 
 -- Triggers
 CREATE TRIGGER IF NOT EXISTS [trigObjectsAfterInsert]
@@ -693,18 +814,34 @@ BEGIN
 END;
 
 ------------------------------------------------------------------------------------------
--- .range_data
+-- .range_data_<ClassID>
 ------------------------------------------------------------------------------------------
 
+/*
+This table is used as geospatial or general multi-dimensional index. It utilizes all 5 available
+dimensions that SQLite provides. A - E dimensions are available for indexing.
+Number, integer, SymName, DateTime, Enum types can be indexed.
+Every dimension can be associated with one column on both bounds, or 2 columns can form a range (
+like StartTime - EndTime, or LatitudeLo - LatitudeHi), so with 4 dimensions it is possible to
+define 3D space plus time range. This type of index can be also used for efficient finding results
+for queries like "find all orders created within last month with expected shipping date next week".
+
+Note that dimension definition for DateTime (for low bound) and TimeSpan (for high bound) are not allowed.
+DateTime + TimeSpan must be used for high bound in this case. Indexing on the same TimeSpan column
+for both low and high bounds is OK.
+
+Every class that has definitions for range indexes will have its own .range_data table named
+as [.range_data_<ClassID>], e.g. [.range_data_123]. This table gets created when range indexing is requested
+by class definition, and gets removed on class destroy.
+ */
 CREATE VIRTUAL TABLE IF NOT EXISTS [.range_data] USING rtree (
   [ObjectID],
-
-  [ClassID0], [ClassID1],
 
   [A0], [A1],
   [B0], [B1],
   [C0], [C1],
-  [D0], [D1]
+  [D0], [D1],
+  [E0], [E1]
 );
 
 ------------------------------------------------------------------------------------------
@@ -742,7 +879,7 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
   /*
 Optional data for cell (font/color/format etc. customization)
 */
-  [MetaData]    JSON1   NULL,
+  [MetaData]   JSON1   NULL,
 
   CONSTRAINT [] PRIMARY KEY ([ObjectID], [PropertyID], [PropIndex])
 )
@@ -861,7 +998,7 @@ END;
 ------------------------------------------------------------------------------------------
 -- .multi_key2, .multi_key3, .multi_key4
 -- Clustered (without rowid), single-index tables used as external index for .ref-values
--- to support multi key unique indexes (2-3-4 columns
+-- to support multi key unique indexes (2-3-4 columns)
 ------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [.multi_key2] (
   ClassID  INTEGER NOT NULL,
