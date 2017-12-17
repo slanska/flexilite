@@ -71,7 +71,7 @@ function ClassDef:_init(params)
 
     for nameOrId, p in pairs(data.properties) do
         if not self.Properties[p.ID] then
-            local prop = PropertyDef.import(self, p)
+            local prop = PropertyDef.CreateInstance(self, p)
 
             -- Determine mode
             if type(nameOrId) == 'number' and p.Prop.text and p.Prop.id then
@@ -86,12 +86,6 @@ function ClassDef:_init(params)
                 -- Raw JSON context
                 prop.Prop.text = nameOrId
                 self.Properties[nameOrId] = prop
-
-                -- TODO temp
-                if prop.D.refDef and prop.D.refDef.classRef then
-                    print("initMetadataRefs: " .. prop.Prop.text .. ", classRef: ", prop.D.refDef.classRef)
-
-                end
             end
         end
     end

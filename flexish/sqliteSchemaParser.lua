@@ -3,7 +3,7 @@
 --- DateTime: 2017-11-18 12:06 PM
 ---
 
-local bits = require 'bit32'
+local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local class = require 'pl.class'
 local SQLiteSchemaParser = class()
 local tablex = require 'pl.tablex'
@@ -838,13 +838,7 @@ function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
 
         local v1 = getTypeWeight(A)
         local v2 = getTypeWeight(B)
-        if v1 == v2 then
-            return 0
-        end
-        if v1 > v2 then
-            return 1
-        end
-        return -1
+        return v1 < v2
     end )
 end
 

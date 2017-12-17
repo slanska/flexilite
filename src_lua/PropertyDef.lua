@@ -55,10 +55,10 @@ For resolve class:
 ]]
 
 local class = require 'pl.class'
-
+local tablex = require 'pl.tablex'
 local schema = require 'schema'
 
--- define schema for property definition
+-- TODO define schema for property definition
 local propertySchema = schema.Record {
     rules = schema.Record {
         type = schema.OneOf('any', 'string', 'text'),
@@ -104,189 +104,56 @@ local CTLV_FLAGS = {
     TIMESPAN = 512,
 }
 
---- @class PropertyDef
-local PropertyDef = class()
-
-function PropertyDef:_init()
-    self.rules = {
-        -- Assume text property by default (if no type is set)
-        type = 'text',
-
-        -- By default allow nulls
-        minOccurrences = 0,
-
-        -- By default scalar value
-        maxOccurrences = 1
-    }
-end
-
 -- Forward declarations
 local propTypes;
 
--- Subclasses for specific property types
---- @class BoolPropertyDef
-local BoolPropertyDef = class(PropertyDef)
---setmetatable(BoolPropertyDef, PropertyDef)
---BoolPropertyDef.__index = BoolPropertyDef
+--[[
+===============================================================================
+PropertyDef
+===============================================================================
+]]
 
--- Base property type for all range-able types
---- @class NumberPropertyDef
-local NumberPropertyDef = class(PropertyDef)
---setmetatable(NumberPropertyDef, PropertyDef)
---NumberPropertyDef.__index = NumberPropertyDef
+--- @class PropertyDef
+local PropertyDef = class()
 
---- @class MoneyPropertyDef
-local MoneyPropertyDef = class(NumberPropertyDef)
---setmetatable(MoneyPropertyDef, NumberPropertyDef)
---MoneyPropertyDef.__index = MoneyPropertyDef
-
---- @class IntegerPropertyDef
-local IntegerPropertyDef = class(NumberPropertyDef)
---setmetatable(IntegerPropertyDef, NumberPropertyDef)
---IntegerPropertyDef.__index = IntegerPropertyDef
-
---- @class EnumPropertyDef
-local EnumPropertyDef = class(PropertyDef)
---setmetatable(EnumPropertyDef, PropertyDef)
---EnumPropertyDef.__index = EnumPropertyDef
-
---- @class DateTimePropertyDef
-local DateTimePropertyDef = class(NumberPropertyDef)
---setmetatable(DateTimePropertyDef, NumberPropertyDef)
---DateTimePropertyDef.__index = DateTimePropertyDef
-
---- @class TimeSpanPropertyDef
-local TimeSpanPropertyDef = class(DateTimePropertyDef)
---setmetatable(TimeSpanPropertyDef, DateTimePropertyDef)
---TimeSpanPropertyDef.__index = TimeSpanPropertyDef
-
---- @class TextPropertyDef
-local TextPropertyDef = {}
-setmetatable(TextPropertyDef, PropertyDef)
-TextPropertyDef.__index = TextPropertyDef
-
---- @class SymNamePropertyDef
-local SymNamePropertyDef = class(TextPropertyDef)
---setmetatable(SymNamePropertyDef, TextPropertyDef)
---SymNamePropertyDef.__index = SymNamePropertyDef
-
---- @class BlobPropertyDef
-local BlobPropertyDef = class(PropertyDef)
---setmetatable(BlobPropertyDef, PropertyDef)
---BlobPropertyDef.__index = BlobPropertyDef
-
---- @class UuidPropertyDef
-local UuidPropertyDef = class(BlobPropertyDef)
---setmetatable(UuidPropertyDef, BlobPropertyDef)
---UuidPropertyDef.__index = UuidPropertyDef
-
--- Base type for all reference-able properties
---- @class MixinPropertyDef
-local MixinPropertyDef = class(PropertyDef)
---setmetatable(MixinPropertyDef, PropertyDef)
---MixinPropertyDef.__index = MixinPropertyDef
-
---- @class ReferencePropertyDef
-local ReferencePropertyDef = class(MixinPropertyDef)
---setmetatable(ReferencePropertyDef, MixinPropertyDef)
---ReferencePropertyDef.__index = ReferencePropertyDef
-
---- @class NestedObjectPropertyDef
-local NestedObjectPropertyDef = class(ReferencePropertyDef)
---setmetatable(NestedObjectPropertyDef, ReferencePropertyDef)
---NestedObjectPropertyDef.__index = NestedObjectPropertyDef
-
---- @class ComputedPropertyDef
-local ComputedPropertyDef = class(PropertyDef)
---setmetatable(ComputedPropertyDef, PropertyDef)
---ComputedPropertyDef.__index = ComputedPropertyDef
-
---- @param ClassDef ClassDef
---- @param srcData table @comment already parsed source data
--- from class definition or separate property definition
-function PropertyDef.import(ClassDef, srcData)
-    return PropertyDef.loadFromDB(ClassDef, {}, srcData)
-end
-
---- @param ClassDef ClassDef
---- @param obj table @comment [.class_props] row
---- @param srcData table @comment Parsed json table, as a part of class definition
-function PropertyDef.loadFromDB(ClassDef, obj, srcData)
-    assert(ClassDef)
-    assert(srcData and srcData.rules and srcData.rules.type)
-
+function PropertyDef.CreateInstance(classDef, srcData)
     local pt = propTypes[string.lower(srcData.rules.type)]
     if not pt then
         error('Unknown property type ' .. srcData.type)
     end
 
-    setmetatable(obj, pt)
-
-    obj.ClassDef = ClassDef
-    obj.D = srcData
-    obj.Prop = NameRef(obj.Property, obj.NameID)
-    obj:initMetadataRefs()
-
-    return obj
+    local result = pt(classDef, srcData)
+    return result
 end
 
---[[
-===============================================================================
-initMetadataRefs
-===============================================================================
-]]
+-- PropertyDef constructor
+function PropertyDef:_init(ClassDef, srcData)
+    assert(ClassDef)
+    assert(srcData and srcData.rules and srcData.rules.type)
+
+    --self.rules = {
+    --    -- Assume text property by default (if no type is set)
+    --    type = 'text',
+    --
+    --    -- By default allow nulls
+    --    minOccurrences = 0,
+    --
+    --    -- By default scalar value
+    --    maxOccurrences = 1
+    --}
+
+    self.ClassDef = ClassDef
+    self.D = srcData
+    self.Prop = NameRef(self.Property, self.NameID)
+    self:initMetadataRefs()
+end
+
+function PropertyDef:hasUnresolvedReferences()
+    return false
+end
+
 function PropertyDef:initMetadataRefs()
     -- Do nothing
-end
-
-function MixinPropertyDef:initMetadataRefs()
-    PropertyDef.initMetadataRefs(self)
-
-    if self.D and self.D.refDef and self.D.refDef.classRef then
-        setmetatable(self.D.refDef.classRef, ClassNameRef)
-    end
-end
-
-function ReferencePropertyDef:initMetadataRefs()
-    MixinPropertyDef.initMetadataRefs(self)
-
-    if self.D.refDef.reverseProperty then
-        setmetatable(self.D.refDef.reverseProperty, PropNameRef)
-    end
-
-    if self.D and self.D.refDef and self.D.refDef.dynamic then
-        if self.D.refDef.dynamic.selectorProp then
-            setmetatable(self.D.refDef.dynamic.selectorProp, PropNameRef)
-        end
-
-        if self.D.refDef.dynamic.rules then
-            for _, v in pairs(self.D.refDef.dynamic.rules) do
-                if v and v.classRef then
-                    setmetatable(v.classRef, ClassNameRef)
-                end
-            end
-        end
-    end
-end
-
-function EnumPropertyDef:initMetadataRefs()
-    PropertyDef.initMetadataRefs(self)
-
-    if self.D.enumDef then
-        if self.D.enumDef.classRef then
-            setmetatable(self.D.enumDef.classRef, ClassNameRef)
-        end
-
-        if self.D.enumDef.items then
-            local newItems = {}
-            for i, v in pairs(self.D.enumDef.items) do
-                if v and v.text then
-                    newItems[1] = NameRef(v.text, v.id)
-                end
-            end
-            self.D.enumDef.items = newItems
-        end
-    end
 end
 
 --[[
@@ -314,26 +181,9 @@ applyDef -- resolves references by names, sets ctlv, ctlvPlan, name etc.
 
 ]]
 
---[[
-===============================================================================
-supportsRangeIndexing
-===============================================================================
-]]
-
 function PropertyDef:supportsRangeIndexing()
     return false
 end
-
---- @overload
-function NumberPropertyDef:supportsRangeIndexing()
-    return true
-end
-
---[[
-===============================================================================
-isValidDef
-===============================================================================
-]]
 
 --- Common validation of property definition
 -- raw table, decoded from JSON
@@ -360,122 +210,6 @@ function PropertyDef:isValidDef()
     return true
 end
 
----
---- Checks if number property is well defined
-
---- @overload
-function NumberPropertyDef:isValidDef()
-    local ok, errorMsg = PropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    -- Check minValue and maxValue
-    local maxV = tonumber(self.D.rules.maxValue or MAX_NUMBER)
-    local minV = tonumber(self.D.rules.minValue or MIN_NUMBER)
-    if minV > maxV then
-        return false, 'Invalid minValue or maxValue settings'
-    end
-
-    return true
-end
-
---- @overload
-function IntegerPropertyDef:isValidDef()
-    local ok, errorMsg = NumberPropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    -- Check minValue and maxValue
-    local maxV = math.min(tonumber(self.D.rules.maxValue or MAX_INTEGER), MAX_INTEGER)
-    local minV = math.max(tonumber(self.D.rules.minValue or MIN_INTEGER), MIN_INTEGER)
-    if minV > maxV then
-        return false, 'Invalid minValue or maxValue settings'
-    end
-
-    return true
-end
-
---- @overload
-function TextPropertyDef:isValidDef()
-    local ok, errorMsg = PropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    local maxL = tonumber(self.D.rules.maxLength or 0)
-    if maxL < 0 then
-        return false, 'Invalid maxLength. Must be non negative number'
-    end
-
-    -- TODO check regex
-
-    return true
-end
-
---- @overload
-function MixinPropertyDef:isValidDef()
-    local ok, errorMsg = PropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    -- Check referenced class definition
-    if not self.D.refDef or not self.D.refDef.classRef then
-        return false, 'Reference definition is invalid'
-    end
-
-    return true
-end
-
---- @overload
-function ReferencePropertyDef:isValidDef()
-    local ok, errorMsg = MixinPropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    -- Either class or rules must be defined
-    if self.D.refDef and self.D.refDef.dynamic then
-        if not self.D.refDef.dynamic.classRef and not self.D.refDef.dynamic.rules then
-            return false, 'Either classRef or rules must be defined for dynamic reference'
-        end
-
-        if not self.D.refDef.dynamic.classRef and table.maxn(self.D.refDef.dynamic.rules) == 0 then
-            return false, 'No rules defined for dynamic reference rules'
-        end
-    end
-
-    return true
-end
-
----
---- Checks if enumeration is defined correctly
-function EnumPropertyDef:isValidDef()
-    local ok, errorMsg = PropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    if type(self.D.enumDef) ~= 'table' then
-        return false, 'enumDef is not defined or invalid'
-    end
-
-    -- either classRef or items have to be defined
-    if not self.D.enumDef.classRef and not self.D.enumDef.items then
-        return false, 'enumDef must have either classRef or items or both'
-    end
-
-    return true
-end
-
---[[
-===============================================================================
-canChangeTo
-===============================================================================
-]]
-
 -- Definite 'yes' is returned when a) propA.canChangeTo(propB) returned 'yes' and b) property types are compatible
 -- and c) minOccurrences and maxOccurrences do not shrink
 -- Definite 'no' is returned when propA does not support type change to propB or propA.canChangeTo(propB) returned 'no'
@@ -496,12 +230,6 @@ function PropertyDef:canChangeTo(another)
 
     return result
 end
-
---[[
-===============================================================================
-saveToDB
-===============================================================================
-]]
 
 --- @param propId number
 --- @param propName string
@@ -542,60 +270,19 @@ function PropertyDef:saveToDB()
     return self.PropertyID
 end
 
---[[
-===============================================================================
-export
-===============================================================================
-]]
-
 --- @return table @comment User friendly JSON-ready table with all public properties.
 -- Internal properties are not included
 function PropertyDef:export()
     return self.D
 end
 
---[[
-===============================================================================
-getNativeType
-===============================================================================
-]]
 -- Returns native (SQLite) type, i.e. 'text', 'float', 'integer', 'blob'
 --- @return string
 function PropertyDef:getNativeType()
     return ''
 end
 
-function NumberPropertyDef:getNativeType()
-    return 'float'
-end
-
-function TextPropertyDef:getNativeType()
-    return 'text'
-end
-
-function IntegerPropertyDef:getNativeType()
-    return 'integer'
-end
-
-function EnumPropertyDef:getNativeType()
-    return 'text'
-end
-
-function BoolPropertyDef:getNativeType()
-    return 'integer'
-end
-
-function BlobPropertyDef:getNativeType()
-    return 'blob'
-end
-
---[[
-===============================================================================
-applyDef
-
-Applies property definition to the database. Called on property save
-===============================================================================
-]]
+--Applies property definition to the database. Called on property save
 function PropertyDef:applyDef()
     -- resolve property name
     self.Prop:resolve(self.ClassDef)
@@ -618,60 +305,184 @@ function PropertyDef:applyDef()
     self.ctlvPlan = self.ctlv
 end
 
-function MixinPropertyDef:applyDef()
-    PropertyDef.applyDef(self)
-
-    if self.D.refDef and self.D.refDef.classRef then
-        print("applyDef: " .. self.Prop.text .. ", classRef: ", self.D.refDef.classRef)
-        self.D.refDef.classRef:resolve(self.ClassDef)
-    end
-end
-
-function ReferencePropertyDef:applyDef()
-    MixinPropertyDef.applyDef(self)
-
-    if self.D.refDef then
-        if self.D.refDef.reverseProperty then
-            self.D.refDef.reverseProperty:resolve(self.ClassDef)
-        end
-
-        if self.D.refDef.dynamic then
-            if self.D.refDef.dynamic.selectorProp then
-                self.D.refDef.dynamic.selectorProp:resolve(self.ClassDef)
-            end
-
-            if self.D.refDef.dynamic.rules then
-                for _, v in pairs(self.D.refDef.dynamic.rules) do
-                    v.classRef:resolve(self.ClassDef)
-                end
-            end
-        end
-    end
-end
-
-function EnumPropertyDef:applyDef()
-    PropertyDef.applyDef(self)
-
-    if self.D.enumDef then
-        if self.D.enumDef.classRef then
-            self.D.enumDef.classRef:resolve(self.ClassDef)
-        end
-
-        if self.D.enumDef.items then
-            for _, v in pairs(self.D.enumDef.items) do
-                v:resolve(self.ClassDef)
-            end
-        end
-    end
+--- Returns table representation of property definition as it will be used for class definition
+--- serialization to JSON
+---@return table
+function PropertyDef:internalToJSON()
+    return tablex.deepcopy(self.D)
 end
 
 --[[
 ===============================================================================
-hasUnresolvedReferences
+NumberPropertyDef
 ===============================================================================
 ]]
-function PropertyDef:hasUnresolvedReferences()
-    return false
+
+-- Base property type for all range-able types
+--- @class NumberPropertyDef
+local NumberPropertyDef = class(PropertyDef)
+
+function NumberPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+-- Checks if number property is well defined
+--- @overload
+function NumberPropertyDef:isValidDef()
+    local ok, errorMsg = PropertyDef.isValidDef(self)
+    if not ok then
+        return ok, errorMsg
+    end
+
+    -- Check minValue and maxValue
+    local maxV = tonumber(self.D.rules.maxValue or MAX_NUMBER)
+    local minV = tonumber(self.D.rules.minValue or MIN_NUMBER)
+    if minV > maxV then
+        return false, 'Invalid minValue or maxValue settings'
+    end
+
+    return true
+end
+
+function NumberPropertyDef:getNativeType()
+    return 'float'
+end
+
+--- @overload
+function NumberPropertyDef:supportsRangeIndexing()
+    return true
+end
+
+--[[
+===============================================================================
+MoneyPropertyDef
+===============================================================================
+]]
+--- @class MoneyPropertyDef
+local MoneyPropertyDef = class(NumberPropertyDef)
+
+function MoneyPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+-- TODO
+
+--[[
+===============================================================================
+IntegerPropertyDef
+===============================================================================
+]]
+
+--- @class IntegerPropertyDef
+local IntegerPropertyDef = class(NumberPropertyDef)
+
+function IntegerPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+--- @overload
+function IntegerPropertyDef:isValidDef()
+    local ok, errorMsg = NumberPropertyDef.isValidDef(self)
+    if not ok then
+        return ok, errorMsg
+    end
+
+    -- Check minValue and maxValue
+    local maxV = math.min(tonumber(self.D.rules.maxValue or MAX_INTEGER), MAX_INTEGER)
+    local minV = math.max(tonumber(self.D.rules.minValue or MIN_INTEGER), MIN_INTEGER)
+    if minV > maxV then
+        return false, 'Invalid minValue or maxValue settings'
+    end
+
+    return true
+end
+
+function IntegerPropertyDef:getNativeType()
+    return 'integer'
+end
+
+--[[
+===============================================================================
+TextPropertyDef
+===============================================================================
+]]
+
+--- @class TextPropertyDef
+local TextPropertyDef = class(PropertyDef)
+
+function TextPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+--- @overload
+function TextPropertyDef:isValidDef()
+    local ok, errorMsg = PropertyDef.isValidDef(self)
+    if not ok then
+        return ok, errorMsg
+    end
+
+    local maxL = tonumber(self.D.rules.maxLength or 0)
+    if maxL < 0 then
+        return false, 'Invalid maxLength. Must be non negative number'
+    end
+
+    -- TODO check regex
+
+    return true
+end
+
+function TextPropertyDef:getNativeType()
+    return 'text'
+end
+
+--[[
+===============================================================================
+SymNamePropertyDef
+===============================================================================
+]]
+
+--- @class SymNamePropertyDef
+local SymNamePropertyDef = class(TextPropertyDef)
+
+function SymNamePropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+--[[
+===============================================================================
+MixinPropertyDef
+===============================================================================
+]]
+
+-- Base type for all reference-able properties
+--- @class MixinPropertyDef
+local MixinPropertyDef = class(PropertyDef)
+
+function MixinPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+--- @overload
+function MixinPropertyDef:isValidDef()
+    local ok, errorMsg = PropertyDef.isValidDef(self)
+    if not ok then
+        return ok, errorMsg
+    end
+
+    -- Check referenced class definition
+    if not self.D.refDef or not self.D.refDef.classRef then
+        return false, 'Reference definition is invalid'
+    end
+
+    return true
+end
+
+function MixinPropertyDef:applyDef()
+    PropertyDef.applyDef(self)
+
+    if self.D.refDef and self.D.refDef.classRef then
+        self.D.refDef.classRef:resolve(self.ClassDef)
+    end
 end
 
 --- @overload
@@ -688,28 +499,77 @@ function MixinPropertyDef:hasUnresolvedReferences()
     return true
 end
 
+function MixinPropertyDef:initMetadataRefs()
+    PropertyDef.initMetadataRefs(self)
+
+    if self.D and self.D.refDef and self.D.refDef.classRef then
+        setmetatable(self.D.refDef.classRef, ClassNameRef)
+    end
+end
+
+-- Returns internal JSON representation of property
+function MixinPropertyDef:internalToJSON()
+    local result = PropertyDef.internalToJSON(self)
+
+    result.refDef = tablex.deepcopy(self.refDef)
+
+    return result
+end
+
+--[[
+===============================================================================
+ReferencePropertyDef
+===============================================================================
+]]
+
+--- @class ReferencePropertyDef
+local ReferencePropertyDef = class(MixinPropertyDef)
+
+function ReferencePropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
 --- @overload
-function EnumPropertyDef:hasUnresolvedReferences()
-    local result = PropertyDef.hasUnresolvedReferences(self)
-    if not result then
-        return result
+function ReferencePropertyDef:isValidDef()
+    local ok, errorMsg = MixinPropertyDef.isValidDef(self)
+    if not ok then
+        return ok, errorMsg
     end
 
-    if self.D.enumDef then
-        if not self.D.enumDef:isResolved() then
-            return false
+    -- Either class or rules must be defined
+    if self.D.refDef and self.D.refDef.dynamic then
+        if not self.D.refDef.dynamic.classRef and not self.D.refDef.dynamic.rules then
+            return false, 'Either classRef or rules must be defined for dynamic reference'
         end
 
-        if self.D.enumDef.items then
-            for _, v in pairs(self.D.enumDef.items) do
-                if v.text and not v.text:isResolved() then
-                    return false
-                end
-            end
+        if not self.D.refDef.dynamic.classRef and table.maxn(self.D.refDef.dynamic.rules) == 0 then
+            return false, 'No rules defined for dynamic reference rules'
         end
     end
 
     return true
+end
+
+function ReferencePropertyDef:initMetadataRefs()
+    MixinPropertyDef.initMetadataRefs(self)
+
+    if self.D.refDef.reverseProperty then
+        setmetatable(self.D.refDef.reverseProperty, PropNameRef)
+    end
+
+    if self.D and self.D.refDef and self.D.refDef.dynamic then
+        if self.D.refDef.dynamic.selectorProp then
+            setmetatable(self.D.refDef.dynamic.selectorProp, PropNameRef)
+        end
+
+        if self.D.refDef.dynamic.rules then
+            for _, v in pairs(self.D.refDef.dynamic.rules) do
+                if v and v.classRef then
+                    setmetatable(v.classRef, ClassNameRef)
+                end
+            end
+        end
+    end
 end
 
 --- @overload
@@ -738,44 +598,230 @@ function ReferencePropertyDef:hasUnresolvedReferences()
     return true
 end
 
+function ReferencePropertyDef:applyDef()
+    MixinPropertyDef.applyDef(self)
+
+    if self.D.refDef then
+        if self.D.refDef.reverseProperty then
+            self.D.refDef.reverseProperty:resolve(self.ClassDef)
+        end
+
+        if self.D.refDef.dynamic then
+            if self.D.refDef.dynamic.selectorProp then
+                self.D.refDef.dynamic.selectorProp:resolve(self.ClassDef)
+            end
+
+            if self.D.refDef.dynamic.rules then
+                for _, v in pairs(self.D.refDef.dynamic.rules) do
+                    v.classRef:resolve(self.ClassDef)
+                end
+            end
+        end
+    end
+end
+
 --[[
-internalToJSON
+===============================================================================
+NestedObjectPropertyDef
+===============================================================================
 ]]
 
---- Returns deep clone of table, without metatable assignment
----@return table
-function deepCloneNoMetatable(t)
-    if type(t) ~= 'table' then
-        return t
-    end
-    local result = {}
-    for k, v in pairs(t) do
-        result[k] = deepCloneNoMetatable(v)
-    end
-    return result
+--- @class NestedObjectPropertyDef
+local NestedObjectPropertyDef = class(ReferencePropertyDef)
+
+function NestedObjectPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
 end
 
---- Returns table representation of property definition as it will be used for class definition
---- serialization to JSON
----@return table
-function PropertyDef:internalToJSON()
-    return deepCloneNoMetatable(self.D)
+--[[
+===============================================================================
+EnumPropertyDef
+===============================================================================
+]]
+
+--- @class EnumPropertyDef
+local EnumPropertyDef = class(PropertyDef)
+
+function EnumPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
 end
 
-function MixinPropertyDef:internalToJSON()
-    local result = PropertyDef.internalToJSON(self)
+---
+--- Checks if enumeration is defined correctly
+function EnumPropertyDef:isValidDef()
+    local ok, errorMsg = PropertyDef.isValidDef(self)
+    if not ok then
+        return ok, errorMsg
+    end
 
-    result.refDef = deepCloneNoMetatable(self.refDef)
+    local enumDef = self.D.enumDef or self.D.refDef
+    if type(enumDef) ~= 'table' then
+        return false, 'enumDef nor refDef is not defined or invalid'
+    end
 
-    return result
+    -- either classRef or items have to be defined
+    if not enumDef.classRef and not enumDef.items then
+        return false, 'enumDef must have either classRef or items or both'
+    end
+
+    return true
+end
+
+function EnumPropertyDef:getNativeType()
+    return 'text'
+end
+
+--- @overload
+function EnumPropertyDef:hasUnresolvedReferences()
+    local result = PropertyDef.hasUnresolvedReferences(self)
+    if not result then
+        return result
+    end
+
+    if self.D.enumDef then
+        if not self.D.enumDef:isResolved() then
+            return false
+        end
+
+        if self.D.enumDef.items then
+            for _, v in pairs(self.D.enumDef.items) do
+                if v.text and not v.text:isResolved() then
+                    return false
+                end
+            end
+        end
+    end
+
+    return true
+end
+
+function EnumPropertyDef:applyDef()
+    PropertyDef.applyDef(self)
+
+    if self.D.enumDef then
+        if self.D.enumDef.classRef then
+            self.D.enumDef.classRef:resolve(self.ClassDef)
+        end
+
+        if self.D.enumDef.items then
+            for _, v in pairs(self.D.enumDef.items) do
+                v:resolve(self.ClassDef)
+            end
+        end
+    end
 end
 
 function EnumPropertyDef:internalToJSON()
     local result = PropertyDef.internalToJSON(self)
 
-    result.refDef = deepCloneNoMetatable(self.enumDef)
+    result.refDef = tablex.deepcopy(self.enumDef)
 
     return result
+end
+
+function EnumPropertyDef:initMetadataRefs()
+    PropertyDef.initMetadataRefs(self)
+
+    if self.D.enumDef then
+        if self.D.enumDef.classRef then
+            setmetatable(self.D.enumDef.classRef, ClassNameRef)
+        end
+
+        if self.D.enumDef.items then
+            local newItems = {}
+            for i, v in pairs(self.D.enumDef.items) do
+                if v and v.text then
+                    newItems[1] = NameRef(v.text, v.id)
+                end
+            end
+            self.D.enumDef.items = newItems
+        end
+    end
+end
+
+--[[
+===============================================================================
+BoolPropertyDef
+===============================================================================
+]]
+--- @class BoolPropertyDef
+local BoolPropertyDef = class(PropertyDef)
+
+function BoolPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+function BoolPropertyDef:getNativeType()
+    return 'integer'
+end
+
+--[[
+===============================================================================
+BlobPropertyDef
+===============================================================================
+]]
+
+--- @class BlobPropertyDef
+local BlobPropertyDef = class(PropertyDef)
+
+function BlobPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+function BlobPropertyDef:getNativeType()
+    return 'blob'
+end
+
+--[[
+===============================================================================
+UuidPropertyDef
+===============================================================================
+]]
+
+--- @class UuidPropertyDef
+local UuidPropertyDef = class(BlobPropertyDef)
+
+function UuidPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+--[[
+===============================================================================
+DateTimePropertyDef
+===============================================================================
+]]
+
+--- @class DateTimePropertyDef
+local DateTimePropertyDef = class(NumberPropertyDef)
+
+function DateTimePropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+--[[
+===============================================================================
+TimeSpanPropertyDef
+===============================================================================
+]]
+
+--- @class TimeSpanPropertyDef
+local TimeSpanPropertyDef = class(DateTimePropertyDef)
+
+function TimeSpanPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+--[[
+===============================================================================
+TimeSpanPropertyDef
+===============================================================================
+]]
+
+--- @class ComputedPropertyDef
+local ComputedPropertyDef = class(PropertyDef)
+
+function ComputedPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
 end
 
 -- map for property types

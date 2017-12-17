@@ -281,7 +281,7 @@ function DBContext:addClassToList(classDef)
     assert(classDef)
     assert(type(classDef.ClassID) == 'number')
     self.Classes[classDef.ClassID] = classDef
-    self.Classes[classDef.Name.name] = classDef
+    self.Classes[classDef.Name.text] = classDef
 end
 
 -- Loads class definition (as defined in [.classes] and [flexi_prop] tables)
