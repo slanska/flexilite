@@ -80,6 +80,8 @@ local MIN_NUMBER = -MAX_NUMBER
 local MAX_INTEGER = 9007199254740992
 local MIN_INTEGER = -MAX_INTEGER
 
+local MAX_BLOB_LENGTH = 1073741824
+
 -- CTLV flags
 local CTLV_FLAGS = {
     INDEX = 1,
@@ -156,6 +158,15 @@ function PropertyDef:initMetadataRefs()
     -- Do nothing
 end
 
+function PropertyDef:ColumnMappingSupported()
+    return true
+end
+
+-- true if property value can be used as user defined ID (UID)
+function PropertyDef:CanBeUsedAsUID()
+    return true
+end
+
 --[[
 Fields:
 ======
@@ -165,7 +176,7 @@ ctlvPlan
 ctlv
 Deleted?
 PropNameID
-LockedCol
+ColMap
 D - json part
 
 Methods:
@@ -238,35 +249,33 @@ function PropertyDef:saveToDB()
 
     assert(self.Prop and self.Prop:isResolved())
 
-    -- TODO Detect column mapping
-    local LockedCol = nil
-
     if self.ID and tonumber(self.ID) > 0 then
         -- Update existing
-        self.ClassDef.DBContext:execStatement([[update [.names_props]
-        set PropNameID = :nameID, ctlv = :ctlv, ctlvPlan = :ctlvPlan, LockedCol = :LockedCol
+        self.ClassDef.DBContext:execStatement([[update [.class_props]
+        set NameID = :nameID, ctlv = :ctlv, ctlvPlan = :ctlvPlan, ColMap = :ColMap
         where ID = :id]],
         {
             nameID = self.Prop.id,
             ctlv = self.ctlv,
             ctlvPlan = self.ctlvPlan,
-            LockedCol = LockedCol,
+            ColMap = self.ColMap,
             id = self.PropertyID
         })
     else
         -- Insert new
         self.ClassDef.DBContext:execStatement(
-        [[insert into [.names_props] (ClassID, PropNameID, ctlv, ctlvPlan, Type, LockedCol)
-            values (:ClassID, :NameID, :ctlv, :ctlvPlan, 1, :LockedCol);]], {
+        [[insert into [.class_props] (ClassID, NameID, ctlv, ctlvPlan, ColMap)
+            values (:ClassID, :NameID, :ctlv, :ctlvPlan, :ColMap);]], {
             ClassID = self.ClassDef.ClassID,
             NameID = self.Prop.id,
             ctlv = self.ctlv,
             ctlvPlan = self.ctlvPlan,
-            LockedCol = LockedCol
+            ColMap = self.ColMap
         })
 
         self.PropertyID = self.ClassDef.DBContext.db:last_insert_rowid()
     end
+
     return self.PropertyID
 end
 
@@ -435,6 +444,10 @@ function TextPropertyDef:getNativeType()
     return 'text'
 end
 
+function TextPropertyDef:ColumnMappingSupported()
+    return (self.D.rules.maxLength or 255) <= 255
+end
+
 --[[
 ===============================================================================
 SymNamePropertyDef
@@ -446,6 +459,10 @@ local SymNamePropertyDef = class(TextPropertyDef)
 
 function SymNamePropertyDef:_init(classDef, srcData)
     self:super(classDef, srcData)
+end
+
+function SymNamePropertyDef:ColumnMappingSupported()
+    return true
 end
 
 --[[
@@ -514,6 +531,15 @@ function MixinPropertyDef:internalToJSON()
     result.refDef = tablex.deepcopy(self.refDef)
 
     return result
+end
+
+function PropertyDef:ColumnMappingSupported()
+    return false
+end
+
+-- true if property value can be used as user defined ID (UID)
+function PropertyDef:CanBeUsedAsUID()
+    return false
 end
 
 --[[
@@ -739,6 +765,11 @@ function EnumPropertyDef:initMetadataRefs()
     end
 end
 
+-- true if property value can be used as user defined ID (UID)
+function EnumPropertyDef:CanBeUsedAsUID()
+    return false
+end
+
 --[[
 ===============================================================================
 BoolPropertyDef
@@ -753,6 +784,11 @@ end
 
 function BoolPropertyDef:getNativeType()
     return 'integer'
+end
+
+-- true if property value can be used as user defined ID (UID)
+function BoolPropertyDef:CanBeUsedAsUID()
+    return false
 end
 
 --[[
@@ -770,6 +806,15 @@ end
 
 function BlobPropertyDef:getNativeType()
     return 'blob'
+end
+
+function BlobPropertyDef:ColumnMappingSupported()
+    return (self.D.rules.maxLength or MAX_BLOB_LENGTH) <= 255
+end
+
+-- true if property value can be used as user defined ID (UID)
+function BlobPropertyDef:CanBeUsedAsUID()
+    return false
 end
 
 --[[
@@ -813,7 +858,7 @@ end
 
 --[[
 ===============================================================================
-TimeSpanPropertyDef
+ComputedPropertyDef
 ===============================================================================
 ]]
 
@@ -822,6 +867,16 @@ local ComputedPropertyDef = class(PropertyDef)
 
 function ComputedPropertyDef:_init(classDef, srcData)
     self:super(classDef, srcData)
+end
+
+
+function ComputedPropertyDef:ColumnMappingSupported()
+    return false
+end
+
+-- true if property value can be used as user defined ID (UID)
+function ComputedPropertyDef:CanBeUsedAsUID()
+    return false
 end
 
 -- map for property types

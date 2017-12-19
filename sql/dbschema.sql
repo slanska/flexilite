@@ -255,7 +255,7 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   /*
   Class is marked as deleted
    */
-  Deleted       BOOL    NOT NULL             DEFAULT 0
+  Deleted       BOOLEAN    NOT NULL             DEFAULT 0
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClasses_byNameID]
@@ -434,7 +434,7 @@ CREATE TABLE IF NOT EXISTS [.class_props]
   /*
   Property is marked as deleted
    */
-  Deleted      BOOL    NOT NULL                           DEFAULT 0
+  Deleted      BOOLEAN    NOT NULL                           DEFAULT 0
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByClassAndName]

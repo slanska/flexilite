@@ -27,6 +27,8 @@ local PropertyDef = require('PropertyDef')
 local name_ref = require('NameRef')
 local NameRef = name_ref.NameRef
 local class = require 'pl.class'
+local tablex = require 'pl.tablex'
+local pretty = require 'pl.pretty'
 
 --[[
 
@@ -45,6 +47,13 @@ function ClassDef:_init(params)
     -- Properties by ID
     self.PropertiesByID = {}
     self.Name = {}
+
+    -- set column mapping dictionary
+    self.propColMap = {
+        A = false, B = false, C = false, D = false, E = false, F = false, G = false, H = false,
+        I = false, J = false, K = false, L = false, M = false, N = false, O = false, P = false
+    }
+
     setmetatable(self.Name, NameRef)
     local data
 
@@ -70,24 +79,29 @@ function ClassDef:_init(params)
     end
 
     for nameOrId, p in pairs(data.properties) do
-        if not self.Properties[p.ID] then
-            local prop = PropertyDef.CreateInstance(self, p)
+        --if not self.Properties[p.ID] then
+        local prop = PropertyDef.CreateInstance(self, p)
 
-            -- Determine mode
-            if type(nameOrId) == 'number' and p.Prop.text and p.Prop.id then
-                -- Database contexts
-                self.PropertiesByID[nameOrId] = prop
-                self.Properties[p.Prop.text] = prop
-            else
-                if type(nameOrId) ~= 'string' then
-                    error('Invalid type of property name: ' .. nameOrId)
-                end
-
-                -- Raw JSON context
-                prop.Prop.text = nameOrId
-                self.Properties[nameOrId] = prop
+        -- Determine mode
+        if type(nameOrId) == 'number' and p.Prop.text and p.Prop.id then
+            -- Database contexts
+            self.PropertiesByID[nameOrId] = prop
+            self.Properties[p.Prop.text] = prop
+        else
+            if type(nameOrId) ~= 'string' then
+                error('Invalid type of property name: ' .. nameOrId)
             end
+
+            -- Raw JSON context
+            prop.Prop.text = nameOrId
+            self.Properties[nameOrId] = prop
         end
+
+        if p.ColMap then
+            self.propColMap[p.ColMap] = p
+        end
+
+        --end
     end
 
     ---@param dictName string
@@ -109,6 +123,35 @@ function ClassDef:_init(params)
     dictFromJSON('rangeIndexing')
     dictFromJSON('fullTextIndexing')
     dictFromJSON('columnMapping')
+end
+
+-- Attempts to assign column mapping
+---@param prop IPropertyDef
+---@return bool
+function ClassDef:assignColMappingForProperty(prop)
+    -- Already assigned?
+    if prop.ColMap then
+        return true
+    end
+
+    -- Not all properties support column mapping. Check it
+    if not prop:ColumnMappingSupported() then
+        return false
+    end
+
+    -- Find available slot
+    local ch = tablex.find_if(self.propColMap, function(val)
+        return not val
+    end )
+
+    -- Assigned!
+    if ch then
+        self.propColMap[ch] = prop
+        prop.ColMap = ch
+        return true
+    end
+
+    return false
 end
 
 function ClassDef:selfValidate()
@@ -187,6 +230,35 @@ function ClassDef:internalToJSON()
     -- TODO Other attributes?
 
     return result
+end
+
+-- Creates range data table for the given class
+function ClassDef:createRangeDataTable()
+    assert(type(self.ClassID) == 'number')
+    local sql = string.format([[
+    CREATE VIRTUAL TABLE IF NOT EXISTS [.range_data_%d] USING rtree (
+          [ObjectID],
+          [A0], [A1],
+          [B0], [B1],
+          [C0], [C1],
+          [D0], [D1],
+          [E0], [E1]
+        );]], self.ClassID)
+    local result = self.DBContext.db:exec(sql)
+    if result ~= 0 then
+        local errMsg = string.format("%d: %s", self.DBContext.db:error_code(), self.DBContext.db:error_message())
+        error(errMsg)
+    end
+end
+
+function ClassDef:dropRangeDataTable()
+    assert(type(self.ClassID) == 'number')
+    local sql = string.format([[DROP TABLE IF EXISTS [.range_data_%d];]], self.ClassID)
+    local result = self.DBContext.db:exec(sql)
+    if result ~= 0 then
+        local errMsg = string.format("%d: %s", self.DBContext.db:error_code(), self.DBContext.db:error_message())
+        error(errMsg)
+    end
 end
 
 return ClassDef

@@ -136,7 +136,7 @@ end
 --- @return number @comment class ID or 0 if not found
 function DBContext:getClassIdByName(className, errorIfNotFound)
     local row = self:loadOneRow([[
-    select ClassID from [.classes] where NameID = (select ID from [.names_props] where Value = :v limit 1);
+    select ClassID from [.classes] where NameID = (select ID from [.sym_names] where Value = :v limit 1);
     ]], { v = className })
     if not row and errorIfNotFound then
         error('Class [' .. className .. '] not found')
@@ -147,7 +147,7 @@ end
 --- @param nameID number
 --- @return string
 function DBContext:getNameValueByID(nameID)
-    local row = self:loadOneRow([[select [Value] from [.names_props] where ID = :v limit 1;]],
+    local row = self:loadOneRow([[select [Value] from [.sym_names] where ID = :v limit 1;]],
     { v = nameID })
     if row then
         return row.Value
@@ -182,8 +182,8 @@ end
 --- @param name string
 --- @return number @comment nameID
 function DBContext:insertName(name)
-    local sql = [[insert  into [.names_props] ([Value], Type) select :v, 0
-        where not exists (select ID from [.names_props] where [Value] = :v limit 1);]]
+    local sql = [[insert  into [.sym_names] ([Value]) select :v
+        where not exists (select ID from [.sym_names] where [Value] = :v limit 1);]]
     self:execStatement(sql, { v = name })
     --TODO Use last insert id?
     return self:getNameID(name)
@@ -211,7 +211,7 @@ function DBContext:getNameID(name)
     local row = self:loadOneRow('select NameID from [.names] where [Value] = :n;', { n = name })
     if not row then
 
-        local cnt = self:loadOneRow([[select * from [.names_props];]], {})
+        local cnt = self:loadOneRow([[select * from [.sym_names];]], {})
         print(cnt)
         error('Name [' .. name .. '] not found')
     end
@@ -303,7 +303,7 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
         return result
     end
 
-    local sql = [[select c.* from (select *, (select Value from [.names_props] where ID = NameID limit 1) as Name from [.classes]) as c]]
+    local sql = [[select c.* from (select *, (select Value from [.sym_names] where ID = NameID limit 1) as Name from [.classes]) as c]]
     if type(classIdOrName) == 'string' then
         sql = sql .. [[ where c.Name = :1 limit 1; ]]
     else

@@ -48,13 +48,6 @@ local function CreateClass(self, className, classDef, createVirtualTable)
         -- TODO Supply class ID
         return string.format('Virtual flexi_data table [%s] created', className)
     else
-        local originalJSON
-        if type(classDef) == 'string' then
-            originalJSON = classDef
-        else
-            originalJSON = json.encode(classDef)
-        end
-
         local clsObject = self.ClassDef { newClassName = className, data = classDef, DBContext = self }
 
         -- Validate class and its properties
@@ -69,8 +62,21 @@ local function CreateClass(self, className, classDef, createVirtualTable)
             end
         end
 
+        -- Save new class record to get ID
+        clsObject.Name:resolve(clsObject)
+        self:execStatement("insert into [.classes] (NameID) values (:1);",
+        {
+            ['1'] = clsObject.Name.id,
+        })
+        clsObject.D.ClassID = self.db:last_insert_rowid()
+        clsObject.ClassID = clsObject.D.ClassID
+
+        -- TODO Set ctloMask
+        clsObject.D.ctloMask = 0
+
         -- Apply definition
         for name, p in pairs(clsObject.Properties) do
+            clsObject:assignColMappingForProperty(p)
             p:applyDef()
             local propID = p:saveToDB(nil, name)
             clsObject.PropertiesByID[propID] = p
@@ -86,24 +92,18 @@ local function CreateClass(self, className, classDef, createVirtualTable)
             end
         end
 
-        clsObject.Name:resolve(clsObject)
         local internalJson = json.encode(clsObject:internalToJSON())
-
-        -- TODO ctloMask
-        clsObject.D.ctloMask = 0
 
         clsObject.D.VirtualTable = false
 
-        self:execStatement("insert into [.classes] (NameID, OriginalData, Data, Unresolved, ctloMask) values (:1, :2, :3, :4, :5);",
+        self:execStatement("update [.classes] set NameID = :1, Data = :2, Unresolved = :3, ctloMask = :4 where ClassID = :5;",
         {
             ['1'] = clsObject.Name.id,
-            ['2'] = originalJSON,
-            ['3'] = internalJson,
-            ['4'] = clsObject.D.Unresolved,
-            ['5'] = clsObject.D.ctloMask
+            ['2'] = internalJson,
+            ['3'] = clsObject.D.Unresolved,
+            ['4'] = clsObject.D.ctloMask,
+            ['5'] = clsObject.ClassID
         })
-        clsObject.D.ClassID = self.db:last_insert_rowid()
-        clsObject.ClassID = clsObject.D.ClassID
         self:addClassToList(clsObject)
 
         -- TODO Check if there unresolved classes

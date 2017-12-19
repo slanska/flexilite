@@ -57,28 +57,40 @@ data: Database, statements, user info, class definitions, cache of referenced va
     - handle non existing database - report error
     
 * SQL schema:
-    - split .nam_props to .sym_names and .class_props
-    - add vtypes column to .objects (A-P types)
+    - &#10003; split .nam_props to .sym_names and .class_props
+    - &#10003; add vtypes column to .objects (A-P types)
         3 bit per column, 0 - 7, to keep actual type: date/time, timespan (for float), symname, money (for integer), enum (for text and
         integer), json (for text)
-    - allocate ColumnMap
-    - save .classes to get ID, then save properties with new ClassID, then update .classes with JSON
-    - columns A - P
+    - &#10003; allocate ColumnMap
+    - &#10003; save .classes to get ID, then save properties with new ClassID, then update .classes with JSON
+    - &#10003; columns A - P
     - define schemas for name, property, class. Use it for validation of class/property def
     - generate dynamic schema for object, to validate input data 
+    - enumDef - process and save. Check if reference is resolved
+    
+* Class create:
+    - create range_data_XXX table if needed
+    
    
-* Update data:
+* Insert data:
     - parse JSON to Lua table
     - For every object in payload -
         - validate properties, find property IDs by name
-        - call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable), then for this class
+        - call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
         - validate data, using dynamically defined schema. If any missing references found, remember them in Lua table
         - save data, with multi-key, FTS and RTREE update, if applicable
-        - call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for this class
+        - call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
     - Process unresolved references. If there are still unresolved refs, rollback entire update and raise error 
-    (with complete report?)
+    (with complete report available on separate call)
     
 * Query:
     - parse JSON to Lua table
     - traverse tree and generate SQL
+    
+* General:
+    - move flags (CTLV* ) and related logic to separate module
+
+
+
          
+
