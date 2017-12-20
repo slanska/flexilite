@@ -10,22 +10,35 @@ Implementation of flexi_data virtual table Update API: insert, update, delete
 ]]
 
 ---@param self DBContext
+---@param className string
 ---@param data table
-local function updateObject(self, data)
+local function updateObject(self, className, data)
+    -- find property IDs by names
+    for name, value in pairs(data) do
+
+    end
+
+    -- validate properties
+    -- call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable)
+    -- validate data, using dynamically defined schema. If any missing references found, remember them in Lua table
+    -- save data, with multi-key, FTS and RTREE update, if applicable
+
+    -- multi key - use pcall to catch error
+    -- call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
 
 end
 
 --[[
     CHECK_STMT_PREPARE(
             db,
-            "insert into [.range_data] ([ObjectID], [ClassID], [ClassID_1], "
+            "insert into [.range_data] ([ObjectID], [ClassID_1], "
                     "[A0], [_1], [B0], [B1], [C0], [C1], [D0], [D1]) values "
                     "(:1, :2, :2, :3, :4, :5, :6, :7, :8, :9, :10);",
             &pCtx->pStmts[STMT_INS_RTREE]);
 
     CHECK_STMT_PREPARE(
             db,
-            "update [.range_data] set [ClassID] = :2, [ClassID_1] = :2, "
+            "update [.range_data] set "
                     "[A0] = :3, [A1] = :4, [B0] = :5, [B1] = :6, "
                     "[C0] = :7, [C1] = :8, [D0] = :9, [D1] = :10 where ObjectID = :1;",
             &pCtx->pStmts[STMT_UPD_RTREE]);

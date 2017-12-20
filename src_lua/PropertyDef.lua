@@ -73,38 +73,7 @@ local EnumDef = require 'EnumDef'
 
 local NameRef, ClassNameRef, PropNameRef = name_ref.NameRef, name_ref.ClassNameRef, name_ref.PropNameRef
 
--- Candidates for common.lua
-local MAX_NUMBER = 1.7976931348623157e+308
--- Smallest number = 2.2250738585072014e-308,
-local MIN_NUMBER = -MAX_NUMBER
-local MAX_INTEGER = 9007199254740992
-local MIN_INTEGER = -MAX_INTEGER
-
-local MAX_BLOB_LENGTH = 1073741824
-
--- CTLV flags
-local CTLV_FLAGS = {
-    INDEX = 1,
-    REF_STD = 3,
-    -- 4(5) - ref: A -> B. When A deleted, delete B
-    DELETE_B_WHEN_A = 5,
-    -- 6(7) - when B deleted, delete A
-    DELETE_A_WHEN_B = 7,
-    -- 8(9) - when A or B deleted, delete counterpart
-    DELETE_COUNTERPART = 9,
-    --10(11) - cannot delete A until this reference exists
-    CANNOT_DELETE_A_UNTIL_B = 11,
-    --12(13) - cannot delete B until this reference exists
-    CANNOT_DELETE_B_UNTIL_A = 13,
-    --14(15) - cannot delete A nor B until this reference exist
-    CANNOT_DELETE_UNTIL_COUNTERPART = 15,
-    NAME_ID = 16,
-    FTX_INDEX = 32,
-    NO_TRACK_CHANGES = 64,
-    UNIQUE = 128,
-    DATE = 256,
-    TIMESPAN = 512,
-}
+local Constants = require 'Constants'
 
 -- Forward declarations
 local propTypes;
@@ -300,15 +269,15 @@ function PropertyDef:applyDef()
     self.ctlv = 0
     local idx = string.lower(self.D.index or '')
     if idx == 'index' then
-        self.ctlv = bit.bor(self.ctlv, CTLV_FLAGS.INDEX)
+        self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.INDEX)
     elseif idx == 'unique' then
-        self.ctlv = bit.bor(self.ctlv, CTLV_FLAGS.UNIQUE)
+        self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.UNIQUE)
     elseif idx == 'fulltext' then
-        self.ctlv = bit.bor(self.ctlv, CTLV_FLAGS.FTX_INDEX)
+        self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.FTX_INDEX)
     end
 
     if self.D.noTrackChanges then
-        self.ctlv = bit.bor(self.ctlv, CTLV_FLAGS.NO_TRACK_CHANGES)
+        self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.NO_TRACK_CHANGES)
     end
 
     self.ctlvPlan = self.ctlv
@@ -344,8 +313,8 @@ function NumberPropertyDef:isValidDef()
     end
 
     -- Check minValue and maxValue
-    local maxV = tonumber(self.D.rules.maxValue or MAX_NUMBER)
-    local minV = tonumber(self.D.rules.minValue or MIN_NUMBER)
+    local maxV = tonumber(self.D.rules.maxValue or Constants.MAX_NUMBER)
+    local minV = tonumber(self.D.rules.minValue or Constants.MIN_NUMBER)
     if minV > maxV then
         return false, 'Invalid minValue or maxValue settings'
     end
@@ -397,8 +366,8 @@ function IntegerPropertyDef:isValidDef()
     end
 
     -- Check minValue and maxValue
-    local maxV = math.min(tonumber(self.D.rules.maxValue or MAX_INTEGER), MAX_INTEGER)
-    local minV = math.max(tonumber(self.D.rules.minValue or MIN_INTEGER), MIN_INTEGER)
+    local maxV = math.min(tonumber(self.D.rules.maxValue or Constants.MAX_INTEGER), MAX_INTEGER)
+    local minV = math.max(tonumber(self.D.rules.minValue or Constants.MIN_INTEGER), MIN_INTEGER)
     if minV > maxV then
         return false, 'Invalid minValue or maxValue settings'
     end
@@ -809,7 +778,7 @@ function BlobPropertyDef:getNativeType()
 end
 
 function BlobPropertyDef:ColumnMappingSupported()
-    return (self.D.rules.maxLength or MAX_BLOB_LENGTH) <= 255
+    return (self.D.rules.maxLength or Constants.MAX_BLOB_LENGTH) <= 255
 end
 
 -- true if property value can be used as user defined ID (UID)

@@ -28,7 +28,6 @@ local name_ref = require('NameRef')
 local NameRef = name_ref.NameRef
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
-local pretty = require 'pl.pretty'
 
 --[[
 
@@ -159,7 +158,10 @@ function ClassDef:selfValidate()
 end
 
 function ClassDef:hasProperty(idOrName)
-    return self.Properties[idOrName]
+    if type(idOrName) == 'string' then
+        return self.Properties[idOrName]
+    end
+    return self.PropertiesByID[idOrName]
 end
 
 -- Internal function to add property to properties collection

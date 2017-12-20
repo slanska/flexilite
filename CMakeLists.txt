@@ -109,6 +109,9 @@ set(LUA_FILES
         src_lua/flexi_ConvertCustomEAV.lua
         src_lua/flexi_DataUpdate.lua
         src_lua/flexi_PropToObject.lua
+        src_lua/DBObject.lua
+        src_lua/ApiObject.lua
+        src_lua/Constants.lua
 
         #lib
         lib/lua-prettycjson/lib/resty/prettycjson.lua

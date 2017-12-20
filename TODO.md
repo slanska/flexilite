@@ -88,8 +88,8 @@ data: Database, statements, user info, class definitions, cache of referenced va
     - traverse tree and generate SQL
     
 * General:
-    - move flags (CTLV* ) and related logic to separate module
-
+    - &#10003; move flags (CTLV* ) and related logic to separate module
+    - Review README.md. Cleanup and move text to /doc
 
 
          

@@ -6,17 +6,17 @@ relational database.
 
 Here is short list of their specific features:
 * All objects are stored as records in single table (**[.objects]**) and have ClassID column which determines class to which they belong to.
-This storage concept opens a lot of interesting possibilities which are not possible and difficult to do in the regular RDBM.
+This storage concept opens a lot of interesting possibilities which are not possible and difficult to do in the regular RDBMS.
 For example, by simply changing ClassID, objects can be efficiently moved from one class (table) to another.
 
 * Auto-generated object IDs are integer value and are unique within entire database, not just one table.
 
-* Objects may optionally have user defined ID (UID), which must be unique within class.
+* Objects may optionally have user defined ID (UID), which must be unique within class scope.
 
 * Information on class definitions is stored in **[.classes]** table, in JSON format, and includes full metadata on class itself, its properties
-and even custom meta information
+and optional custom meta information (e.g. UI generation info)
 
-* Properties are recognized by their names (for example, 'Order Number' or 'Work Email'). Properties shape common semantic space of Flexilite database. From standpoint of data schema,
+* Properties are recognized by their names (for example, 'OrderNumber' or 'Work_Email'). Properties shape common semantic space of Flexilite database. From standpoint of data schema,
  any class and any object may have any property.
 
 * There is no inheritance or other relationship between classes. Flexilite uses duck typing, i.e. checks actual presence of property definitions
