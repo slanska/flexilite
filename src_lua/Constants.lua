@@ -49,7 +49,23 @@ local Constants = {
         json = 5, --(for TEXT)
         enum = 6, -- (for INT, TEXT etc.)
         reference = 7, -- (used only in .ref-values.ctlv, not applicable for .objects.vtypes])
-    }
+    },
+
+    -- Used for access rules
+    AccessMode = {
+        HIDDEN = 0x01,
+        READ_ONLY = 0x02,
+        UPDATABLE = 0x04,
+        CAN_ADD = 0x08,
+        CAN_DELETE = 0x10
+    },
+
+    -- Used for access rules
+    ItemType = {
+        Class = 'C',
+        Property = 'P',
+        Object = 'O'
+    },
 }
 
 return Constants

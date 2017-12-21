@@ -5,12 +5,19 @@
 
 --[[
 Internally used facade to [.object] row.
-Provides access to property values, savng in database etc.
+Provides access to property values, saving in database etc.
 ]]
 
 local class = require 'pl.class'
 local bits = type(jit) == 'table' and require('bit') or require('bit32')
 
+
+
+
+
+
+
+--[[]]
 ---@class DBObject
 local DBObject = class()
 
@@ -62,6 +69,10 @@ function DBObject:setPropertyByID(propID, propIdx, value)
     local rv = self:getRefValue(propID, propIdx)
     rv.Value = value
     rv.ctlv = bits.bor(rv.ctlv or 0, 1) -- TODO
+end
+
+function DBObject:setMappedPropertyValue(prop, value)
+    -- TODO
 end
 
 --- Get property value by id

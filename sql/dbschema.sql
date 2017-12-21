@@ -152,6 +152,49 @@ BEGIN
 END;
 
 ------------------------------------------------------------------------------------------
+-- .user_roles
+------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS [.user_roles] (
+  UserID TEXT(32) NOT NULL,
+  RoleID TEXT(32) NOT NULL,
+  CONSTRAINT [sqlite_autoindex_UserRoles] PRIMARY KEY ([UserID], [RoleID])
+)
+  WITHOUT ROWID;
+
+------------------------------------------------------------------------------------------
+-- .user_access_rules
+------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS [.user_access_rules]
+(
+  UserID     TEXT(32) NOT NULL,
+  /*
+C - Class
+O - Object
+P - Property
+*/
+  [ItemType] CHAR     NOT NULL,
+  /*
+Combination of bit flags:
+0x01 H - hidden - item is not available ('does not exist'). This flag has highest priority
+0x02 R - read only - can see, but cannot modify item
+0x04 U - updatable - can see and update existing item (but not delete)
+0x08 A - can add - can add new item
+0x10 D - can delete - can delete existing item
+*/
+  [Access]   INT      NOT NULL,
+  /*
+ClassID or ObjectID or PropertyID
+*/
+  [ItemID]   INT      NOT NULL,
+
+  CONSTRAINT [sqlite_autoindex_UserAccessRules] PRIMARY KEY ([UserID], [ItemType], [ItemID])
+)
+  WITHOUT ROWID;
+
+CREATE INDEX IF NOT EXISTS [idxUserAccessRulesByItemID]
+  ON [.user_access_rules] (ItemType, ItemID);
+
+------------------------------------------------------------------------------------------
 -- .access_rules
 ------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [.access_rules] (
@@ -165,14 +208,14 @@ CREATE TABLE IF NOT EXISTS [.access_rules] (
   [ItemType]   CHAR     NOT NULL,
 
   /*
-  Combination of char flags:
-  H - hidden - cannot see existence of the item
-  R - read only - can see, but cannot modify item
-  U - updatable - can see and update existing item (but not delete)
-  A - can add - can add new item
-  D - can delete - can delete existing item
+  Combination of bit flags:
+  0x01 H - hidden - item is not available ('does not exist'). This flag has highest priority
+  0x02 R - read only - can see, but cannot modify item
+  0x04 U - updatable - can see and update existing item (but not delete)
+  0x08 A - can add - can add new item
+  0x10 D - can delete - can delete existing item
   */
-  [Access]     TEXT     NOT NULL,
+  [Access]     INT      NOT NULL,
 
   /*
   ClassID or ObjectID or PropertyID
@@ -182,8 +225,66 @@ CREATE TABLE IF NOT EXISTS [.access_rules] (
 )
   WITHOUT ROWID;
 
-CREATE INDEX IF NOT EXISTS [idxAccessRulesByItemID]
-  ON [.access_rules] ([ItemID]);
+-- Used for fast access by class ID, property ID and object ID (to cascade delete)
+CREATE INDEX IF NOT EXISTS [idxAccessRulesByID]
+  ON [.access_rules] ([ItemType], [ItemID]);
+
+CREATE TRIGGER IF NOT EXISTS [trigAccessRules_Insert]
+  AFTER INSERT
+  ON [.access_rules]
+  FOR EACH ROW
+BEGIN
+  INSERT OR REPLACE INTO [.user_access_rules] (UserID, ItemType, ItemID, Access)
+    SELECT
+      ur.UserID,
+      ar.ItemType,
+      ar.ItemID,
+      COALESCE(bitwise_or(ar.Access), 0)
+    FROM [.access_rules] ar,
+      [.user_roles] ur
+    WHERE ar.UserRoleID = ur.RoleID
+    GROUP BY ar.UserRoleID, ar.ItemType, ar.ItemID;
+
+  DELETE FROM [.user_access_rules]
+  WHERE Access = 0;
+END;
+
+CREATE TRIGGER IF NOT EXISTS [trigAccessRules_Update]
+  AFTER UPDATE
+  ON [.access_rules]
+  FOR EACH ROW
+BEGIN
+  INSERT OR REPLACE INTO [.user_access_rules] (UserID, ItemType, ItemID, Access)
+    SELECT
+      ur.UserID,
+      ar.ItemType,
+      ar.ItemID,
+      COALESCE(bitwise_or(ar.Access), 0)
+    FROM [.access_rules] ar,
+      [.user_roles] ur
+    WHERE ar.UserRoleID = ur.RoleID AND ar.ItemID = new.ItemID AND ar.ItemType = new.ItemType
+          AND ar.UserRoleID = new.UserRoleID
+    GROUP BY ar.UserRoleID, ar.ItemType, ar.ItemID;
+
+  DELETE FROM [.user_access_rules]
+  WHERE Access = 0;
+END;
+
+CREATE TRIGGER IF NOT EXISTS [trigAccessRules_Delete]
+  AFTER DELETE
+  ON [.access_rules]
+  FOR EACH ROW
+BEGIN
+DELETE FROM [.user_access_rules]
+WHERE exists(SELECT 1
+             FROM [.access_rules]
+             WHERE ItemType = old.ItemType
+                   AND ItemID = old.ItemID AND UserRoleID = old.UserRoleID AND UserRoleID IN (
+               SELECT ur.RoleID
+               FROM [.user_roles] ur
+               WHERE ur.UserID = UserID
+             ));
+END;
 
 ------------------------------------------------------------------------------------------
 -- .change_log
@@ -255,7 +356,7 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   /*
   Class is marked as deleted
    */
-  Deleted       BOOLEAN    NOT NULL             DEFAULT 0
+  Deleted       BOOLEAN NOT NULL             DEFAULT 0
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClasses_byNameID]
@@ -434,7 +535,7 @@ CREATE TABLE IF NOT EXISTS [.class_props]
   /*
   Property is marked as deleted
    */
-  Deleted      BOOLEAN    NOT NULL                           DEFAULT 0
+  Deleted      BOOLEAN NOT NULL                           DEFAULT 0
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByClassAndName]
@@ -599,70 +700,134 @@ CREATE INDEX IF NOT EXISTS [idxObjectsByClass]
   ON [.objects] ([ClassID]);
 
 -- Conditional indexes
-CREATE INDEX IF NOT EXISTS [idxObjectsByA] ON [.objects] ([ClassID], [A]) WHERE (ctlo AND (1 << 16)) <> 0 AND [A] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByA]
+  ON [.objects] ([ClassID], [A])
+  WHERE (ctlo AND (1 << 16)) <> 0 AND [A] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByB] ON [.objects] ([ClassID], [B]) WHERE (ctlo AND (1 << 17)) <> 0 AND [B] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByB]
+  ON [.objects] ([ClassID], [B])
+  WHERE (ctlo AND (1 << 17)) <> 0 AND [B] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByC] ON [.objects] ([ClassID], [C]) WHERE (ctlo AND (1 << 18)) <> 0 AND [C] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByC]
+  ON [.objects] ([ClassID], [C])
+  WHERE (ctlo AND (1 << 18)) <> 0 AND [C] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByD] ON [.objects] ([ClassID], [D]) WHERE (ctlo AND (1 << 19)) <> 0 AND [D] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByD]
+  ON [.objects] ([ClassID], [D])
+  WHERE (ctlo AND (1 << 19)) <> 0 AND [D] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByE] ON [.objects] ([ClassID], [E]) WHERE (ctlo AND (1 << 20)) <> 0 AND [E] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByE]
+  ON [.objects] ([ClassID], [E])
+  WHERE (ctlo AND (1 << 20)) <> 0 AND [E] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByF] ON [.objects] ([ClassID], [F]) WHERE (ctlo AND (1 << 21)) <> 0 AND [F] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByF]
+  ON [.objects] ([ClassID], [F])
+  WHERE (ctlo AND (1 << 21)) <> 0 AND [F] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByG] ON [.objects] ([ClassID], [G]) WHERE (ctlo AND (1 << 22)) <> 0 AND [G] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByG]
+  ON [.objects] ([ClassID], [G])
+  WHERE (ctlo AND (1 << 22)) <> 0 AND [G] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByH] ON [.objects] ([ClassID], [H]) WHERE (ctlo AND (1 << 23)) <> 0 AND [H] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByH]
+  ON [.objects] ([ClassID], [H])
+  WHERE (ctlo AND (1 << 23)) <> 0 AND [H] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByI] ON [.objects] ([ClassID], [I]) WHERE (ctlo AND (1 << 24)) <> 0 AND [I] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByI]
+  ON [.objects] ([ClassID], [I])
+  WHERE (ctlo AND (1 << 24)) <> 0 AND [I] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByJ] ON [.objects] ([ClassID], [J]) WHERE (ctlo AND (1 << 25)) <> 0 AND [J] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByJ]
+  ON [.objects] ([ClassID], [J])
+  WHERE (ctlo AND (1 << 25)) <> 0 AND [J] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByE] ON [.objects] ([ClassID], [K]) WHERE (ctlo AND (1 << 26)) <> 0 AND [K] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByE]
+  ON [.objects] ([ClassID], [K])
+  WHERE (ctlo AND (1 << 26)) <> 0 AND [K] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByF] ON [.objects] ([ClassID], [L]) WHERE (ctlo AND (1 << 27)) <> 0 AND [L] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByF]
+  ON [.objects] ([ClassID], [L])
+  WHERE (ctlo AND (1 << 27)) <> 0 AND [L] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByG] ON [.objects] ([ClassID], [M]) WHERE (ctlo AND (1 << 28)) <> 0 AND [M] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByG]
+  ON [.objects] ([ClassID], [M])
+  WHERE (ctlo AND (1 << 28)) <> 0 AND [M] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByH] ON [.objects] ([ClassID], [N]) WHERE (ctlo AND (1 << 29)) <> 0 AND [N] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByH]
+  ON [.objects] ([ClassID], [N])
+  WHERE (ctlo AND (1 << 29)) <> 0 AND [N] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByI] ON [.objects] ([ClassID], [O]) WHERE (ctlo AND (1 << 30)) <> 0 AND [O] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByI]
+  ON [.objects] ([ClassID], [O])
+  WHERE (ctlo AND (1 << 30)) <> 0 AND [O] IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS [idxObjectsByJ] ON [.objects] ([ClassID], [P]) WHERE (ctlo AND (1 << 31)) <> 0 AND [P] IS NOT NULL;
+CREATE INDEX IF NOT EXISTS [idxObjectsByJ]
+  ON [.objects] ([ClassID], [P])
+  WHERE (ctlo AND (1 << 31)) <> 0 AND [P] IS NOT NULL;
 
 -- Unique conditional indexes
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqA] ON [.objects] ([ClassID], [A]) WHERE (ctlo AND (1 << 0)) <> 0 AND [A] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqA]
+  ON [.objects] ([ClassID], [A])
+  WHERE (ctlo AND (1 << 0)) <> 0 AND [A] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqB] ON [.objects] ([ClassID], [B]) WHERE (ctlo AND (1 << 1)) <> 0 AND [B] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqB]
+  ON [.objects] ([ClassID], [B])
+  WHERE (ctlo AND (1 << 1)) <> 0 AND [B] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqC] ON [.objects] ([ClassID], [C]) WHERE (ctlo AND (1 << 2)) <> 0 AND [C] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqC]
+  ON [.objects] ([ClassID], [C])
+  WHERE (ctlo AND (1 << 2)) <> 0 AND [C] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqD] ON [.objects] ([ClassID], [D]) WHERE (ctlo AND (1 << 3)) <> 0 AND [D] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqD]
+  ON [.objects] ([ClassID], [D])
+  WHERE (ctlo AND (1 << 3)) <> 0 AND [D] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqE] ON [.objects] ([ClassID], [E]) WHERE (ctlo AND (1 << 4)) <> 0 AND [E] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqE]
+  ON [.objects] ([ClassID], [E])
+  WHERE (ctlo AND (1 << 4)) <> 0 AND [E] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqF] ON [.objects] ([ClassID], [F]) WHERE (ctlo AND (1 << 5)) <> 0 AND [F] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqF]
+  ON [.objects] ([ClassID], [F])
+  WHERE (ctlo AND (1 << 5)) <> 0 AND [F] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqG] ON [.objects] ([ClassID], [G]) WHERE (ctlo AND (1 << 6)) <> 0 AND [G] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqG]
+  ON [.objects] ([ClassID], [G])
+  WHERE (ctlo AND (1 << 6)) <> 0 AND [G] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqH] ON [.objects] ([ClassID], [H]) WHERE (ctlo AND (1 << 7)) <> 0 AND [H] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqH]
+  ON [.objects] ([ClassID], [H])
+  WHERE (ctlo AND (1 << 7)) <> 0 AND [H] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqI] ON [.objects] ([ClassID], [I]) WHERE (ctlo AND (1 << 8)) <> 0 AND [I] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqI]
+  ON [.objects] ([ClassID], [I])
+  WHERE (ctlo AND (1 << 8)) <> 0 AND [I] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqJ] ON [.objects] ([ClassID], [J]) WHERE (ctlo AND (1 << 9)) <> 0 AND [J] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqJ]
+  ON [.objects] ([ClassID], [J])
+  WHERE (ctlo AND (1 << 9)) <> 0 AND [J] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqE] ON [.objects] ([ClassID], [K]) WHERE (ctlo AND (1 << 10)) <> 0 AND [K] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqE]
+  ON [.objects] ([ClassID], [K])
+  WHERE (ctlo AND (1 << 10)) <> 0 AND [K] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqF] ON [.objects] ([ClassID], [L]) WHERE (ctlo AND (1 << 11)) <> 0 AND [L] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqF]
+  ON [.objects] ([ClassID], [L])
+  WHERE (ctlo AND (1 << 11)) <> 0 AND [L] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqG] ON [.objects] ([ClassID], [M]) WHERE (ctlo AND (1 << 12)) <> 0 AND [M] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqG]
+  ON [.objects] ([ClassID], [M])
+  WHERE (ctlo AND (1 << 12)) <> 0 AND [M] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqH] ON [.objects] ([ClassID], [N]) WHERE (ctlo AND (1 << 13)) <> 0 AND [N] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqH]
+  ON [.objects] ([ClassID], [N])
+  WHERE (ctlo AND (1 << 13)) <> 0 AND [N] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqI] ON [.objects] ([ClassID], [O]) WHERE (ctlo AND (1 << 14)) <> 0 AND [O] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqI]
+  ON [.objects] ([ClassID], [O])
+  WHERE (ctlo AND (1 << 14)) <> 0 AND [O] IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqJ] ON [.objects] ([ClassID], [P]) WHERE (ctlo AND (1 << 15)) <> 0 AND [P] IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS [idxObjectsByUniqJ]
+  ON [.objects] ([ClassID], [P])
+  WHERE (ctlo AND (1 << 15)) <> 0 AND [P] IS NOT NULL;
 
 -- Triggers
 CREATE TRIGGER IF NOT EXISTS [trigObjectsAfterInsert]
