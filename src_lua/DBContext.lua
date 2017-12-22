@@ -56,7 +56,10 @@ function DBContext:_init(db)
     self.ClassDef = ClassDef
     self.PropertyDef = PropertyDef
 
-    -- Can be overriden by flexi('config', ...)
+    -- Used to track schema changes
+    self.TrnID = 1
+
+    -- Can be overridden by flexi('config', ...)
     self.config = {
         createVirtualTable = false
     }
@@ -302,6 +305,10 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
         end
         return result
     end
+
+    -- Check if class already loaded
+
+    -- If loaded, ensure if it wasn't updated
 
     local sql = [[select c.* from (select *, (select Value from [.sym_names] where ID = NameID limit 1) as Name from [.classes]) as c]]
     if type(classIdOrName) == 'string' then

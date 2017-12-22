@@ -53,6 +53,9 @@ function ClassDef:_init(params)
         I = false, J = false, K = false, L = false, M = false, N = false, O = false, P = false
     }
 
+    self.AccessRules = {}
+    self.CheckedInTrn = 0
+
     setmetatable(self.Name, NameRef)
     local data
 

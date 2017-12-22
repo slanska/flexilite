@@ -81,6 +81,11 @@ end
 
 -- validate
 
--- loadFromDB
+-- Loads object data including direct properties from .ref-values
+-- Nested objects are loaded too, using nestedDepth configuration value
+---@param propIdList table @comment (optional) list of selected property IDs to load
+function DBObject:loadFromDB(propIdList)
+    -- Check permission
+end
 
 return DBObject

@@ -116,6 +116,7 @@ function PropertyDef:_init(ClassDef, srcData)
     self.ClassDef = ClassDef
     self.D = srcData
     self.Prop = NameRef(self.Property, self.NameID)
+    self.AccessRules = {}
     self:initMetadataRefs()
 end
 
@@ -272,8 +273,8 @@ function PropertyDef:applyDef()
         self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.INDEX)
     elseif idx == 'unique' then
         self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.UNIQUE)
-    elseif idx == 'fulltext' then
-        self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.FTX_INDEX)
+    --elseif idx == 'fulltext' then
+    --    self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.FTX_INDEX)
     end
 
     if self.D.noTrackChanges then

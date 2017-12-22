@@ -19,4 +19,8 @@ function AccessControl:_init(DBContext)
     self.DBContext = DBContext
 end
 
+function AccessControl:canUser(userCtx, accessRules, op)
+
+end
+
 return AccessControl
