@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS [.sym_names]
   to allow FTS on objects with properties with type = PROP_TYPE_NAME
   */
 
-  [Value]  TEXT COLLATE BINARY NULL CHECK (rtrim(ltrim([Value])) <> ''),
+  [Value]  TEXT COLLATE BINARY NOT NULL CHECK (rtrim(ltrim([Value])) <> ''),
 
   /*
   These 2 columns are reserved for future to be used for semantic search.
@@ -199,8 +199,6 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   -- Control bitmask for objects belonging to this class
   [ctloMask]    INTEGER NOT NULL             DEFAULT 0,
 
-  AccessRules   JSON1   NULL,
-
   /*
   Normalized IClassDefinition. Can be set to null for a newly created class.
   Properties and referenced classes are defined by IDs
@@ -213,10 +211,11 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   VirtualTable  BOOL    NOT NULL             DEFAULT 0,
 
   /*
-  Set to 1 when class is not resolved (i.e. has references to non-existing classes).
-  Applicable to newly created classes only. If unresolved, data cannot be added
+  Set to 1 when class uses column mapping (fields A-P in .objects table)
+  Initially, columns are mapped but not activated.
+  TODO config setting to set default value for ColMapActive for new classes
   */
-  Unresolved    BOOL    NOT NULL             DEFAULT 0,
+  ColMapActive    BOOL    NOT NULL             DEFAULT 0,
 
   /*
   Class is marked as deleted
@@ -364,7 +363,7 @@ CREATE TABLE IF NOT EXISTS [.class_props]
 (
   [ID]         INTEGER NOT NULL PRIMARY KEY               AUTOINCREMENT,
 
-  [ClassID]    INTEGER NULL CONSTRAINT [fkClassPropertiesToClasses]
+  [ClassID]    INTEGER NOT NULL CONSTRAINT [fkClassPropertiesToClasses]
   REFERENCES [.classes] ([ClassID])
     ON DELETE CASCADE
     ON UPDATE RESTRICT,
@@ -864,7 +863,8 @@ Every class that has definitions for range indexes will have its own .range_data
 as [.range_data_<ClassID>], e.g. [.range_data_123]. This table gets created when range indexing is requested
 by class definition, and gets removed on class destroy.
  */
-CREATE VIRTUAL TABLE IF NOT EXISTS [.range_data] USING rtree (
+ /*
+CREATE VIRTUAL TABLE IF NOT EXISTS [.range_data_<ClassID>] USING rtree (
   [ObjectID],
 
   [A0], [A1],
@@ -873,6 +873,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS [.range_data] USING rtree (
   [D0], [D1],
   [E0], [E1]
 );
+*/
 
 ------------------------------------------------------------------------------------------
 -- Values
@@ -899,11 +900,8 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
           12(13) - cannot delete B until this reference exists
           14(15) - cannot delete A nor B until this reference exist
 
-      bit 4 (16) - integer value, actually NameID
-      bit 5 (32) - full text data
       bit 6 (64) - DON'T track changes
       bit 7 (128) - unique index
-      bit 8 (256) - range data -- ??? needed
   */
   [ctlv]       INTEGER,
   /*

@@ -85,7 +85,7 @@ local function CreateClass(self, className, classDef, createVirtualTable)
         -- Check if class is fully resolved, i.e. does not have references to non-existing classes
         local unresolved = {}
         clsObject.D.Unresolved = false
-        for id, p in ipairs(clsObject.Properties) do
+        for _, p in pairs(clsObject.Properties) do
             if p:hasUnresolvedReferences() then
                 clsObject.D.Unresolved = true
                 --table.insert(unresolved, string.format(""))

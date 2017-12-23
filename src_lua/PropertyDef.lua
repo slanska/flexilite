@@ -75,9 +75,6 @@ local NameRef, ClassNameRef, PropNameRef = name_ref.NameRef, name_ref.ClassNameR
 
 local Constants = require 'Constants'
 
--- Forward declarations
-local propTypes;
-
 --[[
 ===============================================================================
 PropertyDef
@@ -88,7 +85,7 @@ PropertyDef
 local PropertyDef = class()
 
 function PropertyDef.CreateInstance(classDef, srcData)
-    local pt = propTypes[string.lower(srcData.rules.type)]
+    local pt = PropertyDef.PropertyTypes[string.lower(srcData.rules.type)]
     if not pt then
         error('Unknown property type ' .. srcData.type)
     end
@@ -101,17 +98,6 @@ end
 function PropertyDef:_init(ClassDef, srcData)
     assert(ClassDef)
     assert(srcData and srcData.rules and srcData.rules.type)
-
-    --self.rules = {
-    --    -- Assume text property by default (if no type is set)
-    --    type = 'text',
-    --
-    --    -- By default allow nulls
-    --    minOccurrences = 0,
-    --
-    --    -- By default scalar value
-    --    maxOccurrences = 1
-    --}
 
     self.ClassDef = ClassDef
     self.D = srcData
@@ -294,6 +280,20 @@ end
 function PropertyDef:isReference()
     return false
 end
+
+--[[
+===============================================================================
+AnyPropertyDef
+===============================================================================
+]]
+
+local AnyPropertyDef = class(PropertyDef)
+
+function AnyPropertyDef:_init(classDef, srcData)
+    self:super(classDef, srcData)
+end
+
+-- TODO override methods, allow any data??
 
 --[[
 ===============================================================================
@@ -857,8 +857,9 @@ function ComputedPropertyDef:CanBeUsedAsUID()
     return false
 end
 
+-- Class level list of available property types
 -- map for property types
-propTypes = {
+PropertyDef.PropertyTypes = {
     ['bool'] = BoolPropertyDef,
     ['boolean'] = BoolPropertyDef,
     ['integer'] = IntegerPropertyDef,
@@ -889,6 +890,7 @@ propTypes = {
     ['time'] = DateTimePropertyDef,
     ['timespan'] = TimeSpanPropertyDef,
     ['duration'] = TimeSpanPropertyDef,
+    ['any'] = AnyPropertyDef,
 }
 
 return PropertyDef

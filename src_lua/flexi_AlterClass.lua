@@ -19,7 +19,7 @@ local function MergeClassDefinitions(self, srcClass, destClassDef)
     local newClass = self.ClassDef:fromJSON(self, destClassDef)
 
     -- Merge properties - one by one
-    for i, p in ipairs(srcClass.Properties) do
+    for _, p in pairs(srcClass.Properties) do
         local propName = p.Name
         if not newClass.Properties[propName] then
             newClass:addProperty(p)

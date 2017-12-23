@@ -13,14 +13,14 @@ local nameSchema = schema.Record {
     text = schema.String
 }
 
+
 --[[
-NameRef class.
-Properties:
-text
-id
+===============================================================================
+MetadataRef
+---Abstract base class for name dereference
+===============================================================================
 ]]
 
----Abstract base class for name dereference
 ---@class MetadataRef
 local MetadataRef = class()
 
@@ -45,7 +45,22 @@ function MetadataRef.__eq (a, b)
     return a.text and b.text and a.text == b.text
 end
 
+function MetadataRef:validate()
+    schema.CheckSchema(self, nameSchema())
+end
+
+--[[
+===============================================================================
+NameRef
+---.sym-name reference
+===============================================================================
+]]
+
 local NameRef = class(MetadataRef)
+
+function NameRef:_init(text, id)
+    self:super(text, id)
+end
 
 --- Ensures that class with given name/id exists (uses classDef.DBContext
 ---@param classDef ClassDef
@@ -54,10 +69,6 @@ function NameRef:resolve(classDef)
     if not self.id then
         self.id = classDef.DBContext:ensureName(self.text)
     end
-end
-
-function MetadataRef:validate()
-    schema.CheckSchema(self, nameSchema())
 end
 
 ---@param classDef ClassDef
@@ -70,7 +81,18 @@ function NameRef:export()
     return self
 end
 
+--[[
+===============================================================================
+ClassNameRef
+---.classes reference
+===============================================================================
+]]
+
 local ClassNameRef = class(MetadataRef)
+
+function ClassNameRef:_init(text, id)
+    self:super(text, id)
+end
 
 ---@param classDef ClassDef
 function ClassNameRef:resolve(classDef)
@@ -90,6 +112,13 @@ end
 function ClassNameRef:isResolved(classDef)
     return type(self.id) == 'number'
 end
+
+--[[
+===============================================================================
+PropNameRef
+---.class_props reference
+===============================================================================
+]]
 
 local PropNameRef = class(MetadataRef)
 

@@ -5,41 +5,74 @@
 
 local json = require('cjson')
 local DBObject = require 'DBObject'
+local class = require 'pl.class'
 
---[[
-Implementation of flexi_data virtual table Update API: insert, update, delete
-]]
+-- Helper class to save objects to DB
+---@class SaveObjectParams
+local SaveObjectHelper = class()
+
+-- Ensures that user has required permissions for class level
+---@param classDef ClassDef
+function SaveObjectHelper:checkClassAccess(classDef, op)
+    -- TODO Move method to AccessControl
+    self.DBContext.AccessControl:ensureUserMay(self.UserInfo, classDef.D.accessRules, op)
+
+end
+
+---@param DBContext DBContext
+function SaveObjectHelper:_init(DBContext)
+    self.DBContext = DBContext
+    self.unresolvedReferences = {}
+    self.checkedClasses = {}
+
+    -- Properties already checked for user access permissions
+    self.checkedProps = {}
+end
+
+function SaveObjectHelper:resolveReferences()
+
+end
 
 -- Saves single object
----@param self DBContext
 ---@param className string
+---@param oldRowID number
+---@param newRowID number
 ---@param data table @comment payload from JSON
----@param oldRowID number @comment (optional)
----@param newRowID number @comment (optional)
----@param unresolvedRefs table @comment list of unresolved references
-local function updateObject(self, className, data, oldRowID, newRowID, unresolvedRefs)
-    local classDef = self:LoadClassDefinition(className)
+function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
+    local classDef = self:getClassDef(className)
     local obj = oldRowID and self:getObject(oldRowID) or DBObject(self, classDef)
 
     local op
 
     if oldRowID then
         if newRowID then
-            op = 'update'
+            op = 'U' -- update
         else
-            op = 'delete'
+            op = 'D' -- delete
         end
     else
-        op = 'insert'
+        op = 'C' -- insert
     end
 
+    -- Check class level permissions
+
     for name, value in pairs(data) do
-        -- if reference property, proceed recursively
-        local prop = classDef.Properties[name]
-        -- error if property not found
+        local prop = classDef:hasProperty(name)
+
+        if not prop then
+            if classDef.D.allowAnyProps then
+                -- auto create new property
+
+                self.SchemaChanged = true
+            else
+                error(string.format('Property [%s] is not found or ambiguous', name))
+            end
+        end
 
         -- check access rules
 
+
+        -- if reference property, proceed recursively
         if prop:isReference() then
             if op == 'insert' and (prop.rules.type == 'nested' or prop.rules.type == 'master') then
                 -- Sub-data is data
@@ -49,8 +82,6 @@ local function updateObject(self, className, data, oldRowID, newRowID, unresolve
         else
             -- assign scalar value or array of scalar values
         end
-
-
     end
 
     -- validate properties
@@ -64,7 +95,12 @@ local function updateObject(self, className, data, oldRowID, newRowID, unresolve
 
     -- call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
 
+
 end
+
+--[[
+Implementation of flexi_data virtual table xUpdate API: insert, update, delete
+]]
 
 ---@param self DBContext
 ---@param unresolvedRefs table
@@ -137,7 +173,7 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
         error('Incompatible arguments: queryJSON cannot be used with oldRowID and newRowID')
     end
 
-    local unresolvedRefs = {}
+    local saveHelper = SaveObjectHelper(self)
 
     if className then
         -- Basic (classic) mode
@@ -147,11 +183,11 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
             end
 
             for i, row in ipairs(data) do
-                updateObject(self, className, row, nil, nil, unresolvedRefs)
+                saveHelper:saveObject(className, row, nil, nil)
             end
         else
             -- xUpdate mode: single object with row IDs
-            updateObject(self, className, data, oldRowID, newRowID, unresolvedRefs)
+            saveHelper:saveObject(className, data, oldRowID, newRowID)
         end
     else
         -- Extended (classless) mode
@@ -170,24 +206,24 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
                 error(string.format('Object with id %d not found', oldRowID))
             end
             oldObj:loadFromDB()
-            updateObject(self, oldObj.classDef.Name.text, data, oldRowID, nil, unresolvedRefs)
+            saveHelper:saveObject(oldObj.classDef.Name.text, data, oldRowID, nil)
         else
             for clsName, dd in pairs(data) do
                 if #dd > 0 then
                     for i, row in ipairs(dd) do
-                        updateObject(self, clsName, row, nil, nil, unresolvedRefs )
+                        saveHelper:saveObject(clsName, row, nil, nil)
                     end
                 else
                     -- TODO Load objects based on query
                     local query = json.decode(queryJSON)
 
-                    updateObject(self, clsName, dd, nil, nil, unresolvedRefs )
+                    saveHelper:saveObject(self, clsName, dd, nil, nil)
                 end
             end
         end
     end
 
-    resolveReferences(self, unresolvedRefs)
+    saveHelper:resolveReferences()
 end
 
 return flexi_DataUpdate

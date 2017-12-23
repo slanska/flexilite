@@ -2,6 +2,17 @@
  * Created by slanska on 2017-01-23.
  */
 
+declare interface IAccessRules {
+    // list of roles IDs with permission defined as any characters from 'CRUDN+-*'
+    roles?: { [roleId: string]: string },
+
+// same as for roles
+    users?: { [roleId: string]: string },
+
+// Function name
+    hook?: string
+}
+
 /*
  This TypeScript definition module contains JSON contracts for Flexilite functions
  */
@@ -598,6 +609,8 @@ interface IClassDefinition {
     Class description. E.g. comments generated for class converted from SQL table
      */
     description?: IMetadataRef;
+
+    accessRules?: IAccessRules;
 }
 
 interface IStorageFlexiRelProperty {

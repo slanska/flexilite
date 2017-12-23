@@ -19,11 +19,11 @@ old_Property, old_Object, old_Value.
 
 local class = require 'pl.class'
 
----@class DBRefValue
-local DBRefValue = class()
+---@class DBCell
+local DBCell = class()
 
 -- constructor
-function DBRefValue:_init(row)
+function DBCell:_init(row)
     assert(row.Property and row.Object)
     rawset(self, 'old_Property', row.Property)
     rawset(self, 'old_Object', row.Object)
@@ -37,7 +37,7 @@ function DBRefValue:_init(row)
     rawset(self, 'old_ExtData', row.ExtData)
 end
 
-function DBRefValue:__index(key)
+function DBCell:__index(key)
     local result = rawget(self, 'new_' .. key )
     if result then
         return result
@@ -45,23 +45,23 @@ function DBRefValue:__index(key)
     result = rawget(self, 'old_' .. key)
 end
 
-function DBRefValue:__newindex(key, value)
+function DBCell:__newindex(key, value)
     rawset(self, 'new_' .. key, value)
 end
 
-function DBRefValue:isNew()
+function DBCell:isNew()
 
 end
 
-function DBRefValue:isDirty()
+function DBCell:isDirty()
 
 end
 
-function DBRefValue:isDeleted()
+function DBCell:isDeleted()
     
 end
 
-function DBRefValue:beforeSaveToDB()
+function DBCell:beforeSaveToDB()
     -- Check if user can modify the property
 
     -- Check if there is column mapping
@@ -70,12 +70,12 @@ function DBRefValue:beforeSaveToDB()
     end
 end
 
-function DBRefValue:afterSaveToDB()
+function DBCell:afterSaveToDB()
 
 end
 
-function DBRefValue:saveToDB()
+function DBCell:saveToDB()
 
 end
 
-return DBRefValue
+return DBCell

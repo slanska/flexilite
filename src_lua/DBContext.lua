@@ -68,8 +68,7 @@ function DBContext:_init(db)
     self.ClassDef = ClassDef
     self.PropertyDef = PropertyDef
 
-    -- Used to track schema changes
-    self.TrnID = 1
+    self.SchemaChanged = false
 
     -- Can be overridden by flexi('config', ...)
     self.config = {
@@ -98,6 +97,8 @@ function DBContext:flexiAction(ctx, action, ...)
 
     local meta = flexiMeta[ff]
 
+    self.SchemaChanged = false
+
     local args = { ... }
     -- Start transaction
     self.db:exec 'begin'
@@ -111,7 +112,7 @@ function DBContext:flexiAction(ctx, action, ...)
 
         result = ff(self, unpack(args))
 
-        if meta.schemaChange then
+        if meta.schemaChange or self.SchemaChanged then
             self:execStatement(string.format([[pragma user_version=%d]], uv))
         end
 
@@ -120,10 +121,11 @@ function DBContext:flexiAction(ctx, action, ...)
 
     if not ok then
         self.db:exec 'rollback'
-        error(errorMsg)
+        ctx:result_error(errorMsg)
     end
 
     self:flushDataCache()
+    self.AccessControl:flushCache()
 
     return result
 end
@@ -319,11 +321,12 @@ end
 -- Otherwise, will load class definition from database and add it to the context class def collection
 -- If class is not found, will throw error
 --- @param classIdOrName number @comment number or string
---- @param noList boolean @comment If true, class is meant to be used temporarily and will not be added to the DBContextcollection
 --- @see ClassDef
 --- @return ClassDef @comment or nil, if not found
-function DBContext:LoadClassDefinition(classIdOrName, noList)
+function DBContext:getClassDef(classIdOrName)
     local result = self.Classes[classIdOrName]
+
+    -- Check if class already loaded
     if result then
         if type(classIdOrName) == 'string' then
             assert(result.Name == classIdOrName)
@@ -332,8 +335,6 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
         end
         return result
     end
-
-    -- Check if class already loaded
 
     -- If loaded, ensure if it wasn't updated
 
@@ -349,9 +350,9 @@ function DBContext:LoadClassDefinition(classIdOrName, noList)
         return nil
     end
     result = ClassDef { data = classRow, DBContext = self }
-    if not noList then
-        self:addClassToList(result)
-    end
+    self:addClassToList(result)
+
+    self:initMixinProperties()
 
     return result
 end
@@ -372,16 +373,16 @@ function DBContext:flexi_Schema(className, propertyName)
         --- @type ClassDef
         for row in stmt:rows() do
             -- Temp load - do not add to collection
-            local cls = self:LoadClassDefinition(row.id)
+            local cls = self:getClassDef(row.id)
         end
 
     elseif not propertyName then
         -- return class
-        local cls = self:LoadClassDefinition(className)
+        local cls = self:getClassDef(className)
         result = cls.toJSON()
     else
         -- return property
-        local cls = self:LoadClassDefinition(className)
+        local cls = self:getClassDef(className)
         local prop = cls:getProperty(propertyName)
         result = prop.toJSON()
     end
