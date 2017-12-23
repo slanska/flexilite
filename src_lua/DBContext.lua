@@ -27,13 +27,15 @@ local class = require 'pl.class'
 local ClassDef = require('ClassDef')
 local PropertyDef = require('PropertyDef')
 local UserInfo = require('UserInfo')
+local AccessControl = require 'AccessControl'
+local DBObject = require 'DBObject'
 
 --- @class DBContext
 local DBContext = class()
 
 -- Forward declarations
 local flexiFuncs
-local flexiHelp
+local flexiMeta
 
 --- Creates a new DBContext, associated with sqlite database connection
 --- @param db sqlite3
@@ -50,7 +52,17 @@ function DBContext:_init(db)
 
     -- Collection of classes. Each class is referenced twice - by ID and Name
     self.Classes = {}
+
+    -- Global list of registered functions. Each function is referenced twice - by ID and name
     self.Functions = {}
+
+    -- Global list of class property definitions (by property ID)
+    self.ClassProps = {}
+
+    -- Cache of loaded objects. Exists only during time of request. Gets reset after request is complete
+    self.Objects = {}
+
+    self.AccessControl = AccessControl(self)
 
     -- helper constructors
     self.ClassDef = ClassDef
@@ -84,12 +96,25 @@ function DBContext:flexiAction(ctx, action, ...)
         error('Flexi action ' .. action .. ' not found')
     end
 
+    local meta = flexiMeta[ff]
+
     local args = { ... }
     -- Start transaction
     self.db:exec 'begin'
 
     local ok, errorMsg = pcall(function()
+        -- Check if schema has been changed since last call
+        local uv = self:loadOneRow([[pragma user_version]])
+        if self.SchemaVersion ~= uv then
+            self:flushSchemaCache()
+        end
+
         result = ff(self, unpack(args))
+
+        if meta.schemaChange then
+            self:execStatement(string.format([[pragma user_version=%d]], uv))
+        end
+
         self.db:exec 'commit'
     end)
 
@@ -97,6 +122,8 @@ function DBContext:flexiAction(ctx, action, ...)
         self.db:exec 'rollback'
         error(errorMsg)
     end
+
+    self:flushDataCache()
 
     return result
 end
@@ -367,16 +394,16 @@ end
 function DBContext:flexi_Help(action)
     local result = { 'Usage:' }
 
-    local function addActionInfo()
-        table.insert(result, table.concat(info[3], ', ') .. ':')
-        table.insert(result, info[1])
+    local function addActionInfo(info)
+        table.insert(result, table.concat(info.actions, ', ') .. ':')
+        table.insert(result, info.shortInfo)
     end
 
     if type(action) == 'string' then
         local ff = flexiFuncs[string.lower(action)]
-        addActionInfo(flexiHelp[ff])
+        addActionInfo(flexiMeta[ff])
     else
-        for func, info in pairs(flexiHelp) do
+        for func, info in pairs(flexiMeta) do
             addActionInfo(info)
         end
     end
@@ -433,6 +460,30 @@ end
 function DBContext:flexi_translate(values)
 end
 
+function DBContext:flushSchemaCache()
+    self.Classes = {}
+    self.ClassProps = {}
+    self.Functions = {}
+    self.Objects = {}
+end
+
+function DBContext:flushDataCache()
+    self.Objects = {}
+end
+
+---@param objectID number
+---@return DBObject
+function DBContext:getObject(objectID)
+    local result = self.Objects[objectID]
+    if result then
+        return result
+    end
+
+    result = DBObject(self, nil, objectID)
+    self.Objects[objectID] = result
+    return result
+end
+
 local flexi_CreateClass = require 'flexi_CreateClass'
 local flexi_AlterClass = require 'flexi_AlterClass'
 local flexi_DropClass = require 'flexi_DropClass'
@@ -450,30 +501,30 @@ local TriggerAPI = require 'Triggers'
 -- Variables are declared above
 
 -- Dictionary by action functions, to get metadata about actions
--- Values are 2 item arrays: 1st item - short info, 2nd item - full info
-flexiHelp = {
-    [flexi_CreateClass.CreateClass] = { '', [[]] },
-    [flexi_CreateClass.CreateSchema] = { '', [[]] },
-    [flexi_AlterClass] = { '', [[]] },
-    [flexi_DropClass] = { '', [[]] },
-    [flexi_CreateProperty] = { '', [[]] },
-    [flexi_AlterProperty] = { '', [[]] },
-    [flexi_DropProperty] = { '', [[]] },
-    [flexi_Configure] = { '', [[]] },
-    [DBContext.flexi_ping] = { '', [[]] },
-    [DBContext.flexi_CurrentUser] = { '', [[]] },
-    [flexi_PropToObject] = { '', [[]] },
-    [flexi_ObjectToProp] = { '', [[]] },
-    [flexi_SplitProperty] = { '', [[]] },
-    [flexi_MergeProperty] = { '', [[]] },
-    [DBContext.flexi_Schema] = { '', [[]] },
-    [DBContext.flexi_Help] = { '', [[]] },
-    [DBContext.flexi_LockClass] = { '', [[]] },
-    [DBContext.flexi_UnlockClass] = { '', [[]] },
-    [DBContext.flexi_vacuum] = { '', [[]] },
-    [DBContext.flexi_translate] = { '', [[]] },
-    [TriggerAPI.Drop] = { '', [[]] },
-    [TriggerAPI.Create] = { '', [[]] },
+-- Values are tables: { shortInfo:string, fullInfo:string, schemaChange:boolean, actionNames:Array }
+flexiMeta = {
+    [flexi_CreateClass.CreateClass] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [flexi_CreateClass.CreateSchema] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [flexi_AlterClass] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [flexi_DropClass] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [flexi_CreateProperty] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [flexi_AlterProperty] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [flexi_DropProperty] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [flexi_Configure] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [DBContext.flexi_ping] = { shortInfo = '', fullInfo = [[]] },
+    [DBContext.flexi_CurrentUser] = { shortInfo = '', fullInfo = [[]] },
+    [flexi_PropToObject] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [flexi_ObjectToProp] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [flexi_SplitProperty] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [flexi_MergeProperty] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [DBContext.flexi_Schema] = { shortInfo = '', fullInfo = [[]] },
+    [DBContext.flexi_Help] = { shortInfo = '', fullInfo = [[]] },
+    [DBContext.flexi_LockClass] = { shortInfo = '', fullInfo = [[]] },
+    [DBContext.flexi_UnlockClass] = { shortInfo = '', fullInfo = [[]] },
+    [DBContext.flexi_vacuum] = { shortInfo = '', fullInfo = [[]] },
+    [DBContext.flexi_translate] = { shortInfo = '', fullInfo = [[]] },
+    [TriggerAPI.Drop] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [TriggerAPI.Create] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
 }
 
 -- Dictionary by action names
@@ -561,9 +612,9 @@ flexiFuncs = {
 
 -- Run once - find all synonyms for actions
 for actionName, func in pairs(flexiFuncs) do
-    local info = flexiHelp[func] -- should be array of 2 or 3 items
-    info[3] = info[3] or {}
-    table.insert(info[3], actionName)
+    local info = flexiMeta[func] -- should be array of 2 or 3 items
+    info.actionNames = info[3] or {}
+    table.insert(info.actionNames, actionName)
 end
 
 return DBContext

@@ -15,7 +15,6 @@ Validates existing data with new class definition
 ]]
 
 local json = require 'cjson'
-
 local schema = require 'schema'
 
 -- define schema for class definition
@@ -87,7 +86,7 @@ function ClassDef:_init(params)
         -- Determine mode
         if type(nameOrId) == 'number' and p.Prop.text and p.Prop.id then
             -- Database contexts
-            self.PropertiesByID[nameOrId] = prop
+            self.DBContext.ClassProps[nameOrId] = prop
             self.Properties[p.Prop.text] = prop
         else
             if type(nameOrId) ~= 'string' then
@@ -164,7 +163,7 @@ function ClassDef:hasProperty(idOrName)
     if type(idOrName) == 'string' then
         return self.Properties[idOrName]
     end
-    return self.PropertiesByID[idOrName]
+    return self.DBContext.ClassProps[idOrName]
 end
 
 -- Internal function to add property to properties collection
@@ -228,8 +227,8 @@ end
 function ClassDef:internalToJSON()
     local result = { properties = {} }
 
-    for propID, prop in pairs(self.PropertiesByID) do
-        result.properties[tostring(propID)] = prop:internalToJSON()
+    for propName, prop in pairs(self.Properties) do
+        result.properties[tostring(prop.PropertyID)] = prop:internalToJSON()
     end
 
     -- TODO Other attributes?

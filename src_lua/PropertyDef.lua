@@ -291,6 +291,10 @@ function PropertyDef:internalToJSON()
     return tablex.deepcopy(self.D)
 end
 
+function PropertyDef:isReference()
+    return false
+end
+
 --[[
 ===============================================================================
 NumberPropertyDef
@@ -614,6 +618,10 @@ function ReferencePropertyDef:applyDef()
             end
         end
     end
+end
+
+function ReferencePropertyDef:isReference()
+    return true
 end
 
 --[[

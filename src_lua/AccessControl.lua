@@ -19,6 +19,9 @@ function AccessControl:_init(DBContext)
     self.DBContext = DBContext
 end
 
+---@param userCtx UserInfo
+---@param accessRules table
+---@param op string @comment One of these characters 'CRUDE' (Create, Read, Update, Delete, Execute)
 function AccessControl:canUser(userCtx, accessRules, op)
 
 end

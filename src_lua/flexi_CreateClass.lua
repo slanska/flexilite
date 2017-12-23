@@ -79,7 +79,7 @@ local function CreateClass(self, className, classDef, createVirtualTable)
             clsObject:assignColMappingForProperty(p)
             p:applyDef()
             local propID = p:saveToDB(nil, name)
-            clsObject.PropertiesByID[propID] = p
+            self.ClassProps[propID] = p
         end
 
         -- Check if class is fully resolved, i.e. does not have references to non-existing classes

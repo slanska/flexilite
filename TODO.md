@@ -71,7 +71,7 @@ data: Database, statements, user info, class definitions, cache of referenced va
 * Class create:
     - create range_data_XXX table if needed
     
-   
+  
 * Insert data:
     - parse JSON to Lua table
     - For every object in payload -

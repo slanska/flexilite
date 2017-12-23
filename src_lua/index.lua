@@ -54,21 +54,6 @@ function Flexi:newDBContext(db)
         ctx:result(vv)
     end)
 
-    -- bitwise_or
-    db:create_aggregate('bitwise_or', 1,
-
-    -- Step callback
-    function(ctx, flags)
-        local v = bits.bor(ctx:get_aggregate_data() or 0, tonumber(flags))
-        ctx:set_aggregate_data(v)
-    end,
-
-    -- Final callback
-    function(ctx)
-        local v = ctx:get_aggregate_data() or 0
-        ctx:result_number(v)
-    end)
-
     -- var:get
     db:create_function('var', 1, function(ctx, varName)
         return result.Vars[varName]

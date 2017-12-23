@@ -21,11 +21,19 @@ local bits = type(jit) == 'table' and require('bit') or require('bit32')
 ---@class DBObject
 local DBObject = class()
 
----@param classDef IClassDef
----@param objectId number @comment optional Int64
-function DBObject:_init(classDef, objectId)
+---@param DBContext DBContext
+---@param objectId number @comment (optional) Int64
+---@param classDef IClassDef @comment (optional) must be passed if objectId is nil
+function DBObject:_init(DBContext, classDef, objectId)
+    self.DBContext = DBContext
+    if not objectId then
+        assert(classDef)
+    else
+        self.id = objectId
+        self:loadFromDB()
+    end
+
     self.classDef = classDef
-    self.id = objectId
 
     -- [.ref-values] collection: table of table
     -- Each ref-value entry is stored in list

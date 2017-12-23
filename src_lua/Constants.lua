@@ -9,9 +9,9 @@ local Constants = {
     -- Candidates for common.lua
     MAX_NUMBER = 1.7976931348623157e+308,
     -- Smallest number = 2.2250738585072014e-308,
-    MIN_NUMBER = -MAX_NUMBER,
+    MIN_NUMBER = -1.7976931348623157e+308,
     MAX_INTEGER = 9007199254740992,
-    MIN_INTEGER = -MAX_INTEGER,
+    MIN_INTEGER = -9007199254740992,
 
     MAX_BLOB_LENGTH = 1073741824,
 
@@ -53,19 +53,15 @@ local Constants = {
 
     -- Used for access rules
     AccessMode = {
-        HIDDEN = 0x01,
-        READ_ONLY = 0x02,
-        UPDATABLE = 0x04,
-        CAN_ADD = 0x08,
-        CAN_DELETE = 0x10
+        CREATE = 'C',
+        READ = 'R',
+        UPDATE = 'U',
+        DELETE = 'D',
+        EXECUTE = 'E',
+        DENY = 'N',
+        ALL = '*'
     },
 
-    -- Used for access rules
-    ItemType = {
-        Class = 'C',
-        Property = 'P',
-        Object = 'O'
-    },
 }
 
 return Constants
