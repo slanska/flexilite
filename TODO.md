@@ -78,7 +78,7 @@ data: Database, statements, user info, class definitions, cache of referenced va
         - validate properties, find property IDs by name
         - call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
         - validate data, using dynamically defined schema. If any missing references found, remember them in Lua table
-        - save data, with multi-key, FTS and RTREE update, if applicable
+        - &#10003; save data, with multi-key, FTS and RTREE update, if applicable
         - call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
     - Process unresolved references. If there are still unresolved refs, rollback entire update and raise error 
     (with complete report available on separate call)
@@ -90,6 +90,10 @@ data: Database, statements, user info, class definitions, cache of referenced va
 * General:
     - &#10003; move flags (CTLV* ) and related logic to separate module
     - Review README.md. Cleanup and move text to /doc
+    - bit 52 operations - implementation and tests. Use Python to get verified data
+    - set ctlv & ctlo on class & class prop save
+    - deferred saving of references
+    
 
 
          

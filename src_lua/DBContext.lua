@@ -46,7 +46,7 @@ function DBContext:_init(db)
 
     self.db = db
 
-    -- Cache of most used statements, key is statement SQL
+    -- Cache of prepared statements, key is statement SQL
     self.Statements = {}
     self.MemDB = nil
     self.UserInfo = UserInfo()
@@ -152,14 +152,17 @@ function DBContext:getStatement(sql)
     return result
 end
 
-function DBContext:close()
-    -- todo finalize all prepared statements
+function DBContext:finalizeStatements()
     for _, stmt in pairs(self.Statements) do
         if stmt then
             stmt:finalize()
         end
     end
     self.Statements = {}
+end
+
+function DBContext:close()
+    self:finalizeStatements()
 end
 
 --- Finds class ID by its name
@@ -470,6 +473,7 @@ function DBContext:flushSchemaCache()
     self.Functions = {}
     self.Objects = {}
     self:flushCurrentUserCheckPermissions()
+    self:finalizeStatements()
 end
 
 function DBContext:flushDataCache()

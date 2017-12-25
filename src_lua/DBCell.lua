@@ -82,7 +82,28 @@ function DBCell:afterSaveToDB()
 end
 
 function DBCell:saveToDB()
+    -- check if not ColMap
+    if self.PropertyDef.ColMap then
+        return
+    end
 
+    local sql
+    if self.Object.newObj then
+        sql = [[insert into [.ref-values] (ObjectID, PropertyID, PropIndex, Value, ctlv, MetaData)
+            values (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv); ]]
+    else
+        if self.Value == nil then
+            sql = [[delete from [.ref-values] where ObjectID = :ObjectID and PropertyID = :PropertyID
+                and PropIndex = :PropIndex;]]
+        else
+            sql = [[insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, Value, ctlv, MetaData)
+            values (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv);]]
+        end
+
+    end
+    local p = { ObjectID = self.Object.ID, PropertyID = self.Property.PropertyID,
+        ctlv = self.ctlv, Value = self.Value, PropIndex = self.PropIndex, MetaData = self.MetaData }
+    self.Object.ClassDef.DBContext:execStatement(sql, p)
 end
 
 function DBCell:isLink()
