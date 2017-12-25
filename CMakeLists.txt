@@ -114,7 +114,10 @@ set(LUA_FILES
         src_lua/Constants.lua
         src_lua/ApiProperty.lua
         src_lua/AccessControl.lua
-        src_lua/DBRefValue.lua
+        src_lua/DBCell.lua
+        src_lua/Util.lua
+        src_lua/ApiGlobalObject.lua
+        src_lua/ApiGlobalScope.lua
 
         #lib
         lib/lua-prettycjson/lib/resty/prettycjson.lua

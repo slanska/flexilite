@@ -259,8 +259,8 @@ function PropertyDef:applyDef()
         self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.INDEX)
     elseif idx == 'unique' then
         self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.UNIQUE)
-    --elseif idx == 'fulltext' then
-    --    self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.FTX_INDEX)
+        --elseif idx == 'fulltext' then
+        --    self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.FTX_INDEX)
     end
 
     if self.D.noTrackChanges then
@@ -279,6 +279,10 @@ end
 
 function PropertyDef:isReference()
     return false
+end
+
+function PropertyDef:GetVType()
+    return Constants.vtype.default
 end
 
 --[[
@@ -347,6 +351,11 @@ local MoneyPropertyDef = class(NumberPropertyDef)
 function MoneyPropertyDef:_init(classDef, srcData)
     self:super(classDef, srcData)
 end
+
+function MoneyPropertyDef:GetVType()
+    return Constants.vtype.money
+end
+
 
 -- TODO
 
@@ -437,6 +446,10 @@ end
 
 function SymNamePropertyDef:ColumnMappingSupported()
     return true
+end
+
+function SymNamePropertyDef:GetVType()
+    return Constants.vtype.symbol
 end
 
 --[[
@@ -748,6 +761,10 @@ function EnumPropertyDef:CanBeUsedAsUID()
     return false
 end
 
+function EnumPropertyDef:GetVType()
+    return Constants.vtype.enum
+end
+
 --[[
 ===============================================================================
 BoolPropertyDef
@@ -821,6 +838,10 @@ function DateTimePropertyDef:_init(classDef, srcData)
     self:super(classDef, srcData)
 end
 
+function DateTimePropertyDef:GetVType()
+    return Constants.vtype.datetime
+end
+
 --[[
 ===============================================================================
 TimeSpanPropertyDef
@@ -832,6 +853,10 @@ local TimeSpanPropertyDef = class(DateTimePropertyDef)
 
 function TimeSpanPropertyDef:_init(classDef, srcData)
     self:super(classDef, srcData)
+end
+
+function TimeSpanPropertyDef:GetVType()
+    return Constants.vtype.timespan
 end
 
 --[[

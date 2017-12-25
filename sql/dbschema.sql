@@ -1,3 +1,4 @@
+
 -- TODO Configurable page size?
 -- PRAGMA page_size = 8192;
 --PRAGMA journal_mode = WAL;
@@ -526,13 +527,17 @@ CREATE TABLE IF NOT EXISTS [.objects] (
   P                  NULL,
 
   /*
-  This is bit mask which regulates index storage.
-  Bits 0 - 15: non unique indexes for A - P
-  Bits 16 - 31: unique indexes for A - P
-  Bit 32: this object is a WEAK object and must be auto deleted after last reference to this object gets deleted.
-  Bit 33: DON'T track changes
-
-  */
+      -- bits 0 - 15 - non unique indexes for A - P
+    -- bits 16 - 31 - unique indexes for A - P
+    -- bit 32 - deleted
+    -- bit 33 - invalid data
+    -- bit 34 - has accessRules in MetaData
+    -- bit 35 - has colsMetaData in MetaData
+    -- bit 36 - has formulas in MetaData
+    -- bit 37 - WEAK object - and must be auto deleted after last reference to this object gets deleted.
+    -- bit 38 - don't track changes
+    -- ... ?
+*/
   [ctlo]     INTEGER,
 
   /*
@@ -548,11 +553,6 @@ CREATE TABLE IF NOT EXISTS [.objects] (
     )
    */
   [vtypes]   INTEGER,
-
-  /*
-  Reserved for future use. Will be used to store certain property values directly with object
-   */
-  [Data]     JSON1   NULL,
 
   /*
   Optional data for object/row (font/color/formulas etc. customization)
@@ -710,13 +710,9 @@ BEGIN
     SELECT
       printf('@%s.%s', new.[ClassID], new.[ObjectID]),
       json_set('{}',
-               CASE WHEN new.Data IS NULL
+               CASE WHEN new.MetaData IS NULL
                  THEN NULL
-               ELSE '$.Data' END, new.Data,
-
-               CASE WHEN new.ExtData IS NULL
-                 THEN NULL
-               ELSE '$.ExtData' END, new.ExtData,
+               ELSE '$.ExtData' END, new.MetaData,
 
                CASE WHEN new.ctlo IS NULL
                  THEN NULL
@@ -890,18 +886,13 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
 
   /*
   ctlv - value bit flags (indexing etc). Possible values:
-      bit 0 - Index
-      bits 1-3 - reference
-          2(3 as bit 0 is set) - regular ref
-          4(5) - ref: A -> B. When A deleted, delete B
-          6(7) - when B deleted, delete A
-          8(9) - when A or B deleted, delete counterpart
-          10(11) - cannot delete A until this reference exists
-          12(13) - cannot delete B until this reference exists
-          14(15) - cannot delete A nor B until this reference exist
-
-      bit 6 (64) - DON'T track changes
-      bit 7 (128) - unique index
+    bits: 0-2 - specific value type (vtypes)
+    bit 3: unique index
+    bit 4: non-unique index
+    bits: 5-7 - reference
+    bit 8 - invalid value
+    bit 9 - deleted
+    bit 10 - no track changes
   */
   [ctlv]       INTEGER,
   /*
@@ -915,15 +906,16 @@ Optional data for cell (font/color/format etc. customization)
 
 CREATE INDEX IF NOT EXISTS [idxClassReversedRefs]
   ON [.ref-values] ([Value], [PropertyID])
-  WHERE [ctlv] & 14;
+  WHERE [ctlv] & 0xE0;
 
+-- Mask 0xF0 covers all references and non-unique index
 CREATE INDEX IF NOT EXISTS [idxValuesByPropValue]
   ON [.ref-values] ([PropertyID], [Value])
-  WHERE ([ctlv] & 1);
+  WHERE ([ctlv] & 0xF0);
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxValuesByPropUniqueValue]
   ON [.ref-values] ([PropertyID], [Value])
-  WHERE ([ctlv] & 128);
+  WHERE ([ctlv] & 8);
 
 CREATE TRIGGER IF NOT EXISTS [trigValuesAfterInsert]
   AFTER INSERT

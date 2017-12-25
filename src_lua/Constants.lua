@@ -15,30 +15,6 @@ local Constants = {
 
     MAX_BLOB_LENGTH = 1073741824,
 
-    -- CTLV flags
-    CTLV_FLAGS = {
-        INDEX = 1,
-        REF_STD = 3,
-        -- 4(5) - ref: A -> B. When A deleted, delete B
-        DELETE_B_WHEN_A = 5,
-        -- 6(7) - when B deleted, delete A
-        DELETE_A_WHEN_B = 7,
-        -- 8(9) - when A or B deleted, delete counterpart
-        DELETE_COUNTERPART = 9,
-        --10(11) - cannot delete A until this reference exists
-        CANNOT_DELETE_A_UNTIL_B = 11,
-        --12(13) - cannot delete B until this reference exists
-        CANNOT_DELETE_B_UNTIL_A = 13,
-        --14(15) - cannot delete A nor B until this reference exist
-        CANNOT_DELETE_UNTIL_COUNTERPART = 15,
-        NAME_ID = 16,
-        FTX_INDEX = 32,
-        NO_TRACK_CHANGES = 64,
-        UNIQUE = 128,
-        DATE = 256,
-        TIMESPAN = 512,
-    },
-
     -- Specific value type, stored in .ref-values.ctlv and .objects.vtypes fields
     vtype = {
         default = 0, -- Use SQLite type, i.e. NULL, FLOAT, INTEGER, TEXT, BLOB
@@ -48,11 +24,67 @@ local Constants = {
         money = 4, --(for INT) - as integer value with fixed 4 decimal points (exact value for +-1844 trillions)
         json = 5, --(for TEXT)
         enum = 6, -- (for INT, TEXT etc.)
-        reference = 7, -- (used only in .ref-values.ctlv, not applicable for .objects.vtypes])
+        -- 7 is reserved for future
+    },
+
+    -- CTLV flags
+    --[[
+    bits: 0-2 - specific value type (vtypes)
+    bit 3: unique index
+    bit 4: non-unique index
+    bits: 5-7 - reference
+    bit 8 - invalid value
+    bit 9 - deleted
+    bit 10 - no track changes
+    ]]
+    CTLV_FLAGS = {
+        UNIQUE = 0x0008,
+        INDEX = 0x0010,
+        REF_STD = 32, -- 1 << 5
+        -- 4(5) - ref: A -> B. When A deleted, delete B
+        DELETE_B_WHEN_A = 64, -- 2 << 5
+        -- 6(7) - when B deleted, delete A
+        DELETE_A_WHEN_B = 96, -- 3 << 5
+        -- 8(9) - when A or B deleted, delete counterpart
+        DELETE_COUNTERPART = 128, -- 4 << 5
+        --10(11) - cannot delete A until this reference exists
+        CANNOT_DELETE_A_UNTIL_B = 160, -- 5 << 5
+        --12(13) - cannot delete B until this reference exists
+        CANNOT_DELETE_B_UNTIL_A = 192, -- 6 << 5
+        --14(15) - cannot delete A nor B until this reference exist
+        CANNOT_DELETE_UNTIL_COUNTERPART = 224, -- 7 << 5
+        INVALID_DATA = 0x0100,
+        DELETED = 0x0200,
+        NO_TRACK_CHANGES = 0x0400,
+        FORMULA = 0x0800,
+        INDEX_AND_REFS_MASK = 0x00F0,
+        ALL_REFS_MASK = 0x00E0,
+    },
+
+    -- .objects.ctlo bit masks
+    -- bits 0 - 15 - non unique indexes for A - P
+    -- bits 16 - 31 - unique indexes for A - P
+    -- bit 32 - deleted
+    -- bit 33 - invalid data
+    -- bit 34 - has accessRules in MetaData
+    -- bit 35 - has colsMetaData in MetaData
+    -- bit 36 - has formulas in MetaData
+    -- bit 37 - WEAK object - and must be auto deleted after last reference to this object gets deleted.
+    -- bit 38 - don't track changes
+    -- ... ?
+    CTLO_FLAGS = {
+        -- skip first 32 bits
+        DELETED = 0x100000000,
+        INVALID_DATA = 0x200000000,
+        HAS_ACCESS_RULES = 0x400000000,
+        HAS_COL_META_DATA = 0x800000000,
+        HAS_FORMULAS = 0x1000000000,
+        WEAK_OBJECT = 0x2000000000,
+        NO_TRACK_CHANGES = 0x4000000000,
     },
 
     -- Used for access rules
-    AccessMode = {
+    OPERATION = {
         CREATE = 'C',
         READ = 'R',
         UPDATE = 'U',

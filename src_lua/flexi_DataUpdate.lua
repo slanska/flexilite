@@ -3,9 +3,20 @@
 --- DateTime: 2017-11-01 11:27 PM
 ---
 
+--[[
+Saves JSON payload coming from flexi_data virtual table and eponymous table.
+Support 3 formats of payload: single object, array of objects and hash of class payloads
+Auto creates dynamic property if class has allowAnyProps.
+Checks user permissions
+Handles reference properties, with nested data or queries to get IDs of referenced objects
+Fires custom triggers BEFORE and AFTER save.
+Uses DBObject and DBCell Api for data manipulation.
+]]
+
 local json = require('cjson')
 local DBObject = require 'DBObject'
 local class = require 'pl.class'
+local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 
 -- Helper class to save objects to DB
 ---@class SaveObjectParams
@@ -14,9 +25,13 @@ local SaveObjectHelper = class()
 -- Ensures that user has required permissions for class level
 ---@param classDef ClassDef
 function SaveObjectHelper:checkClassAccess(classDef, op)
-    -- TODO Move method to AccessControl
-    self.DBContext.AccessControl:ensureUserMay(self.UserInfo, classDef.D.accessRules, op)
+    self.DBContext.ensureCurrentUserAccessForClass(classDef.ClassID, op)
+end
 
+-- Ensures that user has required permissions for property level
+---@param propDef PropertyDef
+function SaveObjectHelper:checkPermissionAccess(propDef, op)
+    self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
 end
 
 ---@param DBContext DBContext
@@ -62,8 +77,7 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
         if not prop then
             if classDef.D.allowAnyProps then
                 -- auto create new property
-
-                self.SchemaChanged = true
+                prop = CreateAnyProperty(self, classDef, name)
             else
                 error(string.format('Property [%s] is not found or ambiguous', name))
             end
@@ -87,9 +101,6 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
     -- validate properties
     -- call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable)
     -- validate data, using dynamically defined schema. If any missing references found, remember them in Lua table
-    -- save data, with multi-key, FTS and RTREE update, if applicable
-
-    -- multi key - use pcall to catch error
 
     obj:saveToDB()
 
@@ -206,7 +217,7 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
                 error(string.format('Object with id %d not found', oldRowID))
             end
             oldObj:loadFromDB()
-            saveHelper:saveObject(oldObj.classDef.Name.text, data, oldRowID, nil)
+            saveHelper:saveObject(oldObj.ClassDef.Name.text, data, oldRowID, nil)
         else
             for clsName, dd in pairs(data) do
                 if #dd > 0 then

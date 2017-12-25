@@ -23,6 +23,7 @@ Handles 'flexi' function
 
 local json = require 'cjson'
 local class = require 'pl.class'
+local util = require 'pl.util'
 
 local ClassDef = require('ClassDef')
 local PropertyDef = require('PropertyDef')
@@ -435,6 +436,8 @@ function DBContext:flexi_CurrentUser(userInfo, roles, culture)
         self.UserInfo.Culture = culture
     end
 
+    self:flushCurrentUserCheckPermissions()
+
     return 'Current user info updated'
 end
 
@@ -466,6 +469,7 @@ function DBContext:flushSchemaCache()
     self.ClassProps = {}
     self.Functions = {}
     self.Objects = {}
+    self:flushCurrentUserCheckPermissions()
 end
 
 function DBContext:flushDataCache()
@@ -485,10 +489,27 @@ function DBContext:getObject(objectID)
     return result
 end
 
+--[[ Initializes memoized (cache-based) functions to get actual permission for given database objects
+ Makes the following functions available:
+ * ensureCurrentUserAccessForProperty
+ * ensureCurrentUserAccessForClass
+
+ These functions are reset on schema or current user change
+]]
+function DBContext:flushCurrentUserCheckPermissions()
+    self.ensureCurrentUserAccessForProperty = util.memoized(function(propID, op)
+        self.AccessControl:ensureCurrentUserAccessForProperty(propID, op)
+    end)
+
+    self.ensureCurrentUserAccessForClass = util.memoized(function(classID, op)
+        self.AccessControl:ensureCurrentUserAccessForClass(classID, op)
+    end)
+end
+
 local flexi_CreateClass = require 'flexi_CreateClass'
 local flexi_AlterClass = require 'flexi_AlterClass'
 local flexi_DropClass = require 'flexi_DropClass'
-local flexi_CreateProperty = require 'flexi_CreateProperty'
+local flexi_CreateProperty = require('flexi_CreateProperty').CreateProperty
 local flexi_AlterProperty = require 'flexi_AlterProperty'
 local flexi_DropProperty = require 'flexi_DropProperty'
 local flexi_Configure = require 'flexi_Configure'

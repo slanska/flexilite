@@ -8,7 +8,8 @@ local class = require 'pl.class'
 local UserInfo = class()
 
 function UserInfo:_init(o)
-    self.UserID = ''
+    self.ID = ''
+    self.Name = ''
     self.Roles = {}
     self.Culture = {}
 end

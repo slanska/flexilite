@@ -5,7 +5,7 @@
 
 --[[
     /*
-     Action opposite to propertiesToObject - properties of existing object will be treated as
+     Action opposite to propertiesToObject - properties of existing referenced object will be treated as properties of referencing object
      */
 ]]
 

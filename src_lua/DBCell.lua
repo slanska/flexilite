@@ -10,11 +10,19 @@ and new_* (modified values).
 Implements __index and __newindex metamethods to handle get and set
 operations, so that setting, for example, self.PropIndex will
 actually set self.new_PropIndex, and getting self.PropIndex will return
-either new_PropIndex (if assigned earlier) or old_PropIndex.
+either new_PropIndex (if assigned) or old_PropIndex.
 
-For sake of memory utilization, assumes null PropIndex as 1 and null ctlv
+For sake of memory utilization, assumes null old_PropIndex as 1 and null old_ctlv
 as Property.ctlv. Normally, instance will have 3 fields set:
 old_Property, old_Object, old_Value.
+
+*_Object is DBObject
+*_Property is PropertyDef
+
+For references old_Value and new_Value will be object ID
+
+DBCell has no knowledge on column mapping and operates solely as all data is stored in .ref-values only.
+This is DBObject responsibility to handle column mapping
 ]]
 
 local class = require 'pl.class'
@@ -58,11 +66,10 @@ function DBCell:isDirty()
 end
 
 function DBCell:isDeleted()
-    
+
 end
 
 function DBCell:beforeSaveToDB()
-    -- Check if user can modify the property
 
     -- Check if there is column mapping
     if self.Property.ColMap then
@@ -76,6 +83,16 @@ end
 
 function DBCell:saveToDB()
 
+end
+
+function DBCell:isLink()
+    -- TODO
+end
+
+function DBCell:GetLinkedObject()
+    -- TODO
+    local result = self.Object.ClassDef.DBContext:getObject(self.Value)
+    return result
 end
 
 return DBCell
