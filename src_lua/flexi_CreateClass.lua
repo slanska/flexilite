@@ -92,18 +92,9 @@ local function CreateClass(self, className, classDef, createVirtualTable)
             end
         end
 
-        local internalJson = json.encode(clsObject:internalToJSON())
-
         clsObject.D.VirtualTable = false
 
-        self:execStatement("update [.classes] set NameID = :1, Data = :2, Unresolved = :3, ctloMask = :4 where ClassID = :5;",
-        {
-            ['1'] = clsObject.Name.id,
-            ['2'] = internalJson,
-            ['3'] = clsObject.D.Unresolved,
-            ['4'] = clsObject.D.ctloMask,
-            ['5'] = clsObject.ClassID
-        })
+        clsObject:saveToDB()
         self:addClassToList(clsObject)
 
         -- TODO Check if there unresolved classes

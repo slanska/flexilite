@@ -1,5 +1,5 @@
 ---
---- Created by slan_ska.
+--- Created by slanska.
 --- DateTime: 2017-10-31 3:10 PM
 ---
 
@@ -16,12 +16,8 @@ Validates existing data with new class definition
 
 local json = require 'cjson'
 local schema = require 'schema'
-
--- define schema for class definition
-local classSchema = schema.Record {
-    -- TODO
-}
-
+local Util64 = require 'Util'
+local Constants = require 'Constants'
 local PropertyDef = require('PropertyDef')
 local name_ref = require('NameRef')
 local NameRef = name_ref.NameRef
@@ -60,6 +56,7 @@ function ClassDef:_init(params)
 
     self.AccessRules = {}
     self.CheckedInTrn = 0
+    self.objectSchema = {}
 
     setmetatable(self.Name, NameRef)
     local data
@@ -85,9 +82,10 @@ function ClassDef:_init(params)
         self.VirtualTable = params.data.VirtualTable
         self.Deleted = params.data.Deleted
         self.ColMapActive = params.data.ColMapActive
+        self.vtypes = params.data.vtypes
 
-        self.D = params.data
-        data = json.decode(params.data.Data)
+        self.D = json.decode(params.data.Data)
+        data = self.D
     end
 
     for nameOrId, p in pairs(data.properties) do
@@ -291,5 +289,201 @@ function ClassDef:dropRangeDataTable()
         error(errMsg)
     end
 end
+
+-- Updated class definition in database. Is is expected to be already created (INSERT INTO already run and class ID is known)
+function ClassDef:saveToDB()
+    assert(self.ClassID > 0)
+    local internalJson = json.encode(self:internalToJSON())
+
+    -- Calculate ctloMask and vtypes
+    self.vtypes = 0
+    self.ctloMask = 0
+    for col, propDef in pairs(self.propColMap) do
+        assert(propDef)
+        local colIdx = string.lower(propDef.ColMap):byte() - string.byte('a')
+        local vtmask = Util64.BNot64(Util64.BLShift64(7, colIdx * 3))
+        local vtype = Util64.BLShift64(propDef:GetVType(), colIdx * 3)
+
+        self.vtypes = Util64.BSet64(self.vtypes, vtmask, vtype)
+
+        if propDef.index == 'unique' then
+            local idxMask = Util64.BNot64(Util64.BLShift64(1, colIdx + Constants.CTLO_FLAGS.UNIQUE_SHIFT))
+            self.ctloMask = Util64.BSet64(self.ctloMask, idxMask, 1)
+        elseif propDef.index == 'index' then
+            -- TODO Check if property should be indexed
+            local idxMask = Util64.BNot64(Util64.BLShift64(1, colIdx + Constants.CTLO_FLAGS.INDEX_SHIFT))
+            self.ctloMask = Util64.BSet64(self.ctloMask, idxMask, 1)
+        end
+    end
+
+    self:execStatement("update [.classes] set NameID = :1, Data = :2, ctloMask = :3, vtypes = :4 where ClassID = :5;",
+    {
+        ['1'] = self.Name.id,
+        ['2'] = internalJson,
+        ['3'] = self.ctloMask,
+        ['4'] = self.vtypes,
+        ['5'] = self.ClassID
+    })
+end
+
+-- Checks all properties and determines the best index to be used
+-- Also validates index definitions
+function ClassDef:organizeIndexes()
+
+    -- Single key non unique indexes
+    -- Exclude columns that are in a) range index already, b) first column in multi key indexes
+    -- Number, integers, datetime, symnames - candidates for range index (if there are slots)
+
+    -- Multi key unique indexes
+
+    -- Full text indexes
+    -- Validate
+
+    -- Single key unique indexes
+
+    -- Range indexes
+end
+
+-- Generates schema for object validation. Sets self.objectSchema field
+function ClassDef:generateObjectSchema()
+    local objSchema = {}
+    for propName, propDef in pairs(self.Properties) do
+        objSchema[propName] = propDef:GetValueSchema()
+    end
+    self.objectSchema = schema.Record(objSchema, self.allowAnyProps)
+end
+
+-- define schema for class JSON definition
+ClassDef.Schema = schema.Record {
+    properties = schema.Map(name_ref.IdentifierSchema, PropertyDef.Schema),
+    ui = schema.Any, -- TODO finalize
+    allowAnyProps = schema.Optional(schema.Boolean),
+    columnMapping = schema.Optional(schema.Record {
+        A = schema.Optional(NameRef.Schema),
+        B = schema.Optional(NameRef.Schema),
+        C = schema.Optional(NameRef.Schema),
+        D = schema.Optional(NameRef.Schema),
+        E = schema.Optional(NameRef.Schema),
+        F = schema.Optional(NameRef.Schema),
+        G = schema.Optional(NameRef.Schema),
+        H = schema.Optional(NameRef.Schema),
+        I = schema.Optional(NameRef.Schema),
+        J = schema.Optional(NameRef.Schema),
+        K = schema.Optional(NameRef.Schema),
+        L = schema.Optional(NameRef.Schema),
+        M = schema.Optional(NameRef.Schema),
+        N = schema.Optional(NameRef.Schema),
+        O = schema.Optional(NameRef.Schema),
+        P = schema.Optional(NameRef.Schema),
+    }),
+    specialProperties = schema.Optional(schema.Record {
+        -- User defined ID. Unique and required
+        uid = schema.Optional(NameRef.Schema),
+
+        -- Object name (required and mostly unique)
+        name = schema.Optional(NameRef.Schema),
+
+        -- Object description
+        description = schema.Optional(NameRef.Schema),
+
+        -- Another alternative ID. Unlike ID, can be changed
+        code = schema.Optional(NameRef.Schema),
+
+        --Alternative ID that allows duplicates
+        nonUniqueId = schema.Optional(NameRef.Schema),
+
+        -- Timestamp on when object was created
+        createTime = schema.Optional(NameRef.Schema),
+
+        -- Timestamp on when object was last updated
+        updateTime = schema.Optional(NameRef.Schema),
+
+        -- Auto generated UUID (16 byte blob)
+        autoUuid = schema.Optional(NameRef.Schema),
+
+        -- Auto generated short ID (7-16 characters)
+        autoShortId = schema.Optional(NameRef.Schema),
+
+        -- Object owner
+        owner = schema.Optional(NameRef.Schema),
+    }),
+
+    rangeIndexing = schema.Optional(schema.Record {
+        -- The only required field
+        A0 = NameRef.Schema,
+        A1 = schema.Optional(NameRef.Schema),
+        B0 = schema.Optional(NameRef.Schema),
+        B1 = schema.Optional(NameRef.Schema),
+        C0 = schema.Optional(NameRef.Schema),
+        C1 = schema.Optional(NameRef.Schema),
+        D0 = schema.Optional(NameRef.Schema),
+        D1 = schema.Optional(NameRef.Schema),
+        E0 = schema.Optional(NameRef.Schema),
+        E1 = schema.Optional(NameRef.Schema),
+    }),
+
+    --[[
+    Optional full text indexing. Maximum 4 properties are allowed for full text index.
+    These properties are mapped to X1-X4 columns in [.full_text_data] table
+    ]]
+    fullTextIndexing = schema.Optional(schema.Record {
+        X1 = schema.Optional(NameRef.Schema),
+        X2 = schema.Optional(NameRef.Schema),
+        X3 = schema.Optional(NameRef.Schema),
+        X4 = schema.Optional(NameRef.Schema),
+        X5 = schema.Optional(NameRef.Schema),
+    }),
+
+    --[[
+    Optional storage mode. By default - 'flexi-data', which means that data will be stored in Flexilite
+    internal tables (.objects and .ref-values).
+    'flexi-rel' means that data will not stored anywhere, and class with this storage mode will be serving
+    as a proxy to many-to-many relation.
+    If class has 'flexi-rel' storage mode, it is required to have exactly 2 properties (of any type)
+    and storageFlexiRel attribute must be configured, to define relationship between 2 other classes in
+    Flexilite database
+    ]]
+    storage = schema.OneOf(schema.Nil, 'flexi-data' | 'flexi-rel'),
+    --[[
+    interface IStorageFlexiRelProperty {
+    ownProperty: IMetadataRef;
+    refClass: IMetadataRef;
+    refProperty: IMetadataRef;
+}
+
+    storageFlexiRel = schema.Optional(schema.Record {
+
+        master: IStorageFlexiRelProperty;
+        detail: IStorageFlexiRelProperty;
+    }),
+    ]]
+
+    --[[
+    Alternative way to define indexes (in addition to property's indexing)
+        Also, used for multi-column unique indexes
+        ]]
+    indexes = schema.Optional(schema.Map(schema.String, schema.Record {
+        properties = schema.OneOf(
+        schema.String,
+        schema.Record {
+            NameRef.Schema,
+            -- desc Boolean
+        }),
+        type = schema.OneOf(schema.Nil, 'none', 'unique', 'index', 'fulltext', 'range')
+    })),
+
+    --[[
+    User defined arbitrary data
+     ]]
+    meta = schema.Any,
+
+    --[[
+    Class description. E.g. comments generated for class converted from SQL table
+     ]]
+    description = schema.Optional(NameRef.Schema),
+
+    accessRules = schema.Optional(AccessRules)
+
+}
 
 return ClassDef

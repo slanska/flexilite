@@ -49,17 +49,16 @@ local function BSet64(base, mask, value)
 end
 
 ---@param base number
-local function BNot64(base)
-    local d, r = divide(base)
-    local result = bits.bnot(d) * MAX27 + bots.bnot(r)
-    return result
-end
-
----@param base number
 ---@param shift number
 local function BLShift64(base, shift)
     local result = base * (2 ^ shift)
     return result
+end
+
+-----@param base number
+local function BNot64(base)
+    base = -base - 1
+    return base
 end
 
 return {

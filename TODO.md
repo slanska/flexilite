@@ -90,9 +90,10 @@ data: Database, statements, user info, class definitions, cache of referenced va
 * General:
     - &#10003; move flags (CTLV* ) and related logic to separate module
     - Review README.md. Cleanup and move text to /doc
-    - bit 52 operations - implementation and tests. Use Python to get verified data
-    - set ctlv & ctlo on class & class prop save
+    - &#10003; bit 52 operations - implementation and tests. Use Python to get verified data
+    - set ctlv, vtypes, ctlo on class & class prop save
     - deferred saving of references
+    - try sandbox mode (for custom functions, triggers, filter expressions etc.)
     
 
 

@@ -8,5 +8,16 @@ Parses query JSON string
 Builds SQL query
 ]]
 
+local schema = require 'schema'
+local class = require 'pl.class'
+
+local QueryBuilder = class()
+
+QueryBuilder.Schema = schema.Record {
+
+}
+
+return QueryBuilder
+
 
 

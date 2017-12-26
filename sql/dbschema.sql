@@ -1,4 +1,3 @@
-
 -- TODO Configurable page size?
 -- PRAGMA page_size = 8192;
 --PRAGMA journal_mode = WAL;
@@ -216,12 +215,17 @@ CREATE TABLE IF NOT EXISTS [.classes] (
   Initially, columns are mapped but not activated.
   TODO config setting to set default value for ColMapActive for new classes
   */
-  ColMapActive    BOOL    NOT NULL             DEFAULT 0,
+  ColMapActive  BOOL    NOT NULL             DEFAULT 0,
 
   /*
   Class is marked as deleted
    */
-  Deleted       BOOLEAN NOT NULL             DEFAULT 0
+  Deleted       BOOLEAN NOT NULL             DEFAULT 0,
+
+  /*
+  Pre-computed vtypes for mapped columns
+   */
+  vtypes        INTEGER NOT NULL             DEFAULT 0
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClasses_byNameID]
@@ -362,14 +366,14 @@ END;
 ------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS [.class_props]
 (
-  [ID]         INTEGER NOT NULL PRIMARY KEY               AUTOINCREMENT,
+  [ID]           INTEGER NOT NULL PRIMARY KEY               AUTOINCREMENT,
 
-  [ClassID]    INTEGER NOT NULL CONSTRAINT [fkClassPropertiesToClasses]
+  [ClassID]      INTEGER NOT NULL CONSTRAINT [fkClassPropertiesToClasses]
   REFERENCES [.classes] ([ClassID])
     ON DELETE CASCADE
     ON UPDATE RESTRICT,
 
-  [NameID]     INTEGER NOT NULL CONSTRAINT [fkClassPropsNameID]
+  [NameID]       INTEGER NOT NULL CONSTRAINT [fkClassPropsNameID]
   REFERENCES [.sym_names] ([ID])
     ON DELETE RESTRICT
     ON UPDATE RESTRICT,
@@ -378,29 +382,39 @@ CREATE TABLE IF NOT EXISTS [.class_props]
   Actual control flags (already applied).
   These flags define indexing, logging and other property attributes
   */
-  [ctlv]       INTEGER NOT NULL                           DEFAULT 0,
+  [ctlv]         INTEGER NOT NULL                           DEFAULT 0,
 
   /*
   Planned/desired control flags which are not yet applied
   */
-  [ctlvPlan]   INTEGER NOT NULL                           DEFAULT 0,
+  [ctlvPlan]     INTEGER NOT NULL                           DEFAULT 0,
 
   /*
   ID of property name
   */
-  [PropNameID] INTEGER NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.sym_names] ([ID])
+  [PropNameID]   INTEGER NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.sym_names] ([ID])
     ON DELETE RESTRICT
     ON UPDATE RESTRICT,
 
   /*
   Optional mapping for locked property (A-P)
    */
-  [ColMap]     CHAR    NULL CHECK ([ColMap] IS NULL OR ([ColMap] >= 'A' AND [ColMap] <= 'P')),
+  [ColMap]       CHAR    NULL CHECK ([ColMap] IS NULL OR ([ColMap] >= 'A' AND [ColMap] <= 'P')),
 
   /*
   Property is marked as deleted
    */
-  Deleted      BOOLEAN NOT NULL                           DEFAULT 0
+  Deleted        BOOLEAN NOT NULL                           DEFAULT 0,
+
+  /*
+  Number of non null values. Gets updated during database statistic collection
+   */
+  NonNullCount   INTEGER NOT NULL                           DEFAULT 0,
+
+  /*
+  How many times this property was referenced in search criteria. Candidate for indexing
+   */
+  SearchHitCount INTEGER NOT NULL                           DEFAULT 0
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByClassAndName]
@@ -527,8 +541,8 @@ CREATE TABLE IF NOT EXISTS [.objects] (
   P                  NULL,
 
   /*
-      -- bits 0 - 15 - non unique indexes for A - P
-    -- bits 16 - 31 - unique indexes for A - P
+      -- bits 0 - 15 - unique indexes for A - P
+    -- bits 16 - 31 - non unique indexes for A - P
     -- bit 32 - deleted
     -- bit 33 - invalid data
     -- bit 34 - has accessRules in MetaData
@@ -859,15 +873,15 @@ Every class that has definitions for range indexes will have its own .range_data
 as [.range_data_<ClassID>], e.g. [.range_data_123]. This table gets created when range indexing is requested
 by class definition, and gets removed on class destroy.
  */
- /*
+/*
 CREATE VIRTUAL TABLE IF NOT EXISTS [.range_data_<ClassID>] USING rtree (
-  [ObjectID],
+ [ObjectID],
 
-  [A0], [A1],
-  [B0], [B1],
-  [C0], [C1],
-  [D0], [D1],
-  [E0], [E1]
+ [A0], [A1],
+ [B0], [B1],
+ [C0], [C1],
+ [D0], [D1],
+ [E0], [E1]
 );
 */
 

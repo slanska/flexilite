@@ -318,8 +318,6 @@ interface IClassPropertyDef {
      */
     refDef?: IReferencePropertyDef;
 
-    dateTime?: 'dateOnly' | 'timeOnly' | 'dateTime' | 'timeSpan';
-
     enumDef?: IEnumPropertyDef;
 
     defaultValue?: any;

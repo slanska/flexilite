@@ -4,15 +4,7 @@
 ---
 
 local class = require 'pl.class'
-
 local schema = require 'schema'
-
--- define schema for name definition
-local nameSchema = schema.Record {
-    id = schema.Number,
-    text = schema.String
-}
-
 
 --[[
 ===============================================================================
@@ -138,4 +130,17 @@ function PropNameRef:isResolved(classDef)
     return pp ~= nil
 end
 
-return { NameRef = NameRef, ClassNameRef = ClassNameRef, PropNameRef = PropNameRef }
+local IdentifierSchema = schema.Pattern('[_%a][_%w]*')
+
+-- define schema for name definition
+NameRef.Schema = schema.Record {
+    id = schema.Optional(schema.Number),
+    text = schema.Optional(IdentifierSchema)
+}
+
+return {
+    NameRef = NameRef,
+    ClassNameRef = ClassNameRef,
+    PropNameRef = PropNameRef,
+    IdentifierSchema = IdentifierSchema
+}

@@ -134,6 +134,16 @@ local function AlterClass(self, className, newClassDefJSON, createVTable, invali
 
     -- If needed, scan data and validate against new definitions
 
+    -- Check if full text index definition has changed
+
+    -- Check if multi key index definitions have changed
+
+    -- Check if range index definition has changed
+    if newClassDef.D.rangeIndexing and tablex.size(newClassDef.D.rangeIndexing) > 0 then
+        -- Create range_data table
+        newClassDef:createRangeDataTable()
+    end
+
     -- save changes
     -- replace class definition
     self:addClassToList(newClass)

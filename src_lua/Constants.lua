@@ -73,14 +73,16 @@ local Constants = {
     -- bit 38 - don't track changes
     -- ... ?
     CTLO_FLAGS = {
+        UNIQUE_SHIFT = 0,
+        INDEX_SHIFT = 16,
         -- skip first 32 bits
         DELETED = 0x100000000,
         INVALID_DATA = 0x200000000,
         HAS_ACCESS_RULES = 0x400000000,
         HAS_COL_META_DATA = 0x800000000,
         HAS_FORMULAS = 0x1000000000,
-        WEAK_OBJECT = 0x2000000000,
-        NO_TRACK_CHANGES = 0x4000000000,
+        WEAK_OBJECT = 0x2000000000, -- TODO reserved for future
+        NO_TRACK_CHANGES = 0x4000000000, -- TODO reserved for future
     },
 
     -- Used for access rules

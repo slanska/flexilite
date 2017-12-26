@@ -22,16 +22,6 @@ local Constants = require 'Constants'
 ---@class DBObject
 local DBObject = class()
 
--- Returns tuple of bit masks and values for property's column code (A - P).
--- Tuple: vtypes mask, vtypes value, ctlo mask, ctlo value
----@param propDef PropertyDef
-local function getColMapMasks(propDef)
-    local idx = string.lower(propDef.ColMap):byte() - string.byte('a')
-    local vtmask = Util64.BNot64(Util64.BLShift64(7, idx * 3))
-    local vtype = propDef:GetVType()
-    return vtmask
-end
-
 ---@param DBContext DBContext
 ---@param objectId number @comment (optional) Int64
 ---@param classDef IClassDef @comment (optional) must be passed if objectId is nil

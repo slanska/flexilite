@@ -10,6 +10,7 @@ Used as a singleton object by DBContext
 
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
+local schema = require 'schema'
 
 ---@class AccessControl
 local AccessControl = class()
@@ -115,5 +116,18 @@ function AccessControl:flushCache()
     self.ClassPermissions = {}
     self.PropPermissions = {}
 end
+
+--[[
+Pattern to match access rules
+]]
+AccessControl.PermissionSchema = schema.Pattern('[C?c?R?r?U?u?D?d?N?n?E?e?+?*?-?]')
+AccessControl.PermissionMapSchema = schema.Optional(schema.Map(schema.OneOf(schema.String, schema.Integer)), AccessControl.PermissionSchema)
+
+AccessControl.Schema = schema.Record {
+    roles = AccessControl.PermissionMapSchema,
+    users = AccessControl.PermissionMapSchema
+    -- TODO hook
+    -- hookExpr
+}
 
 return AccessControl

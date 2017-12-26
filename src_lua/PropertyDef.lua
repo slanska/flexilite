@@ -54,25 +54,14 @@ For resolve class:
 
 ]]
 
+require 'math'
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 local schema = require 'schema'
-
--- TODO define schema for property definition
-local propertySchema = schema.Record {
-    rules = schema.Record {
-        type = schema.OneOf('any', 'string', 'text'),
-
-    }
-}
-
-require 'math'
 local bit = type(jit) == 'table' and require('bit') or require('bit32')
 local name_ref = require 'NameRef'
 local EnumDef = require 'EnumDef'
-
 local NameRef, ClassNameRef, PropNameRef = name_ref.NameRef, name_ref.ClassNameRef, name_ref.PropNameRef
-
 local Constants = require 'Constants'
 
 --[[
@@ -205,6 +194,11 @@ function PropertyDef:saveToDB()
 
     assert(self.Prop and self.Prop:isResolved())
 
+    -- Set ctlv
+    self.ctlv = 0
+    local vt = self:GetVType()
+
+
     if self.ID and tonumber(self.ID) > 0 then
         -- Update existing
         self.ClassDef.DBContext:execStatement([[update [.class_props]
@@ -285,6 +279,27 @@ function PropertyDef:GetVType()
     return Constants.vtype.default
 end
 
+function PropertyDef:buildValueSchema(valueSchema)
+    local s = { valueSchema }
+    if self.D.rules.maxOccurrences > 1 then
+        -- collection
+        s[2] = schema.Collection(valueSchema)
+    else
+        -- one item tuple
+        s[2] = schema.Tuple(valueSchema)
+    end
+
+    if self.D.rules.minOccurrences == 0 then
+        s[3] = schema.Nil
+    end
+
+    return schema.OneOf(unpack(s))
+end
+
+function PropertyDef:GetValueSchema()
+    return schema.Any
+end
+
 --[[
 ===============================================================================
 AnyPropertyDef
@@ -340,6 +355,13 @@ function NumberPropertyDef:supportsRangeIndexing()
     return true
 end
 
+function NumberPropertyDef:GetValueSchema()
+    local result = self:buildValueSchema(
+    schema.NumberFrom(self.D.rules.minValue or Constants.MIN_NUMBER,
+    self.D.rules.maxValue or Constants.MAX_NUMBER))
+    return result
+end
+
 --[[
 ===============================================================================
 MoneyPropertyDef
@@ -393,6 +415,12 @@ function IntegerPropertyDef:getNativeType()
     return 'integer'
 end
 
+function IntegerPropertyDef:GetValueSchema()
+    local result = self:buildValueSchema(schema.AllOf(schema.NumberFrom(self.D.rules.minValue or Constants.MIN_INTEGER,
+    self.D.rules.maxValue or Constants.MAX_INTEGER), schema.Integer))
+    return result
+end
+
 --[[
 ===============================================================================
 TextPropertyDef
@@ -431,6 +459,12 @@ function TextPropertyDef:ColumnMappingSupported()
     return (self.D.rules.maxLength or 255) <= 255
 end
 
+function TextPropertyDef:GetValueSchema()
+    -- TODO Check regex and maxLength
+    local result = self:buildValueSchema(schema.String)
+    return result
+end
+
 --[[
 ===============================================================================
 SymNamePropertyDef
@@ -451,6 +485,13 @@ end
 function SymNamePropertyDef:GetVType()
     return Constants.vtype.symbol
 end
+
+function SymNamePropertyDef:GetValueSchema()
+    -- TODO Check if integer matches NamesID
+    local result = self:buildValueSchema(schema.OneOf(schema.String, schema.Integer))
+    return result
+end
+
 
 --[[
 ===============================================================================
@@ -916,6 +957,35 @@ PropertyDef.PropertyTypes = {
     ['timespan'] = TimeSpanPropertyDef,
     ['duration'] = TimeSpanPropertyDef,
     ['any'] = AnyPropertyDef,
+}
+
+-- Schema validation rules for property JSON definition
+PropertyDef.Schema = schema.Record {
+    rules = schema.Record {
+        type = schema.OneOf(unpack(tablex.keys(PropertyDef.PropertyTypes))),
+        subType = schema.OneOf(schema.Nil, 'text', 'email', 'ip', 'password', 'ip6v', 'url', 'image', 'html' ), -- TODO list to be extended
+        minOccurences = schema.Optional(schema.AllOf(schema.NonNegativeNumber, schema.Integer)),
+        maxOccurrences = schema.Optional(schema.NumberFrom(
+        schema.Test(
+        function(obj)
+            if obj.maxOccurrences < obj.minOccurrences then
+
+            end
+        end),
+        Constants.MAX_INTEGER)),
+        maxLength = schema.Optional(schema.NumberFrom(0, Constants.MAX_INTEGER)),
+        minValue = schema.Optional(schema.NumberFrom(0, Constants.MAX_INTEGER)),
+        maxValue = schema.Optional(schema.NumberFrom(0, Constants.MAX_INTEGER)),
+        regex = schema.Optional(schema.String),
+    },
+    index = schema.OneOf(schema.Nil, 'index', 'unique'),
+    noTrackChanges = schema.Optional(schema.Boolean),
+
+    -- TODO Custom validators for refDef and enumDef
+    refDef = schema.Optional(),
+    enumDef = schema.Optional(),
+
+    defaultValue = schema.Any,
 }
 
 return PropertyDef
