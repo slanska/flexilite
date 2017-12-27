@@ -29,4 +29,4 @@ local SchemaChinook = {
     output = '../test/json/Chinook.db.schema.json',
 }
 
-return SchemaChinook
+return SchemaNorthwind

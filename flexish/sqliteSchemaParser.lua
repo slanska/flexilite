@@ -103,7 +103,7 @@ local sqliteTypesToFlexiTypes = {
     ['varbinary'] = { type = 'binary', subType = 'image' },
     ['image'] = { type = 'binary', subType = 'image' },
 
-    ['ntext'] = { type = 'binary', maxLength = bits.lshift(1, 31) - 1 },
+    ['ntext'] = { type = 'binary', maxLength = -1 },
 
     ['integer'] = { type = 'integer' },
     ['smallint'] = { type = 'integer', minValue = -32768, maxValue = 32767 },

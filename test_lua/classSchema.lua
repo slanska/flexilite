@@ -34,14 +34,16 @@ describe('Class schema', function()
     it('should validate Northwind schema', function()
         local err = schema.CheckSchema(northwindData, ClassDef.MultiClassSchema)
         if err then
-            print(err)
+            local s = schema.FormatOutput(err)
+            error(s)
         end
     end)
 
     it('should validate Chinook schema', function()
         local err = schema.CheckSchema(chinookData, ClassDef.MultiClassSchema)
         if err then
-            print(err)
+            local s = schema.FormatOutput(err)
+            error(s)
         end
     end)
 

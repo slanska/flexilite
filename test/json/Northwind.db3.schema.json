@@ -92,7 +92,7 @@
 			"Notes": {
 				"rules": {
 					"type": "binary",
-					"maxLength": -2147483649
+					"maxLength": -1
 				}
 			},
 			"Region": {
@@ -231,7 +231,7 @@
 			"HomePage": {
 				"rules": {
 					"type": "binary",
-					"maxLength": -2147483649
+					"maxLength": -1
 				}
 			},
 			"Address": {
@@ -716,7 +716,7 @@
 			"Notes": {
 				"rules": {
 					"type": "binary",
-					"maxLength": -2147483649
+					"maxLength": -1
 				}
 			},
 			"Region": {
