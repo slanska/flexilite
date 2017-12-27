@@ -98,10 +98,10 @@ local sqliteTypesToFlexiTypes = {
 
     ['time'] = { type = 'timespan' },
 
-    ['blob'] = { type = 'binary', subtype = 'image' },
-    ['binary'] = { type = 'binary', subtype = 'image' },
-    ['varbinary'] = { type = 'binary', subtype = 'image' },
-    ['image'] = { type = 'binary', subtype = 'image' },
+    ['blob'] = { type = 'binary', subType = 'image' },
+    ['binary'] = { type = 'binary', subType = 'image' },
+    ['varbinary'] = { type = 'binary', subType = 'image' },
+    ['image'] = { type = 'binary', subType = 'image' },
 
     ['ntext'] = { type = 'binary', maxLength = bits.lshift(1, 31) - 1 },
 

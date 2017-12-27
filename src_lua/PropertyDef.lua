@@ -63,6 +63,7 @@ local name_ref = require 'NameRef'
 local EnumDef = require 'EnumDef'
 local NameRef, ClassNameRef, PropNameRef = name_ref.NameRef, name_ref.ClassNameRef, name_ref.PropNameRef
 local Constants = require 'Constants'
+local AccessControl = require 'AccessControl'
 
 --[[
 ===============================================================================
@@ -296,7 +297,8 @@ function PropertyDef:buildValueSchema(valueSchema)
     return schema.OneOf(unpack(s))
 end
 
-function PropertyDef:GetValueSchema()
+---@param op string @comment 'C' or 'U'
+function PropertyDef:GetValueSchema(op)
     return schema.Any
 end
 
@@ -355,7 +357,8 @@ function NumberPropertyDef:supportsRangeIndexing()
     return true
 end
 
-function NumberPropertyDef:GetValueSchema()
+---@param op string @comment 'C' or 'U'
+function NumberPropertyDef:GetValueSchema(op)
     local result = self:buildValueSchema(
     schema.NumberFrom(self.D.rules.minValue or Constants.MIN_NUMBER,
     self.D.rules.maxValue or Constants.MAX_NUMBER))
@@ -379,7 +382,7 @@ function MoneyPropertyDef:GetVType()
 end
 
 
--- TODO
+-- TODO GetValueSchema - must be number with up to 4 decimal places
 
 --[[
 ===============================================================================
@@ -415,7 +418,8 @@ function IntegerPropertyDef:getNativeType()
     return 'integer'
 end
 
-function IntegerPropertyDef:GetValueSchema()
+---@param op string @comment 'C' or 'U'
+function IntegerPropertyDef:GetValueSchema(op)
     local result = self:buildValueSchema(schema.AllOf(schema.NumberFrom(self.D.rules.minValue or Constants.MIN_INTEGER,
     self.D.rules.maxValue or Constants.MAX_INTEGER), schema.Integer))
     return result
@@ -459,7 +463,8 @@ function TextPropertyDef:ColumnMappingSupported()
     return (self.D.rules.maxLength or 255) <= 255
 end
 
-function TextPropertyDef:GetValueSchema()
+---@param op string @comment 'C' or 'U'
+function TextPropertyDef:GetValueSchema(op)
     -- TODO Check regex and maxLength
     local result = self:buildValueSchema(schema.String)
     return result
@@ -486,7 +491,8 @@ function SymNamePropertyDef:GetVType()
     return Constants.vtype.symbol
 end
 
-function SymNamePropertyDef:GetValueSchema()
+---@param op string @comment 'C' or 'U'
+function SymNamePropertyDef:GetValueSchema(op)
     -- TODO Check if integer matches NamesID
     local result = self:buildValueSchema(schema.OneOf(schema.String, schema.Integer))
     return result
@@ -561,13 +567,32 @@ function MixinPropertyDef:internalToJSON()
     return result
 end
 
-function PropertyDef:ColumnMappingSupported()
+function MixinPropertyDef:ColumnMappingSupported()
     return false
 end
 
 -- true if property value can be used as user defined ID (UID)
-function PropertyDef:CanBeUsedAsUID()
+function MixinPropertyDef:CanBeUsedAsUID()
     return false
+end
+
+-- Returns schema for property value as schema for nested/owned/mixin
+-- Used for mixins, owned and nested objects for insert and update
+function MixinPropertyDef:getValueSchemaAsObject()
+    local result = self:buildValueSchema()
+    return result
+end
+
+-- Returns schema for property value as schema for query filter (to fetch list of referenced IDs)
+-- Used for normal references (except mixins, nested and owned objects) for both insert and update.
+function MixinPropertyDef:getValueSchemaAsFilter()
+
+end
+
+---@param op string @comment 'C' or 'U'
+function MixinPropertyDef:GetValueSchema(op)
+    local result = self:buildValueSchema(schema.OneOf(schema.String, schema.Integer))
+    return result
 end
 
 --[[
@@ -964,28 +989,22 @@ PropertyDef.Schema = schema.Record {
     rules = schema.Record {
         type = schema.OneOf(unpack(tablex.keys(PropertyDef.PropertyTypes))),
         subType = schema.OneOf(schema.Nil, 'text', 'email', 'ip', 'password', 'ip6v', 'url', 'image', 'html' ), -- TODO list to be extended
-        minOccurences = schema.Optional(schema.AllOf(schema.NonNegativeNumber, schema.Integer)),
-        maxOccurrences = schema.Optional(schema.NumberFrom(
-        schema.Test(
-        function(obj)
-            if obj.maxOccurrences < obj.minOccurrences then
-
-            end
-        end),
-        Constants.MAX_INTEGER)),
-        maxLength = schema.Optional(schema.NumberFrom(0, Constants.MAX_INTEGER)),
-        minValue = schema.Optional(schema.NumberFrom(0, Constants.MAX_INTEGER)),
-        maxValue = schema.Optional(schema.NumberFrom(0, Constants.MAX_INTEGER)),
+        minOccurrences = schema.Optional(schema.AllOf(schema.NonNegativeNumber, schema.Integer)),
+        maxOccurrences = schema.Optional(schema.AllOf(        schema.Integer, schema.PositiveNumber)),
+        maxLength = schema.Optional(schema.AllOf(schema.Integer, schema.NumberFrom(-1, Constants.MAX_INTEGER))),
+        minValue = schema.Optional(schema.Number),
+        maxValue = schema.Optional(schema.Number),
         regex = schema.Optional(schema.String),
     },
-    index = schema.OneOf(schema.Nil, 'index', 'unique'),
+    index = schema.OneOf(schema.Nil, 'index', 'unique', 'range', 'fulltext'),
     noTrackChanges = schema.Optional(schema.Boolean),
 
     -- TODO Custom validators for refDef and enumDef
-    refDef = schema.Optional(),
-    enumDef = schema.Optional(),
+    refDef = schema.Optional(schema.Any),
+    enumDef = schema.Optional(schema.Any),
 
     defaultValue = schema.Any,
+    accessRules = schema.Optional(AccessControl.Schema),
 }
 
 return PropertyDef

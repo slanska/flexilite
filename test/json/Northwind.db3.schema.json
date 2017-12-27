@@ -92,7 +92,7 @@
 			"Notes": {
 				"rules": {
 					"type": "binary",
-					"maxLength": 2147483647
+					"maxLength": -2147483649
 				}
 			},
 			"Region": {
@@ -139,7 +139,7 @@
 			"Photo": {
 				"rules": {
 					"type": "binary",
-					"subtype": "image"
+					"subType": "image"
 				}
 			},
 			"TitleOfCourtesy": {
@@ -231,7 +231,7 @@
 			"HomePage": {
 				"rules": {
 					"type": "binary",
-					"maxLength": 2147483647
+					"maxLength": -2147483649
 				}
 			},
 			"Address": {
@@ -539,7 +539,7 @@
 			"Picture": {
 				"rules": {
 					"type": "binary",
-					"subtype": "image"
+					"subType": "image"
 				}
 			},
 			"CategoryID": {
@@ -716,7 +716,7 @@
 			"Notes": {
 				"rules": {
 					"type": "binary",
-					"maxLength": 2147483647
+					"maxLength": -2147483649
 				}
 			},
 			"Region": {
@@ -762,7 +762,7 @@
 			"Photo": {
 				"rules": {
 					"type": "binary",
-					"subtype": "image"
+					"subType": "image"
 				}
 			},
 			"TitleOfCourtesy": {

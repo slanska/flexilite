@@ -23,6 +23,7 @@ local name_ref = require('NameRef')
 local NameRef = name_ref.NameRef
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
+local AccessControl = require 'AccessControl'
 
 --[[
 
@@ -345,13 +346,50 @@ function ClassDef:organizeIndexes()
 end
 
 -- Generates schema for object validation. Sets self.objectSchema field
-function ClassDef:generateObjectSchema()
-    local objSchema = {}
-    for propName, propDef in pairs(self.Properties) do
-        objSchema[propName] = propDef:GetValueSchema()
+---@param op string @comment 'C' for create new object, 'U' for update existing object
+function ClassDef:getObjectSchema(op)
+    assert(op == 'C' or op == 'U')
+
+    local result = self.objectSchema[op]
+    if not result then
+        return result
     end
-    self.objectSchema = schema.Record(objSchema, self.allowAnyProps)
+
+    local objSchema = {}
+
+    -- own properties
+    for propName, propDef in pairs(self.Properties) do
+        local propSchema = propDef:GetValueSchema(op)
+        if op == 'U' then
+            objSchema[propName] = schema.Optional(propSchema)
+        else
+            objSchema[propName] = propSchema
+        end
+    end
+
+    -- mixin properties which do not duplicate own properties
+    -- they can be accessed as own properties
+    for propName, propDefs in pairs(self.MixinProperties) do
+        if not objSchema[propName] and #propDefs == 1 then
+            local propSchema = propDefs[1]:GetValueSchema(op)
+            if op == 'U' then
+                objSchema[propName] = schema.Optional(propSchema)
+            else
+                objSchema[propName] = propSchema
+            end
+        end
+    end
+
+    result = schema.Record(objSchema, self.allowAnyProps)
+    self.objectSchema[op] = result
+    return result
 end
+
+local IndexPropertySchema = schema.Record {
+    id = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
+    text = name_ref.IdentifierSchema,
+    desc = schema.Optional(schema.Boolean)
+}
 
 -- define schema for class JSON definition
 ClassDef.Schema = schema.Record {
@@ -409,8 +447,7 @@ ClassDef.Schema = schema.Record {
     }),
 
     rangeIndexing = schema.Optional(schema.Record {
-        -- The only required field
-        A0 = NameRef.Schema,
+        A0 = schema.Optional(NameRef.Schema),
         A1 = schema.Optional(NameRef.Schema),
         B0 = schema.Optional(NameRef.Schema),
         B1 = schema.Optional(NameRef.Schema),
@@ -435,55 +472,26 @@ ClassDef.Schema = schema.Record {
     }),
 
     --[[
-    Optional storage mode. By default - 'flexi-data', which means that data will be stored in Flexilite
-    internal tables (.objects and .ref-values).
-    'flexi-rel' means that data will not stored anywhere, and class with this storage mode will be serving
-    as a proxy to many-to-many relation.
-    If class has 'flexi-rel' storage mode, it is required to have exactly 2 properties (of any type)
-    and storageFlexiRel attribute must be configured, to define relationship between 2 other classes in
-    Flexilite database
-    ]]
-    storage = schema.OneOf(schema.Nil, 'flexi-data' | 'flexi-rel'),
-    --[[
-    interface IStorageFlexiRelProperty {
-    ownProperty: IMetadataRef;
-    refClass: IMetadataRef;
-    refProperty: IMetadataRef;
-}
-
-    storageFlexiRel = schema.Optional(schema.Record {
-
-        master: IStorageFlexiRelProperty;
-        detail: IStorageFlexiRelProperty;
-    }),
-    ]]
-
-    --[[
     Alternative way to define indexes (in addition to property's indexing)
         Also, used for multi-column unique indexes
         ]]
     indexes = schema.Optional(schema.Map(schema.String, schema.Record {
+        type = schema.OneOf(schema.Nil, 'index', 'unique', 'range', 'fulltext'),
         properties = schema.OneOf(
+        NameRef.Schema,
         schema.String,
-        schema.Record {
-            NameRef.Schema,
-            -- desc Boolean
-        }),
-        type = schema.OneOf(schema.Nil, 'none', 'unique', 'index', 'fulltext', 'range')
+        schema.Collection(        IndexPropertySchema        )),
     })),
 
     --[[
-    User defined arbitrary data
+    User defined arbitrary data (UI generation rules etc)
      ]]
     meta = schema.Any,
 
-    --[[
-    Class description. E.g. comments generated for class converted from SQL table
-     ]]
-    description = schema.Optional(NameRef.Schema),
-
-    accessRules = schema.Optional(AccessRules)
-
+    accessRules = schema.Optional(AccessControl.Schema)
 }
+
+-- Schema for multi class JSON
+ClassDef.MultiClassSchema = schema.Map(name_ref.IdentifierSchema, ClassDef.Schema)
 
 return ClassDef

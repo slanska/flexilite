@@ -64,7 +64,7 @@ data: Database, statements, user info, class definitions, cache of referenced va
     - &#10003; allocate ColumnMap
     - &#10003; save .classes to get ID, then save properties with new ClassID, then update .classes with JSON
     - &#10003; columns A - P
-    - define schemas for name, property, class. Use it for validation of class/property def
+    - &#10003; define schemas for name, property, class. Use it for validation of class/property def
     - generate dynamic schema for object, to validate input data 
     - enumDef - process and save. Check if reference is resolved
     
@@ -91,9 +91,22 @@ data: Database, statements, user info, class definitions, cache of referenced va
     - &#10003; move flags (CTLV* ) and related logic to separate module
     - Review README.md. Cleanup and move text to /doc
     - &#10003; bit 52 operations - implementation and tests. Use Python to get verified data
-    - set ctlv, vtypes, ctlo on class & class prop save
+    - &#10003; set ctlv, vtypes, ctlo on class & class prop save
     - deferred saving of references
     - try sandbox mode (for custom functions, triggers, filter expressions etc.)
+    - generate user formatted JSON for db/class/property definition
+    - flexi_CreateClass -> check name and class existence, create empty record, then - flexi_AlterClass
+    - flexi_AlterClass - merge user definitions, validate with schema, proceed
+    - complete schema definition for class and property
+    - complete object schema generation
+    - schema for query
+    - rename flexi_AlterClass to flexi_CreateAlterDropClass. Move flexi_CreateClass and flexi_DropClass to this module
+    - refactor ClassDef and PropertyDef. D for all data loaded from db (matching table columns). D.Data for parsed JSON
+    so PropertyDef.D.Data.rules.type == 'text' (for example). ClassDef.D.Data will not have properties once loaded from DB, it 
+    will be ClassDef.Properties (by name) and DBContext.ClassProps (by ID). PropertyDef.D.Data will have data for class def JSON
+    - DBContext on init, create/open aside database for log and statistics
+    - check how SQLite query analysis engine can be used
+    
     
 
 
