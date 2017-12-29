@@ -24,7 +24,7 @@ local Constants = {
         money = 4, --(for INT) - as integer value with fixed 4 decimal points (exact value for +-1844 trillions)
         json = 5, --(for TEXT)
         enum = 6, -- (for INT, TEXT etc.)
-        -- 7 is reserved for future
+        reference = 7, -- value is object ID
     },
 
     -- CTLV flags

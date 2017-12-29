@@ -105,7 +105,8 @@ data: Database, statements, user info, class definitions, cache of referenced va
     so PropertyDef.D.Data.rules.type == 'text' (for example). ClassDef.D.Data will not have properties once loaded from DB, it 
     will be ClassDef.Properties (by name) and DBContext.ClassProps (by ID). PropertyDef.D.Data will have data for class def JSON
     - DBContext on init, create/open aside database for log and statistics
-    - check how SQLite query analysis engine can be used
+    - check how SQLite query analysis engine can be used for virtual tables
+    - TEMP TRIGGER on .ref-values to check minOccurrences..maxOccurrences
     
     
 

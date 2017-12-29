@@ -75,6 +75,8 @@ function DBContext:_init(db)
     self.config = {
         createVirtualTable = false
     }
+
+    self:initMemoizeFunctions()
 end
 
 --- Utility function to check status returned by SQLite call
@@ -467,11 +469,40 @@ end
 function DBContext:flexi_translate(values)
 end
 
+-- Init cached functions
+function DBContext:initMemoizeFunctions()
+
+    -- Return array of mixin properties for given class ID
+    self.GetClassMixinProperties = util.memoize(function(classID)
+        local classDef = self:getClassDef(classID)
+        return tablex.filter(tablex.values(classDef.Properties), function(propDef)
+            return propDef.rules.type == 'mixin'
+        end)
+    end)
+
+    -- Return array of mixin properties for given class ID
+    self.GetClassReferenceProperties = util.memoize(function(classID)
+        local classDef = self:getClassDef(classID)
+        return tablex.filter(tablex.values(classDef.Properties), function(propDef)
+            return propDef:isReference()
+        end)
+    end)
+
+    -- Return array of mixin properties for given class ID
+    self.GetNestedAndMasterProperties = util.memoize(function(classID)
+        local classDef = self:getClassDef(classID)
+        return tablex.filter(tablex.values(classDef.Properties), function(propDef)
+            return propDef.rules.type == 'nested'
+        end)
+    end)
+end
+
 function DBContext:flushSchemaCache()
     self.Classes = {}
     self.ClassProps = {}
     self.Functions = {}
     self.Objects = {}
+    self:initMemoizeFunctions()
     self:flushCurrentUserCheckPermissions()
     self:finalizeStatements()
 end
@@ -493,7 +524,7 @@ function DBContext:getObject(objectID)
     return result
 end
 
---[[ Initializes memoized (cache-based) functions to get actual permission for given database objects
+--[[ Initializes memoize (cache-based) functions to get actual permission for given database objects
  Makes the following functions available:
  * ensureCurrentUserAccessForProperty
  * ensureCurrentUserAccessForClass
@@ -501,11 +532,11 @@ end
  These functions are reset on schema or current user change
 ]]
 function DBContext:flushCurrentUserCheckPermissions()
-    self.ensureCurrentUserAccessForProperty = util.memoized(function(propID, op)
+    self.ensureCurrentUserAccessForProperty = util.memoize(function(propID, op)
         self.AccessControl:ensureCurrentUserAccessForProperty(propID, op)
     end)
 
-    self.ensureCurrentUserAccessForClass = util.memoized(function(classID, op)
+    self.ensureCurrentUserAccessForClass = util.memoize(function(classID, op)
         self.AccessControl:ensureCurrentUserAccessForClass(classID, op)
     end)
 end

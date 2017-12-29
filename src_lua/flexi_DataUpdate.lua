@@ -16,6 +16,8 @@ Uses DBObject and DBCell Api for data manipulation.
 local json = require('cjson')
 local DBObject = require 'DBObject'
 local class = require 'pl.class'
+local schema = require 'schema'
+local tablex = require 'tablex'
 local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 
 -- Helper class to save objects to DB
@@ -52,7 +54,7 @@ end
 ---@param className string
 ---@param oldRowID number
 ---@param newRowID number
----@param data table @comment payload from JSON
+---@param data table @comment object payload from JSON
 function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
     local classDef = self:getClassDef(className)
     local obj = oldRowID and self:getObject(oldRowID) or DBObject(self, classDef)
@@ -83,12 +85,12 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
             end
         end
 
-        -- check access rules
+        -- TODO check access rules
 
 
         -- if reference property, proceed recursively
         if prop:isReference() then
-            if op == 'insert' and (prop.rules.type == 'nested' or prop.rules.type == 'master') then
+            if prop.rules.type == 'nested' or prop.rules.type == 'master' then
                 -- Sub-data is data
             else
                 -- Sub-data is query to return ID(s) to update or delete references
@@ -98,13 +100,42 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
         end
     end
 
-    -- validate properties
-    -- call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable)
-    -- validate data, using dynamically defined schema. If any missing references found, remember them in Lua table
+    -- for new object set default data
+    if op == 'C' then
+        for propName, propDef in pairs(classDef.Properties) do
+            local dd = propDef.D.Data.defaultValue
+            if data[propName] == nil and dd ~= nil then
+                if type(dd) == 'table' then
+                    data[propName] = tablex.deepcopy(dd)
+                else
+                    data[propName] = dd
+                end
+            end
+        end
+    end
 
+    -- before trigger
+    -- TODO call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable)
+
+
+    -- validate data, using dynamically defined schema. If any missing references found, remember them in Lua table
+    if op == 'C' or op == 'U' then
+        local objSchema = classDef:getObjectSchema(op)
+        if objSchema then
+            local err = schema.CheckSchema(data, objSchema)
+            if err then
+                -- TODO 'Invalid input data:'
+                error(err)
+            end
+        end
+    end
+
+    -- will save scalar values only
     obj:saveToDB()
 
-    -- call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
+
+
+    -- TODO call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
 
 
 end
@@ -118,26 +149,6 @@ Implementation of flexi_data virtual table xUpdate API: insert, update, delete
 local function resolveReferences(self, unresolvedRefs)
 
 end
-
---[[
-    CHECK_STMT_PREPARE(
-            db,
-            "insert into [.range_data] ([ObjectID], [ClassID_1], "
-                    "[A0], [_1], [B0], [B1], [C0], [C1], [D0], [D1]) values "
-                    "(:1, :2, :2, :3, :4, :5, :6, :7, :8, :9, :10);",
-            &pCtx->pStmts[STMT_INS_RTREE]);
-
-    CHECK_STMT_PREPARE(
-            db,
-            "update [.range_data] set "
-                    "[A0] = :3, [A1] = :4, [B0] = :5, [B1] = :6, "
-                    "[C0] = :7, [C1] = :8, [D0] = :9, [D1] = :10 where ObjectID = :1;",
-            &pCtx->pStmts[STMT_UPD_RTREE]);
-
-    CHECK_STMT_PREPARE(
-            db, "delete from [.range_data] where ObjectID = :1;",
-            &pCtx->pStmts[STMT_DEL_RTREE]);
-]]
 
 --[[
  Inserts/updates/deletes data. Supports classic and classless mode, which are distinguished by className

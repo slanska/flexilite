@@ -705,19 +705,6 @@ end
 
 --[[
 ===============================================================================
-NestedObjectPropertyDef
-===============================================================================
-]]
-
---- @class NestedObjectPropertyDef
-local NestedObjectPropertyDef = class(ReferencePropertyDef)
-
-function NestedObjectPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
-end
-
---[[
-===============================================================================
 EnumPropertyDef
 ===============================================================================
 ]]
@@ -967,8 +954,8 @@ PropertyDef.PropertyTypes = {
     ['uuid'] = UuidPropertyDef,
     ['enum'] = EnumPropertyDef,
     ['reference'] = ReferencePropertyDef,
+    ['link'] = ReferencePropertyDef,
     ['ref'] = ReferencePropertyDef,
-    ['nested'] = NestedObjectPropertyDef,
     ['mixin'] = MixinPropertyDef,
     ['json'] = TextPropertyDef, -- TODO special prop type???
     ['computed'] = ComputedPropertyDef,
@@ -985,12 +972,74 @@ PropertyDef.PropertyTypes = {
 }
 
 -- Schema validation rules for property JSON definition
+local EnumDefSchemaDef = tablex.deepcopy(NameRef.SchemaDef)
+EnumDefSchemaDef.items = schema.Optional(schema.Collection(schema.Record {
+    id = schema.OneOf(schema.String, schema.Integer),
+    text = name_ref.IdentifierSchema
+}))
+
+local RefDefSchemaDef = {
+    classRef = schema.OneOf(schema.Nil, name_ref.IdentifierSchema, schema.Collection(name_ref.IdentifierSchema)),
+    dynamic = schema.Optional(schema.Record {
+        selectorProp = name_ref.IdentifierSchema,
+        rules = schema.Collection(schema.Record {
+            regex = schema.String,
+            classRef = name_ref.IdentifierSchema
+        })
+    }),
+
+    --[[
+    Property name ID (in `classRef` class) used as reversed reference property for this one. Optional. If set,
+    Flexilite will ensure that referenced class does have this property (by creating if needed).
+    'reversed property' is treated as slave of master definition. It means the following:
+    1) reversed object ID is stored in [Value] field (master's object ID in [ObjectID] field)
+         2) when master property gets modified (switches to different class or reverse property) or deleted,
+         reverse property definition also gets deleted
+         ]]
+    reverseProperty = schema.Optional(name_ref.IdentifierSchema),
+
+    --[[
+    Defines number of items fetched as a part of master object load. Applicable only > 0
+    ]]
+    autoFetchLimit = schema.Optional(schema.Integer),
+
+    autoFetchDepth = schema.Optional(schema.Integer),
+
+    --[[
+    Optional relation rule when object gets deleted. If not specified, 'link' is assumed
+    ]]
+    rule = schema.OneOf(schema.Nil,
+
+    --[[
+    Referenced object(s) are details (dependents).
+    They will be deleted when master is deleted. Equivalent of DELETE CASCADE
+    ]]
+    'master',
+
+    --[[
+    Loose association between 2 objects. When object gets deleted, references are deleted too.
+    Equivalent of DELETE SET NULL
+    ]]
+    'link',
+
+    --[[
+    Similar to master but referenced objects are treated as part of master object
+    ]]
+    'nested',
+
+    --[[
+    Object cannot be deleted if there are references. Equivalent of DELETE RESTRICT
+    ]]
+    'dependent'
+    ),
+}
+
 PropertyDef.Schema = schema.Record {
     rules = schema.Record {
         type = schema.OneOf(unpack(tablex.keys(PropertyDef.PropertyTypes))),
         subType = schema.OneOf(schema.Nil, 'text', 'email', 'ip', 'password', 'ip6v', 'url', 'image', 'html' ), -- TODO list to be extended
         minOccurrences = schema.Optional(schema.AllOf(schema.NonNegativeNumber, schema.Integer)),
-        maxOccurrences = schema.Optional(schema.AllOf(        schema.Integer, schema.PositiveNumber)),
+        maxOccurrences = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
         maxLength = schema.Optional(schema.AllOf(schema.Integer, schema.NumberFrom(-1, Constants.MAX_INTEGER))),
         minValue = schema.Optional(schema.Number),
         maxValue = schema.Optional(schema.Number),
@@ -999,9 +1048,8 @@ PropertyDef.Schema = schema.Record {
     index = schema.OneOf(schema.Nil, 'index', 'unique', 'range', 'fulltext'),
     noTrackChanges = schema.Optional(schema.Boolean),
 
-    -- TODO Custom validators for refDef and enumDef
-    refDef = schema.Optional(schema.Any),
-    enumDef = schema.Optional(schema.Any),
+    refDef = schema.Optional(schema.Record( RefDefSchemaDef)),
+    enumDef = schema.Optional(schema.Record(EnumDefSchemaDef)),
 
     defaultValue = schema.Any,
     accessRules = schema.Optional(AccessControl.Schema),

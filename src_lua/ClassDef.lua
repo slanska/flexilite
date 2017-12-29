@@ -351,7 +351,7 @@ function ClassDef:getObjectSchema(op)
     assert(op == 'C' or op == 'U')
 
     local result = self.objectSchema[op]
-    if not result then
+    if result then
         return result
     end
 

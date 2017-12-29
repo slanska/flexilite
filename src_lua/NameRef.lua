@@ -134,10 +134,11 @@ end
 local IdentifierSchema = schema.Pattern('[_%a][_%w]*')
 
 -- define schema for name definition
-NameRef.Schema = schema.Record {
+NameRef.SchemaDef = {
     id = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
     text = IdentifierSchema
 }
+NameRef.Schema = schema.Record(NameRef.SchemaDef)
 
 return {
     NameRef = NameRef,
