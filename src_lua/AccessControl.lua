@@ -63,7 +63,7 @@ function AccessControl:checkUserPermission(userInfo, accessRules, op)
         if type(accessRules.roles) == 'table' then
             -- Get intersection of accessRules.roles and userInfo.Roles
             local rr = tablex.intersection(accessRules.roles, userRoles)
-            for roleName, rolePermissions in pairs(rr) do
+            for _, rolePermissions in pairs(rr) do
                 if not checkPerm(rolePermissions) then
                     return false
                 end
@@ -121,7 +121,8 @@ end
 Pattern to match access rules
 ]]
 AccessControl.PermissionSchema = schema.Pattern('[C?c?R?r?U?u?D?d?N?n?E?e?+?*?-?]')
-AccessControl.PermissionMapSchema = schema.Optional(schema.Map(schema.OneOf(schema.String, schema.Integer)), AccessControl.PermissionSchema)
+AccessControl.PermissionMapSchema = schema.Optional(schema.Map(schema.OneOf(schema.String, schema.Integer)),
+    AccessControl.PermissionSchema)
 
 AccessControl.Schema = schema.Record {
     roles = AccessControl.PermissionMapSchema,

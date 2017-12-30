@@ -74,26 +74,49 @@ PropertyDef
 --- @class PropertyDef
 local PropertyDef = class()
 
-function PropertyDef.CreateInstance(classDef, srcData)
-    local pt = PropertyDef.PropertyTypes[string.lower(srcData.rules.type)]
-    if not pt then
-        error('Unknown property type ' .. srcData.type)
+-- Factory method to create a property object based on rules.type in params.jsonData
+---@param params table @comment 2 variants:
+---for new property (not stored in DB) {ClassDef: ClassDef, newPropertyName:string, jsonData: table}
+---for existing property (when loading from DB): {ClassDef: ClassDef, dbrow: table, jsonData: table}
+function PropertyDef.CreateInstance(params)
+    local propCtor = PropertyDef.PropertyTypes[string.lower(params.jsonData.rules.type)]
+    if not propCtor then
+        error('Unknown property type ' .. params.jsonData.rules.type)
     end
 
-    local result = pt(classDef, srcData)
-    return result
+    return propCtor(params)
 end
 
 -- PropertyDef constructor
-function PropertyDef:_init(ClassDef, srcData)
-    assert(ClassDef)
-    assert(srcData and srcData.rules and srcData.rules.type)
+---@param params table @comment 2 variants:
+---for new property (not stored in DB) {ClassDef: ClassDef, newPropertyName:string, jsonData: table}
+---for existing property (when loading from DB): {ClassDef: ClassDef, dbrow: table, jsonData: table}
+function PropertyDef:_init(params)
+    assert(params.ClassDef)
+    assert(params.jsonData and params.jsonData.rules and params.jsonData.rules.type)
 
-    self.ClassDef = ClassDef
-    self.D = srcData
-    self.Prop = NameRef(self.Property, self.NameID)
-    self.AccessRules = {}
-    self:initMetadataRefs()
+    self.ClassDef = params.ClassDef
+    self.D = params.jsonData
+
+    if params.newPropertyName then
+        -- New property, no row in database, no resolved name IDs
+        self.Name = NameRef(nil, params.newPropertyName)
+        self:initMetadataRefs()
+    else
+        assert(params.dbrow)
+        self.Name = NameRef(params.dbrow.NameID, params.dbrow.Name)
+
+        -- Copy property attributes
+        self.ID = params.dbrow.PropertyID
+        self.ctlv = params.dbrow.ctlv or 0
+        self.ctlvPlan = params.dbrow.ctlvPlan or 0
+        self.Deleted = params.dbrow.Deleted or false
+        self.ColMap = params.dbrow.ColMap
+        self.NonNullCount = params.dbrow.NonNullCount or 0
+        self.SearchHitCount = params.dbrow.SearchHitCount or 0
+
+        self.ClassDef.DBContext.ClassProps[self.ID] = self
+    end
 end
 
 function PropertyDef:hasUnresolvedReferences()
@@ -173,15 +196,15 @@ end
 --- @param another PropertyDef
 --- @return string
 -- 'yes', 'no', 'maybe' (=existing data validation needed)
-function PropertyDef:canChangeTo(another)
-    assert(another)
+function PropertyDef:canAlterDefinition(newDef)
+    assert(newDef)
 
     local result = 'yes'
 
     -- compare minOccurrences and maxOccurences to get preliminary verdict
-    if self.D.rules.minOccurrences or 0 < another.D.rules.minOccurrences or 0 then
+    if self.D.rules.minOccurrences or 0 < newDef.D.rules.minOccurrences or 0 then
         result = 'maybe'
-    elseif self.D.rules.maxOccurrences or 0 < another.D.rules.maxOccurrences or 0 then
+    elseif self.D.rules.maxOccurrences or 0 < newDef.D.rules.maxOccurrences or 0 then
         result = 'maybe'
     end
 
@@ -193,12 +216,11 @@ end
 function PropertyDef:saveToDB()
     assert(self.ClassDef and self.ClassDef.DBContext)
 
-    assert(self.Prop and self.Prop:isResolved())
+    assert(self.Name and self.Name:isResolved())
 
     -- Set ctlv
     self.ctlv = 0
     local vt = self:GetVType()
-
 
     if self.ID and tonumber(self.ID) > 0 then
         -- Update existing
@@ -206,11 +228,11 @@ function PropertyDef:saveToDB()
         set NameID = :nameID, ctlv = :ctlv, ctlvPlan = :ctlvPlan, ColMap = :ColMap
         where ID = :id]],
         {
-            nameID = self.Prop.id,
+            nameID = self.Name.id,
             ctlv = self.ctlv,
             ctlvPlan = self.ctlvPlan,
             ColMap = self.ColMap,
-            id = self.PropertyID
+            id = self.ID
         })
     else
         -- Insert new
@@ -218,16 +240,19 @@ function PropertyDef:saveToDB()
         [[insert into [.class_props] (ClassID, NameID, ctlv, ctlvPlan, ColMap)
             values (:ClassID, :NameID, :ctlv, :ctlvPlan, :ColMap);]], {
             ClassID = self.ClassDef.ClassID,
-            NameID = self.Prop.id,
+            NameID = self.Name.id,
             ctlv = self.ctlv,
             ctlvPlan = self.ctlvPlan,
             ColMap = self.ColMap
         })
 
-        self.PropertyID = self.ClassDef.DBContext.db:last_insert_rowid()
+        self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
+
+        -- As property ID is now known, register property in DBContext property collection
+        self.ClassDef.DBContext.ClassProps[self.ID] = self
     end
 
-    return self.PropertyID
+    return self.ID
 end
 
 --- @return table @comment User friendly JSON-ready table with all public properties.
@@ -245,7 +270,7 @@ end
 --Applies property definition to the database. Called on property save
 function PropertyDef:applyDef()
     -- resolve property name
-    self.Prop:resolve(self.ClassDef)
+    self.Name:resolve(self.ClassDef)
 
     -- set ctlv
     self.ctlv = 0
@@ -310,8 +335,8 @@ AnyPropertyDef
 
 local AnyPropertyDef = class(PropertyDef)
 
-function AnyPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function AnyPropertyDef:_init(params)
+    self:super(params)
 end
 
 -- TODO override methods, allow any data??
@@ -326,8 +351,8 @@ NumberPropertyDef
 --- @class NumberPropertyDef
 local NumberPropertyDef = class(PropertyDef)
 
-function NumberPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function NumberPropertyDef:_init(params)
+    self:super(params)
 end
 
 -- Checks if number property is well defined
@@ -373,8 +398,8 @@ MoneyPropertyDef
 --- @class MoneyPropertyDef
 local MoneyPropertyDef = class(NumberPropertyDef)
 
-function MoneyPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function MoneyPropertyDef:_init(params)
+    self:super(params)
 end
 
 function MoneyPropertyDef:GetVType()
@@ -393,8 +418,8 @@ IntegerPropertyDef
 --- @class IntegerPropertyDef
 local IntegerPropertyDef = class(NumberPropertyDef)
 
-function IntegerPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function IntegerPropertyDef:_init(params)
+    self:super(params)
 end
 
 --- @overload
@@ -405,8 +430,8 @@ function IntegerPropertyDef:isValidDef()
     end
 
     -- Check minValue and maxValue
-    local maxV = math.min(tonumber(self.D.rules.maxValue or Constants.MAX_INTEGER), MAX_INTEGER)
-    local minV = math.max(tonumber(self.D.rules.minValue or Constants.MIN_INTEGER), MIN_INTEGER)
+    local maxV = math.min(tonumber(self.D.rules.maxValue or Constants.MAX_INTEGER), Constants.MAX_INTEGER)
+    local minV = math.max(tonumber(self.D.rules.minValue or Constants.MIN_INTEGER), Constants.MIN_INTEGER)
     if minV > maxV then
         return false, 'Invalid minValue or maxValue settings'
     end
@@ -434,8 +459,8 @@ TextPropertyDef
 --- @class TextPropertyDef
 local TextPropertyDef = class(PropertyDef)
 
-function TextPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function TextPropertyDef:_init(params)
+    self:super(params)
 end
 
 --- @overload
@@ -479,8 +504,8 @@ SymNamePropertyDef
 --- @class SymNamePropertyDef
 local SymNamePropertyDef = class(TextPropertyDef)
 
-function SymNamePropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function SymNamePropertyDef:_init(params)
+    self:super(params)
 end
 
 function SymNamePropertyDef:ColumnMappingSupported()
@@ -509,8 +534,8 @@ MixinPropertyDef
 --- @class MixinPropertyDef
 local MixinPropertyDef = class(PropertyDef)
 
-function MixinPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function MixinPropertyDef:_init(params)
+    self:super(params)
 end
 
 --- @overload
@@ -604,8 +629,8 @@ ReferencePropertyDef
 --- @class ReferencePropertyDef
 local ReferencePropertyDef = class(MixinPropertyDef)
 
-function ReferencePropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function ReferencePropertyDef:_init(params)
+    self:super(params)
 end
 
 --- @overload
@@ -712,8 +737,8 @@ EnumPropertyDef
 --- @class EnumPropertyDef
 local EnumPropertyDef = class(PropertyDef)
 
-function EnumPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function EnumPropertyDef:_init(params)
+    self:super(params)
 end
 
 ---
@@ -826,8 +851,8 @@ BoolPropertyDef
 --- @class BoolPropertyDef
 local BoolPropertyDef = class(PropertyDef)
 
-function BoolPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function BoolPropertyDef:_init(params)
+    self:super(params)
 end
 
 function BoolPropertyDef:getNativeType()
@@ -848,8 +873,8 @@ BlobPropertyDef
 --- @class BlobPropertyDef
 local BlobPropertyDef = class(PropertyDef)
 
-function BlobPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function BlobPropertyDef:_init(params)
+    self:super(params)
 end
 
 function BlobPropertyDef:getNativeType()
@@ -874,8 +899,8 @@ UuidPropertyDef
 --- @class UuidPropertyDef
 local UuidPropertyDef = class(BlobPropertyDef)
 
-function UuidPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function UuidPropertyDef:_init(params)
+    self:super(params)
 end
 
 --[[
@@ -887,8 +912,8 @@ DateTimePropertyDef
 --- @class DateTimePropertyDef
 local DateTimePropertyDef = class(NumberPropertyDef)
 
-function DateTimePropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function DateTimePropertyDef:_init(params)
+    self:super(params)
 end
 
 function DateTimePropertyDef:GetVType()
@@ -904,8 +929,8 @@ TimeSpanPropertyDef
 --- @class TimeSpanPropertyDef
 local TimeSpanPropertyDef = class(DateTimePropertyDef)
 
-function TimeSpanPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function TimeSpanPropertyDef:_init(params)
+    self:super(params)
 end
 
 function TimeSpanPropertyDef:GetVType()
@@ -921,8 +946,8 @@ ComputedPropertyDef
 --- @class ComputedPropertyDef
 local ComputedPropertyDef = class(PropertyDef)
 
-function ComputedPropertyDef:_init(classDef, srcData)
-    self:super(classDef, srcData)
+function ComputedPropertyDef:_init(params)
+    self:super(params)
 end
 
 

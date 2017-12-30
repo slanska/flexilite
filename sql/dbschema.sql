@@ -433,7 +433,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByMap]
 CREATE VIEW IF NOT EXISTS [flexi_prop] AS
   SELECT
     cp.[ID]                                                          AS PropertyID,
-    c.ClassID                                                        AS ClassID,
+    cp.ClassID                                                        AS ClassID,
     c.Class                                                          AS Class,
     cp.[PropNameID]                                                  AS NameID,
     (SELECT n.[Value]
@@ -441,10 +441,11 @@ CREATE VIEW IF NOT EXISTS [flexi_prop] AS
      WHERE n.ID = cp.PropNameID
      LIMIT 1)                                                        AS Property,
     cp.ctlv                                                          AS ctlv,
-    -- TODO Needed?
     cp.ctlvPlan                                                      AS ctlvPlan,
-    -- TODO Needed?
-    (json_extract(c.Definition, printf('$.properties.%d', cp.[ID]))) AS Definition
+    (json_extract(c.Definition, printf('$.properties.%d', cp.[ID]))) AS Definition,
+    cp.Deleted AS Deleted,
+    cp.SearchHitCount as SearchHitCount,
+    cp.NotNullCount as NotNullCount
 
   FROM [.class_props] cp
     JOIN [flexi_class] c ON cp.ClassID = c.ClassID

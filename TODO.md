@@ -110,6 +110,8 @@ data: Database, statements, user info, class definitions, cache of referenced va
     
     
 
-
-         
+text|integer -> enum -> reference
+enum -> mixin
+properties -> mixin -> reference
+enum -> reference
 

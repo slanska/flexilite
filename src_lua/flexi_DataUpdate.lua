@@ -19,10 +19,22 @@ local class = require 'pl.class'
 local schema = require 'schema'
 local tablex = require 'tablex'
 local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
+local QueryBuilder = require 'QueryBuilder'
 
 -- Helper class to save objects to DB
 ---@class SaveObjectParams
 local SaveObjectHelper = class()
+
+---@param DBContext DBContext
+function SaveObjectHelper:_init(DBContext)
+    self.DBContext = DBContext
+    self.QueryBuilder = QueryBuilder(DBContext)
+    self.unresolvedReferences = {}
+    self.checkedClasses = {}
+
+    -- Properties already checked for user access permissions
+    self.checkedProps = {}
+end
 
 -- Ensures that user has required permissions for class level
 ---@param classDef ClassDef
@@ -36,18 +48,17 @@ function SaveObjectHelper:checkPermissionAccess(propDef, op)
     self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
 end
 
----@param DBContext DBContext
-function SaveObjectHelper:_init(DBContext)
-    self.DBContext = DBContext
-    self.unresolvedReferences = {}
-    self.checkedClasses = {}
-
-    -- Properties already checked for user access permissions
-    self.checkedProps = {}
-end
-
 function SaveObjectHelper:resolveReferences()
+    for _, item in ipairs(self.unresolvedReferences) do
+        -- item: {propDef, object}
 
+        -- run query
+        -- TODO Use iterator
+        local refIDs = self.QueryBuilder:GetReferencedObjects(item.propDef, item.object[item.propDef.Name.text])
+        for idx, refID in ipairs(refIDs) do
+            -- PropIndex =  idx - 1
+        end
+    end
 end
 
 -- Saves single object
@@ -133,7 +144,19 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
     -- will save scalar values only
     obj:saveToDB()
 
+    -- Save nested/child objects
+    for _, propDef in ipairs(self.DBContext.GetNestedAndMasterProperties(classDef.ClassID)) do
+        local dd = obj[propDef.Name.text]
+        if dd and type(dd) == 'table' then
+            dd['$master'] = obj.ID
+            self:saveObject(propDef.refDef.classRef.text, nil, nil, dd)
+        end
+    end
 
+    for _, propDef in ipairs(self.DBContext.GetClassReferenceProperties(classDef.ClassID)) do
+        -- Treat property value as query to get list of objects
+        table.insert(self.unresolvedReferences, { propDef = propDef, object = obj })
+    end
 
     -- TODO call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
 
@@ -143,12 +166,6 @@ end
 --[[
 Implementation of flexi_data virtual table xUpdate API: insert, update, delete
 ]]
-
----@param self DBContext
----@param unresolvedRefs table
-local function resolveReferences(self, unresolvedRefs)
-
-end
 
 --[[
  Inserts/updates/deletes data. Supports classic and classless mode, which are distinguished by className

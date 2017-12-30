@@ -68,9 +68,6 @@ local function MergeClassDefinitions(self, srcClass, destClassDef)
     -- allowAnyProps
     newClass.allowAnyProps = newClass.allowAnyProps or srcClass.allowAnyProps or false
 
-    -- columnMapping
-    newClass.columnMapping = newClass.columnMapping or srcClass.columnMapping or {}
-
     -- SystemClass
     newClass.SystemClass = newClass.SystemClass or srcClass.SystemClass or false
 
@@ -128,7 +125,6 @@ local function AlterClass(self, className, newClassDefJSON, createVTable, invali
     --- specialProperties
     --- fullTextIndexing
     --- rangeIndexing
-    --- columnMapping: cannot change if locked
 
     -- Check if property changes are ok
 

@@ -4,7 +4,7 @@
 ---
 
 --[[
-Flexilite class (table) definition
+Flexilite class (=table) definition
 Has reference to DBContext
 Corresponds to [.classes] database table + D - decoded [data] field, with initialized PropertyRef's and NameRef's
 
@@ -22,7 +22,7 @@ local PropertyDef = require('PropertyDef')
 local name_ref = require('NameRef')
 local NameRef = name_ref.NameRef
 local class = require 'pl.class'
-local tablex = require 'pl.tablex'
+--local tablex = require 'pl.tablex'
 local AccessControl = require 'AccessControl'
 
 --[[
@@ -33,7 +33,7 @@ local AccessControl = require 'AccessControl'
 local ClassDef = class()
 
 --- ClassDef constructor
----@param params table @comment {DBContext: DBContext, newClassName:string, data: table | string | json}
+---@param params table @comment {DBContext: DBContext, newClassName:string, data: table | string | table as parsed json}
 function ClassDef:_init(params)
     self.DBContext = params.DBContext
 
@@ -46,20 +46,14 @@ function ClassDef:_init(params)
     -- Values are lists of PropertyDef
     self.MixinProperties = {}
 
-    -- Class name reference
-    self.Name = {}
+    -- set column mapping dictionary, value is either nil or PropertyDef
+    self.propColMap = { }
 
-    -- set column mapping dictionary
-    self.propColMap = {
-        A = false, B = false, C = false, D = false, E = false, F = false, G = false, H = false,
-        I = false, J = false, K = false, L = false, M = false, N = false, O = false, P = false
-    }
-
-    self.AccessRules = {}
     self.CheckedInTrn = 0
+
+    -- Object schema (for create and update operations)
     self.objectSchema = {}
 
-    setmetatable(self.Name, NameRef)
     local data
 
     if params.newClassName then
@@ -70,13 +64,17 @@ function ClassDef:_init(params)
             data = json.decode(data)
         end
 
-        self.Name.text = params.newClassName
+        -- Class name reference
+        self.Name = NameRef(nil, params.newClassName)
         self.D = {}
+
+        for propName, propJsonData in pairs(data.properties) do
+            self:AddNewProperty(propName, propJsonData)
+        end
     else
         -- Loading existing class from DB. params.data is [.classes] row
         assert(type(params.data) == 'table')
-        self.Name.id = params.data.NameID
-        self.Name.text = params.data.Name
+        self.Name = NameRef(params.data.NameID, params.data.Name)
         self.ClassID = params.data.ClassID
         self.ctloMask = params.data.ctloMask
         self.SystemClass = params.data.SystemClass
@@ -87,29 +85,13 @@ function ClassDef:_init(params)
 
         self.D = json.decode(params.data.Data)
         data = self.D
-    end
 
-    for nameOrId, p in pairs(data.properties) do
-        --if not self.Properties[p.ID] then
-        local prop = PropertyDef.CreateInstance(self, p)
-
-        -- Determine mode
-        if type(nameOrId) == 'number' and p.Prop.text and p.Prop.id then
-            -- Database contexts
-            self.DBContext.ClassProps[nameOrId] = prop
-            self.Properties[p.Prop.text] = prop
-        else
-            if type(nameOrId) ~= 'string' then
-                error('Invalid type of property name: ' .. nameOrId)
-            end
-
-            -- Raw JSON context
-            prop.Prop.text = nameOrId
-            self.Properties[nameOrId] = prop
-        end
-
-        if p.ColMap then
-            self.propColMap[p.ColMap] = p
+        -- Load from .class_props
+        for propRow in self.DBContext:loadRows([[
+        select PropertyID, ClassID, NameID, Property, ctlv, ctlvPlan,
+            Deleted, SearchHitCount, NotNullCount from [.class_props] cp where cp.ClassID = :ClassID;]],
+        { ClassID = self.ClassID }) do
+            self:loadPropertyFromDB(propRow, self.D.properties[propRow.PropertyID])
         end
     end
 
@@ -131,7 +113,24 @@ function ClassDef:_init(params)
     dictFromJSON('specialProperties')
     dictFromJSON('rangeIndexing')
     dictFromJSON('fullTextIndexing')
-    dictFromJSON('columnMapping')
+end
+
+-- Initializes existing property loaded from database. Internally used method
+---@param dbrow table @comment flexi_prop view structure
+---@param propJsonData table @comment property definition according to schema
+function ClassDef:loadPropertyFromDB(dbrow, propJsonData)
+    local prop = PropertyDef.CreateInstance { ClassDef = self, dbrow = dbrow, jsonData = propJsonData }
+    self.Properties[dbrow.Name] = prop
+end
+
+-- Internal method to add property definition to the property list
+-- Called when a) creating a new class, b) loading existing class from DB,
+-- c) altering existing class
+---@param propName string
+---@param propJsonData table @comment parsed JSON for property definition
+function ClassDef:AddNewProperty(propName, propJsonData)
+    local prop = PropertyDef.CreateInstance { ClassDef = self, newPropertyName = propName, jsonData = propJsonData }
+    self.Properties[propName] = prop
 end
 
 -- Fills MixinProperties with properties from mixin classes, if applicable
@@ -169,23 +168,17 @@ function ClassDef:assignColMappingForProperty(prop)
     end
 
     -- Find available slot
-    local ch = tablex.find_if(self.propColMap, function(val)
-        return not val
-    end )
-
-    -- Assigned!
-    if ch then
-        self.propColMap[ch] = prop
-        prop.ColMap = ch
-        return true
+    local cols = 'ABCDEFGHIJKLMNOP'
+    for ch in cols:gmatch '.' do
+        if not self.propColMap[ch] then
+            -- Available slot!
+            self.propColMap[ch] = prop
+            prop.ColMap = ch
+            return true
+        end
     end
 
     return false
-end
-
-function ClassDef:selfValidate()
-    -- todo implement
-
 end
 
 ---@param propName string
@@ -211,10 +204,6 @@ function ClassDef:getProperty(propName)
     return prop
 end
 
-function ClassDef:validateData()
-    -- todo
-end
-
 ---@return table @comment User friendly encoded JSON of class definition (excluding raw and internal properties)
 function ClassDef:toJSON()
     local result = {
@@ -235,14 +224,13 @@ function ClassDef:toJSON()
         end
     end
 
-    for i, p in ipairs(self.Properties) do
+    for _, p in ipairs(self.Properties) do
         result[p.Name] = p.toJSON()
     end
 
     dictToJSON('specialProperties')
     dictToJSON('fullTextIndexing')
     dictToJSON('rangeIndexing')
-    dictToJSON('columnMapping')
 
     return result
 end
@@ -253,7 +241,7 @@ end
 function ClassDef:internalToJSON()
     local result = { properties = {} }
 
-    for propName, prop in pairs(self.Properties) do
+    for _, prop in pairs(self.Properties) do
         result.properties[tostring(prop.PropertyID)] = prop:internalToJSON()
     end
 
@@ -291,7 +279,8 @@ function ClassDef:dropRangeDataTable()
     end
 end
 
--- Updated class definition in database. Is is expected to be already created (INSERT INTO already run and class ID is known)
+-- Updated class definition in database. Is is expected to be already created
+-- (INSERT INTO already run and class ID is known)
 function ClassDef:saveToDB()
     assert(self.ClassID > 0)
     local internalJson = json.encode(self:internalToJSON())
@@ -299,7 +288,7 @@ function ClassDef:saveToDB()
     -- Calculate ctloMask and vtypes
     self.vtypes = 0
     self.ctloMask = 0
-    for col, propDef in pairs(self.propColMap) do
+    for _, propDef in pairs(self.propColMap) do
         assert(propDef)
         local colIdx = string.lower(propDef.ColMap):byte() - string.byte('a')
         local vtmask = Util64.BNot64(Util64.BLShift64(7, colIdx * 3))
@@ -396,24 +385,6 @@ ClassDef.Schema = schema.Record {
     properties = schema.Map(name_ref.IdentifierSchema, PropertyDef.Schema),
     ui = schema.Any, -- TODO finalize
     allowAnyProps = schema.Optional(schema.Boolean),
-    columnMapping = schema.Optional(schema.Record {
-        A = schema.Optional(NameRef.Schema),
-        B = schema.Optional(NameRef.Schema),
-        C = schema.Optional(NameRef.Schema),
-        D = schema.Optional(NameRef.Schema),
-        E = schema.Optional(NameRef.Schema),
-        F = schema.Optional(NameRef.Schema),
-        G = schema.Optional(NameRef.Schema),
-        H = schema.Optional(NameRef.Schema),
-        I = schema.Optional(NameRef.Schema),
-        J = schema.Optional(NameRef.Schema),
-        K = schema.Optional(NameRef.Schema),
-        L = schema.Optional(NameRef.Schema),
-        M = schema.Optional(NameRef.Schema),
-        N = schema.Optional(NameRef.Schema),
-        O = schema.Optional(NameRef.Schema),
-        P = schema.Optional(NameRef.Schema),
-    }),
     specialProperties = schema.Optional(schema.Record {
         -- User defined ID. Unique and required
         uid = schema.Optional(NameRef.Schema),
