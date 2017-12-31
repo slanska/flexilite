@@ -60,7 +60,6 @@ local tablex = require 'pl.tablex'
 local schema = require 'schema'
 local bit = type(jit) == 'table' and require('bit') or require('bit32')
 local name_ref = require 'NameRef'
-local EnumDef = require 'EnumDef'
 local NameRef, ClassNameRef, PropNameRef = name_ref.NameRef, name_ref.ClassNameRef, name_ref.PropNameRef
 local Constants = require 'Constants'
 local AccessControl = require 'AccessControl'
@@ -91,15 +90,19 @@ end
 ---@param params table @comment 2 variants:
 ---for new property (not stored in DB) {ClassDef: ClassDef, newPropertyName:string, jsonData: table}
 ---for existing property (when loading from DB): {ClassDef: ClassDef, dbrow: table, jsonData: table}
+---@param params.ClassDef ClassDef
+---@param params.newPropertyName string
 function PropertyDef:_init(params)
     assert(params.ClassDef)
     assert(params.jsonData and params.jsonData.rules and params.jsonData.rules.type)
 
+    ---@type ClassDef
     self.ClassDef = params.ClassDef
     self.D = params.jsonData
 
     if params.newPropertyName then
         -- New property, no row in database, no resolved name IDs
+        ---@type NameRef
         self.Name = NameRef(nil, params.newPropertyName)
         self:initMetadataRefs()
     else
@@ -107,6 +110,7 @@ function PropertyDef:_init(params)
         self.Name = NameRef(params.dbrow.NameID, params.dbrow.Name)
 
         -- Copy property attributes
+        ---@type number
         self.ID = params.dbrow.PropertyID
         self.ctlv = params.dbrow.ctlv or 0
         self.ctlvPlan = params.dbrow.ctlvPlan or 0
@@ -327,6 +331,10 @@ function PropertyDef:GetValueSchema(op)
     return schema.Any
 end
 
+function PropertyDef:GetSupportedIndexTypes()
+    return Constants.INDEX_TYPES.NON
+end
+
 --[[
 ===============================================================================
 AnyPropertyDef
@@ -388,6 +396,10 @@ function NumberPropertyDef:GetValueSchema(op)
     schema.NumberFrom(self.D.rules.minValue or Constants.MIN_NUMBER,
     self.D.rules.maxValue or Constants.MAX_NUMBER))
     return result
+end
+
+function NumberPropertyDef:GetSupportedIndexTypes()
+    return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.RNG + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ
 end
 
 --[[
@@ -495,6 +507,10 @@ function TextPropertyDef:GetValueSchema(op)
     return result
 end
 
+function TextPropertyDef:GetSupportedIndexTypes()
+    return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.FTS + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ
+end
+
 --[[
 ===============================================================================
 SymNamePropertyDef
@@ -523,6 +539,9 @@ function SymNamePropertyDef:GetValueSchema(op)
     return result
 end
 
+function SymNamePropertyDef:GetSupportedIndexTypes()
+    return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ+ Constants.INDEX_TYPES.FTS_SEARCH
+end
 
 --[[
 ===============================================================================
@@ -793,6 +812,7 @@ end
 function EnumPropertyDef:applyDef()
     PropertyDef.applyDef(self)
 
+    -- Resolve names
     if self.D.enumDef then
         if self.D.enumDef.classRef then
             self.D.enumDef.classRef:resolve(self.ClassDef)
@@ -804,6 +824,8 @@ function EnumPropertyDef:applyDef()
             end
         end
     end
+
+    self.DBContext.EnumManager:ApplyEnumPropertyDef(self)
 end
 
 function EnumPropertyDef:internalToJSON()
@@ -843,6 +865,10 @@ function EnumPropertyDef:GetVType()
     return Constants.vtype.enum
 end
 
+function EnumPropertyDef:GetSupportedIndexTypes()
+    return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.STD
+end
+
 --[[
 ===============================================================================
 BoolPropertyDef
@@ -862,6 +888,10 @@ end
 -- true if property value can be used as user defined ID (UID)
 function BoolPropertyDef:CanBeUsedAsUID()
     return false
+end
+
+function BoolPropertyDef:GetSupportedIndexTypes()
+    return Constants.INDEX_TYPES.MUL
 end
 
 --[[
@@ -901,6 +931,10 @@ local UuidPropertyDef = class(BlobPropertyDef)
 
 function UuidPropertyDef:_init(params)
     self:super(params)
+end
+
+function UuidPropertyDef:GetSupportedIndexTypes()
+    return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ
 end
 
 --[[
@@ -949,7 +983,6 @@ local ComputedPropertyDef = class(PropertyDef)
 function ComputedPropertyDef:_init(params)
     self:super(params)
 end
-
 
 function ComputedPropertyDef:ColumnMappingSupported()
     return false
@@ -1060,7 +1093,7 @@ local RefDefSchemaDef = {
 }
 
 PropertyDef.Schema = schema.Record {
-    rules = schema.Record {
+    rules = schema.AllOf(schema.Record {
         type = schema.OneOf(unpack(tablex.keys(PropertyDef.PropertyTypes))),
         subType = schema.OneOf(schema.Nil, 'text', 'email', 'ip', 'password', 'ip6v', 'url', 'image', 'html' ), -- TODO list to be extended
         minOccurrences = schema.Optional(schema.AllOf(schema.NonNegativeNumber, schema.Integer)),
@@ -1070,6 +1103,10 @@ PropertyDef.Schema = schema.Record {
         maxValue = schema.Optional(schema.Number),
         regex = schema.Optional(schema.String),
     },
+    schema.Test( function(rules)
+        return (rules.maxOccurrences or 1) >= (rules.minOccurrences or 0)
+    end, 'maxOccurrences must be greater or equal than minOccurrences')),
+
     index = schema.OneOf(schema.Nil, 'index', 'unique', 'range', 'fulltext'),
     noTrackChanges = schema.Optional(schema.Boolean),
 

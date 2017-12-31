@@ -12,7 +12,7 @@
 //-------
 ]]
 
----@param era string
+---@param era string @comment 'BCE'
 ---@param y number
 ---@param m number
 ---@param d number
@@ -79,8 +79,9 @@ end
 // form - typed object
 ]]
 ---@param jd number
----@param form any @comment typed object
+---@return table @comment typed object
 local function julianToDate(jd, form)
+
     local j1, j2, j3, j4, j5            --scratch
 
     --//
@@ -136,19 +137,21 @@ local function julianToDate(jd, form)
         sc = sc + 1
     end
 
+    local result = {  }
     if y < 0 then
         y = -y
-        form.era[2].checked = true
+        result.era = true
     else
-        form.era[1].checked = true
+        result.era = false
     end
 
-    form.year.value = y
-    form.month[m].selected = true
-    form.day[d].selected = d
-    form.hour.value = hr
-    form.minute.value = mn
-    form.second.value = sc
+    result.year = y
+    result.month = m
+    result.day = d
+    result.hour = hr
+    result.minute = mn
+    result.second = sc
+    return result
 end
 
 return {

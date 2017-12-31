@@ -30,6 +30,7 @@ local PropertyDef = require('PropertyDef')
 local UserInfo = require('UserInfo')
 local AccessControl = require 'AccessControl'
 local DBObject = require 'DBObject'
+local EnumManager = require 'EnumManager'
 
 --- @class DBContext
 local DBContext = class()
@@ -63,11 +64,13 @@ function DBContext:_init(db)
     -- Cache of loaded objects. Exists only during time of request. Gets reset after request is complete
     self.Objects = {}
 
-    self.AccessControl = AccessControl(self)
-
-    -- helper constructors
+    -- helper constructors and singletons
     self.ClassDef = ClassDef
     self.PropertyDef = PropertyDef
+
+    -- Singletons
+    self.AccessControl = AccessControl(self)
+    self.EnumManager = EnumManager(self)
 
     self.SchemaChanged = false
 

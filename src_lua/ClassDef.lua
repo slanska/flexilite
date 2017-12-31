@@ -22,8 +22,192 @@ local PropertyDef = require('PropertyDef')
 local name_ref = require('NameRef')
 local NameRef = name_ref.NameRef
 local class = require 'pl.class'
---local tablex = require 'pl.tablex'
+local tablex = require 'pl.tablex'
 local AccessControl = require 'AccessControl'
+local bit = type(jit) == 'table' and require('bit') or require('bit32')
+
+--[[
+Index definitions for class. Operate with property IDs only,
+so properties of new class must be saved prior to using this class.
+Used for:
+a) organizing indexes, e.g. eliminating duplicates in index definition
+b) finding best index
+c) applying changes for index storage
+]]
+
+---@class IndexDefinitions
+local IndexDefinitions = class()
+
+-- Internal static variables
+IndexDefinitions.ftsCols = { 'X1', 'X2', 'X3', 'X4', 'X5' }
+IndexDefinitions.rngCols = { 'A0', 'A1', 'B0', 'B1', 'C0', 'C1', 'D0', 'D1', 'E0', 'E1' }
+
+function IndexDefinitions:_init()
+    -- Full text index. Array 1..5 to property ID (1 = X1, 2 = X2 ...)
+    self.fullTextIndexing = {}
+
+    -- Range index. Array 1 .. 10 to property ID (1 = A0, 2 = A1, 3 = B0...)
+    self.rangeIndexing = {}
+
+    -- Multi property unique indexes. Map of 2, 3, 4 to array of property IDs
+    self.multiKeyIndexing = { [2] = {}, [3] = {}, [4] = {} }
+
+    -- Indexes for single properties. Map by property ID to boolean
+    -- (false - non-unique index, true - unique index)
+    self.propIndexing = {}
+end
+
+---@param propDef PropertyDef
+---@return boolean, string @comment true if ok, false and error message if failed
+function IndexDefinitions:AddFullTextIndexedProperty(propDef)
+    assert(propDef and propDef.ID)
+
+    local supportedIndexTypes = propDef:GetSupportedIndexTypes()
+    if bit.BAnd(supportedIndexTypes, Constants.INDEX_TYPES.FTS) ~= Constants.INDEX_TYPES.FTS then
+        return false, string.format('Property [%s] does not support full text indexing', propDef.Name.text)
+    end
+
+    -- Already set?
+    local existingIndex = tablex.find(self.fullTextIndexing, propDef.ID)
+    if existingIndex then
+        return true, nil
+    end
+
+    if #self.fullTextIndexing == 5 then
+        return false, 'Maximum number of properties in full text index (5) exceeded'
+    end
+    table.insert(self.fullTextIndexing, propDef.ID)
+    return true, nil
+end
+
+---@param propDef0 PropertyDef
+---@param propDef1 PropertyDef
+---@return boolean, string @comment true if ok, false and error message if failed
+function IndexDefinitions:AddRangeIndexedProperties(propDef0, propDef1)
+    assert(propDef0 and propDef0.ID)
+
+    propDef1 = propDef1 or propDef0
+
+    for _, propDef in ipairs({ propDef0, propDef1 }) do
+        local supportedIndexTypes = propDef:GetSupportedIndexTypes()
+        if bit.BAnd(supportedIndexTypes, Constants.INDEX_TYPES.RNG) ~= Constants.INDEX_TYPES.RNG then
+            return false, string.format('Property [%s] does not support range indexing', propDef.Name.text)
+        end
+
+        if tablex.find(self.rangeIndexing, propDef.ID) then
+            return true, nil
+        end
+    end
+
+    if #self.rangeIndexing == 10 then
+        return false, 'Maximum number of dimensions in range index (5) exceeded'
+    end
+
+    table.insert(self.rangeIndexing, propDef0.ID)
+    table.insert(self.rangeIndexing, propDef1.ID)
+    return true, nil
+end
+
+---@param propDefs table @comment array of PropertyDef
+---@return boolean, string @comment true if ok, false and error message if failed
+function IndexDefinitions:AddMultiKeyIndex(propDefs)
+    assert(propDefs)
+    local len = #propDefs
+    if len < 2 or len > 4 then
+        return false, string.format(
+        'Invalid number of properties in multi key specification - %d. Must be between 2 and 4',
+        len)
+    end
+
+    for _, propDef in ipairs(propDefs) do
+        local supportedIndexTypes = propDef:GetSupportedIndexTypes()
+        if bit.BAnd(supportedIndexTypes, Constants.INDEX_TYPES.MUL) ~= Constants.INDEX_TYPES.MUL then
+            return false, string.format('Property [%s] does not support multi key indexing', propDef.Name.text)
+        end
+
+        -- Check for accidental duplicates
+        local all = tables.imap(function(p)
+            return p.ID == propDefID
+        end, propDefs)
+
+        if #all > 1 then
+            return false, string.format('Property [%s] is repeated more than once in multi key index', propDef.Name.text)
+        end
+    end
+
+    self.multiKeyIndexing[len] = tablex.imap(function(propDef)
+        return propDef.ID
+    end, propDefs)
+
+    return true, nil
+end
+
+---@param propDef PropertyDef
+---@param unique boolean
+---@return boolean, string @comment true if ok, false and error message if failed
+function IndexDefinitions:AddIndexedProperty(propDef, unique)
+    assert(propDef and propDef.ID)
+
+    local supportedIndexTypes = propDef:GetSupportedIndexTypes()
+    local expectedIndexType = unique and Constants.INDEX_TYPES.UNQ or Constants.INDEX_TYPES.STD
+    if bit.BAnd(supportedIndexTypes, expectedIndexType) ~= expectedIndexType then
+        return false, string.format('Property [%s] does not support indexing', propDef.Name.text)
+    end
+
+    if not unique then
+        -- Find possible usage of the same property in other types of indexes
+        local idx = tablex.find(self.rangeIndexing, propDef.ID)
+        if idx then
+            table.remove(self.propIndexing, propDef.ID)
+            return true, string.format('Property %s already included in range index', propDef.Name.text)
+        end
+
+        idx = tablex.find_if(function(propIDs)
+            return propIDs[1] == propDef.ID
+        end, self.multiKeyIndexing)
+        if idx then
+            table.remove(self.propIndexing, propDef.ID)
+            return true, string.format('Property %s already included in multi key index', propDef.Name.text)
+        end
+    end
+
+    self.propIndexing[propDef.ID] = unique
+end
+
+function IndexDefinitions:__eq(A, B)
+    return tablex.deepcompare(A, B)
+end
+
+-- Processed indexing for individual property
+---@param propDef PropertyDef
+---@return boolean, string @comment true if ok, false and error message if failed
+function IndexDefinitions:SetPropertyIndex(propDef)
+    assert(propDef and propDef.ID)
+
+    local idxType = string.lower(propDef.index or '')
+    if idxType == '' then
+        if self.propIndexing[propDef.ID] then
+            table.remove(self.propIndexing, propDef.ID)
+            return true, string.format('Index for property [%s] was removed', propDef.Name.text)
+        end
+        return true, nil
+    elseif idxType == 'fulltext' then
+        return self:AddFullTextIndexedProperty(propDef)
+    elseif idxType == 'range' then
+        if tablex.find(self.rangeIndexing, propDef.ID) then
+            return true, nil
+        end
+        return self:AddRangeIndexedProperties(propDef, nil)
+    elseif idxType == 'unique' then
+        return self:AddIndexedProperty(propDef, true)
+    elseif idxType == 'index' then
+        return self:AddIndexedProperty(propDef, false)
+    end
+
+    return false, 'Unknown index'
+end
+
+
 
 --[[
 
@@ -53,6 +237,8 @@ function ClassDef:_init(params)
 
     -- Object schema (for create and update operations)
     self.objectSchema = {}
+
+    self.indexes = IndexDefinitions()
 
     local data
 
@@ -306,32 +492,98 @@ function ClassDef:saveToDB()
         end
     end
 
-    self:execStatement("update [.classes] set NameID = :1, Data = :2, ctloMask = :3, vtypes = :4 where ClassID = :5;",
+    self:execStatement([[update [.classes] set NameID = :NameID, Data = :Data,
+        ctloMask = :ctloMask, vtypes = :vtypes where ClassID = :ClassID;]],
     {
-        ['1'] = self.Name.id,
-        ['2'] = internalJson,
-        ['3'] = self.ctloMask,
-        ['4'] = self.vtypes,
-        ['5'] = self.ClassID
+        NameID = self.Name.id,
+        Data = internalJson,
+        ctloMask = self.ctloMask,
+        vtypes = self.vtypes,
+        ClassID = self.ClassID
     })
 end
 
 -- Checks all properties and determines the best index to be used
+-- Indexes may be defined on individual properties level as well as on class level ('indexes' )
+-- Properties must be already saved, i.e. must have property IDs assigned
 -- Also validates index definitions
-function ClassDef:organizeIndexes()
+-- Used to optimize index definitions and also to prepare differences in indexes for AlTER CLASS/ALTER
 
-    -- Single key non unique indexes
-    -- Exclude columns that are in a) range index already, b) first column in multi key indexes
-    -- Number, integers, datetime, symnames - candidates for range index (if there are slots)
+---@return IndexDefinitions
+function ClassDef:getIndexDefinitions()
+    local result = IndexDefinitions()
 
-    -- Multi key unique indexes
+    for indexName, indexDef in pairs(self.D.indexes) do
+        local indexType = string.lower( indexDef.type or 'index')
+        local props = indexDef.properties
+        if type(props) == 'string' then
+            props = { name_ref.PropertyRef(nil, props) }
+            props[1]:resolve(self)
+        else
+            if type(props) ~= 'table' then
+                props = { props }
+            end
+            props = tables.map(function(pp)
+                local ref = name_ref. PropertyRef(pp.id, pp.text)
+                ref:resolve(self)
+                return ref
+            end, props)
+        end
 
-    -- Full text indexes
-    -- Validate
+        if indexType == 'range' then
+            -- Up to 10 values to be indexed by RTREE. Properties are processed in pairs
+            local propDefs = tablex.imap(function(pp)
+                return self:getProperty(pp.text)
+            end, props)
 
-    -- Single key unique indexes
+            for ii = 1, #propDefs, 2 do
+                local ok, msg = result:AddRangeIndexedProperties(propDefs[ii], propDefs[ii + 1])
+                if not ok then
+                    error(msg)
+                end
+            end
 
-    -- Range indexes
+        elseif indexType == 'unique' then
+            -- if 2..4 properties are listed, this is multi key index
+            -- if 1 property, this is regular unique index
+            if #props >= 2 and #props <= 4 then
+                local propDefs = tablex.map(function(propRef)
+                    return self:getProperty(propRef.text)
+                end, props)
+                local ok, msg = result:AddMultiKeyIndex(propDefs)
+                if not ok then
+                    error(msg)
+                end
+            elseif #props ~= 1 then
+                error(string.format('Invalid number of keys in unique/multi key index' ))
+            else
+                local propDef = self:getProperty(props[1].text)
+                local ok, msg = result:AddIndexedProperty(propDef, true)
+                if not ok then
+                    error(msg)
+                end
+            end
+        elseif indexType == 'fulltext' then
+            for i, propRef in ipairs(props) do
+                local propDef = self:getProperty(propRef.text)
+                local ok, msg = result:AddFullTextIndexedProperty(propDef)
+                if not ok then
+                    error(msg)
+                end
+            end
+        elseif indexType == 'index' then
+            -- if 2..5 properties in the list, there is attempt to apply range index
+            -- otherwise, apply individual indexing
+
+        end
+    end
+
+    return result
+end
+
+-- Potentially long operation to update indexes (drop, create, update etc.)
+function ClassDef:ApplyIndexing()
+
 end
 
 -- Generates schema for object validation. Sets self.objectSchema field
@@ -408,6 +660,7 @@ ClassDef.Schema = schema.Record {
         updateTime = schema.Optional(NameRef.Schema),
 
         -- Auto generated UUID (16 byte blob)
+        -- TODO add schema.Case to check type of autoUuid property
         autoUuid = schema.Optional(NameRef.Schema),
 
         -- Auto generated short ID (7-16 characters)
@@ -432,7 +685,7 @@ ClassDef.Schema = schema.Record {
 
     --[[
     Optional full text indexing. Maximum 4 properties are allowed for full text index.
-    These properties are mapped to X1-X4 columns in [.full_text_data] table
+    These properties are mapped to X1-X5 columns in [.full_text_data] table
     ]]
     fullTextIndexing = schema.Optional(schema.Record {
         X1 = schema.Optional(NameRef.Schema),
@@ -444,14 +697,18 @@ ClassDef.Schema = schema.Record {
 
     --[[
     Alternative way to define indexes (in addition to property's indexing)
-        Also, used for multi-column unique indexes
+        Also, this is the only way to define multi-column unique indexes
+        'range' and 'fulltext' indexes are merged and resulting number of columns must not
+        exceed limits (5 full text columns and 5 dimensions for range index)
+        'range' indexes must be defined in pairs (even number of properties, i.e. 2, 4, 6, 8 or 10)
+        keys in this tables (aka 'index name') are ignored
         ]]
     indexes = schema.Optional(schema.Map(schema.String, schema.Record {
         type = schema.OneOf(schema.Nil, 'index', 'unique', 'range', 'fulltext'),
         properties = schema.OneOf(
         NameRef.Schema,
         schema.String,
-        schema.Collection(        IndexPropertySchema        )),
+        schema.Collection(IndexPropertySchema)),
     })),
 
     --[[

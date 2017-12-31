@@ -31,20 +31,25 @@ translated based on current user culture
 local ClassCreate = require 'flexi_CreateClass'
 local json = require 'cjson'
 local NameRef = require 'NameRef'
+local class = require 'pl.class'
 
+-- Implements enum storage
 ---@class EnumManager
-local EnumManager = {}
-EnumManager.__index = EnumManager
+local EnumManager = class()
 
-function EnumManager.new(DBContext)
-    local result = { DBContext = DBContext }
-    setmetatable(result, EnumManager)
-    return result
+---@param DBContext DBContext
+function EnumManager:_init(DBContext)
+    self.DBContext = DBContext
+end
+
+---@param propDef EnumPropertyDef
+function EnumManager:ApplyEnumPropertyDef(propDef)
+    -- TODO
 end
 
 ---@param className string
----@param items table @comment optional, array of EnumItem
-function EnumManager:createEnumClass(className, items)
+---@param items table @comment (optional) array of EnumItem
+function EnumManager:CreateEnumClass(className, items)
     -- Determine id type
     local idType = 'integer'
     if items and #items > 0 then
@@ -83,12 +88,12 @@ function EnumManager:createEnumClass(className, items)
     local cls = ClassCreate(self.DBContext, className, json.encode(def), false)
 
     if items and #items > 0 then
-        self:upsertEnumItems(cls, items)
+        self:UpsertEnumItems(cls, items)
     end
 end
 
 ---@param className string
-function EnumManager:isClassEnum(className)
+function EnumManager:IsClassEnum(className)
     local cls = self.DBContext:LoadClassDefinition(className)
     if not cls then
         return false, 'Class [' .. className .. '] does not exist'
@@ -99,7 +104,7 @@ function EnumManager:isClassEnum(className)
     return result
 end
 
-function EnumManager:upsertEnumItems(cls, items)
+function EnumManager:UpsertEnumItems(cls, items)
     if not items then
         return
     end

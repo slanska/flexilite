@@ -96,6 +96,18 @@ local Constants = {
         ALL = '*'
     },
 
+    -- Bit flags for different types of property indexes
+    INDEX_TYPES = {
+        NON = 0,
+        FTS = 0x0001,
+        RNG = 0x0002,
+        UNQ = 0x0004,
+        STD = 0x0008,
+        MUL = 0x0010,
+        -- Full text index supported, but for search only (used by SymNameProperty)
+        FTS_SEARCH = 0x0020,
+    }
+
 }
 
 return Constants
