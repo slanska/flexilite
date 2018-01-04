@@ -283,8 +283,7 @@ function PropertyDef:applyDef()
         self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.INDEX)
     elseif idx == 'unique' then
         self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.UNIQUE)
-        --elseif idx == 'fulltext' then
-        --    self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.FTX_INDEX)
+    else self.ctlv = bit.band(self.ctlv, bit.bnot(bit.bor(Constants.CTLV_FLAGS.INDEX, Constants.CTLV_FLAGS.UNIQUE)) )
     end
 
     if self.D.noTrackChanges then
@@ -333,6 +332,22 @@ end
 
 function PropertyDef:GetSupportedIndexTypes()
     return Constants.INDEX_TYPES.NON
+end
+
+-- Returns column expression to access property value (with PropIndex = 1)
+-- Used to build dynamic SQL
+---@param first boolean @comment if true, will preprend column expression with comma
+---@return string
+function PropertyDef:GetColumnExpression(first)
+    if self.ColMap then
+        return string.format(
+        '%s coalesce([%s], (select [Value] from [.ref-values] where ClassID=%d and PropertyID=%d and PropIndex=0 limit 1)) as [%s]',
+        first and ' ' or ',', self.ColMap, self.ClassDef.ClassID, self.ID, self.Name.text )
+    else
+        return string.format(
+        '%s (select [Value] from [.ref-values] where ClassID=%d and PropertyID=%d and PropIndex=0 limit 1) as [%s]',
+        first and '' or ',', self.ClassDef.ClassID, self.ID, self.Name.text)
+    end
 end
 
 --[[
@@ -540,7 +555,7 @@ function SymNamePropertyDef:GetValueSchema(op)
 end
 
 function SymNamePropertyDef:GetSupportedIndexTypes()
-    return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ+ Constants.INDEX_TYPES.FTS_SEARCH
+    return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ + Constants.INDEX_TYPES.FTS_SEARCH
 end
 
 --[[

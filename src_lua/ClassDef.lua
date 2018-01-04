@@ -93,10 +93,16 @@ function IndexDefinitions:AddRangeIndexedProperties(propDef0, propDef1)
         if bit.BAnd(supportedIndexTypes, Constants.INDEX_TYPES.RNG) ~= Constants.INDEX_TYPES.RNG then
             return false, string.format('Property [%s] does not support range indexing', propDef.Name.text)
         end
+    end
 
-        if tablex.find(self.rangeIndexing, propDef.ID) then
-            return true, nil
-        end
+    local idx0 = tablex.find(self.rangeIndexing, propDef0.ID)
+    local idx1 = tablex.find(self.rangeIndexing, propDef1.ID)
+    if idx0 and idx1 == (idx0 + 1) then
+        return true, 'Properties  already in range index'
+    end
+
+    if idx0 or idx1 then
+        return false, 'Existing range index specification onflict'
     end
 
     if #self.rangeIndexing == 10 then
@@ -508,9 +514,8 @@ end
 -- Properties must be already saved, i.e. must have property IDs assigned
 -- Also validates index definitions
 -- Used to optimize index definitions and also to prepare differences in indexes for AlTER CLASS/ALTER
-
 ---@return IndexDefinitions
-function ClassDef:getIndexDefinitions()
+function ClassDef:suggestIndexDefinitions()
     local result = IndexDefinitions()
 
     for indexName, indexDef in pairs(self.D.indexes) do
@@ -574,16 +579,129 @@ function ClassDef:getIndexDefinitions()
         elseif indexType == 'index' then
             -- if 2..5 properties in the list, there is attempt to apply range index
             -- otherwise, apply individual indexing
+            if #indexDef >= 2 and #indexDef <= 5 then
 
+            end
         end
     end
 
     return result
 end
 
+-- Applies changes in class' index definitions
 -- Potentially long operation to update indexes (drop, create, update etc.)
-function ClassDef:ApplyIndexing()
+---@param oldDef ClassDef
+---@param newDef ClassDef
+function ClassDef.ApplyIndexing(oldDef, newDef)
+    assert(oldDef and newDef and oldDef ~= newDef)
+    local oldIdx = oldDef:suggestIndexDefinitions()
+    local newIdx = newDef:suggestIndexDefinitions()
 
+    -- Changed and added indexes
+    local propIdxDiff = tablex.differences( oldIdx.propIndexing, newIdx.propIndexing)
+
+    -- Properties that were indexed in old definition, but not indexed anymore
+    local propIdxDeleted = tablex.differences(  newIdx.propIndexing, oldIdx.propIndexing)
+
+    -- All changed properties: added, changed and deleted
+    local changedPropIdx = tablex.merge(propIdxDeleted, propIdxDiff)
+
+    -- Update ctlv and ctlo flags
+    for propName, propDef in pairs(newDef.Properties) do
+        if propIdxDeleted[propDef.ID] then
+            propDef.index = nil
+        end
+
+        if propDef.ColMap then
+            -- TODO set ctlo
+            local colIdx = string.byte(propDef.ColMap) - string.byte('A')
+            if propDef.index == 'unique' then
+                local mask = bit.blshift(1, colIdx + Constants.CTLO_FLAGS.UNIQUE_SHIFT)
+            elseif propDef.index == 'index' then
+
+            end
+        end
+
+        propDef:applyDef()
+        propDef:saveToDB()
+    end
+
+    -- Drop .range_data
+    if not tablex.deepcompare(oldIdx.rangeIndexing, newIdx.rangeIndexing) then
+        -- Create .range_data
+        newDef:dropRangeDataTable()
+        newDef:createRangeDataTable()
+
+        --[[insert ]]
+        local sqlLines = { string.format('insert into [.range_data_%d] (ObjectID', newDef.ClassID),
+            ') select Object' }
+        local colNameIdx = 1
+        local colValIdx = 2
+
+        for idx, propID in ipairs(newIdx.rangeIndexing) do
+            local propDef = newDef.DBContext.ClassProps[propID]
+            colNameIdx = colNameIdx + 1
+            colValIdx = colValIdx + 2
+            table.insert(sqlLines, colNameIdx, string.format(', %s', IndexDefinitions.rngCols[idx]))
+            table.insert(sqlLines, colValIdx, propDef:GetColumnExpression(false))
+        end
+
+        table.insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
+        local sql = table.concat(sqlLines)
+        newDef.DBContext:ExecAdhocSql(sql, { ClassID = newDef.ClassID })
+    end
+
+    -- Update .ref_values with new ctlv flags
+
+    -- Update .objects with new ctlo flags
+
+    if not tablex.deepcompare(oldIdx.fullTextIndexing, newIdx.fullTextIndexing) then
+        -- Delete from .full_text_data
+        newDef.DBContext:ExecAdhocSql([[delete from [.full_text_data] where ClassID = :ClassID;]], { ClassID = oldDef.ClassID })
+
+        -- Insert into .full_text_data
+
+        local colNamePos = 1
+        local colValPos = 2
+        local sqlLines = { 'insert into [.full_text_data] (id, ClassID',
+            string.format(') select ObjectID, %d ', newDef.ClassID),
+        }
+        for ii, propID in ipairs(newIdx.fullTextIndexing) do
+            local propDef = newDef.DBContext.ClassProps[propID]
+            colNamePos = colNamePos + 1
+            colValPos = colValPos + 2
+            table.insert(sqlLines, colNamePos, string.format(', [X%d]', ii))
+            table.insert(sqlLines, colValPos, propDef:GetColumnExpression(false))
+        end
+        table.insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
+        local sql = table.concat(sqlLines, '')
+        newDef.DBContext:ExecAdhocSql(sql, { ClassID = newDef.ClassID })
+    end
+
+    -- multi_key indexing
+    for idx = 2, 4 do
+        if not tablex.deepcompare(newIdx.multiKeyIndexing[idx], oldIdx.multiKeyIndexing[idx]) then
+            -- Delete from .multi_key_N
+            oldDef.DBContext:ExecAdhocSql(string.format('delete from [.multi_key%d] where ClassID = :ClassID', idx),
+            { ClassID = ClassID })
+
+            -- Insert into .multi_key_N
+            local colNameIdx = 1
+            local colValIdx = 2
+            local sqlLines = { string.format('insert into [.multi_key%d] (ClassID', idx, newDef.ClassID),
+                ') select (:ClassID' }
+            for iCol, propID in ipairs(newIdx.multiKeyIndexing[idx]) do
+                local propDef = newDef.DBContext.ClassProps[propID]
+                colNameIdx = colNameIdx + 1
+                colValIdx = colValIdx + 2
+                table.insert(sqlLines, colNameIdx, string.format(', [Z%d]', iCol))
+                table.insert(sqlLines, colValIdx, propDef:GetColumnExpression(false))
+            end
+            table.insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
+            local sql = table.concat(sqlLines)
+            newDef.DBContext:ExecAdhocSql(sql, { ClassID = newDef.ClassID })
+        end
+    end
 end
 
 -- Generates schema for object validation. Sets self.objectSchema field

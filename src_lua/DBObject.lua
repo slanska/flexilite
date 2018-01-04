@@ -131,7 +131,7 @@ function DBObject:getParamsForSaveRangeIndex(params)
 
     params.ObjectID = self.ID
 
-    -- TODO check if all values are null
+    -- TODO check if all values are not null
     for key, propRef in pairs(self.ClassDef.rangeIndex) do
         local cell = self:getRefValue(propRef.id, 1)
         params[key] = cell.Value

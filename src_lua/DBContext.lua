@@ -239,9 +239,6 @@ function DBContext:execStatement(sql, params)
     if result ~= sqlite3.DONE and result ~= sqlite3.ROW then
         self:checkSqlite(result)
     end
-
-    -- return?
-
 end
 
 --- Returns symname ID by its text value
@@ -542,6 +539,42 @@ function DBContext:flushCurrentUserCheckPermissions()
     self.ensureCurrentUserAccessForClass = util.memoize(function(classID, op)
         self.AccessControl:ensureCurrentUserAccessForClass(classID, op)
     end)
+end
+
+-- Internal method. Prepares ad hoc SQL statement and binds parameters
+---@param sql string
+---@param params table
+---@return lsqlite.stmt
+function DBContext:getAdhocStmt(sql, params)
+    local result = self.db:prepare(sql)
+    if not result then
+        self:checkSqlite(1)
+    end
+
+    if params then
+        self:checkSqlite(result:bind_names(params))
+    end
+    return result
+end
+
+-- Executes ad hoc SQL
+---@param sql string
+---@param params table
+function DBContext:ExecAdhocSql(sql, params)
+    local stmt = self:getAdhocStmt(sql, params)
+    local result = stmt:step()
+    if result ~= sqlite3.DONE and result ~= sqlite3.ROW then
+        self:checkSqlite(result)
+    end
+end
+
+--- Utility function to get statement, bind parameters, and return iterator to iterate through rows
+--- @param sql string
+--- @param params table
+--- @return iterator
+function DBContext:LoadAdhocRows(sql, params)
+    local stmt = self:getAdhocStmt(sql, params)
+    return stmt:rows()
 end
 
 local flexi_CreateClass = require 'flexi_CreateClass'
