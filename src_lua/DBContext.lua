@@ -32,7 +32,53 @@ local AccessControl = require 'AccessControl'
 local DBObject = require 'DBObject'
 local EnumManager = require 'EnumManager'
 
---- @class DBContext
+
+--[[
+Maintains list of (normally deferred) actions to execute
+]]
+---@class ActionList
+local ActionList = class()
+
+-- constructor
+function ActionList:_init(DBContext)
+    self:Clear()
+end
+
+function ActionList:Add(tag, func, arg1, arg2, arg3)
+    if tag then
+        if tags[tag] then
+            -- already registered
+            return
+        end
+        self.tags[tag] = true
+    end
+
+    local item = { func = func, arg1 = arg1, arg2 = arg2, arg3 = arg3 }
+    table.insert(self.list, item)
+end
+
+---@param clearWhenDone boolean
+function ActionList:Run(clearWhenDone)
+    for idx, item in ipairs(self.list) do
+        if item.func then
+            item.func(item.arg1, item.arg2, item.arg3)
+        end
+    end
+    if clearWhenDone then
+        self:Clear()
+    end
+end
+
+function ActionList:Clear()
+    ---@type table @comment array
+    self.list = {}
+
+    ---@type table @comment map by tag
+    self.tags = {}
+end
+
+
+---@class DBContext
 local DBContext = class()
 
 -- Forward declarations
@@ -73,6 +119,9 @@ function DBContext:_init(db)
     self.EnumManager = EnumManager(self)
 
     self.SchemaChanged = false
+
+    ---@type ActionList
+    self.DeferredActions = ActionList()
 
     -- Can be overridden by flexi('config', ...)
     self.config = {
@@ -116,11 +165,15 @@ function DBContext:flexiAction(ctx, action, ...)
             self:flushSchemaCache()
         end
 
+        self.DeferredActions:Clear()
+
         result = ff(self, unpack(args))
 
         if meta.schemaChange or self.SchemaChanged then
             self:execStatement(string.format([[pragma user_version=%d]], uv))
         end
+
+        self.DeferredActions:Run(true)
 
         self.db:exec 'commit'
     end)
@@ -130,6 +183,7 @@ function DBContext:flexiAction(ctx, action, ...)
         ctx:result_error(errorMsg)
     end
 
+    self.DeferredActions:Clear()
     self:flushDataCache()
     self.AccessControl:flushCache()
 

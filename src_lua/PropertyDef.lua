@@ -1044,11 +1044,32 @@ PropertyDef.PropertyTypes = {
     ['any'] = AnyPropertyDef,
 }
 
+-- All specific property classes
+PropertyDef.Classes = {
+    BoolPropertyDef = BoolPropertyDef,
+    IntegerPropertyDef = IntegerPropertyDef,
+    NumberPropertyDef = NumberPropertyDef,
+    BlobPropertyDef = BlobPropertyDef,
+    MoneyPropertyDef = MoneyPropertyDef,
+    UuidPropertyDef = UuidPropertyDef,
+    EnumPropertyDef = EnumPropertyDef,
+    ReferencePropertyDef = ReferencePropertyDef,
+    MixinPropertyDef = MixinPropertyDef,
+    TextPropertyDef = TextPropertyDef,
+    ComputedPropertyDef = ComputedPropertyDef,
+    SymNamePropertyDef = SymNamePropertyDef,
+    DateTimePropertyDef = DateTimePropertyDef,
+    TimeSpanPropertyDef = TimeSpanPropertyDef,
+    AnyPropertyDef = AnyPropertyDef,
+}
+
 -- Schema validation rules for property JSON definition
 local EnumDefSchemaDef = tablex.deepcopy(NameRef.SchemaDef)
 EnumDefSchemaDef.items = schema.Optional(schema.Collection(schema.Record {
     id = schema.OneOf(schema.String, schema.Integer),
-    text = name_ref.IdentifierSchema
+    text = name_ref.IdentifierSchema,
+    icon = schema.Optional(schema.String),
+    imageUrl = schema.Optional(schema.String),
 }))
 
 local RefDefSchemaDef = {
@@ -1107,6 +1128,7 @@ local RefDefSchemaDef = {
     ),
 }
 
+-- TODO schema.Case('enum', 'fkey' -- enumDef
 PropertyDef.Schema = schema.Record {
     rules = schema.AllOf(schema.Record {
         type = schema.OneOf(unpack(tablex.keys(PropertyDef.PropertyTypes))),

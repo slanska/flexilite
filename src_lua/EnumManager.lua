@@ -32,6 +32,7 @@ local ClassCreate = require 'flexi_CreateClass'
 local json = require 'cjson'
 local NameRef = require 'NameRef'
 local class = require 'pl.class'
+local DBObject = require 'DBObject'
 
 -- Implements enum storage
 ---@class EnumManager
@@ -39,14 +40,72 @@ local EnumManager = class()
 
 ---@param DBContext DBContext
 function EnumManager:_init(DBContext)
+    ---@type DBContext
     self.DBContext = DBContext
+end
+
+---@param self EnumManager
+local function upsertEnumItem(self, propDef, item)
+    ---@type ClassDef
+    local classDef = self.DBContext:getClassDef(propDef.D.enumDef.id)
+    local objId = (not classDef.D.specialProperties.uid) and item.id or nil
+    local data = {
+        [classDef.D.specialProperties.uid or '$id'] = item.id,
+        [classDef.D.specialProperties.text] = item.id,
+        -- icon, imageUrl
+    }
+
+    local obj = DBObject(self.DBContext, classDef, objId)
+    if classDef.D.specialProperties.uid.id then
+        obj:setProperty(classDef.D.specialProperties.uid.id, item.id)
+    end
+    if classDef.D.specialProperties.text.id then
+        obj:setProperty(classDef.D.specialProperties.text.id, item.text)
+    end
+    if classDef.D.specialProperties.icon.id then
+        obj:setProperty(classDef.D.specialProperties.icon.id, item.icon)
+    end
+    if classDef.D.specialProperties.imageUrl.id then
+        obj:setProperty(classDef.D.specialProperties.imageUrl.id, item.imageUrl)
+    end
+
+    obj:saveToDB()
+end
+
+-- Upserts enum item
+---@param propDef EnumPropertyDef
+---@param item table @comment with fields: id, text, icon, imageUrl
+function EnumManager:upsertEnumItem(propDef, item)
+    -- Check if item can be added/updated now or must be deferred
+    if propDef.D.enumDef.id then
+        upsertEnumItem(self, propDef, item)
+    else
+        propDef.ClassDef.DBContext.DeferredActions:Add(nil, upsertEnumItem, self, propDef, item)
+    end
 end
 
 ---@param propDef EnumPropertyDef
 function EnumManager:ApplyEnumPropertyDef(propDef)
-    -- TODO
+    assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
+    assert(propDef.D.enumDef, 'Neither enumDef nor refDef set')
+
+    -- new enum definition
+    --[[
+    if text/id is set, the class must exist (at the end of request). This class must have text and uid special
+    properties. If text/id is not set, new class will be created with name ClassName_PropertyName.
+    items are optional and if set, they will be inserted or replaced into database.
+    Consistency for newly created or updated objects will be checked at the end of operation
+    ]]
+    if propDef.D.enumDef.items then
+
+    end
+
+    self:CreateEnumClass(string.format('%s_%s',
+    propDef.ClassDef.Name.text, propDef.Name.text),
+    propDef.D.enumDef.items)
 end
 
+-- Creates class for enum type, if needed.
 ---@param className string
 ---@param items table @comment (optional) array of EnumItem
 function EnumManager:CreateEnumClass(className, items)
@@ -85,8 +144,10 @@ function EnumManager:CreateEnumClass(className, items)
         }
     }
 
+    -- Check if class already exists
     local cls = ClassCreate(self.DBContext, className, json.encode(def), false)
 
+    -- Upsert items to enum class
     if items and #items > 0 then
         self:UpsertEnumItems(cls, items)
     end

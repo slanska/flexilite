@@ -17,6 +17,7 @@ local tablex = require 'tablex'
 local JSON = require 'cjson'
 local Util64 = require 'Util'
 local Constants = require 'Constants'
+local schema = require 'schema'
 
 --[[]]
 ---@class DBObject
@@ -34,6 +35,7 @@ function DBObject:_init(DBContext, classDef, objectId)
         self:loadFromDB()
     end
 
+    ---@type ClassDef
     self.ClassDef = classDef
 
     -- [.ref-values] collection: Each property is stored by property ID as array of DBCell-s
@@ -185,9 +187,14 @@ function DBObject:saveMultiKeyIndexes(op)
 end
 
 function DBObject:saveToDB()
+    -- insert or update .objects
+    self.newObj = not self.ID
 
     -- Validate data
-    -- TODO
+    local op = self.newObj and 'C' or 'U'
+    local objSchema = self.ClassDef:getObjectSchema(op)
+    -- TODO use data payload
+    schema.CheckSchema(self, objSchema)
 
     -- set ctlo
     local ctlo = self.ClassDef.ctlo
@@ -210,8 +217,6 @@ function DBObject:saveToDB()
 
     self:applyMappedColumns(params)
 
-    -- insert or update .objects
-    self.newObj = not self.ID
     if self.newObj then
         -- New object
         self.ClassDef.DBObject:execStatement([[insert into [.objects] (ClassID, ctlo, vtypes,
@@ -348,6 +353,12 @@ function DBObject:loadFromDB(propList)
             self.RV[row.PropertyID][row.PropIndex] = cell
         end
     end
+end
+
+-- Processes data payload, performs validation using class schema for object data, sets all properties
+---@param data table
+function DBObject:setData(data)
+
 end
 
 return DBObject
