@@ -1,12 +1,3 @@
-SELECT  julianday([value]) from json_each('["2017-12-01T11:30",' ||
-                                       '"1970-01-01",' ||
-                                       '"1499-12-30T14:50:34",' ||
-                                       '"1970-05-06T10:39",' ||
-                                       '"1946-12-30T22:40:02",' ||
-                                       '"1946-12-30T22:40:03",' ||
-                                       '"-1946-12-30T22:40:02",' ||
-                                       '"-1946-12-30 22:40:03"]');
-
 -- TODO Configurable page size?
 -- PRAGMA page_size = 8192;
 --PRAGMA journal_mode = WAL;
@@ -255,11 +246,8 @@ BEGIN
              "$.SystemClass", new.SystemClass,
              "$.ctloMask", new.ctloMask,
              "$.Data", new.Data,
-             "$.VirtualTable", new.VirtualTable,
+             "$.VirtualTable", new.VirtualTable
 
-             CASE WHEN new.AccessRules IS NULL
-               THEN NULL
-             ELSE "$.AccessRules" END, new.AccessRules
     )
   );
 END;
@@ -284,11 +272,9 @@ BEGIN
                  "$.SystemClass", old.SystemClass,
                  "$.ctloMask", old.ctloMask,
                  "$.Data", old.Data,
-                 "$.VirtualTable", old.VirtualTable,
+                 "$.VirtualTable", old.VirtualTable
 
-                 CASE WHEN old.AccessRules IS NULL
-                   THEN NULL
-                 ELSE "$.AccessRules" END, old.AccessRules
+
         )                                                     AS [OldValue],
 
         '@' || CAST(new.ClassID AS TEXT)                      AS [KEY],
@@ -297,11 +283,9 @@ BEGIN
                  "$.SystemClass", new.SystemClass,
                  "$.ctloMask", new.ctloMask,
                  "$.Data", new.Data,
-                 "$.VirtualTable", new.VirtualTable,
+                 "$.VirtualTable", new.VirtualTable
 
-                 CASE WHEN new.AccessRules IS NULL
-                   THEN NULL
-                 ELSE "$.AccessRules" END, new.AccessRules
+
         )
                                                               AS [Value]
     )
@@ -321,11 +305,8 @@ BEGIN
              "$.SystemClass", old.SystemClass,
              "$.ctloMask", old.ctloMask,
              "$.Data", old.Data,
-             "$.VirtualTable", old.VirtualTable,
+             "$.VirtualTable", old.VirtualTable
 
-             CASE WHEN old.AccessRules IS NULL
-               THEN NULL
-             ELSE "$.AccessRules" END, old.AccessRules
     )
   );
 END;

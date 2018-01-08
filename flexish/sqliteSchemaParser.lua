@@ -300,7 +300,7 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
     -- Process indexes
     local deferredIdxCols = {}
     -- ISQLiteIndexInfo[]
-    local idx_list_st = self.db:prepare(string.format("pragma index_list('%s')", tblDef.name))
+    local idx_list_st = self.db:prepare(string.format("pragma index_list('%s');", tblDef.name))
     local indexes = {}
     for v in idx_list_st:nrows() do
         table.insert(indexes, v)
@@ -362,7 +362,7 @@ end
 function SQLiteSchemaParser:processFKeys(tblInfo)
     -- Process foreign keys
     local fkInfo = {}
-    for v in self.db:nrows(string.format("pragma foreign_key_list('%s')", tblInfo.table)) do
+    for v in self.db:nrows(string.format("pragma foreign_key_list('%s');", tblInfo.table)) do
         table.insert(fkInfo, v)
     end
 

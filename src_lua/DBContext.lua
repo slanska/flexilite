@@ -23,7 +23,7 @@ Handles 'flexi' function
 
 local json = require 'cjson'
 local class = require 'pl.class'
-local util = require 'pl.util'
+local util = require 'pl.utils'
 
 local ClassDef = require('ClassDef')
 local PropertyDef = require('PropertyDef')
@@ -137,7 +137,7 @@ end
 function DBContext:checkSqlite(opResult)
     if opResult ~= sqlite3.OK and opResult ~= sqlite3.DONE
     and opResult ~= sqlite3.ROW then
-        local errMsg = string.format("%d: %s", self.db:error_code(), self.db:error_message())
+        local errMsg = string.format("SQLite error code %d: %s", self.db:error_code(), self.db:error_message())
         error(errMsg)
     end
 end
@@ -158,9 +158,9 @@ function DBContext:flexiAction(ctx, action, ...)
     -- Start transaction
     self.db:exec 'begin'
 
-    local ok, errorMsg = pcall(function()
+    local ok, errorMsg = xpcall(function()
         -- Check if schema has been changed since last call
-        local uv = self:loadOneRow([[pragma user_version]])
+        local uv = self:loadOneRow([[pragma user_version;]])
         if self.SchemaVersion ~= uv then
             self:flushSchemaCache()
         end
@@ -170,12 +170,17 @@ function DBContext:flexiAction(ctx, action, ...)
         result = ff(self, unpack(args))
 
         if meta.schemaChange or self.SchemaChanged then
-            self:execStatement(string.format([[pragma user_version=%d]], uv))
+            self:execStatement(string.format([[pragma user_version=%d;]], uv.user_version))
         end
 
         self.DeferredActions:Run(true)
 
         self.db:exec 'commit'
+    end
+    ,
+    function(error)
+        -- TODO
+        print(debug.traceback(tostring(error)))
     end)
 
     if not ok then
@@ -288,7 +293,9 @@ end
 --- @param params table
 function DBContext:execStatement(sql, params)
     local stmt = self:getStatement(sql)
-    self:checkSqlite(stmt:bind_names(params))
+    if params then
+        self:checkSqlite(stmt:bind_names(params))
+    end
     local result = stmt:step()
     if result ~= sqlite3.DONE and result ~= sqlite3.ROW then
         self:checkSqlite(result)
@@ -340,7 +347,9 @@ end
 --- or nil, if no record is found
 function DBContext:loadOneRow(sql, params, errorIfNotFound)
     local stmt = self:getStatement(sql)
-    self:checkSqlite( stmt:bind_names(params))
+    if params then
+        self:checkSqlite( stmt:bind_names(params))
+    end
     for r in stmt:nrows() do
         return r
     end

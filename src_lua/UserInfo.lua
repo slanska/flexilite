@@ -24,7 +24,7 @@ function UserInfo.flexi_UserInfo(...)
 end
 
 UserInfo.Schema = schema.Record {
-    ID = schema.OneOf(schema.String, schema.Integer()),
+    ID = schema.OneOf(schema.String, schema.Integer),
     Name = schema.Optional(schema.String),
     Roles = schema.OneOf(schema.Nil, schema.String, schema.Integer, schema.Collection(schema.OneOf(schema.String, schema.Integer))),
     Culture = schema.Optional(schema.String)

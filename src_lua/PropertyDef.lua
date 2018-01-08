@@ -840,7 +840,7 @@ function EnumPropertyDef:applyDef()
         end
     end
 
-    self.DBContext.EnumManager:ApplyEnumPropertyDef(self)
+    self.ClassDef.DBContext.EnumManager:ApplyEnumPropertyDef(self)
 end
 
 function EnumPropertyDef:internalToJSON()

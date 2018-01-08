@@ -257,7 +257,7 @@ function ClassDef:_init(params)
         end
 
         -- Class name reference
-        self.Name = NameRef(nil, params.newClassName)
+        self.Name = NameRef( params.newClassName)
         self.D = {}
 
         for propName, propJsonData in pairs(data.properties) do
@@ -266,7 +266,7 @@ function ClassDef:_init(params)
     else
         -- Loading existing class from DB. params.data is [.classes] row
         assert(type(params.data) == 'table')
-        self.Name = NameRef(params.data.NameID, params.data.Name)
+        self.Name = NameRef(params.data.Name, params.data.NameID)
         self.ClassID = params.data.ClassID
         self.ctloMask = params.data.ctloMask
         self.SystemClass = params.data.SystemClass
@@ -498,7 +498,7 @@ function ClassDef:saveToDB()
         end
     end
 
-    self:execStatement([[update [.classes] set NameID = :NameID, Data = :Data,
+    self.DBContext:execStatement([[update [.classes] set NameID = :NameID, Data = :Data,
         ctloMask = :ctloMask, vtypes = :vtypes where ClassID = :ClassID;]],
     {
         NameID = self.Name.id,

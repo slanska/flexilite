@@ -13,7 +13,7 @@ Holds collection of DBCells (.ref-values)
 local class = require 'pl.class'
 local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local DBCell = require 'DBCell'
-local tablex = require 'tablex'
+local tablex = require 'pl.tablex'
 local JSON = require 'cjson'
 local Util64 = require 'Util'
 local Constants = require 'Constants'
@@ -38,7 +38,7 @@ function DBObject:_init(DBContext, classDef, objectId)
     ---@type ClassDef
     self.ClassDef = classDef
 
-    -- [.ref-values] collection: Each property is stored by property ID as array of DBCell-s
+    -- [.ref-values] collection: Each property is stored by property ID as array of DBCells
     -- Each ref-value entry is stored in list
     -- as Value, ctlv, OriginalValue
     self.RV = {}
@@ -353,12 +353,6 @@ function DBObject:loadFromDB(propList)
             self.RV[row.PropertyID][row.PropIndex] = cell
         end
     end
-end
-
--- Processes data payload, performs validation using class schema for object data, sets all properties
----@param data table
-function DBObject:setData(data)
-
 end
 
 return DBObject

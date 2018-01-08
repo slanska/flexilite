@@ -87,7 +87,7 @@ end
 ---@param propDef EnumPropertyDef
 function EnumManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
-    assert(propDef.D.enumDef, 'Neither enumDef nor refDef set')
+    assert(propDef.D.enumDef, 'enumDef nor refDef set')
 
     -- new enum definition
     --[[

@@ -7,15 +7,45 @@
 This file is used as an entry point for testing Flexilite library
 ]]
 
+
+-- Source: https://gist.github.com/Tieske/b1654b27fa422afb63eb
+
+--[[== START ============= temporary debug code ==============================--
+-- on the line above, reduce the initial 3 dashes to 2 dashes to disable this
+-- whole block when done debugging.
+-- Insert this entire block at the start of your module.
+
+-- with Lua 5.1 patch global xpcall to take function args (standard in 5.2+)
+if _VERSION == "Lua 5.1" then
+    local xp = xpcall
+    xpcall = function(f, err, ...)
+        local a = { n = select("#", ...), ... }
+        return xp(function(...)
+            return f(unpack(a, 1, a.n))
+        end, err)
+    end
+end
+
+-- error handler to attach stacktrack to error message
+local ehandler = function(err)
+    return debug.traceback(tostring(err))
+end
+
+-- patch global pcall to attach stacktrace to the error.
+pcall = function(fn, ...)
+    return xpcall(fn, ehandler, ...)
+end
+--==== END =============== temporary debug code ============================]]--
+
 require 'cjson'
 local path = require 'pl.path'
 
 local __dirname = path.abspath('..')
 
-local DBContext = require 'DBContext'
 require('io')
 require('index')
 local sqlite = require 'lsqlite3complete'
+local DBContext = require 'DBContext'
 
 --- Read file
 ---@param file string
@@ -26,35 +56,44 @@ local function readAll(file)
     return content
 end
 
--- load sql scripts into Flexi variables
--- TODO use relative paths
-Flexi.DBSchemaSQL = readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
-Flexi.InitDefaultData = readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
+local ok, error = xpcall(function()
 
--- Tests for class creation
-local dbPath = path.abspath(path.relpath('../data/Flexilite.db'))
-print('SQLite database: ', dbPath)
-db, errMsg = sqlite.open(dbPath)
-if not db then
-    error(errMsg)
-end
---db = sqlite.open_memory()
-DBContext = Flexi:newDBContext(db)
+    -- load sql scripts into Flexi variables
+    -- TODO use relative paths
+    Flexi.DBSchemaSQL = readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
+    Flexi.InitDefaultData = readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
 
-local sql = "select flexi('configure')"
-db:exec(sql)
+    -- Tests for class creation
+    local dbPath = path.abspath(path.relpath('../data/Flexilite.db'))
+    print('SQLite database: ', dbPath)
+    db, errMsg = sqlite.open(dbPath)
+    if not db then
+        error(errMsg)
+    end
+    --db = sqlite.open_memory()
+    DBContext = Flexi:newDBContext(db)
 
-local content = readAll(path.join(__dirname, 'test', 'json', 'Employees.schema.json'))
---sql = "select flexi('create class', 'Employees', '" .. content .. "', 0);"
---for row in db:rows(sql) do
---    print(row[1])
---end
+    local sql = "select flexi('configure')"
+    db:exec(sql)
 
-content = readAll(path.join(__dirname, 'test', 'json', 'Northwind.db3.schema.json'))
-sql = "select flexi('create schema', '" .. content .. "');"
-for row in db:rows(sql) do
-    print(row[1])
-end
+    local content = readAll(path.join(__dirname, 'test', 'json', 'Employees.schema.json'))
+    --sql = "select flexi('create class', 'Employees', '" .. content .. "', 0);"
+    --for row in db:rows(sql) do
+    --    print(row[1])
+    --end
 
-db:close()
+    content = readAll(path.join(__dirname, 'test', 'json', 'Northwind.db3.schema.json'))
+    sql = "select flexi('create schema', '" .. content .. "');"
+    for row in db:rows(sql) do
+        print(row[1])
+    end
+
+    db:close()
+
+end,
+function(error)
+    print(string.format("%s, %s", ok, error))
+    --print(debug.stacktrace())
+    print(debug.traceback(tostring(error)))
+end)
 

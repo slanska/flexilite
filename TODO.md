@@ -97,8 +97,8 @@ data: Database, statements, user info, class definitions, cache of referenced va
     - generate user formatted JSON for db/class/property definition
     - flexi_CreateClass -> check name and class existence, create empty record, then - flexi_AlterClass
     - flexi_AlterClass - merge user definitions, validate with schema, proceed
-    - complete schema definition for class and property
-    - complete object schema generation
+    - &#10003; complete schema definition for class and property
+    - &#10003; complete object schema generation
     - schema for query
     - rename flexi_AlterClass to flexi_CreateAlterDropClass. Move flexi_CreateClass and flexi_DropClass to this module
     - refactor ClassDef and PropertyDef. D for all data loaded from db (matching table columns). D.Data for parsed JSON
@@ -109,6 +109,10 @@ data: Database, statements, user info, class definitions, cache of referenced va
     - TEMP TRIGGER on .ref-values to check minOccurrences..maxOccurrences
     
     
+- ensure that create classes is ok
+- try insert data
+- enum property - generate enum class, save items
+- try sandbox mode
 
 text|integer -> enum -> reference
 enum -> mixin
