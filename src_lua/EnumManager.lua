@@ -87,7 +87,8 @@ end
 ---@param propDef EnumPropertyDef
 function EnumManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
-    assert(propDef.D.enumDef, 'enumDef nor refDef set')
+    local refDef = propDef.D.enumDef or propDef.D.refDef
+    assert(refDef, 'Neither enumDef nor refDef set')
 
     -- new enum definition
     --[[
@@ -96,13 +97,13 @@ function EnumManager:ApplyEnumPropertyDef(propDef)
     items are optional and if set, they will be inserted or replaced into database.
     Consistency for newly created or updated objects will be checked at the end of operation
     ]]
-    if propDef.D.enumDef.items then
+    if refDef.items then
 
     end
 
     self:CreateEnumClass(string.format('%s_%s',
     propDef.ClassDef.Name.text, propDef.Name.text),
-    propDef.D.enumDef.items)
+    refDef.items)
 end
 
 -- Creates class for enum type, if needed.
