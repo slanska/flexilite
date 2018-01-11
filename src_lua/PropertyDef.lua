@@ -90,8 +90,6 @@ end
 ---@param params table @comment 2 variants:
 ---for new property (not stored in DB) {ClassDef: ClassDef, newPropertyName:string, jsonData: table}
 ---for existing property (when loading from DB): {ClassDef: ClassDef, dbrow: table, jsonData: table}
----@param params.ClassDef ClassDef
----@param params.newPropertyName string
 function PropertyDef:_init(params)
     assert(params.ClassDef)
     assert(params.jsonData and params.jsonData.rules and params.jsonData.rules.type)
@@ -1026,6 +1024,7 @@ PropertyDef.PropertyTypes = {
     ['money'] = MoneyPropertyDef,
     ['uuid'] = UuidPropertyDef,
     ['enum'] = EnumPropertyDef,
+    ['fkey'] = EnumPropertyDef,
     ['reference'] = ReferencePropertyDef,
     ['link'] = ReferencePropertyDef,
     ['ref'] = ReferencePropertyDef,
@@ -1146,6 +1145,8 @@ PropertyDef.Schema = schema.Record {
 
     index = schema.OneOf(schema.Nil, 'index', 'unique', 'range', 'fulltext'),
     noTrackChanges = schema.Optional(schema.Boolean),
+
+    enumDef = schema.Case(),
 
     refDef = schema.Optional(schema.Record( RefDefSchemaDef)),
     enumDef = schema.Optional(schema.Record(EnumDefSchemaDef)),

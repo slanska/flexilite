@@ -16,67 +16,66 @@ Uses AccessControl to check access rules
 
 local class = require('pl.class')
 
----@class ApiProperty
-local ApiProperty = class()
+---@class ApiValue
+local ApiValue = class()
 
--- Constructor
----@param propDef PropertyDef
----@param object ApiObject
-function ApiProperty:_new(propDef, object)
-    self.propDef = propDef
-    self.object = object
+function ApiValue:_init()
+
 end
 
+---@class ApiProperty
+local ApiProperty = class(ApiValue)
+
 -- Hide metadata
-function ApiProperty:__metadata()
+function ApiValue:__metadata()
     return nil
 end
 
-function ApiProperty:__index(key)
+function ApiValue:__index(key)
 
 end
 
-function ApiProperty:__newindex(key, value)
+function ApiValue:__newindex(key, value)
 
 end
 
-function ApiProperty:__tostring()
+function ApiValue:__tostring()
 
 end
 
-function ApiProperty:__len()
+function ApiValue:__len()
 
 end
 
-function ApiProperty:__unm()
+function ApiValue:__unm()
 
 end
 
-function ApiProperty:__add()
+function ApiValue:__add()
 
 end
 
-function ApiProperty:__sub()
+function ApiValue:__sub()
 
 end
 
-function ApiProperty:__mul()
+function ApiValue:__mul()
 
 end
 
-function ApiProperty:__div()
+function ApiValue:__div()
 
 end
 
-function ApiProperty:__mod()
+function ApiValue:__mod()
 
 end
 
-function ApiProperty:__pow()
+function ApiValue:__pow()
 
 end
 
-function ApiProperty:__concat()
+function ApiValue:__concat()
 
 end
 
@@ -84,12 +83,39 @@ function ApiProperty:__eq()
 
 end
 
-function ApiProperty:__lt()
+function ApiValue:__lt()
 
 end
 
-function ApiProperty:__le()
+function ApiValue:__le()
+end
 
+-- Constructor
+---@param propDef PropertyDef
+---@param object ApiObject
+function ApiProperty:_init(propDef, object)
+    super:init()
+    self.propDef = propDef
+    self.object = object
+end
+
+---@param prop ApiProperty
+local function ApiPropertyProxy(prop)
+
+    local self = setmetatable({}, {
+        __index = function(idx)
+            return
+        end,
+
+        __newindex = function(idx, val)
+        end,
+
+        __metatable = function()
+            return nil
+        end
+    })
+
+    return self
 end
 
 return ApiProperty

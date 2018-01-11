@@ -6,9 +6,7 @@
 -- Bit flags and related helper functions
 
 local Constants = {
-    -- Candidates for common.lua
     MAX_NUMBER = 1.7976931348623157e+308,
-    -- Smallest number = 2.2250738585072014e-308,
     MIN_NUMBER = -1.7976931348623157e+308,
     MAX_INTEGER = 9007199254740992,
     MIN_INTEGER = -9007199254740992,
