@@ -107,7 +107,7 @@ function DBContext:_init(db)
     -- Global list of class property definitions (by property ID)
     self.ClassProps = {}
 
-    -- Cache of loaded objects. Exists only during time of request. Gets reset after request is complete
+    -- Cache of loaded objects (map by object ID). Exists only during time of request. Gets reset after request is complete
     self.Objects = {}
 
     -- helper constructors and singletons
@@ -129,6 +129,11 @@ function DBContext:_init(db)
     }
 
     self:initMemoizeFunctions()
+end
+
+function DBContext:GetNewObjectID()
+    self.lastNewObjectID = (self.lastNewObjectID or 0) - 1
+    return self.lastNewObjectID
 end
 
 --- Utility function to check status returned by SQLite call

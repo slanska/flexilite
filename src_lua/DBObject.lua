@@ -8,6 +8,24 @@ Internally used facade to [.object] row.
 Provides access to property values, saving in database etc.
 This is low level data operations, so user permissions are not checked
 Holds collection of DBCells (.ref-values)
+
+DBObject
+    - Boxed - BoxedDBObject to be accessed in custom scripts
+        - props - collection of DBProperty by property name
+            - Boxed - BoxedDBProperty
+            - values - array of DBCell
+                - BoxedDBValue - protected value to be accessed in custom scripts
+
+Main features:
+SetData
+GetData
+new and existing object ID
+data validation
+access rules
+loading data from db
+saving data to db
+boxed data (user access)
+access by property name and index
 ]]
 
 local class = require 'pl.class'
@@ -23,33 +41,150 @@ local schema = require 'schema'
 ---@class DBObject
 local DBObject = class()
 
----@param DBContext DBContext
+--- --@class DBProperty
+--local DBProperty = class()
+
+-- DBObject constructor.
 ---@param objectId number @comment (optional) Int64
 ---@param classDef IClassDef @comment (optional) must be passed if objectId is nil
-function DBObject:_init(DBContext, classDef, objectId)
-    self.DBContext = DBContext
+function DBObject:_init(objectId, classDef)
     if not objectId then
-        assert(classDef)
+        ---@type ClassDef
+        self.ClassDef = assert(classDef, 'ClassDef is required for new objects')
+        self.NewID = self.ClassDef.DBContext:GetNewObjectID()
     else
+        ---@type number
         self.ID = objectId
         self:loadFromDB()
     end
 
-    ---@type ClassDef
-    self.ClassDef = classDef
-
-    -- [.ref-values] collection: Each property is stored by property ID as array of DBCells
+    -- [.ref-values] & mapped columns collection: Each property is stored by property name as DBProperty
     -- Each ref-value entry is stored in list
     -- as Value, ctlv, OriginalValue
-    self.RV = {}
+
+    ---@type table @comment [propName:string]: DBProperty
+    self.props = {}
+end
+
+-- Loads row from .objects table. Updates ClassDef if needed
+function DBObject:loadObjectRow()
+    -- Load from .objects
+    local obj = self.ClassDef.DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
+    if obj.MetaData then
+        -- object MetaData may include: accessRules, colMapMetaData and other elements
+        self.MetaData = JSON.decode(obj.MetaData)
+        -- TODO further processing
+    else
+        self.MetaData = nil
+    end
+
+    self.ctlo = obj.ctlo
+
+    -- Theoretically, object ID may not match class def passed in constructor
+    if obj.ClassID ~= self.ClassDef.ClassID then
+        self.ClassDef = self.ClassDef.DBContext:getClassDef(obj.ClassDef)
+    end
+
+    ---@type table
+    self.props = {}
+
+    -- Set values from mapped columns
+    if self.ClassDef.ColMapActive then
+        for col, prop in pairs(self.ClassDef.propColMap) do
+            -- Build ctlv
+            local ctlv = 0
+            --col:byte() -string.byte('A')
+
+            -- Extract cell MetaData
+            local colMetaData = self.MetaData and self.MetaData.colMapMetaData and self.MetaData.colMapMetaData[prop.PropertyID]
+            local cell = DBCell { Object = self, Property = prop, PropIndex = 1, Value = obj[col], ctlv = ctlv, MetaData = colMetaData }
+            self.props[prop.PropertyID] = self.props[prop.PropertyID] or {}
+            self.props[prop.PropertyID][1] = cell
+        end
+    end
+end
+
+---@return BoxedDBObject
+function DBObject:Boxed()
+    if not self.boxed then
+        self.boxed = setmetatable({}, {
+            __index = function(propName)
+                return self:getDBProperty(propName)
+            end,
+
+            __newindex = function(propName, propValue)
+                return self:setDBProperty(propName, propValue)
+            end,
+
+            __metatable = function()
+                return nil
+            end,
+
+        })
+    end
+
+    return self.boxed
+end
+
+function DBObject:BoxedDBProperty(propDef)
+    -- todo
+    if self.prop then
+
+    end
+    local result = setmetatable({}, {
+
+    })
+
+    return result
+end
+
+---@param propName string
+function DBObject:getDBProperty(propName)
+
+end
+
+---@param propName string
+---@param propValue any
+function DBObject:setDBProperty(propName, propValue)
+
+end
+
+-- Sets entire object data, including child objects
+-- and links (using queries)
+---@param data table
+function DBObject:SetData(data)
+    if not data then
+        return
+    end
+
+    for propName, propValue in pairs(data) do
+        self:setDBProperty(propName, propValue)
+    end
+end
+
+-- Builds table with all non null property values
+-- Includes detail objects. Does not include links
+function DBObject:GetData()
+    local result = {}
+    for propName, propDef in pairs(self.ClassDef.Properties) do
+
+    end
+
+    for propName, propList in pairs(self.ClassDef.MixinProperties) do
+        if #propList == 1 and not self.ClassDef.Properties[propName] then
+            -- Process properties in mixin classes only if there is no conflict
+        else
+            -- Other mixin properties are processed as 'nested' objects
+        end
+    end
 end
 
 -- Returns ref-value entry for given property ID and index
 function DBObject:getRefValue(propID, propIdx)
-    local values = self.RV[propID]
+    local values = self.props[propID]
     if not values then
         values = {}
-        self.RV[propID] = values
+        self.props[propID] = values
     end
 
     local rv = values[propIdx]
@@ -81,12 +216,6 @@ end
 -- saveToDB
 
 -- validate
-
--- Loads object data including direct properties from .ref-values
--- Nested objects are loaded too, using nestedDepth configuration value
----@param propIdList table @comment (optional) list of selected property IDs to load
-function DBObject:loadFromDB(propIdList)
-end
 
 -- Apply values of mapped columns, if class is set to use column mapping
 ---@param params table
@@ -213,7 +342,7 @@ function DBObject:saveToDB()
     end
 
     local params = { ClassID = self.ClassDef.ClassID, ctlo = ctlo, vtypes = self.ClassDef.vtypes,
-        MetaData = JSON.encode( self.MetaData ) }
+                     MetaData = JSON.encode( self.MetaData ) }
 
     self:applyMappedColumns(params)
 
@@ -222,8 +351,14 @@ function DBObject:saveToDB()
         self.ClassDef.DBObject:execStatement([[insert into [.objects] (ClassID, ctlo, vtypes,
         A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, MetaData) values (
         :ClassID, :ctlo, :vtypes, :A, :B, :C, :D, :E, :F, :G, :H, :I, :J, :J, :K, :L, :M, :N, :O, :P);]],
-        params)
+                params)
         self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
+
+        self.ClassDef.DBContext.Objects[self.NewID] = nil
+        self.ClassDef.DBContext.Objects[self.ID] = self
+
+        -- TODO Fix referenced
+        self.NewID = nil
 
         -- Save multi-key index if applicable
         self:saveMultiKeyIndexes('C')
@@ -277,7 +412,7 @@ function DBObject:saveToDB()
     -- TODO Save .change_log
 
     -- Save .ref-values, except references (those will be deferred until all objects in the current batch are saved)
-    for i, cell in ipairs(self.RV) do
+    for i, cell in ipairs(self.props) do
         if not cell:IsLink() then
             cell:saveToDB()
         else
@@ -296,36 +431,7 @@ This is required for updating object. propList is usually determined by list of 
 function DBObject:loadFromDB(propList)
     local sql
 
-    -- Load from .objects
-    local obj = self.ClassDef.DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
-    if obj.MetaData then
-        -- object MetaData may include: accessRules, colMapMetaData and other elements
-        self.MetaData = JSON.decode(obj.MetaData)
-    else
-        self.MetaData = nil
-    end
-
-    self.ctlo = obj.ctlo
-
-
-    -- TODO check obj.ClassID
-
-    self.RV = {}
-
-    -- Set values from mapped columns
-    if self.ClassDef.ColMapActive then
-        for col, prop in pairs(self.ClassDef.propColMap) do
-            -- Build ctlv
-            local ctlv = 0
-            --col:byte() -string.byte('A')
-
-            -- Extract cell MetaData
-            local colMetaData = self.MetaData and self.MetaData.colMapMetaData and self.MetaData.colMapMetaData[prop.PropertyID]
-            local cell = DBCell { Object = self, Property = prop, PropIndex = 1, Value = obj[col], ctlv = ctlv, MetaData = colMetaData }
-            self.RV[prop.PropertyID] = self.RV[prop.PropertyID] or {}
-            self.RV[prop.PropertyID][1] = cell
-        end
-    end
+    self:loadObjectRow()
 
     -- TODO Optimize: check if .ref-values need to be loaded whatsoever
     -- tables.difference(ClassDef.Properties, propColMap)
@@ -345,14 +451,38 @@ function DBObject:loadFromDB(propList)
 
     for row in self.ClassDef.DBContext:loadRows(sql, params) do
         -- Skip already loaded mapped columns
-        if not self.RV[row.PropertyID][row.PropIndex] then
+        if not self.props[row.PropertyID][row.PropIndex] then
             row.Object = self
             row.Property = self.ClassDef.DBContext.ClassProps[row.PropertyID]
             local cell = DBCell(row)
-            self.RV[row.PropertyID] = self.RV[row.PropertyID] or {}
-            self.RV[row.PropertyID][row.PropIndex] = cell
+            self.props[row.PropertyID] = self.props[row.PropertyID] or {}
+            self.props[row.PropertyID][row.PropIndex] = cell
         end
     end
 end
+
+function DBObject:ValidateData()
+    -- todo
+end
+
+-------------------------------------------------------------------------------
+--- DBProperty
+-------------------------------------------------------------------------------
+-----@param DBObject DBObject
+--function DBProperty:_init(DBObject)
+--    self.DBObject = assert(DBObject, 'DBObject is required')
+--end
+--
+--function DBProperty:Boxed()
+--
+--end
+--
+--function DBProperty:SetData()
+--
+--end
+--
+--function DBProperty:GetData()
+--
+--end
 
 return DBObject

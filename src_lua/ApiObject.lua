@@ -11,11 +11,6 @@ Used to provide access to data from custom functions and triggers
 
 Every ApiObject keeps its own reference to DBObject instance, for low level db operations
 
-ApiObject
-    - ApiObjectProxy - protected object to be accessed in custom scripts
-    - DBObject - internal object storage
-        - DBCell - collection of values by property ID
-            - ApiValue - protected value to be accessed in custom scripts
 ]]
 
 local class = require 'pl.class'

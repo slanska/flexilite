@@ -225,6 +225,7 @@ local ClassDef = class()
 --- ClassDef constructor
 ---@param params table @comment {DBContext: DBContext, newClassName:string, data: table | string | table as parsed json}
 function ClassDef:_init(params)
+    --@type DBContext
     self.DBContext = params.DBContext
 
     --[[ Properties by name
@@ -233,7 +234,7 @@ function ClassDef:_init(params)
     self.Properties = {}
 
     -- Properties from mixin classes, by name
-    -- Values are lists of PropertyDef
+    -- Values are lists of PropertyDef - [propName][i]
     self.MixinProperties = {}
 
     -- set column mapping dictionary, value is either nil or PropertyDef
