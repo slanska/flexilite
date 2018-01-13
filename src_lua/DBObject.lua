@@ -30,7 +30,7 @@ access by property name and index
 
 local class = require 'pl.class'
 local bits = type(jit) == 'table' and require('bit') or require('bit32')
-local DBCell = require 'DBCell'
+local DBValue = require 'DBValue'
 local tablex = require 'pl.tablex'
 local JSON = require 'cjson'
 local Util64 = require 'Util'
@@ -39,6 +39,12 @@ local schema = require 'schema'
 
 --[[]]
 ---@class DBObject
+---@field ID number @comment Positive integer for existing objects, negative integer for new, unsaved objects
+---@field ClassDef ClassDef
+---@field props table
+---@field old DBObject
+---@field ctlo number
+---@field MetaData table
 local DBObject = class()
 
 -- DBObject constructor.
@@ -103,9 +109,10 @@ function DBObject:loadObjectRow(DBContext)
 
             -- Extract cell MetaData
             local colMetaData = self.MetaData and self.MetaData.colMapMetaData and self.MetaData.colMapMetaData[prop.PropertyID]
-            local cell = DBCell { Object = self, Property = prop, PropIndex = 1, Value = obj[col], ctlv = ctlv, MetaData = colMetaData }
-            self.props[prop.PropertyID] = self.props[prop.PropertyID] or {}
-            self.props[prop.PropertyID][1] = cell
+            local cell = DBValue { Object = self, Property = prop, PropIndex = 1, Value = obj[col], ctlv = ctlv, MetaData = colMetaData }
+            -- TODO
+            --self.props[prop.Name.text] = self.props[prop.PropertyID] or {}
+            --self.props[prop.PropertyID][1] = cell
         end
     end
 end
@@ -450,7 +457,7 @@ function DBObject:loadFromDB(propList)
         if not self.props[row.PropertyID][row.PropIndex] then
             row.Object = self
             row.Property = self.ClassDef.DBContext.ClassProps[row.PropertyID]
-            local cell = DBCell(row)
+            local cell = DBValue(row)
             self.props[row.PropertyID] = self.props[row.PropertyID] or {}
             self.props[row.PropertyID][row.PropIndex] = cell
         end

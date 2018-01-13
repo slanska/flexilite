@@ -37,6 +37,8 @@ local EnumManager = require 'EnumManager'
 Maintains list of (normally deferred) actions to execute
 ]]
 ---@class ActionList
+---@field tags table
+---@field list table
 local ActionList = class()
 
 -- constructor
@@ -46,7 +48,7 @@ end
 
 function ActionList:Add(tag, func, arg1, arg2, arg3)
     if tag then
-        if tags[tag] then
+        if self.tags[tag] then
             -- already registered
             return
         end
@@ -77,7 +79,26 @@ function ActionList:Clear()
     self.tags = {}
 end
 
+---@class DBContextConfig
+---@field createVirtualTable boolean
+
 ---@class DBContext
+---@field db sqlite3
+---@field Statements table
+---@field MemDB table
+---@field UserInfo UserInfo
+---@field Classes table
+---@field Functions table
+---@field ClassProps table
+---@field Objects tables
+---@field CUObjects table
+---@field ClassDef ClassDef
+---@field PropertyDef PropertyDef
+---@field AccessControl AccessControl
+---@field EnumManager EnumManager
+---@field SchemaChanged boolean
+---@field DeferredActions ActionList
+---@field config DBContextConfig
 local DBContext = class()
 
 -- Forward declarations

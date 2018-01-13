@@ -36,6 +36,10 @@ c) applying changes for index storage
 ]]
 
 ---@class IndexDefinitions
+---@field fullTextIndexing table
+---@field rangeIndexing table
+---@field multiKeyIndexing table
+---@field propIndexing table
 local IndexDefinitions = class()
 
 -- Internal static variables
@@ -213,19 +217,54 @@ function IndexDefinitions:SetPropertyIndex(propDef)
     return false, 'Unknown index'
 end
 
-
-
 --[[
 
 ]]
+----@class NameRef
+---@field text string
+---@field id number|nil
+
+---@class propColMap
+---@field A NameRef
+---@field B NameRef
+---@field C NameRef
+---@field D NameRef
+---@field E NameRef
+---@field F NameRef
+---@field G NameRef
+---@field H NameRef
+---@field I NameRef
+---@field J NameRef
+---@field K NameRef
+---@field L NameRef
+---@field M NameRef
+---@field N NameRef
+---@field O NameRef
+---@field P NameRef
+
+---@class specialProperties
+---@field uid NameRef
 
 ---@class ClassDef
+---@field DBContext DBContext
+---@field Properties table
+---@field MixinProperties table
+---@field propColMap propColMap
+---@field CheckedInTrn number
+---@field objectSchema table @comment 2 keys - 'C' and 'U', for created and updated objects
+---@field indexes IndexDefinitions
+---@field Name NameRef
+---@field D table @comment parsed Data column
+---@field SystemClass boolean
+---@field VirtualTable boolean
+---@field Deleted boolean
+---@field ColMapActive boolean
+---@field vtypes number
 local ClassDef = class()
 
 --- ClassDef constructor
 ---@param params table @comment {DBContext: DBContext, newClassName:string, data: table | string | table as parsed json}
 function ClassDef:_init(params)
-    --@type DBContext
     self.DBContext = params.DBContext
 
     --[[ Properties by name
@@ -472,7 +511,7 @@ function ClassDef:dropRangeDataTable()
     end
 end
 
--- Updated class definition in database. Is is expected to be already created
+-- Updates class definition in database. Is is expected to be already created
 -- (INSERT INTO already run and class ID is known)
 function ClassDef:saveToDB()
     assert(self.ClassID > 0)

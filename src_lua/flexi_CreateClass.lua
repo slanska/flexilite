@@ -8,10 +8,18 @@ local json = require 'cjson'
 local alt_cls = require('flexi_AlterClass')
 local AlterClass, MergeClassDefinitions = alt_cls.AlterClass, alt_cls.MergeClassDefinitions
 
---- Find unresolved classes and try to resolve them
---- @param self DBContext
-local function ResolveClasses(self)
-    -- TODO
+-- Inserts row into .classes table, to get class ID
+---@param self DBContext
+---@param clsObject ClassDef
+local function insertNewClass(self, clsObject)
+    -- Save new class record to get ID
+    clsObject.Name:resolve(clsObject)
+    self:execStatement("insert into [.classes] (NameID) values (:ClassNameID);",
+            {
+                ClassNameID = clsObject.Name.id,
+            })
+    clsObject.D.ClassID = self.db:last_insert_rowid()
+    clsObject.ClassID = clsObject.D.ClassID
 end
 
 --- Internal function to create class
@@ -62,14 +70,7 @@ local function CreateClass(self, className, classDef, createVirtualTable)
             end
         end
 
-        -- Save new class record to get ID
-        clsObject.Name:resolve(clsObject)
-        self:execStatement("insert into [.classes] (NameID) values (:1);",
-        {
-            ['1'] = clsObject.Name.id,
-        })
-        clsObject.D.ClassID = self.db:last_insert_rowid()
-        clsObject.ClassID = clsObject.D.ClassID
+        insertNewClass(self, clsObject)
 
         -- TODO Set ctloMask
         clsObject.D.ctloMask = 0
@@ -88,7 +89,6 @@ local function CreateClass(self, className, classDef, createVirtualTable)
         for _, p in pairs(clsObject.Properties) do
             if p:hasUnresolvedReferences() then
                 clsObject.D.Unresolved = true
-                --table.insert(unresolved, string.format(""))
             end
         end
 
@@ -103,16 +103,40 @@ local function CreateClass(self, className, classDef, createVirtualTable)
     end
 end
 
---- Creates multiple classes
+---@param self DBContext
+---@param schema table
+---@param createVirtualTable boolean
+local function createMultiClasses(self, schema, createVirtualTable)
+    for className, clsDef in pairs(schema) do
+        CreateClass(self, className, clsDef, createVirtualTable)
+    end
+end
+
+---@param self DBContext
+---@param className string
+---@param classDef table
+---@param createVirtualTable boolean
+local function createSingleClass(self, className, classDef, createVirtualTable)
+    local schema = { [className] = classDef }
+    createMultiClasses(self, schema, createVirtualTable)
+end
+
+--[[
+Creates multiple classes
+
+Classes are defined in JSON object, by name.
+They are processed in few steps, to provide referential integrity:
+1) After schema validation, all classes are saved in .classes table. Their IDs get established
+2) Properties get updated ("applied"), with possible creation of reverse referencing and other properties and classes. No changes are saved yet.
+2) All class properties get saved in .class_props table, to get IDs. No processing or validation happened yet.
+3) Final steps - class Data gets updated with referenced class and property IDs and saved
+]]
 ---@param self DBContext
 ---@param schemaJson string
 ---@param createVirtualTable boolean
 local function CreateSchema(self, schemaJson, createVirtualTable)
     local schema = json.decode(schemaJson)
-    for className, clsDef in pairs(schema) do
-        print(string.format("Creating class [%s]", className))
-        CreateClass(self, className, clsDef, createVirtualTable)
-    end
+    createMultiClasses(self, schema, createVirtualTable)
 end
 
 return { CreateClass = CreateClass, CreateSchema = CreateSchema }

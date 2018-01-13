@@ -25,16 +25,18 @@ Has following fields:
 Value
 MetaData
 ctlv
-DBProperty
 
-PropertyID comes from DBProperty as parameter
-PropIndex comes as parameter
-ObjectID comes from DBObject as parameter
+For the sake of memory saving and easier data consistency property ID/class, object and property index
+are not fields of DBValue. Instead, DBProperty and propIndex are passed to all DBValue's functions as
+first 2 parameters. Thus DBObject is accessed from DBProperty.DBObject, PropertyDef from DBProperty.PropDef
 ]]
 
 local class = require 'pl.class'
 
 ---@class DBValue
+---@field Value any
+---@field ctlv number
+---@field MetaData table|nil
 local DBValue = class()
 
 -- constructor

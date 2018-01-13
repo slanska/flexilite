@@ -71,7 +71,16 @@ PropertyDef
 ===============================================================================
 ]]
 
---- @class PropertyDef
+---@class PropertyDef
+---@field ClassDef ClassDef
+---@field D table @comment parsed property definition JSON
+---@field Name NameRef
+---@field ctlv number
+---@field ctlvPlan number
+---@field Deleted boolean
+---@field ColMap string
+---@field NonNullCount number
+---@field SearchHitCount number
 local PropertyDef = class()
 
 -- Factory method to create a property object based on rules.type in params.jsonData
