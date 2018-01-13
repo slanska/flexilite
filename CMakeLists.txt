@@ -111,9 +111,7 @@ set(LUA_FILES
         src_lua/flexi_DataUpdate.lua
         src_lua/flexi_PropToObject.lua
         src_lua/DBObject.lua
-        src_lua/ApiObject.lua
         src_lua/Constants.lua
-        src_lua/ApiProperty.lua
         src_lua/AccessControl.lua
         src_lua/DBCell.lua
         src_lua/Util.lua

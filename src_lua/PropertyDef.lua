@@ -63,6 +63,7 @@ local name_ref = require 'NameRef'
 local NameRef, ClassNameRef, PropNameRef = name_ref.NameRef, name_ref.ClassNameRef, name_ref.PropNameRef
 local Constants = require 'Constants'
 local AccessControl = require 'AccessControl'
+local dbprops = require 'DBProperty'
 
 --[[
 ===============================================================================
@@ -229,24 +230,24 @@ function PropertyDef:saveToDB()
         self.ClassDef.DBContext:execStatement([[update [.class_props]
         set NameID = :nameID, ctlv = :ctlv, ctlvPlan = :ctlvPlan, ColMap = :ColMap
         where ID = :id]],
-        {
-            nameID = self.Name.id,
-            ctlv = self.ctlv,
-            ctlvPlan = self.ctlvPlan,
-            ColMap = self.ColMap,
-            id = self.ID
-        })
+                {
+                    nameID = self.Name.id,
+                    ctlv = self.ctlv,
+                    ctlvPlan = self.ctlvPlan,
+                    ColMap = self.ColMap,
+                    id = self.ID
+                })
     else
         -- Insert new
         self.ClassDef.DBContext:execStatement(
-        [[insert into [.class_props] (ClassID, NameID, ctlv, ctlvPlan, ColMap)
-            values (:ClassID, :NameID, :ctlv, :ctlvPlan, :ColMap);]], {
-            ClassID = self.ClassDef.ClassID,
-            NameID = self.Name.id,
-            ctlv = self.ctlv,
-            ctlvPlan = self.ctlvPlan,
-            ColMap = self.ColMap
-        })
+                [[insert into [.class_props] (ClassID, NameID, ctlv, ctlvPlan, ColMap)
+                    values (:ClassID, :NameID, :ctlv, :ctlvPlan, :ColMap);]], {
+                    ClassID = self.ClassDef.ClassID,
+                    NameID = self.Name.id,
+                    ctlv = self.ctlv,
+                    ctlvPlan = self.ctlvPlan,
+                    ColMap = self.ColMap
+                })
 
         self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
 
@@ -281,7 +282,8 @@ function PropertyDef:applyDef()
         self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.INDEX)
     elseif idx == 'unique' then
         self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.UNIQUE)
-    else self.ctlv = bit.band(self.ctlv, bit.bnot(bit.bor(Constants.CTLV_FLAGS.INDEX, Constants.CTLV_FLAGS.UNIQUE)) )
+    else
+        self.ctlv = bit.band(self.ctlv, bit.bnot(bit.bor(Constants.CTLV_FLAGS.INDEX, Constants.CTLV_FLAGS.UNIQUE)) )
     end
 
     if self.D.noTrackChanges then
@@ -339,13 +341,20 @@ end
 function PropertyDef:GetColumnExpression(first)
     if self.ColMap then
         return string.format(
-        '%s coalesce([%s], (select [Value] from [.ref-values] where ClassID=%d and PropertyID=%d and PropIndex=0 limit 1)) as [%s]',
-        first and ' ' or ',', self.ColMap, self.ClassDef.ClassID, self.ID, self.Name.text )
+                '%s coalesce([%s], (select [Value] from [.ref-values] where ClassID=%d and PropertyID=%d and PropIndex=0 limit 1)) as [%s]',
+                first and ' ' or ',', self.ColMap, self.ClassDef.ClassID, self.ID, self.Name.text )
     else
         return string.format(
-        '%s (select [Value] from [.ref-values] where ClassID=%d and PropertyID=%d and PropIndex=0 limit 1) as [%s]',
-        first and '' or ',', self.ClassDef.ClassID, self.ID, self.Name.text)
+                '%s (select [Value] from [.ref-values] where ClassID=%d and PropertyID=%d and PropIndex=0 limit 1) as [%s]',
+                first and '' or ',', self.ClassDef.ClassID, self.ID, self.Name.text)
     end
+end
+
+-- Creates instance of DBProperty for DBObject
+---@param object DBObject
+function PropertyDef:CreateDBProperty(object)
+    local result = dbprops.DBProperty(object, self)
+    return result
 end
 
 --[[
@@ -406,8 +415,8 @@ end
 ---@param op string @comment 'C' or 'U'
 function NumberPropertyDef:GetValueSchema(op)
     local result = self:buildValueSchema(
-    schema.NumberFrom(self.D.rules.minValue or Constants.MIN_NUMBER,
-    self.D.rules.maxValue or Constants.MAX_NUMBER))
+            schema.NumberFrom(self.D.rules.minValue or Constants.MIN_NUMBER,
+                    self.D.rules.maxValue or Constants.MAX_NUMBER))
     return result
 end
 
@@ -471,7 +480,7 @@ end
 ---@param op string @comment 'C' or 'U'
 function IntegerPropertyDef:GetValueSchema(op)
     local result = self:buildValueSchema(schema.AllOf(schema.NumberFrom(self.D.rules.minValue or Constants.MIN_INTEGER,
-    self.D.rules.maxValue or Constants.MAX_INTEGER), schema.Integer))
+            self.D.rules.maxValue or Constants.MAX_INTEGER), schema.Integer))
     return result
 end
 
@@ -652,6 +661,13 @@ function MixinPropertyDef:GetValueSchema(op)
     return result
 end
 
+-- Creates instance of DBProperty for DBObject
+---@param object DBObject
+function MixinPropertyDef:CreateDBProperty(object)
+    local result = dbprops.MixinDBProperty(object, self)
+    return result
+end
+
 --[[
 ===============================================================================
 ReferencePropertyDef
@@ -718,7 +734,7 @@ function ReferencePropertyDef:hasUnresolvedReferences()
     -- Check dynamic rules
     if self.D.refDef and self.D.refDef.dynamic then
         if self.D.refDef.dynamic.selectorProp
-        and not self.D.refDef.dynamic.selectorProp:isResolved() then
+                and not self.D.refDef.dynamic.selectorProp:isResolved() then
             return false
         end
 
@@ -758,6 +774,13 @@ end
 
 function ReferencePropertyDef:isReference()
     return true
+end
+
+-- Creates instance of DBProperty for DBObject
+---@param object DBObject
+function ReferencePropertyDef:CreateDBProperty(object)
+    local result = dbprops.LinkDBProperty(object, self)
+    return result
 end
 
 --[[
@@ -1081,49 +1104,49 @@ local RefDefSchemaDef = {
         })
     }),
 
-    --[[
-    Property name ID (in `classRef` class) used as reversed reference property for this one. Optional. If set,
-    Flexilite will ensure that referenced class does have this property (by creating if needed).
-    'reversed property' is treated as slave of master definition. It means the following:
-    1) reversed object ID is stored in [Value] field (master's object ID in [ObjectID] field)
-         2) when master property gets modified (switches to different class or reverse property) or deleted,
-         reverse property definition also gets deleted
-         ]]
+--[[
+Property name ID (in `classRef` class) used as reversed reference property for this one. Optional. If set,
+Flexilite will ensure that referenced class does have this property (by creating if needed).
+'reversed property' is treated as slave of master definition. It means the following:
+1) reversed object ID is stored in [Value] field (master's object ID in [ObjectID] field)
+     2) when master property gets modified (switches to different class or reverse property) or deleted,
+     reverse property definition also gets deleted
+     ]]
     reverseProperty = schema.Optional(name_ref.IdentifierSchema),
 
-    --[[
-    Defines number of items fetched as a part of master object load. Applicable only > 0
-    ]]
+--[[
+Defines number of items fetched as a part of master object load. Applicable only > 0
+]]
     autoFetchLimit = schema.Optional(schema.Integer),
 
     autoFetchDepth = schema.Optional(schema.Integer),
 
-    --[[
-    Optional relation rule when object gets deleted. If not specified, 'link' is assumed
-    ]]
+--[[
+Optional relation rule when object gets deleted. If not specified, 'link' is assumed
+]]
     rule = schema.OneOf(schema.Nil,
 
     --[[
     Referenced object(s) are details (dependents).
     They will be deleted when master is deleted. Equivalent of DELETE CASCADE
     ]]
-    'master',
+            'master',
 
     --[[
     Loose association between 2 objects. When object gets deleted, references are deleted too.
     Equivalent of DELETE SET NULL
     ]]
-    'link',
+            'link',
 
     --[[
     Similar to master but referenced objects are treated as part of master object
     ]]
-    'nested',
+            'nested',
 
     --[[
     Object cannot be deleted if there are references. Equivalent of DELETE RESTRICT
     ]]
-    'dependent'
+            'dependent'
     ),
 }
 
@@ -1139,9 +1162,9 @@ PropertyDef.Schema = schema.Record {
         maxValue = schema.Optional(schema.Number),
         regex = schema.Optional(schema.String),
     },
-    schema.Test( function(rules)
-        return (rules.maxOccurrences or 1) >= (rules.minOccurrences or 0)
-    end, 'maxOccurrences must be greater or equal than minOccurrences')),
+            schema.Test( function(rules)
+                return (rules.maxOccurrences or 1) >= (rules.minOccurrences or 0)
+            end, 'maxOccurrences must be greater or equal than minOccurrences')),
 
     index = schema.OneOf(schema.Nil, 'index', 'unique', 'range', 'fulltext'),
     noTrackChanges = schema.Optional(schema.Boolean),

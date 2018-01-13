@@ -77,7 +77,6 @@ function ActionList:Clear()
     self.tags = {}
 end
 
-
 ---@class DBContext
 local DBContext = class()
 
@@ -109,6 +108,8 @@ function DBContext:_init(db)
 
     -- Cache of loaded objects (map by object ID). Exists only during time of request. Gets reset after request is complete
     self.Objects = {}
+    -- Collection of created/updated objects
+    self.CUObjects = {}
 
     -- helper constructors and singletons
     self.ClassDef = ClassDef
@@ -131,6 +132,55 @@ function DBContext:_init(db)
     self:initMemoizeFunctions()
 end
 
+--[[ Loads existing object by ID. propIds define subset of values to load (passing subset of properties used
+for better performance). Note that once loaded with subset of values, object will be manipulated as is, and non-loaded
+properties will be loaded on demand. Also, when object gets edited, its entire content is loaded.
+]]
+---@param id number
+---@param propIds table|nil @comment list of property IDs to load
+---@return DBObject
+function DBContext:LoadObject(id, propIds)
+    local result = self.CUObjects[id]
+    if not result and id > 0 then
+        result = self.Objects[id]
+
+        if not result then
+            -- TODO Check access rules for class and specific object
+            result = DBObject { ID = id, PropIDs = propIds, DBContext = self }
+            self.Objects[id] = result
+        end
+    end
+    return result
+end
+
+-- Starts editing an existing objects
+---@param id number
+---@return DBObject
+function DBContext:EditObject(id)
+    -- TODO Check access rules for class and specific object
+    local result = assert(self:LoadObject(id), string.format('Object with ID %d not found', id))
+    result:LoadAllValues()
+
+    result = result:CloneForEdit()
+    self.CUObjects[id] = result
+    return result
+end
+
+-- Deletes object with given ID
+---@param id number
+function DBContext:DeleteObject(id)
+    -- TODO Check access rules for class and specific object
+end
+
+-- Creates new object of given class, and optionally sets new data payload
+---@param classDef ClassDef
+---@param data table|nil
+function DBContext:NewObject(classDef, data)
+    local result = DBObject { ClassDef = classDef, ID = self:GetNewObjectID(), Data = data }
+    self.CUObjects[result.ID] = result
+    return result
+end
+
 function DBContext:GetNewObjectID()
     self.lastNewObjectID = (self.lastNewObjectID or 0) - 1
     return self.lastNewObjectID
@@ -141,7 +191,7 @@ end
 --- @param opResult number @comment SQLite integer result. 0 = OK
 function DBContext:checkSqlite(opResult)
     if opResult ~= sqlite3.OK and opResult ~= sqlite3.DONE
-    and opResult ~= sqlite3.ROW then
+            and opResult ~= sqlite3.ROW then
         local errMsg = string.format("SQLite error code %d: %s", self.db:error_code(), self.db:error_message())
         error(errMsg)
     end
@@ -183,10 +233,10 @@ function DBContext:flexiAction(ctx, action, ...)
         self.db:exec 'commit'
     end
     ,
-    function(error)
-        -- TODO
-        print(debug.traceback(tostring(error)))
-    end)
+            function(error)
+                -- TODO
+                print(debug.traceback(tostring(error)))
+            end)
 
     if not ok then
         self.db:exec 'rollback'
@@ -253,7 +303,7 @@ end
 --- @return string
 function DBContext:getNameValueByID(nameID)
     local row = self:loadOneRow([[select [Value] from [.sym_names] where ID = :v limit 1;]],
-    { v = nameID })
+            { v = nameID })
     if row then
         return row.Value
     end
@@ -276,7 +326,7 @@ end
 --- @return number @collection property ID or -1 if property does not exist
 function DBContext:getPropIdByClassAndNameIds(classId, propName, errorIfNotFound)
     local row = self:loadOneRow([[select PropertyID from [flexi_prop] where ClassID = :c and NameID = :n;"]],
-    { c = classId, n = propName }, errorIfNotFound)
+            { c = classId, n = propName }, errorIfNotFound)
     if row then
         return row.PropertyID
     end
@@ -329,7 +379,7 @@ end
 ---@return number @comment -1 if not found, valid ID otherwise
 function DBContext:getPropIdByClassIdAndPropNameId(classId, propNameId)
     local row = self:loadOneRow("select PropertyID from [flexi_prop] where ClassID = :c and NameID = :n;",
-    { c = classId, n = propNameId })
+            { c = classId, n = propNameId })
     if not row then
         return -1
     end
@@ -725,50 +775,50 @@ flexiFuncs = {
     ['drop trigger'] = TriggerAPI.Drop,
     ['trigger drop'] = TriggerAPI.Drop,
 
-    --[[
+--[[
 
-        /*
-     Change class ID of given objects. Updates schemas and possibly columns A..J to match new class schema
-     */
-    move to another class
+    /*
+ Change class ID of given objects. Updates schemas and possibly columns A..J to match new class schema
+ */
+move to another class
 
-        /*
-     Removes duplicated objects. Updates references to point to a new object. When resolving conflict, selects object
-     with larger number of references to it, or object that was updated more recently.
-     */
-    remove duplicates
+    /*
+ Removes duplicated objects. Updates references to point to a new object. When resolving conflict, selects object
+ with larger number of references to it, or object that was updated more recently.
+ */
+remove duplicates
 
-        /*
-     Splits objects vertically, i.e. one set of properties goes to class A, another - to class B.
-     Resulting objects do not have any relation to each other
-     */
-    structural split
+    /*
+ Splits objects vertically, i.e. one set of properties goes to class A, another - to class B.
+ Resulting objects do not have any relation to each other
+ */
+structural split
 
-        /*
-     Joins 2 non related objects into single object, using optional property map. Corresponding objects will be found using sourceKeyPropIDs
-     and targetKeyPropIDs
-     */
-    structural merge
+    /*
+ Joins 2 non related objects into single object, using optional property map. Corresponding objects will be found using sourceKeyPropIDs
+ and targetKeyPropIDs
+ */
+structural merge
 
-    reorderArrayItems
+reorderArrayItems
 
-        /*
-     Returns report on results of last refactoring action
-     */
-    getLastActionReport
+    /*
+ Returns report on results of last refactoring action
+ */
+getLastActionReport
 
-        /*
-     Retrieves list of invalid objects for the given class (objects which do not pass property rules)
-     Returns list of object IDs.
-     @className - class name to perform validation on
-     @markAsnInvalid - if set to true, invalid objects will be marked with CTLO_HAS_INVALID_DATA
-     Note that all objects will be affected and valid objects will get this flag cleared.
-     */
-     get invalid objects
+    /*
+ Retrieves list of invalid objects for the given class (objects which do not pass property rules)
+ Returns list of object IDs.
+ @className - class name to perform validation on
+ @markAsnInvalid - if set to true, invalid objects will be marked with CTLO_HAS_INVALID_DATA
+ Note that all objects will be affected and valid objects will get this flag cleared.
+ */
+ get invalid objects
 
-    ]]
+]]
 
-    -- TODO ['convert custom eav'] = ConvertCustomEAV,
+-- TODO ['convert custom eav'] = ConvertCustomEAV,
 }
 
 -- Run once - find all synonyms for actions

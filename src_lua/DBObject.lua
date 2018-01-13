@@ -13,7 +13,7 @@ DBObject
     - Boxed - BoxedDBObject to be accessed in custom scripts
         - props - collection of DBProperty by property name
             - Boxed - BoxedDBProperty
-            - values - array of DBCell
+            - values - array of DBValue
                 - BoxedDBValue - protected value to be accessed in custom scripts
 
 Main features:
@@ -21,7 +21,7 @@ SetData
 GetData
 new and existing object ID
 data validation
-access rules
+access rules on class/object/permission level
 loading data from db
 saving data to db
 boxed data (user access)
@@ -41,35 +41,49 @@ local schema = require 'schema'
 ---@class DBObject
 local DBObject = class()
 
---- --@class DBProperty
---local DBProperty = class()
-
 -- DBObject constructor.
----@param objectId number @comment (optional) Int64
----@param classDef IClassDef @comment (optional) must be passed if objectId is nil
-function DBObject:_init(objectId, classDef)
-    if not objectId then
-        ---@type ClassDef
-        self.ClassDef = assert(classDef, 'ClassDef is required for new objects')
-        self.NewID = self.ClassDef.DBContext:GetNewObjectID()
+---@param params table @comment {ClassDef: ClassDef, DBContext: DBContext, ID: number, PropIDs: list of numbers, Data: table}
+--[[ID is required, either ClassDef or DBContext are required, other params are optional.
+DBObject does not manage DBContext.Objects or CUObjects. It behaves as standalone entity.
+]]
+function DBObject:_init(params)
+    self.ID = assert(params.ID)
+
+    if self.ID > 0 then
+        -- Existing object
+        assert(params.DBContext or params.ClassDef, 'Either ClassDef or DBContext are required')
+        local DBContext = params.DBContext or params.ClassDef.DBContext
+        self:loadObjectRow(DBContext)
+        if params.PropIDs then
+            self:loadFromDB(params.PropIDs)
+        end
     else
-        ---@type number
-        self.ID = objectId
-        self:loadFromDB()
+        -- New object
+        self.ClassDef = assert(params.ClassDef)
+        if params.Data then
+            self:SetData(params.Data)
+        end
     end
 
     -- [.ref-values] & mapped columns collection: Each property is stored by property name as DBProperty
     -- Each ref-value entry is stored in list
     -- as Value, ctlv, OriginalValue
 
-    ---@type table @comment [propName:string]: DBProperty
+    ---@type table @comment [propName:string]: DBProperty. All own class properties and non-conflicting mixin properties
     self.props = {}
 end
 
 -- Loads row from .objects table. Updates ClassDef if needed
-function DBObject:loadObjectRow()
+---@param DBContext DBContext
+function DBObject:loadObjectRow(DBContext)
     -- Load from .objects
-    local obj = self.ClassDef.DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
+    local obj = DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
+
+    -- Theoretically, object ID may not match class def passed in constructor
+    if not self.ClassDef or obj.ClassID ~= self.ClassDef.ClassID then
+        self.ClassDef = self.ClassDef.DBContext:getClassDef(obj.ClassID)
+    end
+
     if obj.MetaData then
         -- object MetaData may include: accessRules, colMapMetaData and other elements
         self.MetaData = JSON.decode(obj.MetaData)
@@ -79,14 +93,6 @@ function DBObject:loadObjectRow()
     end
 
     self.ctlo = obj.ctlo
-
-    -- Theoretically, object ID may not match class def passed in constructor
-    if obj.ClassID ~= self.ClassDef.ClassID then
-        self.ClassDef = self.ClassDef.DBContext:getClassDef(obj.ClassDef)
-    end
-
-    ---@type table
-    self.props = {}
 
     -- Set values from mapped columns
     if self.ClassDef.ColMapActive then
@@ -126,27 +132,40 @@ function DBObject:Boxed()
     return self.boxed
 end
 
-function DBObject:BoxedDBProperty(propDef)
-    -- todo
-    if self.prop then
-
+-- Gets DBProperty by name. For C and U operations may create a new property, if class has allowAnyProps
+---@param propName string
+---@param op string @comment 'C', 'R', 'U', 'D'
+function DBObject:getDBProperty(propName, op)
+    local result = self.props[propName]
+    if not result then
+        -- check original
+        if self.old then
+            local oldObj = self.ClassDef.Objects[self.ID]
+            result = oldObj:getDBProperty(propName)
+        else
+            -- This is original. Property may be not loaded yet
+            local propDef = self.ClassDef:hasProperty(propName)
+            -- TODO Check prop permissions
+            if not propDef then
+                if (op == Constants.OPERATION.CREATE or op == Constants.OPERATION.DELETE or op == Constants.OPERATION.UPDATE)
+                        and self.ClassDef.allowAnyProps then
+                    -- TODO Create new property
+                end
+            end
+            assert(propDef, string.format('Property %s not found', propName))
+            result = propDef:CreateDBProperty(self)
+            self.props[propName] = result
+        end
     end
-    local result = setmetatable({}, {
-
-    })
 
     return result
 end
 
 ---@param propName string
-function DBObject:getDBProperty(propName)
-
-end
-
----@param propName string
 ---@param propValue any
 function DBObject:setDBProperty(propName, propValue)
-
+    local prop = self:getDBProperty(propName, 'U')
+    return prop:SetValue(propValue)
 end
 
 -- Sets entire object data, including child objects
@@ -179,27 +198,6 @@ function DBObject:GetData()
     end
 end
 
--- Returns ref-value entry for given property ID and index
-function DBObject:getRefValue(propID, propIdx)
-    local values = self.props[propID]
-    if not values then
-        values = {}
-        self.props[propID] = values
-    end
-
-    local rv = values[propIdx]
-    if not rv then
-        rv = {}
-        values[propIdx] = rv
-    end
-
-    return rv
-end
-
-function DBObject:setPropertyNull(propIdOrName, propIdx)
-
-end
-
 --- Set property value
 function DBObject:setProperty(propIdOrName, propIdx, value)
     local rv = self:getRefValue(propID, propIdx)
@@ -210,8 +208,6 @@ end
 function DBObject:setMappedPropertyValue(prop, value)
     -- TODO
 end
-
---- Get property value by id
 
 -- saveToDB
 
@@ -465,24 +461,21 @@ function DBObject:ValidateData()
     -- todo
 end
 
--------------------------------------------------------------------------------
---- DBProperty
--------------------------------------------------------------------------------
------@param DBObject DBObject
---function DBProperty:_init(DBObject)
---    self.DBObject = assert(DBObject, 'DBObject is required')
---end
---
---function DBProperty:Boxed()
---
---end
---
---function DBProperty:SetData()
---
---end
---
---function DBProperty:GetData()
---
---end
+function DBObject:CloneForEdit()
+    assert(self.ID > 0 and not self.old, 'Cannot clone already cloned or new object')
+    -- pass -1 to avoid loading from database
+    local result = DBObject { ID = -1, ClassDef = self.ClassDef }
+    result.ID = self.ID
+    result.old = self
+    return result
+end
+
+function DBObject:LoadAllValues()
+    -- TODO
+end
+
+function DBObject:IsNew()
+    return self.ID < 0
+end
 
 return DBObject

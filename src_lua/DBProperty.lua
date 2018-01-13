@@ -8,11 +8,26 @@
 DBProperty and derived classes.
 Used by DBObject to access object property values
 Instantiated by PropertyDef and its descendants
+
+Provides access to BoxedProperty, to be called from custom scripts and functions
+Hold list of DBValue items, one item per .ref-value row (or A..P columns in .objects row)
 ]]
 
 local class = require 'pl.class'
+local DBValue = require 'DBValue'
 
+-- Constant Null DBValue
+local NullDBValue = setmetatable({}, {
+    __index = function(idx)
+
+    end
+-- TODO Other methods
+})
+
+-- Base abstract property. Not used directly
 ---@class BaseDBProperty
+---@field DBObject DBObject
+---@field PropDef PropertyDef
 local BaseDBProperty = class()
 
 ---@param DBObject DBObject
@@ -22,10 +37,12 @@ function BaseDBProperty:_init(DBObject, propDef)
     self.PropDef = assert(propDef)
 end
 
-function BaseDBProperty:Boxed()
-
-end
-
+-------------------------------------------------------------------------------
+--[[
+DBProperty
+Provides access to simple values (both scalar and vector)
+]]
+-------------------------------------------------------------------------------
 ---@class DBProperty
 local DBProperty = class(BaseDBProperty)
 
@@ -33,12 +50,75 @@ function DBProperty:_init(DBObject, propDef)
     self:super(DBObject, propDef)
 end
 
+function DBProperty:Boxed()
+    if not self.boxed then
+        self.boxed = setmetatable({}, {
+            __index = function(idx)
+                local vv = self:getValue(idx)
+                if vv then
+                    return vv.Boxed()
+                end
+                return NullDBValue
+            end,
+
+            __newindex = function(idx, val)
+                return self:setValue(idx, val)
+            end,
+
+            __metatable = function()
+                return nil
+            end
+        })
+    end
+
+    return self.boxed
+end
+
+---@param idx number @comment 1 based index
+---@param val any
+function DBProperty:setValue(idx, val)
+    -- Check access permission
+    -- todo
+
+    if not self.values then
+        self.values = {}
+    end
+
+    --TODO load all preceding items
+    self.values[idx] = DBValue(self, val)
+end
+
+---@param idx number @comment 1 based index
+function DBProperty:getValue(idx)
+    ---@type DBValue
+    local v = self.values[idx]
+    if v then
+        return v
+    end
+
+    -- load from db?
+    -- TODO return nil?
+end
+
+-------------------------------------------------------------------------------
+--[[
+MixinDBProperty
+Provides access to simple values (both scalar and vector)
+]]
+-------------------------------------------------------------------------------
 ---@class MixinDBProperty
 local MixinDBProperty = class(BaseDBProperty)
 
 function MixinDBProperty:_init(DBObject, propDef)
     self:super(DBObject, propDef)
 end
+
+-------------------------------------------------------------------------------
+--[[
+LinkDBProperty
+Provides access to simple values (both scalar and vector)
+]]
+-------------------------------------------------------------------------------
 ---@class LinkDBProperty
 local LinkDBProperty = class(MixinDBProperty)
 
