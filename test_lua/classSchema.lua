@@ -10,6 +10,7 @@ local path = require 'pl.path'
 local schema = require 'schema'
 local JSON = require 'cjson'
 local ClassDef = require 'ClassDef'
+local pretty = require 'pl.pretty'
 
 --- Read file
 ---@param file string

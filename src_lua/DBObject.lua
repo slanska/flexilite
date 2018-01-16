@@ -6,15 +6,15 @@
 --[[
 Internally used facade to [.object] row.
 Provides access to property values, saving in database etc.
-This is low level data operations, so user permissions are not checked
-Holds collection of DBCells (.ref-values)
+This is low level data operations
+Holds collection of DBProperty
 
 DBObject
-    - Boxed - BoxedDBObject to be accessed in custom scripts
-        - props - collection of DBProperty by property name
-            - Boxed - BoxedDBProperty
-            - values - array of DBValue
-                - BoxedDBValue - protected value to be accessed in custom scripts
+    - Boxed() - BoxedDBObject to be accessed in custom scripts
+    - props - collection of DBProperty by property name
+        - Boxed() - BoxedDBProperty
+        - values - array of DBValue
+            - BoxedDBValue - protected value to be accessed in custom scripts
 
 Main features:
 SetData
@@ -129,9 +129,7 @@ function DBObject:Boxed()
                 return self:setDBProperty(propName, propValue)
             end,
 
-            __metatable = function()
-                return nil
-            end,
+            __metatable = nil,
 
         })
     end

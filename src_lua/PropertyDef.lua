@@ -71,9 +71,18 @@ PropertyDef
 ===============================================================================
 ]]
 
+-- TODO Define classes to rules, enumDef, refDef etc.
+
+---@class PropertyDefinition
+---@field rules table
+---@field enumDef table
+---@field refDef table
+---@field accessRules table
+---@field indexing string
+
 ---@class PropertyDef
 ---@field ClassDef ClassDef
----@field D table @comment parsed property definition JSON
+---@field D PropertyDefinition @comment parsed property definition JSON
 ---@field Name NameRef
 ---@field ctlv number
 ---@field ctlvPlan number
@@ -111,7 +120,7 @@ function PropertyDef:_init(params)
     if params.newPropertyName then
         -- New property, no row in database, no resolved name IDs
         ---@type NameRef
-        self.Name = NameRef(nil, params.newPropertyName)
+        self.Name = NameRef(params.newPropertyName)
         self:initMetadataRefs()
     else
         assert(params.dbrow)
@@ -181,26 +190,26 @@ end
 -- raw table, decoded from JSON
 --- @return boolean, string @comment true if definition is valid, false if not and error message
 -- true if propDef is valid; false otherwise
-function PropertyDef:isValidDef()
-    assert(self, 'Property not defined')
-
-    --TODO check property name
-
-    -- Check common property settings
-    -- minOccurrences & maxOccurences
-    local minOccurrences = self.D.rules.minOccurrences or 0
-    local maxOccurrences = self.D.rules.maxOccurrences or 1
-
-    if type(minOccurrences) ~= 'number' or minOccurrences < 0 then
-        return false, 'minOccurrences must be a positive number'
-    end
-
-    if type(maxOccurrences) ~= 'number' or maxOccurrences < minOccurrences then
-        return false, 'maxOccurrences must be a number greater or equal of minOccurrences'
-    end
-
-    return true
-end
+--function PropertyDef:isValidDef()
+--    assert(self, 'Property not defined')
+--
+--    --TODO check property name
+--
+--    -- Check common property settings
+--    -- minOccurrences & maxOccurences
+--    local minOccurrences = self.D.rules.minOccurrences or 0
+--    local maxOccurrences = self.D.rules.maxOccurrences or 1
+--
+--    if type(minOccurrences) ~= 'number' or minOccurrences < 0 then
+--        return false, 'minOccurrences must be a positive number'
+--    end
+--
+--    if type(maxOccurrences) ~= 'number' or maxOccurrences < minOccurrences then
+--        return false, 'maxOccurrences must be a number greater or equal of minOccurrences'
+--    end
+--
+--    return true
+--end
 
 -- Definite 'yes' is returned when a) propA.canChangeTo(propB) returned 'yes' and b) property types are compatible
 -- and c) minOccurrences and maxOccurrences do not shrink
@@ -396,21 +405,21 @@ end
 
 -- Checks if number property is well defined
 --- @overload
-function NumberPropertyDef:isValidDef()
-    local ok, errorMsg = PropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    -- Check minValue and maxValue
-    local maxV = tonumber(self.D.rules.maxValue or Constants.MAX_NUMBER)
-    local minV = tonumber(self.D.rules.minValue or Constants.MIN_NUMBER)
-    if minV > maxV then
-        return false, 'Invalid minValue or maxValue settings'
-    end
-
-    return true
-end
+--function NumberPropertyDef:isValidDef()
+--    local ok, errorMsg = PropertyDef.isValidDef(self)
+--    if not ok then
+--        return ok, errorMsg
+--    end
+--
+--    -- Check minValue and maxValue
+--    local maxV = tonumber(self.D.rules.maxValue or Constants.MAX_NUMBER)
+--    local minV = tonumber(self.D.rules.minValue or Constants.MIN_NUMBER)
+--    if minV > maxV then
+--        return false, 'Invalid minValue or maxValue settings'
+--    end
+--
+--    return true
+--end
 
 function NumberPropertyDef:getNativeType()
     return 'float'
@@ -466,21 +475,21 @@ function IntegerPropertyDef:_init(params)
 end
 
 --- @overload
-function IntegerPropertyDef:isValidDef()
-    local ok, errorMsg = NumberPropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    -- Check minValue and maxValue
-    local maxV = math.min(tonumber(self.D.rules.maxValue or Constants.MAX_INTEGER), Constants.MAX_INTEGER)
-    local minV = math.max(tonumber(self.D.rules.minValue or Constants.MIN_INTEGER), Constants.MIN_INTEGER)
-    if minV > maxV then
-        return false, 'Invalid minValue or maxValue settings'
-    end
-
-    return true
-end
+--function IntegerPropertyDef:isValidDef()
+--    local ok, errorMsg = NumberPropertyDef.isValidDef(self)
+--    if not ok then
+--        return ok, errorMsg
+--    end
+--
+--    -- Check minValue and maxValue
+--    local maxV = math.min(tonumber(self.D.rules.maxValue or Constants.MAX_INTEGER), Constants.MAX_INTEGER)
+--    local minV = math.max(tonumber(self.D.rules.minValue or Constants.MIN_INTEGER), Constants.MIN_INTEGER)
+--    if minV > maxV then
+--        return false, 'Invalid minValue or maxValue settings'
+--    end
+--
+--    return true
+--end
 
 function IntegerPropertyDef:getNativeType()
     return 'integer'
@@ -507,21 +516,21 @@ function TextPropertyDef:_init(params)
 end
 
 --- @overload
-function TextPropertyDef:isValidDef()
-    local ok, errorMsg = PropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    local maxL = tonumber(self.D.rules.maxLength or 0)
-    if maxL < 0 then
-        return false, 'Invalid maxLength. Must be non negative number'
-    end
-
-    -- TODO check regex
-
-    return true
-end
+--function TextPropertyDef:isValidDef()
+--    local ok, errorMsg = PropertyDef.isValidDef(self)
+--    if not ok then
+--        return ok, errorMsg
+--    end
+--
+--    local maxL = tonumber(self.D.rules.maxLength or 0)
+--    if maxL < 0 then
+--        return false, 'Invalid maxLength. Must be non negative number'
+--    end
+--
+--    -- TODO check regex
+--
+--    return true
+--end
 
 function TextPropertyDef:getNativeType()
     return 'text'
@@ -589,19 +598,19 @@ function MixinPropertyDef:_init(params)
 end
 
 --- @overload
-function MixinPropertyDef:isValidDef()
-    local ok, errorMsg = PropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    -- Check referenced class definition
-    if not self.D.refDef or not self.D.refDef.classRef then
-        return false, 'Reference definition is invalid'
-    end
-
-    return true
-end
+--function MixinPropertyDef:isValidDef()
+--    local ok, errorMsg = PropertyDef.isValidDef(self)
+--    if not ok then
+--        return ok, errorMsg
+--    end
+--
+--    -- Check referenced class definition
+--    if not self.D.refDef or not self.D.refDef.classRef then
+--        return false, 'Reference definition is invalid'
+--    end
+--
+--    return true
+--end
 
 function MixinPropertyDef:applyDef()
     PropertyDef.applyDef(self)
@@ -691,25 +700,25 @@ function ReferencePropertyDef:_init(params)
 end
 
 --- @overload
-function ReferencePropertyDef:isValidDef()
-    local ok, errorMsg = MixinPropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    -- Either class or rules must be defined
-    if self.D.refDef and self.D.refDef.dynamic then
-        if not self.D.refDef.dynamic.classRef and not self.D.refDef.dynamic.rules then
-            return false, 'Either classRef or rules must be defined for dynamic reference'
-        end
-
-        if not self.D.refDef.dynamic.classRef and table.maxn(self.D.refDef.dynamic.rules) == 0 then
-            return false, 'No rules defined for dynamic reference rules'
-        end
-    end
-
-    return true
-end
+--function ReferencePropertyDef:isValidDef()
+--    local ok, errorMsg = MixinPropertyDef.isValidDef(self)
+--    if not ok then
+--        return ok, errorMsg
+--    end
+--
+--    -- Either class or rules must be defined
+--    if self.D.refDef and self.D.refDef.dynamic then
+--        if not self.D.refDef.dynamic.classRef and not self.D.refDef.dynamic.rules then
+--            return false, 'Either classRef or rules must be defined for dynamic reference'
+--        end
+--
+--        if not self.D.refDef.dynamic.classRef and table.maxn(self.D.refDef.dynamic.rules) == 0 then
+--            return false, 'No rules defined for dynamic reference rules'
+--        end
+--    end
+--
+--    return true
+--end
 
 function ReferencePropertyDef:initMetadataRefs()
     MixinPropertyDef.initMetadataRefs(self)
@@ -807,24 +816,24 @@ end
 
 ---
 --- Checks if enumeration is defined correctly
-function EnumPropertyDef:isValidDef()
-    local ok, errorMsg = PropertyDef.isValidDef(self)
-    if not ok then
-        return ok, errorMsg
-    end
-
-    local enumDef = self.D.enumDef or self.D.refDef
-    if type(enumDef) ~= 'table' then
-        return false, 'enumDef nor refDef is not defined or invalid'
-    end
-
-    -- either classRef or items have to be defined
-    if not enumDef.classRef and not enumDef.items then
-        return false, 'enumDef must have either classRef or items or both'
-    end
-
-    return true
-end
+--function EnumPropertyDef:isValidDef()
+--    local ok, errorMsg = PropertyDef.isValidDef(self)
+--    if not ok then
+--        return ok, errorMsg
+--    end
+--
+--    local enumDef = self.D.enumDef or self.D.refDef
+--    if type(enumDef) ~= 'table' then
+--        return false, 'enumDef nor refDef is not defined or invalid'
+--    end
+--
+--    -- either classRef or items have to be defined
+--    if not enumDef.classRef and not enumDef.items then
+--        return false, 'enumDef must have either classRef or items or both'
+--    end
+--
+--    return true
+--end
 
 function EnumPropertyDef:getNativeType()
     return 'text'
@@ -1057,6 +1066,7 @@ PropertyDef.PropertyTypes = {
     ['uuid'] = UuidPropertyDef,
     ['enum'] = EnumPropertyDef,
     ['fkey'] = EnumPropertyDef,
+    ['foreignkey'] = EnumPropertyDef,
     ['reference'] = ReferencePropertyDef,
     ['link'] = ReferencePropertyDef,
     ['ref'] = ReferencePropertyDef,
@@ -1103,6 +1113,10 @@ EnumDefSchemaDef.items = schema.Optional(schema.Collection(schema.Record {
     imageUrl = schema.Optional(schema.String),
 }))
 
+local EnumRefDefSchemaDef = {
+    classRef = schema.OneOf(schema.Nil, name_ref.IdentifierSchema, schema.Collection(name_ref.IdentifierSchema))
+}
+
 local RefDefSchemaDef = {
     classRef = schema.OneOf(schema.Nil, name_ref.IdentifierSchema, schema.Collection(name_ref.IdentifierSchema)),
     dynamic = schema.Optional(schema.Record {
@@ -1126,9 +1140,9 @@ Flexilite will ensure that referenced class does have this property (by creating
 --[[
 Defines number of items fetched as a part of master object load. Applicable only > 0
 ]]
-    autoFetchLimit = schema.Optional(schema.Integer),
+    autoFetchLimit = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
 
-    autoFetchDepth = schema.Optional(schema.Integer),
+    autoFetchDepth = schema.Optional(schema.AllOf( schema.Integer, schema.PositiveNumber)),
 
 --[[
 Optional relation rule when object gets deleted. If not specified, 'link' is assumed
@@ -1159,32 +1173,60 @@ Optional relation rule when object gets deleted. If not specified, 'link' is ass
     ),
 }
 
--- TODO schema.Case('enum', 'fkey' -- enumDef
-PropertyDef.Schema = schema.Record {
-    rules = schema.AllOf(schema.Record {
-        type = schema.OneOf(unpack(tablex.keys(PropertyDef.PropertyTypes))),
-        subType = schema.OneOf(schema.Nil, 'text', 'email', 'ip', 'password', 'ip6v', 'url', 'image', 'html' ), -- TODO list to be extended
-        minOccurrences = schema.Optional(schema.AllOf(schema.NonNegativeNumber, schema.Integer)),
-        maxOccurrences = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
-        maxLength = schema.Optional(schema.AllOf(schema.Integer, schema.NumberFrom(-1, Constants.MAX_INTEGER))),
-        minValue = schema.Optional(schema.Number),
-        maxValue = schema.Optional(schema.Number),
-        regex = schema.Optional(schema.String),
-    },
+PropertyDef.Schema = schema.AllOf( schema.Record {
+    rules = schema.AllOf(
+            schema.Record {
+                type = schema.OneOf(unpack(tablex.keys(PropertyDef.PropertyTypes))),
+                subType = schema.OneOf(schema.Nil, 'text', 'email', 'ip', 'password', 'ip6v', 'url', 'image', 'html' ), -- TODO list to be extended
+                minOccurrences = schema.Optional(schema.AllOf(schema.NonNegativeNumber, schema.Integer)),
+                maxOccurrences = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
+                maxLength = schema.Optional(schema.AllOf(schema.Integer, schema.NumberFrom(-1, Constants.MAX_INTEGER))),
+            -- TODO integer, float or date/time, depending on property type
+                minValue = schema.Optional(schema.Number),
+                maxValue = schema.Optional(schema.Number),
+                regex = schema.Optional(schema.String),
+            },
             schema.Test( function(rules)
                 return (rules.maxOccurrences or 1) >= (rules.minOccurrences or 0)
-            end, 'maxOccurrences must be greater or equal than minOccurrences')),
+            end, 'maxOccurrences must be greater or equal than minOccurrences')
+    ,
+
+            schema.Test( function(rules)
+                -- TODO Check property type
+                return (rules.maxValue or Constants.MAX_NUMBER) >= (rules.minValue or Constants.MIN_NUMBER)
+            end, 'maxValue must be greater or equal than minValue')
+    ),
 
     index = schema.OneOf(schema.Nil, 'index', 'unique', 'range', 'fulltext'),
     noTrackChanges = schema.Optional(schema.Boolean),
 
-    enumDef = schema.Case(),
+    enumDef = schema.Case('rules.type',
+            { schema.OneOf( 'enum', 'fkey', 'foreignkey'),
+              schema.Optional(schema.Record(EnumDefSchemaDef)) },
+            { schema.Any, schema.Any }),
 
-    refDef = schema.Optional(schema.Record( RefDefSchemaDef)),
-    enumDef = schema.Optional(schema.Record(EnumDefSchemaDef)),
+    refDef = schema.Case('rules.type',
+            { schema.OneOf('link', 'mixin', 'ref', 'reference'), schema.Record( RefDefSchemaDef) },
+            { schema.OneOf( 'enum', 'fkey', 'foreignkey'), schema.Optional(schema.Record( EnumRefDefSchemaDef)) },
+            { schema.Any, schema.Any }),
 
+-- todo check type
     defaultValue = schema.Any,
     accessRules = schema.Optional(AccessControl.Schema),
 }
+,
+        schema.Test(
+                function(propDef)
+                    -- Test enum definition
+                    local t = string.lower(propDef.rules.type)
+                    if t == 'enum' or t == 'fkey' or t == 'foreignkey' then
+                        local def = propDef.enumDef and 1 or 0
+                        def = def + (propDef.refDef and 2 or 0)
+                        return def == 1 or def == 2
+                    end
+                    return true
+                end, 'Enum property requires either enumDef or refDef (but not both)'
+        )
+)
 
 return PropertyDef

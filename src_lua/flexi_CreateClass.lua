@@ -3,7 +3,10 @@
 --- DateTime: 2017-11-01 11:34 PM
 ---
 
+-- TODO deferred actions
+
 local json = require 'cjson'
+local schema = require 'schema'
 
 local alt_cls = require('flexi_AlterClass')
 local AlterClass, MergeClassDefinitions = alt_cls.AlterClass, alt_cls.MergeClassDefinitions
@@ -22,93 +25,89 @@ local function insertNewClass(self, clsObject)
     clsObject.ClassID = clsObject.D.ClassID
 end
 
---- Internal function to create class
 ---@param self DBContext
----@param className string
----@param classDef table @comment decoded JSON
+---@param schemaDef table
 ---@param createVirtualTable boolean
---- Used to avoid multiple to/from JSON conversion
-local function CreateClass(self, className, classDef, createVirtualTable)
-    local classID = self:getClassIdByName(className, false)
-    if classID ~= 0 then
-        error('Class ' .. className .. ' already exists')
+local function createMultiClasses(self, schemaDef, createVirtualTable)
+    local err = schema.CheckSchema(schemaDef, self.ClassDef.MultiClassSchema)
+    if err then
+        local s = schema.FormatOutput(err)
+        error(s)
     end
 
-    -- validate name
-    if not self:isNameValid(className) then
-        error('Invalid class name' .. className)
-    end
-
-    if createVirtualTable == 0 then
-        createVirtualTable = false
-    end
-
-    if createVirtualTable == nil then
-        createVirtualTable = self.config.createVirtualTable
-    end
-
-    if createVirtualTable then
-        -- TODO Is this right way?
-
-        -- Call virtual table creation
-        local sqlStr = string.format("create virtual table [%s] using flexi_data ('%q');", className, classDefAsJSON)
-        self.db:exec(sqlStr)
-        -- TODO Supply class ID
-        return string.format('Virtual flexi_data table [%s] created', className)
-    else
-        local clsObject = self.ClassDef { newClassName = className, data = classDef, DBContext = self }
-
-        -- Validate class and its properties
-        for name, prop in pairs(clsObject.Properties) do
-            if not self:isNameValid(name) then
-                error('Invalid property name: ' .. name)
-            end
-
-            local isValid, errorMsg = prop:isValidDef()
-            if not isValid then
-                error(errorMsg)
-            end
+    for className, classDef in pairs(schemaDef) do
+        local classID = self:getClassIdByName(className, false)
+        if classID ~= 0 then
+            error('Class ' .. className .. ' already exists')
         end
 
-        insertNewClass(self, clsObject)
+        -- validate name
+        --if not self:isNameValid(className) then
+        --    error('Invalid class name' .. className)
+        --end
 
-        -- TODO Set ctloMask
-        clsObject.D.ctloMask = 0
-
-        -- Apply definition
-        for name, p in pairs(clsObject.Properties) do
-            clsObject:assignColMappingForProperty(p)
-            p:applyDef()
-            local propID = p:saveToDB(nil, name)
-            self.ClassProps[propID] = p
+        if createVirtualTable == 0 then
+            createVirtualTable = false
         end
 
-        -- Check if class is fully resolved, i.e. does not have references to non-existing classes
-        local unresolved = {}
-        clsObject.D.Unresolved = false
-        for _, p in pairs(clsObject.Properties) do
-            if p:hasUnresolvedReferences() then
-                clsObject.D.Unresolved = true
+        if createVirtualTable == nil then
+            createVirtualTable = self.config.createVirtualTable
+        end
+
+        if createVirtualTable then
+            -- TODO Is this right way?
+
+            -- Call virtual table creation
+            local sqlStr = string.format("create virtual table [%s] using flexi_data ('%q');", className, classDef)
+            self.db:exec(sqlStr)
+            -- TODO Supply class ID
+            return string.format('Virtual flexi_data table [%s] created', className)
+        else
+            local clsObject = self.ClassDef { newClassName = className, data = classDef, DBContext = self }
+
+            -- Validate class and its properties
+            --for name, prop in pairs(clsObject.Properties) do
+                --if not self:isNameValid(name) then
+                --    error('Invalid property name: ' .. name)
+                --end
+
+                --local isValid, errorMsg = prop:isValidDef()
+                --if not isValid then
+                --    error(errorMsg)
+                --end
+            --end
+
+            insertNewClass(self, clsObject)
+
+            -- TODO Set ctloMask
+            clsObject.D.ctloMask = 0
+
+            -- Apply definition
+            for name, p in pairs(clsObject.Properties) do
+                clsObject:assignColMappingForProperty(p)
+                p:applyDef()
+                local propID = p:saveToDB(nil, name)
+                self.ClassProps[propID] = p
             end
+
+            -- Check if class is fully resolved, i.e. does not have references to non-existing classes
+            local unresolved = {}
+            clsObject.D.Unresolved = false
+            for _, p in pairs(clsObject.Properties) do
+                if p:hasUnresolvedReferences() then
+                    clsObject.D.Unresolved = true
+                end
+            end
+
+            clsObject.D.VirtualTable = false
+
+            clsObject:saveToDB()
+            self:addClassToList(clsObject)
+
+            -- TODO Check if there unresolved classes
+
+            return string.format('Class [%s] created with ID=[%d]', className, clsObject.ClassID)
         end
-
-        clsObject.D.VirtualTable = false
-
-        clsObject:saveToDB()
-        self:addClassToList(clsObject)
-
-        -- TODO Check if there unresolved classes
-
-        return string.format('Class [%s] created with ID=[%d]', className, clsObject.ClassID)
-    end
-end
-
----@param self DBContext
----@param schema table
----@param createVirtualTable boolean
-local function createMultiClasses(self, schema, createVirtualTable)
-    for className, clsDef in pairs(schema) do
-        CreateClass(self, className, clsDef, createVirtualTable)
     end
 end
 
@@ -117,8 +116,22 @@ end
 ---@param classDef table
 ---@param createVirtualTable boolean
 local function createSingleClass(self, className, classDef, createVirtualTable)
-    local schema = { [className] = classDef }
-    createMultiClasses(self, schema, createVirtualTable)
+    local schemaDef = { [className] = classDef }
+    createMultiClasses(self, schemaDef, createVirtualTable)
+    return string.format('Class [%s] has been created')
+end
+
+--- Internal function to create class
+---@param self DBContext
+---@param className string
+---@param classDef table @comment decoded JSON
+---@param createVirtualTable boolean
+--- Used to avoid multiple to/from JSON conversion
+local function CreateClass(self, className, classDef, createVirtualTable)
+    if type(classDef) == 'string' then
+        classDef = json.decode(classDef)
+    end
+    return createSingleClass(self, className, classDef, createVirtualTable)
 end
 
 --[[
@@ -135,8 +148,8 @@ They are processed in few steps, to provide referential integrity:
 ---@param schemaJson string
 ---@param createVirtualTable boolean
 local function CreateSchema(self, schemaJson, createVirtualTable)
-    local schema = json.decode(schemaJson)
-    createMultiClasses(self, schema, createVirtualTable)
+    local classSchema = json.decode(schemaJson)
+    createMultiClasses(self, classSchema, createVirtualTable)
 end
 
 return { CreateClass = CreateClass, CreateSchema = CreateSchema }

@@ -70,7 +70,7 @@ local ok, error = xpcall(function()
     if not db then
         error(errMsg)
     end
-    --db = sqlite.open_memory()
+    db = sqlite.open_memory()
     DBContext = Flexi:newDBContext(db)
 
     local sql = "select flexi('configure')"

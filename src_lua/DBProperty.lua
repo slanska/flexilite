@@ -65,9 +65,7 @@ function DBProperty:Boxed()
                 return self:setValue(idx, val)
             end,
 
-            __metatable = function()
-                return nil
-            end
+            __metatable = nil
         })
     end
 
