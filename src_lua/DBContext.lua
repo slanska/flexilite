@@ -466,15 +466,16 @@ end
 -- Otherwise, will load class definition from database and add it to the context class def collection
 -- If class is not found, will throw error
 --- @param classIdOrName number @comment number or string
+---@param mustExist boolean
 --- @see ClassDef
 --- @return ClassDef @comment or nil, if not found
-function DBContext:getClassDef(classIdOrName)
+function DBContext:getClassDef(classIdOrName, mustExist)
     local result = self.Classes[classIdOrName]
 
     -- Check if class already loaded
     if result then
         if type(classIdOrName) == 'string' then
-            assert(result.Name == classIdOrName)
+            assert(result.Name.text == classIdOrName)
         else
             assert(result.ID == classIdOrName)
         end
@@ -491,7 +492,9 @@ function DBContext:getClassDef(classIdOrName)
     end
     local classRow = self:loadOneRow(sql, { ['1'] = classIdOrName })
     if not classRow then
-        -- TODO error?
+        if mustExist then
+            error(string.format('Class %s not found', classIdOrName))
+        end
         return nil
     end
     result = ClassDef { data = classRow, DBContext = self }

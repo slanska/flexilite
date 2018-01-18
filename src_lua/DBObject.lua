@@ -38,6 +38,16 @@ local Constants = require 'Constants'
 local schema = require 'schema'
 
 --[[]]
+---@class DBObjectCtorParams
+-- [[ID is required, either ClassDef or DBContext are required, other params are optional.
+-- DBObject does not manage DBContext.Objects or CUObjects. It behaves as standalone entity.
+
+---@field ClassDef ClassDef
+---@field DBContext DBContext
+---@field ID number
+---@field PropIDs table @comment array of integers
+---@field Data table
+---
 ---@class DBObject
 ---@field ID number @comment Positive integer for existing objects, negative integer for new, unsaved objects
 ---@field ClassDef ClassDef
@@ -48,10 +58,7 @@ local schema = require 'schema'
 local DBObject = class()
 
 -- DBObject constructor.
----@param params table @comment {ClassDef: ClassDef, DBContext: DBContext, ID: number, PropIDs: list of numbers, Data: table}
---[[ID is required, either ClassDef or DBContext are required, other params are optional.
-DBObject does not manage DBContext.Objects or CUObjects. It behaves as standalone entity.
-]]
+---@param params DBObjectCtorParams
 function DBObject:_init(params)
     self.ID = assert(params.ID)
 

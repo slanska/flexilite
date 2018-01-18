@@ -7,6 +7,7 @@
 
 local json = require 'cjson'
 local schema = require 'schema'
+local tablex = require 'pl.tablex'
 
 local alt_cls = require('flexi_AlterClass')
 local AlterClass, MergeClassDefinitions = alt_cls.AlterClass, alt_cls.MergeClassDefinitions
@@ -67,14 +68,14 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
             -- Validate class and its properties
             --for name, prop in pairs(clsObject.Properties) do
-                --if not self:isNameValid(name) then
-                --    error('Invalid property name: ' .. name)
-                --end
+            --if not self:isNameValid(name) then
+            --    error('Invalid property name: ' .. name)
+            --end
 
-                --local isValid, errorMsg = prop:isValidDef()
-                --if not isValid then
-                --    error(errorMsg)
-                --end
+            --local isValid, errorMsg = prop:isValidDef()
+            --if not isValid then
+            --    error(errorMsg)
+            --end
             --end
 
             insertNewClass(self, clsObject)
@@ -106,7 +107,6 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
             -- TODO Check if there unresolved classes
 
-            return string.format('Class [%s] created with ID=[%d]', className, clsObject.ClassID)
         end
     end
 end
@@ -150,6 +150,11 @@ They are processed in few steps, to provide referential integrity:
 local function CreateSchema(self, schemaJson, createVirtualTable)
     local classSchema = json.decode(schemaJson)
     createMultiClasses(self, classSchema, createVirtualTable)
+    local cnt = tablex.count_map(classSchema,
+            function()
+                return true
+            end)
+    return string.format('%d class(es) have been created', cnt)
 end
 
 return { CreateClass = CreateClass, CreateSchema = CreateSchema }

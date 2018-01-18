@@ -375,6 +375,29 @@ function PropertyDef:CreateDBProperty(object)
     return result
 end
 
+-- Internal method to initialize metadata reference (NameRef, PropRef...)
+-- Converts source data (container[fieldName] to refClass)
+-- Source data can be either table (with id and text fields) or string
+-- (will be converted to table with text field)
+---@param container table
+---@param fieldName string
+---@param refClass NameRef
+---@return NameRef
+local function initMetadataRef(container, fieldName, refClass)
+    local v = container[fieldName]
+    if not v then
+        return nil
+    end
+    if type(v) == 'string' then
+        v = { text = v }
+    else
+        assert(type(v) == 'table')
+    end
+    v = setmetatable(v, refClass)
+    container[fieldName] = v
+    return v
+end
+
 --[[
 ===============================================================================
 AnyPropertyDef
@@ -458,8 +481,11 @@ function MoneyPropertyDef:GetVType()
     return Constants.vtype.money
 end
 
+function MoneyPropertyDef:getNativeType()
+    return 'integer'
+end
 
--- TODO GetValueSchema - must be number with up to 4 decimal places
+-- TODO GetValueSchema - check  if value is number with up to 4 decimal places
 
 --[[
 ===============================================================================
@@ -637,8 +663,8 @@ end
 function MixinPropertyDef:initMetadataRefs()
     PropertyDef.initMetadataRefs(self)
 
-    if self.D and self.D.refDef and self.D.refDef.classRef then
-        setmetatable(self.D.refDef.classRef, ClassNameRef)
+    if self.D and self.D.refDef then
+        initMetadataRef(self.D.refDef, 'classRef', ClassNameRef)
     end
 end
 
@@ -723,19 +749,15 @@ end
 function ReferencePropertyDef:initMetadataRefs()
     MixinPropertyDef.initMetadataRefs(self)
 
-    if self.D.refDef.reverseProperty then
-        setmetatable(self.D.refDef.reverseProperty, PropNameRef)
-    end
+    initMetadataRef(self.D.refDef, 'reverseProperty', PropNameRef)
 
     if self.D and self.D.refDef and self.D.refDef.dynamic then
-        if self.D.refDef.dynamic.selectorProp then
-            setmetatable(self.D.refDef.dynamic.selectorProp, PropNameRef)
-        end
+        initMetadataRef(self.D.refDef.dynamic, 'selectorProp', PropNameRef)
 
         if self.D.refDef.dynamic.rules then
             for _, v in pairs(self.D.refDef.dynamic.rules) do
-                if v and v.classRef then
-                    setmetatable(v.classRef, ClassNameRef)
+                if v then
+                    initMetadataRef(v, 'classRef', ClassNameRef)
                 end
             end
         end
@@ -894,9 +916,7 @@ function EnumPropertyDef:initMetadataRefs()
     PropertyDef.initMetadataRefs(self)
 
     if self.D.enumDef then
-        if self.D.enumDef.classRef then
-            setmetatable(self.D.enumDef.classRef, ClassNameRef)
-        end
+        initMetadataRef(self.D.enumDef, 'classRef', ClassNameRef)
 
         if self.D.enumDef.items then
             local newItems = {}

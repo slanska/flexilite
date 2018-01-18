@@ -5,13 +5,13 @@
 
 --[[
 Enums in Flexilite is pretty much the same as references. When property is declared as enum,
-new enum class will be automatically created, or existing enum class will
+new enum class may be automatically created, or existing enum class will
 be used if classRef has valid class name.
 
-Auto created enum class will have 2 properties: id (type will be based on type of id values in items list
-- so it will be either integer or string), and text, type of 'symbol'
+Auto created enum class will have 2 special properties: uid (type will be based on type of id values in items list
+- so it will be either integer or string), and name, type of 'symbol'
 
-Item list will be used to populate data in the enum class. Existing items may be replaced, if their IDs match.
+Optional item list will be used to populate data in the enum class. Existing items may be replaced, if their IDs match.
 
 Enums are very similar to foreign key relation in standard RDBMS in sense that they store user defined ID,
 not internal object ID, and do not support many-to-many relationship.
@@ -25,10 +25,21 @@ defined as reference value, but as field value. So, JSON output will have values
 or "Status": ["A", "B"], not like "Status": 123456
 2) Implicit property 'text' will be supplied. So for enum property Order.Status there will be also
 implicit property Order.Status.text. Value of this property will be taken from name and possibly
-translated based on current user culture
+translated based on current user culture.
+
+Enum can be defined in enumDef or refDef. Only one of those is allowed, supplying both will throw an error.
+There are few differences in how enumDef and refDef are handled.
+enumDef's purpose is for pure enum, i.e. enum value based on item list. refDef is for foreign keys.
+
+For enumDef: classRef can be omitted, if not set, className_propertyName will be used to create a new enum class.
+If class is not set, items are mandatory. If class set and already exists, items will be appended to existing
+(if any) enum's items. If class set and does not yet exist, it will be created immediately.
+
+For refDef: class is required. If it does not exist, it will be resolved at the end of request processing
+(so that multiple classes, referencing each other can be created). Class will NOT be created automatically.
 ]]
 
-local ClassCreate = require 'flexi_CreateClass'
+local ClassCreate = require('flexi_CreateClass').CreateClass
 local json = require 'cjson'
 local NameRef = require 'NameRef'
 local class = require 'pl.class'
@@ -48,14 +59,7 @@ end
 local function upsertEnumItem(self, propDef, item)
     ---@type ClassDef
     local classDef = self.DBContext:getClassDef(propDef.D.enumDef.id)
-    local objId = (not classDef.D.specialProperties.uid) and item.id or nil
-    local data = {
-        [classDef.D.specialProperties.uid or '$id'] = item.id,
-        [classDef.D.specialProperties.text] = item.id,
-        -- icon, imageUrl
-    }
-
-    local obj = DBObject(self.DBContext, classDef, objId)
+    local obj = self.DBContext:NewObject(classDef)
     if classDef.D.specialProperties.uid.id then
         obj:setProperty(classDef.D.specialProperties.uid.id, item.id)
     end
@@ -87,23 +91,34 @@ end
 ---@param propDef EnumPropertyDef
 function EnumManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
-    local refDef = propDef.D.enumDef or propDef.D.refDef
-    assert(refDef, 'Neither enumDef nor refDef set')
 
-    -- new enum definition
-    --[[
-    if text/id is set, the class must exist (at the end of request). This class must have text and uid special
-    properties. If text/id is not set, new class will be created with name ClassName_PropertyName.
-    items are optional and if set, they will be inserted or replaced into database.
-    Consistency for newly created or updated objects will be checked at the end of operation
-    ]]
-    if refDef.items then
+    if propDef.D.enumDef then
+        -- Process as pure enum
+        local refClsName
+        if propDef.D.enumDef.classRef then
+            refClsName = propDef.D.enumDef.classRef.text
+        else
+            refClsName = string.format('%s_%s', propDef.ClassDef.Name.text, propDef.Name.text)
+        end
+        local refCls = self.DBContext:getClassDef(propDef.D.enumDef.classRef.text)
+        if not refCls then
+            refCls = self:CreateEnumClass(refClsName)
+        end
 
+        if propDef.enumDef.items then
+            self:UpsertEnumItems(refCls, propDef.D.enumDef.items)
+        end
+    elseif propDef.D.refDef then
+        -- Process as foreign key
+        local refCls = self.DBContext:getClassDef(propDef.D.refDef.classRef.text)
+        if refCls then
+
+        else
+            -- Defer resolving
+        end
+    else
+        error('Neither enumDef nor refDef set')
     end
-
-    self:CreateEnumClass(string.format('%s_%s',
-    propDef.ClassDef.Name.text, propDef.Name.text),
-    refDef.items)
 end
 
 -- Creates class for enum type, if needed.
@@ -128,7 +143,8 @@ function EnumManager:CreateEnumClass(className, items)
                     type = idType,
                     minOccurrences = 1,
                     maxOccurrences = 1,
-                }
+                },
+                index = 'unique'
             },
             name = {
                 rules = {
@@ -140,8 +156,8 @@ function EnumManager:CreateEnumClass(className, items)
         },
 
         specialProperties = {
-            id = 'id',
-            text = 'text'
+            uid = { text = 'id' },
+            name = { text = 'name' }
         }
     }
 
