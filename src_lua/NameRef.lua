@@ -138,7 +138,7 @@ NameRef.SchemaDef = {
     id = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
     text = IdentifierSchema
 }
-NameRef.Schema = schema.Record(NameRef.SchemaDef)
+NameRef.Schema = schema.OneOf(schema.Record(NameRef.SchemaDef), IdentifierSchema)
 
 return {
     NameRef = NameRef,

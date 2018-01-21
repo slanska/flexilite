@@ -112,9 +112,10 @@ function EnumManager:ApplyEnumPropertyDef(propDef)
         -- Process as foreign key
         local refCls = self.DBContext:getClassDef(propDef.D.refDef.classRef.text)
         if refCls then
-
+            -- TODO
         else
             -- Defer resolving
+            self.DBContext:AddDeferredRef(propDef.D.refDef.classRef.text, propDef.D.refDef.classRef, 'id')
         end
     else
         error('Neither enumDef nor refDef set')

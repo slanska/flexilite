@@ -81,6 +81,7 @@ PropertyDef
 ---@field indexing string
 
 ---@class PropertyDef
+---@field ID number
 ---@field ClassDef ClassDef
 ---@field D PropertyDefinition @comment parsed property definition JSON
 ---@field Name NameRef
@@ -271,6 +272,9 @@ function PropertyDef:saveToDB()
 
         -- As property ID is now known, register property in DBContext property collection
         self.ClassDef.DBContext.ClassProps[self.ID] = self
+
+        local key = string.format('%s.%s', self.ClassDef.Name.text, self.Name.text)
+        self.ClassDef.DBContext:ResolveDeferredRefs(key, self.ID)
     end
 
     return self.ID
@@ -373,29 +377,6 @@ end
 function PropertyDef:CreateDBProperty(object)
     local result = dbprops.DBProperty(object, self)
     return result
-end
-
--- Internal method to initialize metadata reference (NameRef, PropRef...)
--- Converts source data (container[fieldName] to refClass)
--- Source data can be either table (with id and text fields) or string
--- (will be converted to table with text field)
----@param container table
----@param fieldName string
----@param refClass NameRef
----@return NameRef
-local function initMetadataRef(container, fieldName, refClass)
-    local v = container[fieldName]
-    if not v then
-        return nil
-    end
-    if type(v) == 'string' then
-        v = { text = v }
-    else
-        assert(type(v) == 'table')
-    end
-    v = setmetatable(v, refClass)
-    container[fieldName] = v
-    return v
 end
 
 --[[
@@ -664,7 +645,7 @@ function MixinPropertyDef:initMetadataRefs()
     PropertyDef.initMetadataRefs(self)
 
     if self.D and self.D.refDef then
-        initMetadataRef(self.D.refDef, 'classRef', ClassNameRef)
+        self.ClassDef.DBContext:InitMetadataRef(self.D.refDef, 'classRef', ClassNameRef)
     end
 end
 
@@ -749,15 +730,15 @@ end
 function ReferencePropertyDef:initMetadataRefs()
     MixinPropertyDef.initMetadataRefs(self)
 
-    initMetadataRef(self.D.refDef, 'reverseProperty', PropNameRef)
+    self.ClassDef.DBContext:InitMetadataRef(self.D.refDef, 'reverseProperty', PropNameRef)
 
     if self.D and self.D.refDef and self.D.refDef.dynamic then
-        initMetadataRef(self.D.refDef.dynamic, 'selectorProp', PropNameRef)
+        self.ClassDef.DBContext:InitMetadataRef(self.D.refDef.dynamic, 'selectorProp', PropNameRef)
 
         if self.D.refDef.dynamic.rules then
             for _, v in pairs(self.D.refDef.dynamic.rules) do
                 if v then
-                    initMetadataRef(v, 'classRef', ClassNameRef)
+                    self.ClassDef.DBContext:InitMetadataRef(v, 'classRef', ClassNameRef)
                 end
             end
         end
@@ -916,7 +897,7 @@ function EnumPropertyDef:initMetadataRefs()
     PropertyDef.initMetadataRefs(self)
 
     if self.D.enumDef then
-        initMetadataRef(self.D.enumDef, 'classRef', ClassNameRef)
+        self.ClassDef.DBContext:InitMetadataRef(self.D.enumDef, 'classRef', ClassNameRef)
 
         if self.D.enumDef.items then
             local newItems = {}

@@ -24,6 +24,8 @@ local function insertNewClass(self, clsObject)
             })
     clsObject.D.ClassID = self.db:last_insert_rowid()
     clsObject.ClassID = clsObject.D.ClassID
+
+    self:ResolveDeferredRefs(clsObject.Name.text, clsObject.ClassID)
 end
 
 ---@param self DBContext
@@ -104,9 +106,6 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
             clsObject:saveToDB()
             self:addClassToList(clsObject)
-
-            -- TODO Check if there unresolved classes
-
         end
     end
 end
@@ -150,10 +149,7 @@ They are processed in few steps, to provide referential integrity:
 local function CreateSchema(self, schemaJson, createVirtualTable)
     local classSchema = json.decode(schemaJson)
     createMultiClasses(self, classSchema, createVirtualTable)
-    local cnt = tablex.count_map(classSchema,
-            function()
-                return true
-            end)
+    local cnt = tablex.size(classSchema)
     return string.format('%d class(es) have been created', cnt)
 end
 

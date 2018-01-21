@@ -145,12 +145,52 @@ function DBContext:_init(db)
     ---@type ActionList
     self.DeferredActions = ActionList()
 
+    --[[ Deferred (unresolved) references. There are following categories of references:
+    1) classes - by class_name (string)
+    2) properties - by class_name.property_name (string)
+    3) objects - by object ID (string)
+    every deferred reference is presented as 2 items in array: odd index is container,
+    following even index - name of property to hold ID
+    ]]
+    ---@type table @comment [key]: array
+    self.DeferredRefs = {}
+
     -- Can be overridden by flexi('config', ...)
     self.config = {
         createVirtualTable = false
     }
 
     self:initMemoizeFunctions()
+end
+
+-- Adds a deferred reference to the list to be resolved later
+---@param key string|number @comment class_name, class_name.property_name, object_id
+---@param container table
+---@param propName string @comment attribute name in container to update with new ID
+function DBContext:AddDeferredRef(key, container, propName)
+    local v = self.DeferredRefs[key]
+    if not v then
+        self.DeferredRefs[key] = {}
+    end
+    table.insert(self.DeferredRefs[key], container)
+    table.insert(self.DeferredRefs[key], propName)
+end
+
+-- Resolved pending deferred references
+---@param key string|number @comment same as key in AddDeferredRef
+---@param newID number
+function DBContext:ResolveDeferredRefs(key, newID)
+    local v = self.DeferredRefs[key]
+    if not v then
+        return
+    end
+
+    for i = 1, #v, 2 do
+        local container = v[i]
+        local propName = v[i + 1]
+        container[propName] = newID
+    end
+    self.DeferredRefs[key] = nil
 end
 
 --[[ Loads existing object by ID. propIds define subset of values to load (passing subset of properties used
@@ -234,7 +274,9 @@ function DBContext:flexiAction(ctx, action, ...)
     -- Start transaction
     self.db:exec 'begin'
 
-    local ok, errorMsg = xpcall(function()
+    local errorMsg = ''
+
+    local ok = xpcall(function()
         -- Check if schema has been changed since last call
         local uv = self:loadOneRow([[pragma user_version;]])
         if self.SchemaVersion ~= uv then
@@ -242,6 +284,7 @@ function DBContext:flexiAction(ctx, action, ...)
         end
 
         self.DeferredActions:Clear()
+        self.DeferredRefs = {}
 
         result = ff(self, unpack(args))
 
@@ -255,7 +298,7 @@ function DBContext:flexiAction(ctx, action, ...)
     end
     ,
             function(error)
-                -- TODO
+                errorMsg = tostring(error)
                 print(debug.traceback(tostring(error)))
             end)
 
@@ -265,6 +308,7 @@ function DBContext:flexiAction(ctx, action, ...)
     end
 
     self.DeferredActions:Clear()
+    self.DeferredRefs = {}
     self:flushDataCache()
     self.AccessControl:flushCache()
 
@@ -717,6 +761,29 @@ end
 function DBContext:LoadAdhocRows(sql, params)
     local stmt = self:getAdhocStmt(sql, params)
     return stmt:rows()
+end
+
+-- Internal method to initialize metadata reference (NameRef, PropRef...)
+-- Converts source data (container[fieldName] to refClass)
+-- Source data can be either table (with id and text fields) or string
+-- (will be converted to table with text field)
+---@param container table
+---@param fieldName string
+---@param refClass NameRef
+---@return NameRef
+function DBContext:InitMetadataRef(container, fieldName, refClass)
+    local v = container[fieldName]
+    if not v then
+        return nil
+    end
+    if type(v) == 'string' then
+        v = { text = v }
+    else
+        assert(type(v) == 'table')
+    end
+    v = setmetatable(v, refClass)
+    container[fieldName] = v
+    return v
 end
 
 local flexi_CreateClass = require 'flexi_CreateClass'

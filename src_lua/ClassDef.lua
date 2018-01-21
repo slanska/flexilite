@@ -125,8 +125,8 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
     local len = #propDefs
     if len < 2 or len > 4 then
         return false, string.format(
-        'Invalid number of properties in multi key specification - %d. Must be between 2 and 4',
-        len)
+                'Invalid number of properties in multi key specification - %d. Must be between 2 and 4',
+                len)
     end
 
     for _, propDef in ipairs(propDefs) do
@@ -246,6 +246,7 @@ end
 ---@field uid NameRef
 
 ---@class ClassDef
+---@field ClassID number
 ---@field DBContext DBContext
 ---@field Properties table
 ---@field MixinProperties table
@@ -322,7 +323,7 @@ function ClassDef:_init(params)
         for propRow in self.DBContext:loadRows([[
         select PropertyID, ClassID, NameID, Property, ctlv, ctlvPlan,
             Deleted, SearchHitCount, NotNullCount from [.class_props] cp where cp.ClassID = :ClassID;]],
-        { ClassID = self.ClassID }) do
+                { ClassID = self.ClassID }) do
             self:loadPropertyFromDB(propRow, self.D.properties[propRow.PropertyID])
         end
     end
@@ -333,11 +334,8 @@ function ClassDef:_init(params)
         local tt = data[dictName]
         if tt then
             for k, v in pairs(tt) do
-                if type(v) ~= 'table' then
-                    v = { text = v }
-                end
-                setmetatable(v, NameRef)
                 self[dictName][k] = v
+                self.DBContext:InitMetadataRef(self[dictName], k, NameRef)
             end
         end
     end
@@ -474,7 +472,7 @@ function ClassDef:internalToJSON()
     local result = { properties = {} }
 
     for _, prop in pairs(self.Properties) do
-        result.properties[tostring(prop.PropertyID)] = prop:internalToJSON()
+        result.properties[tostring(prop.ID)] = prop:internalToJSON()
     end
 
     -- TODO Other attributes?
@@ -540,13 +538,13 @@ function ClassDef:saveToDB()
 
     self.DBContext:execStatement([[update [.classes] set NameID = :NameID, Data = :Data,
         ctloMask = :ctloMask, vtypes = :vtypes where ClassID = :ClassID;]],
-    {
-        NameID = self.Name.id,
-        Data = internalJson,
-        ctloMask = self.ctloMask,
-        vtypes = self.vtypes,
-        ClassID = self.ClassID
-    })
+            {
+                NameID = self.Name.id,
+                Data = internalJson,
+                ctloMask = self.ctloMask,
+                vtypes = self.vtypes,
+                ClassID = self.ClassID
+            })
 end
 
 -- Checks all properties and determines the best index to be used
@@ -674,7 +672,7 @@ function ClassDef.ApplyIndexing(oldDef, newDef)
 
         --[[insert ]]
         local sqlLines = { string.format('insert into [.range_data_%d] (ObjectID', newDef.ClassID),
-            ') select Object' }
+                           ') select Object' }
         local colNameIdx = 1
         local colValIdx = 2
 
@@ -704,7 +702,7 @@ function ClassDef.ApplyIndexing(oldDef, newDef)
         local colNamePos = 1
         local colValPos = 2
         local sqlLines = { 'insert into [.full_text_data] (id, ClassID',
-            string.format(') select ObjectID, %d ', newDef.ClassID),
+                           string.format(') select ObjectID, %d ', newDef.ClassID),
         }
         for ii, propID in ipairs(newIdx.fullTextIndexing) do
             local propDef = newDef.DBContext.ClassProps[propID]
@@ -723,13 +721,13 @@ function ClassDef.ApplyIndexing(oldDef, newDef)
         if not tablex.deepcompare(newIdx.multiKeyIndexing[idx], oldIdx.multiKeyIndexing[idx]) then
             -- Delete from .multi_key_N
             oldDef.DBContext:ExecAdhocSql(string.format('delete from [.multi_key%d] where ClassID = :ClassID', idx),
-            { ClassID = ClassID })
+                    { ClassID = ClassID })
 
             -- Insert into .multi_key_N
             local colNameIdx = 1
             local colValIdx = 2
             local sqlLines = { string.format('insert into [.multi_key%d] (ClassID', idx, newDef.ClassID),
-                ') select (:ClassID' }
+                               ') select (:ClassID' }
             for iCol, propID in ipairs(newIdx.multiKeyIndexing[idx]) do
                 local propDef = newDef.DBContext.ClassProps[propID]
                 colNameIdx = colNameIdx + 1
@@ -796,35 +794,35 @@ ClassDef.Schema = schema.Record {
     ui = schema.Any, -- TODO finalize
     allowAnyProps = schema.Optional(schema.Boolean),
     specialProperties = schema.Optional(schema.Record {
-        -- User defined ID. Unique and required
+    -- User defined ID. Unique and required
         uid = schema.Optional(NameRef.Schema),
 
-        -- Object name (required and mostly unique)
+    -- Object name (required and mostly unique)
         name = schema.Optional(NameRef.Schema),
 
-        -- Object description
+    -- Object description
         description = schema.Optional(NameRef.Schema),
 
-        -- Another alternative ID. Unlike ID, can be changed
+    -- Another alternative ID. Unlike ID, can be changed
         code = schema.Optional(NameRef.Schema),
 
-        --Alternative ID that allows duplicates
+    --Alternative ID that allows duplicates
         nonUniqueId = schema.Optional(NameRef.Schema),
 
-        -- Timestamp on when object was created
+    -- Timestamp on when object was created
         createTime = schema.Optional(NameRef.Schema),
 
-        -- Timestamp on when object was last updated
+    -- Timestamp on when object was last updated
         updateTime = schema.Optional(NameRef.Schema),
 
-        -- Auto generated UUID (16 byte blob)
-        -- TODO add schema.Case to check type of autoUuid property
+    -- Auto generated UUID (16 byte blob)
+    -- TODO add schema.Case to check type of autoUuid property
         autoUuid = schema.Optional(NameRef.Schema),
 
-        -- Auto generated short ID (7-16 characters)
+    -- Auto generated short ID (7-16 characters)
         autoShortId = schema.Optional(NameRef.Schema),
 
-        -- Object owner
+    -- Object owner
         owner = schema.Optional(NameRef.Schema),
     }),
 
@@ -841,10 +839,10 @@ ClassDef.Schema = schema.Record {
         E1 = schema.Optional(NameRef.Schema),
     }),
 
-    --[[
-    Optional full text indexing. Maximum 4 properties are allowed for full text index.
-    These properties are mapped to X1-X5 columns in [.full_text_data] table
-    ]]
+--[[
+Optional full text indexing. Maximum 4 properties are allowed for full text index.
+These properties are mapped to X1-X5 columns in [.full_text_data] table
+]]
     fullTextIndexing = schema.Optional(schema.Record {
         X1 = schema.Optional(NameRef.Schema),
         X2 = schema.Optional(NameRef.Schema),
@@ -853,25 +851,25 @@ ClassDef.Schema = schema.Record {
         X5 = schema.Optional(NameRef.Schema),
     }),
 
-    --[[
-    Alternative way to define indexes (in addition to property's indexing)
-        Also, this is the only way to define multi-column unique indexes
-        'range' and 'fulltext' indexes are merged and resulting number of columns must not
-        exceed limits (5 full text columns and 5 dimensions for range index)
-        'range' indexes must be defined in pairs (even number of properties, i.e. 2, 4, 6, 8 or 10)
-        keys in this tables (aka 'index name') are ignored
-        ]]
+--[[
+Alternative way to define indexes (in addition to property's indexing)
+    Also, this is the only way to define multi-column unique indexes
+    'range' and 'fulltext' indexes are merged and resulting number of columns must not
+    exceed limits (5 full text columns and 5 dimensions for range index)
+    'range' indexes must be defined in pairs (even number of properties, i.e. 2, 4, 6, 8 or 10)
+    keys in this tables (aka 'index name') are ignored
+    ]]
     indexes = schema.Optional(schema.Map(schema.String, schema.Record {
         type = schema.OneOf(schema.Nil, 'index', 'unique', 'range', 'fulltext'),
         properties = schema.OneOf(
-        NameRef.Schema,
-        schema.String,
-        schema.Collection(IndexPropertySchema)),
+                NameRef.Schema,
+                schema.String,
+                schema.Collection(IndexPropertySchema)),
     })),
 
-    --[[
-    User defined arbitrary data (UI generation rules etc)
-     ]]
+--[[
+User defined arbitrary data (UI generation rules etc)
+ ]]
     meta = schema.Any,
 
     accessRules = schema.Optional(AccessControl.Schema)

@@ -380,13 +380,6 @@ CREATE TABLE IF NOT EXISTS [.class_props]
   [ctlvPlan]     INTEGER NOT NULL                           DEFAULT 0,
 
   /*
-  ID of property name
-  */
-  [PropNameID]   INTEGER NULL CONSTRAINT [fkClassPropertiesToNames] REFERENCES [.sym_names] ([ID])
-    ON DELETE RESTRICT
-    ON UPDATE RESTRICT,
-
-  /*
   Optional mapping for locked property (A-P)
    */
   [ColMap]       CHAR    NULL CHECK ([ColMap] IS NULL OR ([ColMap] >= 'A' AND [ColMap] <= 'P')),
@@ -409,7 +402,7 @@ CREATE TABLE IF NOT EXISTS [.class_props]
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByClassAndName]
   ON [.class_props]
-  (ClassID, PropNameID)
+  (ClassID, NameID)
   WHERE Deleted = 0;
 
 CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByMap]
@@ -425,10 +418,10 @@ CREATE VIEW IF NOT EXISTS [flexi_prop] AS
     cp.[ID]                                                          AS PropertyID,
     cp.ClassID                                                        AS ClassID,
     c.Class                                                          AS Class,
-    cp.[PropNameID]                                                  AS NameID,
+    cp.[NameID]                                                  AS NameID,
     (SELECT n.[Value]
      FROM [.sym_names] n
-     WHERE n.ID = cp.PropNameID
+     WHERE n.ID = cp.NameID
      LIMIT 1)                                                        AS Property,
     cp.ctlv                                                          AS ctlv,
     cp.ctlvPlan                                                      AS ctlvPlan,
@@ -449,7 +442,7 @@ BEGIN
   --  TODO ??? SELECT flexi('create property', new.Class, new.Property, new.Definition);
 
   INSERT OR IGNORE INTO [.sym_names] ([Value]) VALUES (new.Property);
-  INSERT INTO [.class_props] (PropNameID, ClassID, ctlv, ctlvPlan)
+  INSERT INTO [.class_props] (NameID, ClassID, ctlv, ctlvPlan)
   VALUES (coalesce(new.NameID, (SELECT n.ID
                                 FROM [.sym_names] n
                                 WHERE n.[Value] = new.Property
@@ -471,7 +464,7 @@ BEGIN
   VALUES (new.Property);
 
   UPDATE [.class_props]
-  SET PropNameID = (SELECT ID
+  SET NameID = (SELECT ID
                     FROM [.sym_names]
                     WHERE Value = new.Property
                     LIMIT 1),
