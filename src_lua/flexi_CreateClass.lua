@@ -104,9 +104,13 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
             clsObject.D.VirtualTable = false
 
-            clsObject:saveToDB()
             self:addClassToList(clsObject)
         end
+    end
+
+    for className in pairs(schemaDef) do
+        local clsObject = self:getClassDef(className)
+        clsObject:saveToDB()
     end
 end
 

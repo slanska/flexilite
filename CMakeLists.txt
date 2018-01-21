@@ -113,8 +113,8 @@ set(LUA_FILES
         src_lua/DBObject.lua
         src_lua/Constants.lua
         src_lua/AccessControl.lua
-        src_lua/DBCell.lua
         src_lua/Util.lua
+        src_lua/DBValue.lua
         src_lua/ApiGlobalObject.lua
         src_lua/ApiGlobalScope.lua
         src_lua/DBProperty.lua

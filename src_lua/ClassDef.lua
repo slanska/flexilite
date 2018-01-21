@@ -322,7 +322,7 @@ function ClassDef:_init(params)
         -- Load from .class_props
         for propRow in self.DBContext:loadRows([[
         select PropertyID, ClassID, NameID, Property, ctlv, ctlvPlan,
-            Deleted, SearchHitCount, NotNullCount from [.class_props] cp where cp.ClassID = :ClassID;]],
+            Deleted, SearchHitCount, NonNullCount from [flexi_prop] cp where cp.ClassID = :ClassID;]],
                 { ClassID = self.ClassID }) do
             self:loadPropertyFromDB(propRow, self.D.properties[propRow.PropertyID])
         end

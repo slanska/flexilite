@@ -80,6 +80,12 @@ PropertyDef
 ---@field accessRules table
 ---@field indexing string
 
+---@class PropertyDefCtorParams
+---@field ClassDef ClassDef
+---@field newPropertyName string
+---@field jsonData PropertyDefinition
+---@field dbrow table @comment [flexi_prop] structure
+
 ---@class PropertyDef
 ---@field ID number
 ---@field ClassDef ClassDef
@@ -94,7 +100,7 @@ PropertyDef
 local PropertyDef = class()
 
 -- Factory method to create a property object based on rules.type in params.jsonData
----@param params table @comment 2 variants:
+---@param params PropertyDefCtorParams @comment 2 variants:
 ---for new property (not stored in DB) {ClassDef: ClassDef, newPropertyName:string, jsonData: table}
 ---for existing property (when loading from DB): {ClassDef: ClassDef, dbrow: table, jsonData: table}
 function PropertyDef.CreateInstance(params)
@@ -107,7 +113,7 @@ function PropertyDef.CreateInstance(params)
 end
 
 -- PropertyDef constructor
----@param params table @comment 2 variants:
+---@param params PropertyDefCtorParams @comment 2 variants:
 ---for new property (not stored in DB) {ClassDef: ClassDef, newPropertyName:string, jsonData: table}
 ---for existing property (when loading from DB): {ClassDef: ClassDef, dbrow: table, jsonData: table}
 function PropertyDef:_init(params)
@@ -125,6 +131,7 @@ function PropertyDef:_init(params)
         self:initMetadataRefs()
     else
         assert(params.dbrow)
+        assert(params.jsonData)
         self.Name = NameRef(params.dbrow.NameID, params.dbrow.Name)
 
         -- Copy property attributes

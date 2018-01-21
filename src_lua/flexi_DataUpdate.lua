@@ -17,7 +17,7 @@ local json = require('cjson')
 local DBObject = require 'DBObject'
 local class = require 'pl.class'
 local schema = require 'schema'
-local tablex = require 'tablex'
+local tablex = require 'pl.tablex'
 local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 local QueryBuilder = require 'QueryBuilder'
 
@@ -67,8 +67,8 @@ end
 ---@param newRowID number
 ---@param data table @comment object payload from JSON
 function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
-    local classDef = self:getClassDef(className)
-    local obj = oldRowID and self:getObject(oldRowID) or DBObject(self, classDef)
+    local classDef = self.DBContext:getClassDef(className)
+    local obj = oldRowID and self.DBContext:getObject(oldRowID) or DBObject(self, classDef)
 
     local op
 
@@ -265,4 +265,12 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
     saveHelper:resolveReferences()
 end
 
-return flexi_DataUpdate
+-- flexi('import data', 'data-as-json')
+---@param self DBContext
+---@param jsonString string
+local function ImportData(self, jsonString)
+    local result = flexi_DataUpdate(self, nil, nil, nil, jsonString, nil)
+    return result
+end
+
+return { flexi_DataUpdate = flexi_DataUpdate, flexi_ImportData = ImportData }

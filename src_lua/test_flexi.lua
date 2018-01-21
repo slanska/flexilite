@@ -7,6 +7,7 @@
 This file is used as an entry point for testing Flexilite library
 ]]
 
+require( "mobdebug" ). start()
 
 -- Source: https://gist.github.com/Tieske/b1654b27fa422afb63eb
 
@@ -46,6 +47,7 @@ require('io')
 require('index')
 local sqlite = require 'lsqlite3complete'
 local DBContext = require 'DBContext'
+local stringx = require 'pl.stringx'
 
 --- Read file
 ---@param file string
@@ -82,18 +84,26 @@ local ok, error = xpcall(function()
     --    print(row[1])
     --end
 
+    -- Create Northwind schema
     content = readAll(path.join(__dirname, 'test', 'json', 'Northwind.db3.schema.json'))
     sql = "select flexi('create schema', '" .. content .. "');"
     for row in db:rows(sql) do
         print(row[1])
     end
 
-    db:close()
+    -- Insert data
+    local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.data.json' ))
+    sql = "select flexi('import data', '" .. stringx.replace(dataDump, "'", "''") .. "');"
+    for row in db:rows(sql) do
+        print(row[1])
+    end
 
+    db:close()
 end,
-function(error)
-    print(string.format("%s, %s", ok, error))
-    --print(debug.stacktrace())
-    print(debug.traceback(tostring(error)))
-end)
+
+                         function(error)
+                             print(string.format("%s, %s", ok, error))
+                             --print(debug.stacktrace())
+                             print(debug.traceback(tostring(error)))
+                         end)
 

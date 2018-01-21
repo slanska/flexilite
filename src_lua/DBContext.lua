@@ -278,7 +278,9 @@ function DBContext:flexiAction(ctx, action, ...)
 
     local ok = xpcall(function()
         -- Check if schema has been changed since last call
-        local uv = self:loadOneRow([[pragma user_version;]])
+        local uv = self:loadOneRow(
+                ---@language SQL
+                [[pragma user_version;]])
         if self.SchemaVersion ~= uv then
             self:flushSchemaCache()
         end
@@ -403,7 +405,8 @@ end
 --- @return number @comment nameID
 function DBContext:insertName(name)
     local sql = [[insert  into [.sym_names] ([Value]) select :v
-        where not exists (select ID from [.sym_names] where [Value] = :v limit 1);]]
+        where not exists (select ID from [.sym_names] where [Value] = :v limit 1);
+        ]]
     self:execStatement(sql, { v = name })
     --TODO Use last insert id?
     return self:getNameID(name)
@@ -798,6 +801,7 @@ local flexi_ObjectToProp = require 'flexi_ObjectToProp'
 local flexi_SplitProperty = require 'flexi_SplitProperty'
 local flexi_MergeProperty = require 'flexi_MergeProperty'
 local TriggerAPI = require 'Triggers'
+local flexi_DataUpdate = require 'flexi_DataUpdate'
 
 -- Initialization should be after all FLEXI functions are defined
 -- Variables are declared above
@@ -827,6 +831,7 @@ flexiMeta = {
     [DBContext.flexi_translate] = { shortInfo = '', fullInfo = [[]] },
     [TriggerAPI.Drop] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
     [TriggerAPI.Create] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [flexi_DataUpdate.flexi_ImportData] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
 }
 
 -- Dictionary by action names
@@ -865,6 +870,11 @@ flexiFuncs = {
     ['trigger create'] = TriggerAPI.Create,
     ['drop trigger'] = TriggerAPI.Drop,
     ['trigger drop'] = TriggerAPI.Drop,
+    ['import data'] = flexi_DataUpdate.flexi_ImportData,
+    ['import'] = flexi_DataUpdate.flexi_ImportData,
+    ['data import'] = flexi_DataUpdate.flexi_ImportData,
+    ['load data'] = flexi_DataUpdate.flexi_ImportData,
+    ['load'] = flexi_DataUpdate.flexi_ImportData,
 
 --[[
 
