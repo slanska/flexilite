@@ -14,15 +14,21 @@ Uses DBObject and DBCell Api for data manipulation.
 ]]
 
 local json = require('cjson')
-local DBObject = require 'DBObject'
 local class = require 'pl.class'
 local schema = require 'schema'
 local tablex = require 'pl.tablex'
 local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 local QueryBuilder = require 'QueryBuilder'
 
--- Helper class to save objects to DB
+--[[
+Internal helper class to save objects to DB
+]]
 ---@class SaveObjectParams
+---@field DBContext DBContext
+---@field QueryBuilder QueryBuilder
+---@field unresolvedReferences table @comment TODO
+---@field checkedClasses table @comment TODO
+
 local SaveObjectHelper = class()
 
 ---@param DBContext DBContext
@@ -38,12 +44,14 @@ end
 
 -- Ensures that user has required permissions for class level
 ---@param classDef ClassDef
+---@param op string @comment 'C' or 'U' or 'D'
 function SaveObjectHelper:checkClassAccess(classDef, op)
     self.DBContext.ensureCurrentUserAccessForClass(classDef.ClassID, op)
 end
 
 -- Ensures that user has required permissions for property level
 ---@param propDef PropertyDef
+---@param op string @comment 'C' or 'U' or 'D'
 function SaveObjectHelper:checkPermissionAccess(propDef, op)
     self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
 end
@@ -61,29 +69,9 @@ function SaveObjectHelper:resolveReferences()
     end
 end
 
--- Saves single object
----@param className string
----@param oldRowID number
----@param newRowID number
----@param data table @comment object payload from JSON
-function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
-    local classDef = self.DBContext:getClassDef(className)
-    local obj = oldRowID and self.DBContext:getObject(oldRowID) or DBObject(self, classDef)
-
-    local op
-
-    if oldRowID then
-        if newRowID then
-            op = 'U' -- update
-        else
-            op = 'D' -- delete
-        end
-    else
-        op = 'C' -- insert
-    end
-
-    -- Check class level permissions
-
+---@param classDef ClassDef
+---@param data table
+function SaveObjectHelper:checkCreateAdHocProperties(classDef, data)
     for name, value in pairs(data) do
         local prop = classDef:hasProperty(name)
 
@@ -95,10 +83,14 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
                 error(string.format('Property [%s] is not found or ambiguous', name))
             end
         end
+    end
+end
 
-        -- TODO check access rules
-
-
+---@param classDef ClassDef
+---@param data table
+function SaveObjectHelper:processReferenceProperties(classDef, data)
+    for name, value in pairs(data) do
+        local prop = classDef:hasProperty(name)
         -- if reference property, proceed recursively
         if prop:isReference() then
             if prop.rules.type == 'nested' or prop.rules.type == 'master' then
@@ -110,26 +102,11 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
             -- assign scalar value or array of scalar values
         end
     end
+end
 
-    -- for new object set default data
-    if op == 'C' then
-        for propName, propDef in pairs(classDef.Properties) do
-            local dd = propDef.D.Data.defaultValue
-            if data[propName] == nil and dd ~= nil then
-                if type(dd) == 'table' then
-                    data[propName] = tablex.deepcopy(dd)
-                else
-                    data[propName] = dd
-                end
-            end
-        end
-    end
-
-    -- before trigger
-    -- TODO call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable)
-
-
-    -- validate data, using dynamically defined schema. If any missing references found, remember them in Lua table
+---@param classDef ClassDef
+---@param data table
+function SaveObjectHelper:validateObjectData()
     if op == 'C' or op == 'U' then
         local objSchema = classDef:getObjectSchema(op)
         if objSchema then
@@ -140,11 +117,12 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
             end
         end
     end
+end
 
-    -- will save scalar values only
-    obj:saveToDB()
-
-    -- Save nested/child objects
+---@param classDef ClassDef
+---@param data table
+---@param obj DBObject
+function SaveObjectHelper:saveNestedObjects(classDef, data, obj)
     for _, propDef in ipairs(self.DBContext.GetNestedAndMasterProperties(classDef.ClassID)) do
         local dd = obj[propDef.Name.text]
         if dd and type(dd) == 'table' then
@@ -152,15 +130,80 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
             self:saveObject(propDef.refDef.classRef.text, nil, nil, dd)
         end
     end
+end
+
+---@param classDef ClassDef
+---@param data table
+---@param obj DBObject
+---@param op string @comment 'C', 'U', 'D'
+function SaveObjectHelper:setDefaultData(classDef, data, obj, op)
+    if op == 'C' then
+        for propName, propDef in pairs(classDef.Properties) do
+            local dd = propDef.D.defaultValue
+            if data[propName] == nil and dd ~= nil then
+                if type(dd) == 'table' then
+                    data[propName] = tablex.deepcopy(dd)
+                else
+                    data[propName] = dd
+                end
+            end
+        end
+    end
+end
+
+function SaveObjectHelper:fireBeforeTrigger()
+    -- TODO call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable)
+
+end
+
+function SaveObjectHelper:fireAfterTrigger()
+    -- TODO call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
+
+end
+
+-- Saves single object
+---@param className string
+---@param oldRowID number
+---@param newRowID number
+---@param data table @comment object payload from JSON
+function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
+    local classDef = self.DBContext:getClassDef(className)
+
+    -- TODO Check class level permissions
+
+    -- Check if new ad-hoc properties need to be created
+    self:checkCreateAdHocProperties(classDef, data)
+
+    -- DBObject
+    local obj = oldRowID and self.DBContext:getObject(oldRowID) or self.DBContext:NewObject(classDef, data)
+
+    local op = not oldRowID and 'C' or (newRowID and 'U' or 'D')
+
+    -- TODO check access rules
+
+    self:processReferenceProperties(classDef, data)
+
+    -- for new object set default data
+    self:setDefaultData(classDef, data, obj, op)
+
+    -- before trigger
+    self:fireBeforeTrigger()
+
+    -- validate data, using dynamically defined schema. If any missing references found, remember them in Lua table
+    self:validateObjectData(classDef, data)
+
+    -- will save scalar values only
+    obj:saveToDB()
+
+    -- Save nested/child objects
+    self:saveNestedObjects(classDef, data)
 
     for _, propDef in ipairs(self.DBContext.GetClassReferenceProperties(classDef.ClassID)) do
         -- Treat property value as query to get list of objects
         table.insert(self.unresolvedReferences, { propDef = propDef, object = obj })
     end
 
-    -- TODO call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
-
-
+    self:fireAfterTrigger()
 end
 
 --[[
@@ -250,7 +293,7 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
             for clsName, dd in pairs(data) do
                 if #dd > 0 then
                     for i, row in ipairs(dd) do
-                        saveHelper:saveObject(clsName, row, nil, nil)
+                        saveHelper:saveObject(clsName, nil, nil, row)
                     end
                 else
                     -- TODO Load objects based on query

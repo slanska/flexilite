@@ -108,6 +108,8 @@ data: Database, statements, user info, class definitions, cache of referenced va
     - check how SQLite query analysis engine can be used for virtual tables
     - TEMP TRIGGER on .ref-values to check minOccurrences..maxOccurrences
     
+- Saved JSON in .classes do not have property rules    
+- Saved JSON in .classes do not have special properties & indexing    
     
 - ensure that create classes is ok
 - try insert data

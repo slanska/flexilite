@@ -73,17 +73,15 @@ function DBObject:_init(params)
     else
         -- New object
         self.ClassDef = assert(params.ClassDef)
-        if params.Data then
-            self:SetData(params.Data)
-        end
+        -- TODO initialize new object
+        -- ctlo
     end
 
-    -- [.ref-values] & mapped columns collection: Each property is stored by property name as DBProperty
-    -- Each ref-value entry is stored in list
-    -- as Value, ctlv, OriginalValue
-
-    ---@type table @comment [propName:string]: DBProperty. All own class properties and non-conflicting mixin properties
     self.props = {}
+
+    if params.Data then
+        self:SetData(params.Data)
+    end
 end
 
 -- Loads row from .objects table. Updates ClassDef if needed
@@ -147,6 +145,7 @@ end
 -- Gets DBProperty by name. For C and U operations may create a new property, if class has allowAnyProps
 ---@param propName string
 ---@param op string @comment 'C', 'R', 'U', 'D'
+---@return DBProperty
 function DBObject:getDBProperty(propName, op)
     local result = self.props[propName]
     if not result then
@@ -175,6 +174,7 @@ end
 
 ---@param propName string
 ---@param propValue any
+---@return any @comment result from DBProperty:SetValue
 function DBObject:setDBProperty(propName, propValue)
     local prop = self:getDBProperty(propName, 'U')
     return prop:SetValue(propValue)

@@ -54,7 +54,7 @@ function DBProperty:Boxed()
     if not self.boxed then
         self.boxed = setmetatable({}, {
             __index = function(idx)
-                local vv = self:getValue(idx)
+                local vv = self:GetValue(idx)
                 if vv then
                     return vv.Boxed()
                 end
@@ -62,7 +62,7 @@ function DBProperty:Boxed()
             end,
 
             __newindex = function(idx, val)
-                return self:setValue(idx, val)
+                return self:SetValue(idx, val)
             end,
 
             __metatable = nil
@@ -74,7 +74,7 @@ end
 
 ---@param idx number @comment 1 based index
 ---@param val any
-function DBProperty:setValue(idx, val)
+function DBProperty:SetValue(idx, val)
     -- Check access permission
     -- todo
 
@@ -87,7 +87,7 @@ function DBProperty:setValue(idx, val)
 end
 
 ---@param idx number @comment 1 based index
-function DBProperty:getValue(idx)
+function DBProperty:GetValue(idx)
     ---@type DBValue
     local v = self.values[idx]
     if v then

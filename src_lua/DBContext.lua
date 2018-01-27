@@ -36,9 +36,15 @@ local EnumManager = require 'EnumManager'
 --[[
 Maintains list of (normally deferred) actions to execute
 ]]
+---@class ActionItem
+---@field func fun(arg1: any, arg2: any, arg3: any):nil
+---@field arg1 any
+---@field arg2 any
+---@field arg3 any
+
 ---@class ActionList
----@field tags table
----@field list table
+---@field tags table <string, boolean>
+---@field list ActionItem[]
 local ActionList = class()
 
 -- constructor
@@ -72,10 +78,7 @@ function ActionList:Run(clearWhenDone)
 end
 
 function ActionList:Clear()
-    ---@type table @comment array
     self.list = {}
-
-    ---@type table @comment map by tag
     self.tags = {}
 end
 
@@ -84,16 +87,16 @@ end
 
 ---@class DBContext
 ---@field db sqlite3
----@field Statements table
+---@field Statements table <string, sqlite3_stmt>
 ---@field MemDB table
 ---@field UserInfo UserInfo
----@field Classes table
+---@field Classes table <string, ClassDef>
 ---@field Functions table
 ---@field ClassProps table
----@field Objects tables
----@field CUObjects table
----@field ClassDef ClassDef
----@field PropertyDef PropertyDef
+---@field Objects tables <number, DBObject>
+---@field CUObjects table <number, DBObject>
+---@field ClassDef ClassDef @comment constructor
+---@field PropertyDef PropertyDef @comment constructor
 ---@field AccessControl AccessControl
 ---@field EnumManager EnumManager
 ---@field SchemaChanged boolean
@@ -279,7 +282,7 @@ function DBContext:flexiAction(ctx, action, ...)
     local ok = xpcall(function()
         -- Check if schema has been changed since last call
         local uv = self:loadOneRow(
-                ---@language SQL
+        ---@language SQL
                 [[pragma user_version;]])
         if self.SchemaVersion ~= uv then
             self:flushSchemaCache()
@@ -299,10 +302,10 @@ function DBContext:flexiAction(ctx, action, ...)
         self.db:exec 'commit'
     end
     ,
-            function(error)
-                errorMsg = tostring(error)
-                print(debug.traceback(tostring(error)))
-            end)
+                      function(error)
+                          errorMsg = tostring(error)
+                          print(debug.traceback(tostring(error)))
+                      end)
 
     if not ok then
         self.db:exec 'rollback'
@@ -370,7 +373,7 @@ end
 --- @return string
 function DBContext:getNameValueByID(nameID)
     local row = self:loadOneRow([[select [Value] from [.sym_names] where ID = :v limit 1;]],
-            { v = nameID })
+                                { v = nameID })
     if row then
         return row.Value
     end
@@ -393,7 +396,7 @@ end
 --- @return number @collection property ID or -1 if property does not exist
 function DBContext:getPropIdByClassAndNameIds(classId, propName, errorIfNotFound)
     local row = self:loadOneRow([[select PropertyID from [flexi_prop] where ClassID = :c and NameID = :n;"]],
-            { c = classId, n = propName }, errorIfNotFound)
+                                { c = classId, n = propName }, errorIfNotFound)
     if row then
         return row.PropertyID
     end
@@ -447,7 +450,7 @@ end
 ---@return number @comment -1 if not found, valid ID otherwise
 function DBContext:getPropIdByClassIdAndPropNameId(classId, propNameId)
     local row = self:loadOneRow("select PropertyID from [flexi_prop] where ClassID = :c and NameID = :n;",
-            { c = classId, n = propNameId })
+                                { c = classId, n = propNameId })
     if not row then
         return -1
     end
@@ -495,7 +498,7 @@ function DBContext:loadRows(sql, params)
         self:checkSqlite(ok)
     end
 
-    return stmt:rows()
+    return stmt:nrows()
 end
 
 -- Utility method. Adds instance of ClassDef to DBContext.Classes collection
@@ -546,8 +549,6 @@ function DBContext:getClassDef(classIdOrName, mustExist)
     end
     result = ClassDef { data = classRow, DBContext = self }
     self:addClassToList(result)
-
-    self:initMixinProperties()
 
     return result
 end

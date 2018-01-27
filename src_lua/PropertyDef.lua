@@ -73,12 +73,19 @@ PropertyDef
 
 -- TODO Define classes to rules, enumDef, refDef etc.
 
+---@class PropertyRules
+---@field type string
+
+---@class PropertyEnumDef
+---@field items table @comment EnumItemDef[]
+
 ---@class PropertyDefinition
----@field rules table
----@field enumDef table
+---@field rules PropertyRules
+---@field enumDef PropertyEnumDef
 ---@field refDef table
 ---@field accessRules table
 ---@field indexing string
+---@field defaultValue any
 
 ---@class PropertyDefCtorParams
 ---@field ClassDef ClassDef

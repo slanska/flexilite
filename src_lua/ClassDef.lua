@@ -248,7 +248,7 @@ end
 ---@class ClassDef
 ---@field ClassID number
 ---@field DBContext DBContext
----@field Properties table
+---@field Properties table <string, PropertyDef>
 ---@field MixinProperties table
 ---@field propColMap propColMap
 ---@field CheckedInTrn number
@@ -323,8 +323,8 @@ function ClassDef:_init(params)
         for propRow in self.DBContext:loadRows([[
         select PropertyID, ClassID, NameID, Property, ctlv, ctlvPlan,
             Deleted, SearchHitCount, NonNullCount from [flexi_prop] cp where cp.ClassID = :ClassID;]],
-                { ClassID = self.ClassID }) do
-            self:loadPropertyFromDB(propRow, self.D.properties[propRow.PropertyID])
+                                               { ClassID = self.ClassID }) do
+            self:loadPropertyFromDB(propRow, assert( self.D.properties[tostring(propRow.PropertyID)], 'Null property definition'))
         end
     end
 
@@ -343,6 +343,8 @@ function ClassDef:_init(params)
     dictFromJSON('specialProperties')
     dictFromJSON('rangeIndexing')
     dictFromJSON('fullTextIndexing')
+
+    self:initMixinProperties()
 end
 
 -- Initializes existing property loaded from database. Internally used method
@@ -350,7 +352,7 @@ end
 ---@param propJsonData table @comment property definition according to schema
 function ClassDef:loadPropertyFromDB(dbrow, propJsonData)
     local prop = PropertyDef.CreateInstance { ClassDef = self, dbrow = dbrow, jsonData = propJsonData }
-    self.Properties[dbrow.Name] = prop
+    self.Properties[dbrow.Property] = prop
 end
 
 -- Internal method to add property definition to the property list
@@ -538,13 +540,13 @@ function ClassDef:saveToDB()
 
     self.DBContext:execStatement([[update [.classes] set NameID = :NameID, Data = :Data,
         ctloMask = :ctloMask, vtypes = :vtypes where ClassID = :ClassID;]],
-            {
-                NameID = self.Name.id,
-                Data = internalJson,
-                ctloMask = self.ctloMask,
-                vtypes = self.vtypes,
-                ClassID = self.ClassID
-            })
+                                 {
+                                     NameID = self.Name.id,
+                                     Data = internalJson,
+                                     ctloMask = self.ctloMask,
+                                     vtypes = self.vtypes,
+                                     ClassID = self.ClassID
+                                 })
 end
 
 -- Checks all properties and determines the best index to be used
@@ -721,7 +723,7 @@ function ClassDef.ApplyIndexing(oldDef, newDef)
         if not tablex.deepcompare(newIdx.multiKeyIndexing[idx], oldIdx.multiKeyIndexing[idx]) then
             -- Delete from .multi_key_N
             oldDef.DBContext:ExecAdhocSql(string.format('delete from [.multi_key%d] where ClassID = :ClassID', idx),
-                    { ClassID = ClassID })
+                                          { ClassID = ClassID })
 
             -- Insert into .multi_key_N
             local colNameIdx = 1
