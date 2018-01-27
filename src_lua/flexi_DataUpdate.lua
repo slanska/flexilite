@@ -54,7 +54,7 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
     elseif op == 'U' then
         obj = self.DBContext:EditObject(oldRowID)
         if oldRowID ~= newRowID then
-             obj.ID = newRowID
+            obj.ID = newRowID
         end
     else
         obj = self.DBContext:EditObject(oldRowID)

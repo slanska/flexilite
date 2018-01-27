@@ -168,7 +168,7 @@ function DBObject:getDBProperty(propName, op)
             local propDef = self.ClassDef:hasProperty(propName)
             -- TODO Check prop permissions
             if not propDef and (op == 'C' or op == 'U') and self.ClassDef.allowAnyProps then
-                    propDef = CreateAnyProperty(self.ClassDef.DBContext, self.ClassDef, propName)
+                propDef = CreateAnyProperty(self.ClassDef.DBContext, self.ClassDef, propName)
             end
             assert(propDef, string.format('Property %s not found', propName))
             result = propDef:CreateDBProperty(self)
@@ -183,7 +183,7 @@ end
 ---@param propValue any
 ---@return any @comment result from DBProperty:SetValue
 function DBObject:setDBProperty(propName, propValue)
-    local prop = self:getDBProperty(propName, 'U')
+    local prop = self:getDBProperty(propName, self:getOpCode())
     return prop:SetValue(1, propValue)
 end
 
@@ -209,7 +209,9 @@ function DBObject:GetData(excludeDefault)
     local result = {}
     for propName, propDef in pairs(self.ClassDef.Properties) do
         local pp = self:getDBProperty(propName)
-        result[propName] = tablex.deepcopy(pp:GetValue())
+        if pp then
+            result[propName] = tablex.deepcopy(pp:GetValue().Value)
+        end
     end
 
     for propName, propList in pairs(self.ClassDef.MixinProperties) do
@@ -221,7 +223,6 @@ function DBObject:GetData(excludeDefault)
     end
     return result
 end
-
 
 function DBObject:setMappedPropertyValue(prop, value)
     -- TODO
@@ -320,7 +321,8 @@ function DBObject:saveMultiKeyIndexes(op)
             local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
             self.ClassDef.DBContext:execStatement(sql, { ObjectID = self.old.ID })
         else
-            for idxName, idxDef in pairs(self.ClassDef.indexes) do
+            -- TODO
+            for idxName, idxDef in pairs(self.ClassDef.D.indexes) do
                 local keyCnt = #idxDef.properties
                 if idxDef.type == 'unique' and keyCnt > 1 then
                     -- Multi key unique index detected
@@ -400,13 +402,12 @@ function DBObject:saveToDB()
 
     if op == 'C' then
         -- New object
-        self.ClassDef.DBObject:execStatement([[insert into [.objects] (ClassID, ctlo, vtypes,
+        self.ClassDef.DBContext:execStatement([[insert into [.objects] (ClassID, ctlo, vtypes,
         A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, MetaData) values (
         :ClassID, :ctlo, :vtypes, :A, :B, :C, :D, :E, :F, :G, :H, :I, :J, :J, :K, :L, :M, :N, :O, :P);]],
                                              params)
         self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
 
-        self.ClassDef.DBContext.Objects[self.NewID] = nil
         self.ClassDef.DBContext.Objects[self.ID] = self
 
         -- TODO Fix referenced
@@ -593,20 +594,22 @@ end
 
 ---@param classDef ClassDef
 ---@param data table
-function DBObject:processReferenceProperties(classDef, data)
-    for name, value in pairs(data) do
-        local prop = classDef:hasProperty(name)
-        -- if reference property, proceed recursively
-        if prop:isReference() then
-            if prop.rules.type == 'nested' or prop.rules.type == 'master' then
-                -- Sub-data is data
-            else
-                -- Sub-data is query to return ID(s) to update or delete references
-            end
-        else
-            -- assign scalar value or array of scalar values
-        end
-    end
+function DBObject:processReferenceProperties()
+    -- TODO
+
+    --for name, value in pairs(data) do
+    --    local prop = self.ClassDef:hasProperty(name)
+    --    -- if reference property, proceed recursively
+    --    if prop:isReference() then
+    --        if prop.rules.type == 'nested' or prop.rules.type == 'master' then
+    --            -- Sub-data is data
+    --        else
+    --            -- Sub-data is query to return ID(s) to update or delete references
+    --        end
+    --    else
+    --        -- assign scalar value or array of scalar values
+    --    end
+    --end
 end
 
 ---@param data table
@@ -630,6 +633,7 @@ function DBObject:setDefaultData()
             if dd ~= nil then
                 local pp = self:getDBProperty(propName, op)
                 local vv = pp:GetValue()
+
                 if vv == nil then
                     pp:SetValue(1, tablex.deepcopy(dd))
                 end

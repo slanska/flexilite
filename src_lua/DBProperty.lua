@@ -96,6 +96,8 @@ end
 
 ---@param idx number @comment 1 based index
 function DBProperty:GetValue(idx)
+    idx = idx or 1
+
     ---@type DBValue
     local v = self.values[idx]
     if v then

@@ -737,13 +737,9 @@ BEGIN
 
          json_set('{}',
 
-                  CASE WHEN new.Data IS NULL
+                  CASE WHEN new.MetaData IS NULL
                     THEN NULL
-                  ELSE '$.Data' END, new.Data,
-
-                  CASE WHEN new.ExtData IS NULL
-                    THEN NULL
-                  ELSE '$.ExtData' END, new.ExtData,
+                  ELSE '$.MetaData' END, new.MetaData,
 
                   CASE WHEN nullif(new.ctlo, old.ctlo) IS NULL
                     THEN NULL
@@ -751,13 +747,9 @@ BEGIN
          )                                                            AS [OldValue],
          printf('@%s.%s', new.[ClassID], new.[ObjectID])              AS [KEY],
          json_set('{}',
-                  CASE WHEN nullif(new.Data, old.Data) IS NULL
+                  CASE WHEN nullif(new.MetaData, old.MetaData) IS NULL
                     THEN NULL
-                  ELSE '$.Data' END, old.Data,
-
-                  CASE WHEN nullif(new.ExtData, old.ExtData) IS NULL
-                    THEN NULL
-                  ELSE '$.ExtData' END, new.ExtData,
+                  ELSE '$.MetaData' END, old.MetaData,
 
                   CASE WHEN nullif(new.ctlo, old.ctlo) IS NULL
                     THEN NULL
