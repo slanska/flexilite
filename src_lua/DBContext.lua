@@ -704,6 +704,9 @@ end
 ---@param objectID number
 ---@return DBObject
 function DBContext:getObject(objectID)
+
+    -- TODO Check access permissions for class and specific object
+
     local result = self.Objects[objectID]
     if result then
         return result

@@ -9,6 +9,8 @@ Provides access to property values, saving in database etc.
 This is low level data operations
 Holds collection of DBProperty
 
+Handles access rules, nested objects, boxed access to object's properties, updating range_data and multi_key indexes
+
 DBObject
     - Boxed() - BoxedDBObject to be accessed in custom scripts
     - props - collection of DBProperty by property name
@@ -36,6 +38,7 @@ local JSON = require 'cjson'
 local Util64 = require 'Util'
 local Constants = require 'Constants'
 local schema = require 'schema'
+local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 
 --[[]]
 ---@class DBObjectCtorParams
@@ -44,17 +47,21 @@ local schema = require 'schema'
 
 ---@field ClassDef ClassDef
 ---@field DBContext DBContext
----@field ID number
+---@field ID number @comment > 0 - existing object, < 0 - new not yet saved object, 0 - object to be deleted
 ---@field PropIDs table @comment array of integers
 ---@field Data table
----
+
+---@class ObjectMetadata
+---@field format table <number, table>
+
+
 ---@class DBObject
----@field ID number @comment Positive integer for existing objects, negative integer for new, unsaved objects
+---@field ID number @comment > 0 - existing object, < 0 - new not yet saved object, 0 - object to be deleted
 ---@field ClassDef ClassDef
----@field props table
----@field old DBObject
+---@field props table <string, DBProperty>
+---@field old DBObject @comment not null for edited or deleted objects
 ---@field ctlo number
----@field MetaData table
+---@field MetaData ObjectMetadata
 local DBObject = class()
 
 -- DBObject constructor.
@@ -84,7 +91,7 @@ function DBObject:_init(params)
     end
 end
 
--- Loads row from .objects table. Updates ClassDef if needed
+-- Loads row from .objects table. Updates ClassDef if previous ClassDef is null or does not match actual definition
 ---@param DBContext DBContext
 function DBObject:loadObjectRow(DBContext)
     -- Load from .objects
@@ -122,20 +129,23 @@ function DBObject:loadObjectRow(DBContext)
     end
 end
 
+-- Provides access to object data from custom scripts and triggers. Hides all internals
 ---@return BoxedDBObject
 function DBObject:Boxed()
     if not self.boxed then
         self.boxed = setmetatable({}, {
+        -- Get property
             __index = function(propName)
                 return self:getDBProperty(propName)
             end,
 
+        -- Set property value
             __newindex = function(propName, propValue)
                 return self:setDBProperty(propName, propValue)
             end,
 
+        -- No access to internals
             __metatable = nil,
-
         })
     end
 
@@ -157,11 +167,8 @@ function DBObject:getDBProperty(propName, op)
             -- This is original. Property may be not loaded yet
             local propDef = self.ClassDef:hasProperty(propName)
             -- TODO Check prop permissions
-            if not propDef then
-                if (op == Constants.OPERATION.CREATE or op == Constants.OPERATION.DELETE or op == Constants.OPERATION.UPDATE)
-                        and self.ClassDef.allowAnyProps then
-                    -- TODO Create new property
-                end
+            if not propDef and (op == 'C' or op == 'U') and self.ClassDef.allowAnyProps then
+                    propDef = CreateAnyProperty(self.ClassDef.DBContext, self.ClassDef, propName)
             end
             assert(propDef, string.format('Property %s not found', propName))
             result = propDef:CreateDBProperty(self)
@@ -177,16 +184,18 @@ end
 ---@return any @comment result from DBProperty:SetValue
 function DBObject:setDBProperty(propName, propValue)
     local prop = self:getDBProperty(propName, 'U')
-    return prop:SetValue(propValue)
+    return prop:SetValue(1, propValue)
 end
 
 -- Sets entire object data, including child objects
--- and links (using queries)
+-- and links (using queries).
+-- Object must be in 'C' or 'U' state
 ---@param data table
 function DBObject:SetData(data)
     if not data then
         return
     end
+    local op = assert(self:getOpCode(), 'Object must be in edit or insert mode')
 
     for propName, propValue in pairs(data) do
         self:setDBProperty(propName, propValue)
@@ -195,10 +204,12 @@ end
 
 -- Builds table with all non null property values
 -- Includes detail objects. Does not include links
-function DBObject:GetData()
+---@param excludeDefault boolean
+function DBObject:GetData(excludeDefault)
     local result = {}
     for propName, propDef in pairs(self.ClassDef.Properties) do
-
+        local pp = self:getDBProperty(propName)
+        result[propName] = tablex.deepcopy(pp:GetValue())
     end
 
     for propName, propList in pairs(self.ClassDef.MixinProperties) do
@@ -208,22 +219,13 @@ function DBObject:GetData()
             -- Other mixin properties are processed as 'nested' objects
         end
     end
+    return result
 end
 
---- Set property value
-function DBObject:setProperty(propIdOrName, propIdx, value)
-    local rv = self:getRefValue(propID, propIdx)
-    rv.Value = value
-    rv.ctlv = bits.bor(rv.ctlv or 0, 1) -- TODO
-end
 
 function DBObject:setMappedPropertyValue(prop, value)
     -- TODO
 end
-
--- saveToDB
-
--- validate
 
 -- Apply values of mapped columns, if class is set to use column mapping
 ---@param params table
@@ -290,48 +292,90 @@ local multiKeyIndexSQL = {
         values (:ObjectID, :ClassID, :1, :2, :3, :4);]],
     },
     U = {
-        [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2 where ObjectID = :ObjectID]],
-        [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3 where ObjectID = :ObjectID]],
-        [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4 where ObjectID = :ObjectID]],
+        [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2 where ObjectID = :ObjectID;]],
+        [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3 where ObjectID = :ObjectID;]],
+        [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4 where ObjectID = :ObjectID;]],
+    },
+-- Extended version of update when ObjectID also gets changed
+    UX = {
+        [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
+        [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
+        [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
+    },
+    D = {
+        [2] = [[delete from [.multi_key2] where ObjectID = :ObjectID;]],
+        [3] = [[delete from [.multi_key3] where ObjectID = :ObjectID;]],
+        [4] = [[delete from [.multi_key4] where ObjectID = :ObjectID;]]
     }
 }
 
 ---@param op string @comment 'C', 'U', or 'D'
 function DBObject:saveMultiKeyIndexes(op)
-    -- TODO multi key - use pcall to catch error
+    if op == 'U' or op == 'D' then
+        assert(self.old)
+    end
 
-    for idxName, idxDef in pairs(self.ClassDef.indexes) do
-        local keyCnt = #idxDef.properties
-        if idxDef.type == 'unique' and keyCnt > 1 then
-            -- Multi key unique index detected
+    local function save()
+        if op == 'D' then
+            local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
+            self.ClassDef.DBContext:execStatement(sql, { ObjectID = self.old.ID })
+        else
+            for idxName, idxDef in pairs(self.ClassDef.indexes) do
+                local keyCnt = #idxDef.properties
+                if idxDef.type == 'unique' and keyCnt > 1 then
+                    -- Multi key unique index detected
 
-            local p = { ObjectID = self.ID, ClassID = self.ClassDef.ClassID }
-            for i, propRef in ipairs(idxDef.properties) do
-                local cell = self:getRefValue(propRef.id, 1)
-                if cell and cell.Value then
-                    p[i] = cell.Value
+                    local p = { ObjectID = self.ID, ClassID = self.ClassDef.ClassID }
+                    for i, propRef in ipairs(idxDef.properties) do
+                        local cell = self:getRefValue(propRef.id, 1)
+                        if cell and cell.Value then
+                            p[i] = cell.Value
+                        end
+                    end
+
+                    if op == 'U' and self.ID ~= self.old.ID then
+                        op = 'UX'
+                        p.NewObjectID = self.ID
+                        p.ObjectID = self.old.ID
+                    end
+
+                    local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
+                    if not sql then
+                        error('Invalid multi-key index update specification')
+                    end
+
+                    self.ClassDef.DBContext:execStatement(sql, p)
                 end
             end
-
-            local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
-            if not sql then
-                error('Invalid multi-key index update specification')
-            end
-
-            self.ClassDef.DBContext:execStatement(sql, p)
         end
     end
+
+    save()
+
+    -- TODO multi key - use pcall to catch error
+    --local ok = xpcall(save,
+    --                  function(error)
+    --                      local errorMsg = tostring(error)
+    --                      -- TODO debug only
+    --                      print(debug.traceback(tostring(error)))
+    --
+    --                      error(string.format('Error updating multikey unique index: %d', errorMsg))
+    --                  end)
 end
 
 function DBObject:saveToDB()
-    -- insert or update .objects
-    self.newObj = not self.ID
+    local op = self:getOpCode()
 
-    -- Validate data
-    local op = self.newObj and 'C' or 'U'
-    local objSchema = self.ClassDef:getObjectSchema(op)
-    -- TODO use data payload
-    schema.CheckSchema(self, objSchema)
+    -- before trigger
+    self:fireBeforeTrigger()
+
+    if op == 'C' then
+        self:setDefaultData()
+    end
+
+    self:ValidateData()
+
+    self:processReferenceProperties()
 
     -- set ctlo
     local ctlo = self.ClassDef.ctlo
@@ -354,12 +398,12 @@ function DBObject:saveToDB()
 
     self:applyMappedColumns(params)
 
-    if self.newObj then
+    if op == 'C' then
         -- New object
         self.ClassDef.DBObject:execStatement([[insert into [.objects] (ClassID, ctlo, vtypes,
         A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, MetaData) values (
         :ClassID, :ctlo, :vtypes, :A, :B, :C, :D, :E, :F, :G, :H, :I, :J, :J, :K, :L, :M, :N, :O, :P);]],
-                params)
+                                             params)
         self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
 
         self.ClassDef.DBContext.Objects[self.NewID] = nil
@@ -388,7 +432,7 @@ function DBObject:saveToDB()
                 (:ObjectID, :A0, :A1, :B0, :B1, :C0, :C1, :D0, :D1, :E0, :E1);]], self.ClassDef.ClassID)
             self.ClassDef.DBContext:execStatement(sql, rangeParams)
         end
-    else
+    elseif op == 'U' then
         -- Existing object
         params.ID = self.ID
         self.ClassDef.DBContext:execStatement([[update [.objects] set ClassID=:ClassID, ctlv=:ctlv,
@@ -415,6 +459,20 @@ function DBObject:saveToDB()
                 where ObjectID = :ObjectID;]], self.ClassDef.ClassID)
             self.ClassDef.DBContext:execStatement(sql, rangeParams)
         end
+    else
+        -- 'D'
+        assert(self.old)
+        local sql = [[delete from [.objects] where ObjectID = :ObjectID;]]
+        local args = { ObjectID = self.old.ID }
+        self.ClassDef.DBContext:execStatement(sql, args)
+
+        sql = [[delete from [.ref-values] where ObjectID = :ID]]
+        self.ClassDef.DBContext:execStatement(sql, args)
+
+        sql = string.format([[delete from [.range_data_%d] were ObjectID = :ObjectID;]], self.ClassDef.ClassID)
+        self.ClassDef.DBContext:execStatement(sql, args)
+
+        self:saveMultiKeyIndexes('D')
     end
 
     -- TODO Save .change_log
@@ -426,9 +484,14 @@ function DBObject:saveToDB()
         else
             -- TODO store references in deferred list ??
 
-
         end
     end
+
+    -- Save nested/child objects
+    self:saveNestedObjects()
+
+    -- After trigger
+    self:fireAfterTrigger()
 
 end
 
@@ -470,7 +533,18 @@ function DBObject:loadFromDB(propList)
 end
 
 function DBObject:ValidateData()
-    -- todo
+    local data = self:GetData()
+    local op = self:getOpCode()
+    if op == 'C' or op == 'U' then
+        local objSchema = self.ClassDef:getObjectSchema(op)
+        if objSchema then
+            local err = schema.CheckSchema(data, objSchema)
+            if err then
+                -- TODO 'Invalid input data:'
+                error(err)
+            end
+        end
+    end
 end
 
 function DBObject:CloneForEdit()
@@ -488,6 +562,95 @@ end
 
 function DBObject:IsNew()
     return self.ID < 0
+end
+
+-- Ensures that user has required permissions for class level
+---@param classDef ClassDef
+---@param op string @comment 'C' or 'U' or 'D'
+function DBObject:checkClassAccess(classDef, op)
+    self.DBContext.ensureCurrentUserAccessForClass(classDef.ClassID, op)
+end
+
+-- Ensures that user has required permissions for property level
+---@param propDef PropertyDef
+---@param op string @comment 'C' or 'U' or 'D'
+function DBObject:checkPermissionAccess(propDef, op)
+    self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
+end
+
+function DBObject:resolveReferences()
+    for _, item in ipairs(self.unresolvedReferences) do
+        -- item: {propDef, object}
+
+        -- run query
+        -- TODO Use iterator
+        local refIDs = self.QueryBuilder:GetReferencedObjects(item.propDef, item.object[item.propDef.Name.text])
+        for idx, refID in ipairs(refIDs) do
+            -- PropIndex =  idx - 1
+        end
+    end
+end
+
+---@param classDef ClassDef
+---@param data table
+function DBObject:processReferenceProperties(classDef, data)
+    for name, value in pairs(data) do
+        local prop = classDef:hasProperty(name)
+        -- if reference property, proceed recursively
+        if prop:isReference() then
+            if prop.rules.type == 'nested' or prop.rules.type == 'master' then
+                -- Sub-data is data
+            else
+                -- Sub-data is query to return ID(s) to update or delete references
+            end
+        else
+            -- assign scalar value or array of scalar values
+        end
+    end
+end
+
+---@param data table
+function DBObject:saveNestedObjects(data)
+    for _, propDef in ipairs(self.ClassDef.DBContext.GetNestedAndMasterProperties(self.ClassDef.ClassID)) do
+        local dd = data[propDef.Name.text]
+        if dd and type(dd) == 'table' then
+            dd['$master'] = self.ID
+            -- TODO Init tested object
+            --self:saveToDB(propDef.refDef.classRef.text, nil, nil, dd)
+        end
+    end
+end
+
+---@param data table
+function DBObject:setDefaultData()
+    local op = self:getOpCode()
+    if op == 'C' then
+        for propName, propDef in pairs(self.ClassDef.Properties) do
+            local dd = propDef.D.defaultValue
+            if dd ~= nil then
+                local pp = self:getDBProperty(propName, op)
+                local vv = pp:GetValue()
+                if vv == nil then
+                    pp:SetValue(1, tablex.deepcopy(dd))
+                end
+            end
+        end
+    end
+end
+
+function DBObject:fireBeforeTrigger()
+    -- TODO call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable)
+
+end
+
+function DBObject:fireAfterTrigger()
+    -- TODO call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
+
+end
+
+---@return string @comment 'C', 'U', 'D', based on ID value
+function DBObject:getOpCode()
+    return self.ID == 0 and 'D' or (self.ID < 0 and 'C' or 'U')
 end
 
 return DBObject

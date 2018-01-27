@@ -15,9 +15,6 @@ Uses DBObject and DBCell Api for data manipulation.
 
 local json = require('cjson')
 local class = require 'pl.class'
-local schema = require 'schema'
-local tablex = require 'pl.tablex'
-local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 local QueryBuilder = require 'QueryBuilder'
 
 --[[
@@ -42,125 +39,6 @@ function SaveObjectHelper:_init(DBContext)
     self.checkedProps = {}
 end
 
--- Ensures that user has required permissions for class level
----@param classDef ClassDef
----@param op string @comment 'C' or 'U' or 'D'
-function SaveObjectHelper:checkClassAccess(classDef, op)
-    self.DBContext.ensureCurrentUserAccessForClass(classDef.ClassID, op)
-end
-
--- Ensures that user has required permissions for property level
----@param propDef PropertyDef
----@param op string @comment 'C' or 'U' or 'D'
-function SaveObjectHelper:checkPermissionAccess(propDef, op)
-    self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
-end
-
-function SaveObjectHelper:resolveReferences()
-    for _, item in ipairs(self.unresolvedReferences) do
-        -- item: {propDef, object}
-
-        -- run query
-        -- TODO Use iterator
-        local refIDs = self.QueryBuilder:GetReferencedObjects(item.propDef, item.object[item.propDef.Name.text])
-        for idx, refID in ipairs(refIDs) do
-            -- PropIndex =  idx - 1
-        end
-    end
-end
-
----@param classDef ClassDef
----@param data table
-function SaveObjectHelper:checkCreateAdHocProperties(classDef, data)
-    for name, value in pairs(data) do
-        local prop = classDef:hasProperty(name)
-
-        if not prop then
-            if classDef.D.allowAnyProps then
-                -- auto create new property
-                prop = CreateAnyProperty(self, classDef, name)
-            else
-                error(string.format('Property [%s] is not found or ambiguous', name))
-            end
-        end
-    end
-end
-
----@param classDef ClassDef
----@param data table
-function SaveObjectHelper:processReferenceProperties(classDef, data)
-    for name, value in pairs(data) do
-        local prop = classDef:hasProperty(name)
-        -- if reference property, proceed recursively
-        if prop:isReference() then
-            if prop.rules.type == 'nested' or prop.rules.type == 'master' then
-                -- Sub-data is data
-            else
-                -- Sub-data is query to return ID(s) to update or delete references
-            end
-        else
-            -- assign scalar value or array of scalar values
-        end
-    end
-end
-
----@param classDef ClassDef
----@param data table
-function SaveObjectHelper:validateObjectData()
-    if op == 'C' or op == 'U' then
-        local objSchema = classDef:getObjectSchema(op)
-        if objSchema then
-            local err = schema.CheckSchema(data, objSchema)
-            if err then
-                -- TODO 'Invalid input data:'
-                error(err)
-            end
-        end
-    end
-end
-
----@param classDef ClassDef
----@param data table
----@param obj DBObject
-function SaveObjectHelper:saveNestedObjects(classDef, data, obj)
-    for _, propDef in ipairs(self.DBContext.GetNestedAndMasterProperties(classDef.ClassID)) do
-        local dd = obj[propDef.Name.text]
-        if dd and type(dd) == 'table' then
-            dd['$master'] = obj.ID
-            self:saveObject(propDef.refDef.classRef.text, nil, nil, dd)
-        end
-    end
-end
-
----@param classDef ClassDef
----@param data table
----@param obj DBObject
----@param op string @comment 'C', 'U', 'D'
-function SaveObjectHelper:setDefaultData(classDef, data, obj, op)
-    if op == 'C' then
-        for propName, propDef in pairs(classDef.Properties) do
-            local dd = propDef.D.defaultValue
-            if data[propName] == nil and dd ~= nil then
-                if type(dd) == 'table' then
-                    data[propName] = tablex.deepcopy(dd)
-                else
-                    data[propName] = dd
-                end
-            end
-        end
-    end
-end
-
-function SaveObjectHelper:fireBeforeTrigger()
-    -- TODO call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable)
-
-end
-
-function SaveObjectHelper:fireAfterTrigger()
-    -- TODO call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
-
-end
-
 -- Saves single object
 ---@param className string
 ---@param oldRowID number
@@ -168,42 +46,28 @@ end
 ---@param data table @comment object payload from JSON
 function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
     local classDef = self.DBContext:getClassDef(className)
-
-    -- TODO Check class level permissions
-
-    -- Check if new ad-hoc properties need to be created
-    self:checkCreateAdHocProperties(classDef, data)
-
-    -- DBObject
-    local obj = oldRowID and self.DBContext:getObject(oldRowID) or self.DBContext:NewObject(classDef, data)
+    local obj
 
     local op = not oldRowID and 'C' or (newRowID and 'U' or 'D')
-
-    -- TODO check access rules
-
-    self:processReferenceProperties(classDef, data)
-
-    -- for new object set default data
-    self:setDefaultData(classDef, data, obj, op)
-
-    -- before trigger
-    self:fireBeforeTrigger()
-
-    -- validate data, using dynamically defined schema. If any missing references found, remember them in Lua table
-    self:validateObjectData(classDef, data)
-
-    -- will save scalar values only
-    obj:saveToDB()
-
-    -- Save nested/child objects
-    self:saveNestedObjects(classDef, data)
-
-    for _, propDef in ipairs(self.DBContext.GetClassReferenceProperties(classDef.ClassID)) do
-        -- Treat property value as query to get list of objects
-        table.insert(self.unresolvedReferences, { propDef = propDef, object = obj })
+    if op == 'C' then
+        obj = self.DBContext:NewObject(classDef, data)
+    elseif op == 'U' then
+        obj = self.DBContext:EditObject(oldRowID)
+        if oldRowID ~= newRowID then
+             obj.ID = newRowID
+        end
+    else
+        obj = self.DBContext:EditObject(oldRowID)
+        obj.ID = 0
     end
 
-    self:fireAfterTrigger()
+    obj:saveToDB()
+
+    -- TODO move to DBObject?
+    --for _, propDef in ipairs(self.DBContext.GetClassReferenceProperties(classDef.ClassID)) do
+    --    -- Treat property value as query to get list of objects
+    --    table.insert(self.unresolvedReferences, { propDef = propDef, object = obj })
+    --end
 end
 
 --[[

@@ -60,17 +60,18 @@ local function upsertEnumItem(self, propDef, item)
     ---@type ClassDef
     local classDef = self.DBContext:getClassDef(propDef.D.enumDef.id)
     local obj = self.DBContext:NewObject(classDef)
+    local box = obj:Boxed()
     if classDef.D.specialProperties.uid.id then
-        obj:setProperty(classDef.D.specialProperties.uid.id, item.id)
+        box[classDef.D.specialProperties.uid.text] = item.id
     end
     if classDef.D.specialProperties.text.id then
-        obj:setProperty(classDef.D.specialProperties.text.id, item.text)
+        box[classDef.D.specialProperties.text.text] = item.text
     end
     if classDef.D.specialProperties.icon.id then
-        obj:setProperty(classDef.D.specialProperties.icon.id, item.icon)
+        box[classDef.D.specialProperties.icon.text] = item.icon
     end
     if classDef.D.specialProperties.imageUrl.id then
-        obj:setProperty(classDef.D.specialProperties.imageUrl.id, item.imageUrl)
+        box[classDef.D.specialProperties.imageUrl.text] = item.imageUrl
     end
 
     obj:saveToDB()

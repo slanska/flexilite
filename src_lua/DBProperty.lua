@@ -20,8 +20,15 @@ local DBValue = require 'DBValue'
 local NullDBValue = setmetatable({}, {
     __index = function(idx)
 
-    end
--- TODO Other methods
+    end,
+
+    __newindex = function(value)
+        error('Not assignable null value')
+    end,
+
+    __metatable = nil,
+
+-- TODO other methods
 })
 
 -- Base abstract property. Not used directly
@@ -82,8 +89,9 @@ function DBProperty:SetValue(idx, val)
         self.values = {}
     end
 
-    --TODO load all preceding items
-    self.values[idx] = DBValue(self, val)
+    --TODO Make sure to load all preceding items
+    local vv = DBValue({ Value = val })
+    self.values[idx] = vv
 end
 
 ---@param idx number @comment 1 based index
@@ -127,5 +135,6 @@ end
 return {
     DBProperty = DBProperty,
     MixinDBProperty = MixinDBProperty,
-    LinkDBProperty = LinkDBProperty
+    LinkDBProperty = LinkDBProperty,
+    NullDBValue = NullDBValue
 }
