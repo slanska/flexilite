@@ -33,6 +33,7 @@ Used for:
 a) organizing indexes, e.g. eliminating duplicates in index definition
 b) finding best index
 c) applying changes for index storage
+d) storing and loading index definitions (in [.classes].Data.indexes)
 ]]
 
 ---@class IndexDefinitions
@@ -217,6 +218,11 @@ function IndexDefinitions:SetPropertyIndex(propDef)
     return false, 'Unknown index'
 end
 
+function IndexDefinitions:toInternalJSON()
+    local result = {}
+    return result
+end
+
 --[[
 
 ]]
@@ -245,6 +251,13 @@ end
 ---@class specialProperties
 ---@field uid NameRef
 
+---@class ClassDefData
+---@field properties table<string, PropertyDefData>
+---@field indexes table
+---@field specialProperties specialProperties
+---@field meta any
+---@field accessRules table @comment TODO access rules
+
 ---@class ClassDef
 ---@field ClassID number
 ---@field DBContext DBContext
@@ -255,7 +268,7 @@ end
 ---@field objectSchema table @comment 2 keys - 'C' and 'U', for created and updated objects
 ---@field indexes IndexDefinitions
 ---@field Name NameRef
----@field D table @comment parsed Data column
+---@field D ClassDefData @comment parsed Data column
 ---@field SystemClass boolean
 ---@field VirtualTable boolean
 ---@field Deleted boolean
@@ -469,8 +482,9 @@ end
 
 --- Returns internal representation of class definition, as it is stored in [.classes] db table
 ---Properties are indexed by property IDs
----@return table
+---@return ClassDefData
 function ClassDef:internalToJSON()
+    ---@type ClassDefData
     local result = { properties = {} }
 
     for _, prop in pairs(self.Properties) do
@@ -478,6 +492,8 @@ function ClassDef:internalToJSON()
     end
 
     -- TODO Other attributes?
+    result.specialProperties = tablex.deepcopy(self.D.specialProperties)
+    result.indexes = tablex.deepcopy(self.D.indexes)
 
     return result
 end

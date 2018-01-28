@@ -50,7 +50,7 @@ DBProperty
 Provides access to simple values (both scalar and vector)
 ]]
 -------------------------------------------------------------------------------
----@class DBProperty
+---@class DBProperty : BaseDBProperty
 local DBProperty = class(BaseDBProperty)
 
 function DBProperty:_init(DBObject, propDef)

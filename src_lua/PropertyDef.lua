@@ -79,7 +79,7 @@ PropertyDef
 ---@class PropertyEnumDef
 ---@field items table @comment EnumItemDef[]
 
----@class PropertyDefinition
+---@class PropertyDefData
 ---@field rules PropertyRules
 ---@field enumDef PropertyEnumDef
 ---@field refDef table
@@ -90,13 +90,13 @@ PropertyDef
 ---@class PropertyDefCtorParams
 ---@field ClassDef ClassDef
 ---@field newPropertyName string
----@field jsonData PropertyDefinition
+---@field jsonData PropertyDefData
 ---@field dbrow table @comment [flexi_prop] structure
 
 ---@class PropertyDef
 ---@field ID number
 ---@field ClassDef ClassDef
----@field D PropertyDefinition @comment parsed property definition JSON
+---@field D PropertyDefData @comment parsed property definition JSON
 ---@field Name NameRef
 ---@field ctlv number
 ---@field ctlvPlan number
