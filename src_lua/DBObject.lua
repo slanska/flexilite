@@ -206,6 +206,101 @@ function ProxyDBObject:getDBProperty(propName)
     return result
 end
 
+--[[ Ensures that all values with PropIndex == 1 and all vector values for properties in the propList are loaded
+This is required for updating object. propList is usually determined by list of properties to be updated or to be returned by query
+]]
+---@param propList table @comment (optional) list of PropertyDef
+function ProxyDBObject:loadFromDB(propList)
+    local sql
+
+    self:loadObjectRow()
+
+    -- TODO Optimize: check if .ref-values need to be loaded whatsoever
+    -- tables.difference(ClassDef.Properties, propColMap)
+
+    local params = { ObjectID = self.ObjectID }
+    if propList then
+        params.PropIDs = JSON.encode(tablex.map(function(prop)
+            return prop.PropertyID
+        end, propList))
+
+        sql = [[select PropertyID, PropIndex, [Value], ctlv, MetaData
+            from [.ref-values] where ObjectID=:ObjectID and (PropIndex=1 or PropertyID in (select [value] from json_each(:PropIDs)));]]
+    else
+        sql = [[select PropertyID, PropIndex, [Value], ctlv, MetaData
+            from [.ref-values] where ObjectID=:ObjectID and PropIndex=1;]]
+    end
+
+    for row in self.ClassDef.DBContext:loadRows(sql, params) do
+        -- Skip already loaded mapped columns
+        if not self.props[row.PropertyID][row.PropIndex] then
+            row.Object = self
+            row.Property = self.ClassDef.DBContext.ClassProps[row.PropertyID]
+            local cell = DBValue(row)
+            self.props[row.PropertyID] = self.props[row.PropertyID] or {}
+            self.props[row.PropertyID][row.PropIndex] = cell
+        end
+    end
+end
+
+function ProxyDBObject:LoadAllValues()
+    -- TODO
+end
+
+function ProxyDBObject:IsNew()
+    return self.ID < 0
+end
+
+-- Ensures that user has required permissions for class level
+---@param classDef ClassDef
+---@param op string @comment 'C' or 'U' or 'D'
+function ProxyDBObject:checkClassAccess(classDef, op)
+    self.DBContext.ensureCurrentUserAccessForClass(classDef.ClassID, op)
+end
+
+-- Ensures that user has required permissions for property level
+---@param propDef PropertyDef
+---@param op string @comment 'C' or 'U' or 'D'
+function ProxyDBObject:checkPermissionAccess(propDef, op)
+    self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
+end
+
+--[[
+Processes deferred unresolved references
+]]
+function ProxyDBObject:resolveReferences()
+    for _, item in ipairs(self.unresolvedReferences) do
+        -- item: {propDef, object}
+
+        -- run query
+        -- TODO Use iterator
+        local refIDs = self.QueryBuilder:GetReferencedObjects(item.propDef, item.object[item.propDef.Name.text])
+        for idx, refID in ipairs(refIDs) do
+            -- PropIndex =  idx - 1
+        end
+    end
+end
+
+---@param classDef ClassDef
+---@param data table
+function ProxyDBObject:processReferenceProperties()
+    -- TODO
+
+    --for name, value in pairs(data) do
+    --    local prop = self.ClassDef:hasProperty(name)
+    --    -- if reference property, proceed recursively
+    --    if prop:isReference() then
+    --        if prop.rules.type == 'nested' or prop.rules.type == 'master' then
+    --            -- Sub-data is data
+    --        else
+    --            -- Sub-data is query to return ID(s) to update or delete references
+    --        end
+    --    else
+    --        -- assign scalar value or array of scalar values
+    --    end
+    --end
+end
+
 ---@param params DBObjectCtorParams
 function ReadOnlyDBObject:_init(params)
     self:super(params)
@@ -244,6 +339,159 @@ function EditDBObject:getDBProperty(propName)
     end
     return result
 end
+
+function EditDBObject:setMappedPropertyValue(prop, value)
+    -- TODO
+end
+
+-- Apply values of mapped columns, if class is set to use column mapping
+---@param params table
+function EditDBObject:applyMappedColumns(params)
+    if self.ClassDef.ColMapActive then
+        for col, prop in pairs(self.ClassDef.propColMap) do
+            local cell = self:getRefValue(prop.PropertyID, 1)
+            if cell then
+                -- update vtypes
+                params[col] = cell.Value
+            else
+                params[col] = nil
+            end
+        end
+    end
+end
+
+function EditDBObject:getParamsForSaveFullText(params)
+    --TODO indexes?
+    if not (self.ClassDef.fullTextIndexing and tablex.size(self.ClassDef.fullTextIndexing) > 0) then
+        return false
+    end
+
+    params.ClassID = self.ClassDef.ClassID
+    params.docid = self.ID
+
+    for key, propRef in pairs(self.ClassDef.fullTextIndexing) do
+        local cell = self:getRefValue(propRef.id, 1)
+        if cell then
+            local v = cell.Value
+            -- TODO Check type and value?
+            if type(v) == 'string' then
+                params[key] = v
+            end
+        end
+    end
+
+    return true
+end
+
+function EditDBObject:getParamsForSaveRangeIndex(params)
+    --TODO indexes?
+    if not (self.ClassDef.rangeIndex and tablex.size(self.ClassDef.rangeIndex) > 0) then
+        return false
+    end
+
+    params.ObjectID = self.ID
+
+    -- TODO check if all values are not null
+    for key, propRef in pairs(self.ClassDef.rangeIndex) do
+        local cell = self:getRefValue(propRef.id, 1)
+        params[key] = cell.Value
+    end
+
+    return true
+end
+
+-- SQL for updating multi-key indexes
+local multiKeyIndexSQL = {
+    C = {
+        [2] = [[insert into [.multi_key2] (ObjectID, ClassID, Z1, Z2)
+        values (:ObjectID, :ClassID, :1, :2);]],
+        [3] = [[insert into [.multi_key3] (ObjectID, ClassID, Z1, Z2, Z3)
+        values (:ObjectID, :ClassID, :1, :2, :3);]],
+        [4] = [[insert into [.multi_key4] (ObjectID, ClassID, Z1, Z2, Z3, Z4)
+        values (:ObjectID, :ClassID, :1, :2, :3, :4);]],
+    },
+    U = {
+        [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2 where ObjectID = :ObjectID;]],
+        [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3 where ObjectID = :ObjectID;]],
+        [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4 where ObjectID = :ObjectID;]],
+    },
+-- Extended version of update when ObjectID also gets changed
+    UX = {
+        [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
+        [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
+        [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
+    },
+    D = {
+        [2] = [[delete from [.multi_key2] where ObjectID = :ObjectID;]],
+        [3] = [[delete from [.multi_key3] where ObjectID = :ObjectID;]],
+        [4] = [[delete from [.multi_key4] where ObjectID = :ObjectID;]]
+    }
+}
+
+---@param op string @comment 'C', 'U', or 'D
+-- TODO op?
+function EditDBObject:saveMultiKeyIndexes(op)
+    local function save()
+        if op == Constants.OPERATION.DELETE then
+            local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
+            self.ClassDef.DBContext:execStatement(sql, { ObjectID = self.old.ID })
+        else
+            -- TODO
+            for idxName, idxDef in pairs(self.ClassDef.D.indexes) do
+                local keyCnt = #idxDef.properties
+                if idxDef.type == 'unique' and keyCnt > 1 then
+                    -- Multi key unique index detected
+
+                    local p = { ObjectID = self.ID, ClassID = self.ClassDef.ClassID }
+                    for i, propRef in ipairs(idxDef.properties) do
+                        local cell = self:getRefValue(propRef.id, 1)
+                        if cell and cell.Value then
+                            p[i] = cell.Value
+                        end
+                    end
+
+                    if op == 'U' and self.ID ~= self.old.ID then
+                        op = 'UX'
+                        p.NewObjectID = self.ID
+                        p.ObjectID = self.old.ID
+                    end
+
+                    local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
+                    if not sql then
+                        error('Invalid multi-key index update specification')
+                    end
+
+                    self.ClassDef.DBContext:execStatement(sql, p)
+                end
+            end
+        end
+    end
+
+    save()
+
+    -- TODO multi key - use pcall to catch error
+    --local ok = xpcall(save,
+    --                  function(error)
+    --                      local errorMsg = tostring(error)
+    --                      -- TODO debug only
+    --                      print(debug.traceback(tostring(error)))
+    --
+    --                      error(string.format('Error updating multikey unique index: %d', errorMsg))
+    --                  end)
+end
+
+---@param data table
+function EditDBObject:saveNestedObjects(data)
+    for _, propDef in ipairs(self.ClassDef.DBContext.GetNestedAndMasterProperties(self.ClassDef.ClassID)) do
+        local dd = data[propDef.Name.text]
+        if dd and type(dd) == 'table' then
+            dd['$master'] = self.ID
+            -- TODO Init tested object
+            --self:saveToDB(propDef.refDef.classRef.text, nil, nil, dd)
+        end
+    end
+end
+
 
 ---@class DBObjectState
 ---@field state string @comment 'C', 'R', 'U', 'D'
@@ -350,155 +598,13 @@ function DBObjectState:GetData(excludeDefault)
     return result
 end
 
-function EditDBObject:setMappedPropertyValue(prop, value)
-    -- TODO
-end
-
--- Apply values of mapped columns, if class is set to use column mapping
----@param params table
-function EditDBObject:applyMappedColumns(params)
-    if self.ClassDef.ColMapActive then
-        for col, prop in pairs(self.ClassDef.propColMap) do
-            local cell = self:getRefValue(prop.PropertyID, 1)
-            if cell then
-                -- update vtypes
-                params[col] = cell.Value
-            else
-                params[col] = nil
-            end
-        end
-    end
-end
-
-function EditDBObject:getParamsForSaveFullText(params)
-    if not (self.ClassDef.fullTextIndexing and tablex.size(self.ClassDef.fullTextIndexing) > 0) then
-        return false
-    end
-
-    params.ClassID = self.ClassDef.ClassID
-    params.docid = self.ID
-
-    for key, propRef in pairs(self.ClassDef.fullTextIndexing) do
-        local cell = self:getRefValue(propRef.id, 1)
-        if cell then
-            local v = cell.Value
-            -- TODO Check type and value?
-            if type(v) == 'string' then
-                params[key] = v
-            end
-        end
-    end
-
-    return true
-end
-
-function EditDBObject:getParamsForSaveRangeIndex(params)
-    if not (self.ClassDef.rangeIndex and tablex.size(self.ClassDef.rangeIndex) > 0) then
-        return false
-    end
-
-    params.ObjectID = self.ID
-
-    -- TODO check if all values are not null
-    for key, propRef in pairs(self.ClassDef.rangeIndex) do
-        local cell = self:getRefValue(propRef.id, 1)
-        params[key] = cell.Value
-    end
-
-    return true
-end
-
--- SQL for updating multi-key indexes
-local multiKeyIndexSQL = {
-    C = {
-        [2] = [[insert into [.multi_key2] (ObjectID, ClassID, Z1, Z2)
-        values (:ObjectID, :ClassID, :1, :2);]],
-        [3] = [[insert into [.multi_key3] (ObjectID, ClassID, Z1, Z2, Z3)
-        values (:ObjectID, :ClassID, :1, :2, :3);]],
-        [4] = [[insert into [.multi_key4] (ObjectID, ClassID, Z1, Z2, Z3, Z4)
-        values (:ObjectID, :ClassID, :1, :2, :3, :4);]],
-    },
-    U = {
-        [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2 where ObjectID = :ObjectID;]],
-        [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3 where ObjectID = :ObjectID;]],
-        [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4 where ObjectID = :ObjectID;]],
-    },
--- Extended version of update when ObjectID also gets changed
-    UX = {
-        [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
-        [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
-        [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
-    },
-    D = {
-        [2] = [[delete from [.multi_key2] where ObjectID = :ObjectID;]],
-        [3] = [[delete from [.multi_key3] where ObjectID = :ObjectID;]],
-        [4] = [[delete from [.multi_key4] where ObjectID = :ObjectID;]]
-    }
-}
-
----@param op string @comment 'C', 'U', or 'D
--- TODO op?
-function EditDBObject:saveMultiKeyIndexes(op)
-    if op == 'U' or op == 'D' then
-        assert(self.old)
-    end
-
-    local function save()
-        if op == 'D' then
-            local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
-            self.ClassDef.DBContext:execStatement(sql, { ObjectID = self.old.ID })
-        else
-            -- TODO
-            for idxName, idxDef in pairs(self.ClassDef.D.indexes) do
-                local keyCnt = #idxDef.properties
-                if idxDef.type == 'unique' and keyCnt > 1 then
-                    -- Multi key unique index detected
-
-                    local p = { ObjectID = self.ID, ClassID = self.ClassDef.ClassID }
-                    for i, propRef in ipairs(idxDef.properties) do
-                        local cell = self:getRefValue(propRef.id, 1)
-                        if cell and cell.Value then
-                            p[i] = cell.Value
-                        end
-                    end
-
-                    if op == 'U' and self.ID ~= self.old.ID then
-                        op = 'UX'
-                        p.NewObjectID = self.ID
-                        p.ObjectID = self.old.ID
-                    end
-
-                    local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
-                    if not sql then
-                        error('Invalid multi-key index update specification')
-                    end
-
-                    self.ClassDef.DBContext:execStatement(sql, p)
-                end
-            end
-        end
-    end
-
-    save()
-
-    -- TODO multi key - use pcall to catch error
-    --local ok = xpcall(save,
-    --                  function(error)
-    --                      local errorMsg = tostring(error)
-    --                      -- TODO debug only
-    --                      print(debug.traceback(tostring(error)))
-    --
-    --                      error(string.format('Error updating multikey unique index: %d', errorMsg))
-    --                  end)
-end
-
 function DBObjectState:saveToDB()
     local op = self.state
 
     -- before trigger
     self:fireBeforeTrigger()
 
-    if op == 'C' then
+    if op == Constants.OPERATION.CREATE then
         self:setDefaultData()
     end
 
@@ -506,7 +612,7 @@ function DBObjectState:saveToDB()
 
     self:processReferenceProperties()
 
-    -- set ctlo
+    -- set ctlo TODO move to EditDBObject
     local ctlo = self.ClassDef.ctlo
     if self.MetaData then
         if self.MetaData.accessRules then
@@ -527,7 +633,7 @@ function DBObjectState:saveToDB()
 
     self:applyMappedColumns(params)
 
-    if op == 'C' then
+    if op == Constants.OPERATION.CREATE then
         -- New object
         self.ClassDef.DBContext:execStatement([[insert into [.objects] (ClassID, ctlo, vtypes,
         A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, MetaData) values (
@@ -620,132 +726,11 @@ function DBObjectState:saveToDB()
 
     -- After trigger
     self:fireAfterTrigger()
-
-end
-
---[[ Ensures that all values with PropIndex == 1 and all vector values for properties in the propList are loaded
-This is required for updating object. propList is usually determined by list of properties to be updated or to be returned by query
-]]
----@param propList table @comment (optional) list of PropertyDef
-function ProxyDBObject:loadFromDB(propList)
-    local sql
-
-    self:loadObjectRow()
-
-    -- TODO Optimize: check if .ref-values need to be loaded whatsoever
-    -- tables.difference(ClassDef.Properties, propColMap)
-
-    local params = { ObjectID = self.ObjectID }
-    if propList then
-        params.PropIDs = JSON.encode(tablex.map(function(prop)
-            return prop.PropertyID
-        end, propList))
-
-        sql = [[select PropertyID, PropIndex, [Value], ctlv, MetaData
-            from [.ref-values] where ObjectID=:ObjectID and (PropIndex=1 or PropertyID in (select [value] from json_each(:PropIDs)));]]
-    else
-        sql = [[select PropertyID, PropIndex, [Value], ctlv, MetaData
-            from [.ref-values] where ObjectID=:ObjectID and PropIndex=1;]]
-    end
-
-    for row in self.ClassDef.DBContext:loadRows(sql, params) do
-        -- Skip already loaded mapped columns
-        if not self.props[row.PropertyID][row.PropIndex] then
-            row.Object = self
-            row.Property = self.ClassDef.DBContext.ClassProps[row.PropertyID]
-            local cell = DBValue(row)
-            self.props[row.PropertyID] = self.props[row.PropertyID] or {}
-            self.props[row.PropertyID][row.PropIndex] = cell
-        end
-    end
-end
-
-function ProxyDBObject:ValidateData()
-    local data = self:GetData()
-    local op = self.state
-    if op == 'C' or op == 'U' then
-        local objSchema = self.ClassDef:getObjectSchema(op)
-        if objSchema then
-            local err = schema.CheckSchema(data, objSchema)
-            if err then
-                -- TODO 'Invalid input data:'
-                error(err)
-            end
-        end
-    end
-end
-
-function ProxyDBObject:LoadAllValues()
-    -- TODO
-end
-
-function ProxyDBObject:IsNew()
-    return self.ID < 0
-end
-
--- Ensures that user has required permissions for class level
----@param classDef ClassDef
----@param op string @comment 'C' or 'U' or 'D'
-function ProxyDBObject:checkClassAccess(classDef, op)
-    self.DBContext.ensureCurrentUserAccessForClass(classDef.ClassID, op)
-end
-
--- Ensures that user has required permissions for property level
----@param propDef PropertyDef
----@param op string @comment 'C' or 'U' or 'D'
-function ProxyDBObject:checkPermissionAccess(propDef, op)
-    self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
-end
-
-function ProxyDBObject:resolveReferences()
-    for _, item in ipairs(self.unresolvedReferences) do
-        -- item: {propDef, object}
-
-        -- run query
-        -- TODO Use iterator
-        local refIDs = self.QueryBuilder:GetReferencedObjects(item.propDef, item.object[item.propDef.Name.text])
-        for idx, refID in ipairs(refIDs) do
-            -- PropIndex =  idx - 1
-        end
-    end
-end
-
----@param classDef ClassDef
----@param data table
-function ProxyDBObject:processReferenceProperties()
-    -- TODO
-
-    --for name, value in pairs(data) do
-    --    local prop = self.ClassDef:hasProperty(name)
-    --    -- if reference property, proceed recursively
-    --    if prop:isReference() then
-    --        if prop.rules.type == 'nested' or prop.rules.type == 'master' then
-    --            -- Sub-data is data
-    --        else
-    --            -- Sub-data is query to return ID(s) to update or delete references
-    --        end
-    --    else
-    --        -- assign scalar value or array of scalar values
-    --    end
-    --end
-end
-
----@param data table
-function ProxyDBObject:saveNestedObjects(data)
-    for _, propDef in ipairs(self.ClassDef.DBContext.GetNestedAndMasterProperties(self.ClassDef.ClassID)) do
-        local dd = data[propDef.Name.text]
-        if dd and type(dd) == 'table' then
-            dd['$master'] = self.ID
-            -- TODO Init tested object
-            --self:saveToDB(propDef.refDef.classRef.text, nil, nil, dd)
-        end
-    end
 end
 
 ---@param data table
 function DBObjectState:setDefaultData()
-    local op = self.state
-    if op == 'C' then
+    if self.state == Constants.OPERATION.CREATE then
         for propName, propDef in pairs(self.ClassDef.Properties) do
             local dd = propDef.D.defaultValue
             if dd ~= nil then
@@ -763,6 +748,21 @@ end
 function DBObjectState:fireBeforeTrigger()
     -- TODO call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable)
 
+end
+
+function DBObjectState:ValidateData()
+    local data = self:GetData()
+    local op = self.state
+    if op == Constants.OPERATION.CREATE or op == Constants.OPERATION.UPDATE then
+        local objSchema = self.ClassDef:getObjectSchema(op)
+        if objSchema then
+            local err = schema.CheckSchema(data, objSchema)
+            if err then
+                -- TODO 'Invalid input data:'
+                error(err)
+            end
+        end
+    end
 end
 
 function DBObjectState:fireAfterTrigger()

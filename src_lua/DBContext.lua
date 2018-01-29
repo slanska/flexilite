@@ -29,7 +29,7 @@ local ClassDef = require('ClassDef')
 local PropertyDef = require('PropertyDef')
 local UserInfo = require('UserInfo')
 local AccessControl = require 'AccessControl'
-local DBObject = require 'DBObject'
+local DBObjectState = require 'DBObject'
 local EnumManager = require 'EnumManager'
 
 
@@ -132,18 +132,6 @@ function DBContext:_init(db)
 
     -- Cache of loaded objects (map by object ID). Exists only during time of request. Gets reset after request is complete
     self.Objects = {}
-    --[[ Collection of created/updated/marked to delete objects
-    Cases:
-    a) object is in Objects, but not in DirtyObjects: object has been loaded and not modified.
-    Note that object might be loaded partially
-    b) object is in both Objects and DirtyObjects, ID is the same and > 0: object was modified and need to be updated
-    in the database. Its ID stays the same
-    c) object is in DirtyObjects only: object is new, its old is null, ID < 0 and it is to be inserted into database
-    d) object is in both Objects and DirtyObjects, with DirtyObjects.ID == 0: object has been marked to be deleted
-    e) object is in both Objects and DirtyObjects, with DirtyObjects.ID different from Objects.ID:
-    object to be updated and its ID is going to change to a new value.
-    ]]
-    self.DirtyObjects = {}
 
     -- helper constructors and singletons
     self.ClassDef = ClassDef
@@ -212,17 +200,15 @@ properties will be loaded on demand. Also, when object gets edited, its entire c
 ]]
 ---@param id number
 ---@param propIds table|nil @comment list of property IDs to load
+---@param forUpdate boolean
 ---@return DBObject
-function DBContext:LoadObject(id, propIds)
-    local result = self.DirtyObjects[id]
-    if not result and id > 0 then
-        result = self.Objects[id]
+function DBContext:LoadObject(id, propIds, forUpdate)
+    local result = self.Objects[id]
 
-        if not result then
-            -- TODO Check access rules for class and specific object
-            result = DBObject { ID = id, PropIDs = propIds, DBContext = self }
-            self.Objects[id] = result
-        end
+    if not result then
+        -- TODO Check access rules for class and specific object
+        result = DBObjectState { ID = id, PropIDs = propIds, DBContext = self }
+        self.Objects[id] = result
     end
     return result
 end
@@ -234,8 +220,8 @@ function DBContext:EditObject(id)
     -- TODO Check access rules for class and specific object
     local result = assert(self:LoadObject(id), string.format('Object with ID %d not found', id))
     result:LoadAllValues()
-
-    return self:StartEditObject(result)
+    result:Edit()
+    return result
 end
 
 ---@param obj DBObject
@@ -261,8 +247,8 @@ end
 ---@param classDef ClassDef
 ---@param data table|nil
 function DBContext:NewObject(classDef, data)
-    local result = DBObject { ClassDef = classDef, ID = self:GetNewObjectID(), Data = data }
-    self.DirtyObjects[result.ID] = result
+    local result = DBObjectState { ClassDef = classDef, ID = self:GetNewObjectID(), Data = data }
+    self.Objects[result.ID] = result
     return result
 end
 
