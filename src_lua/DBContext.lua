@@ -31,6 +31,7 @@ local UserInfo = require('UserInfo')
 local AccessControl = require 'AccessControl'
 local DBObjectState = require 'DBObject'
 local EnumManager = require 'EnumManager'
+local Constants = require 'Constants'
 
 
 --[[
@@ -205,9 +206,10 @@ properties will be loaded on demand. Also, when object gets edited, its entire c
 function DBContext:LoadObject(id, propIds, forUpdate)
     local result = self.Objects[id]
 
+    local op = forUpdate and Constants.OPERATION.UPDATE or Constants.OPERATION.READ
     if not result then
         -- TODO Check access rules for class and specific object
-        result = DBObjectState { ID = id, PropIDs = propIds, DBContext = self }
+        result = DBObjectState( { ID = id, PropIDs = propIds, DBContext = self }, op)
         self.Objects[id] = result
     end
     return result
@@ -247,7 +249,7 @@ end
 ---@param classDef ClassDef
 ---@param data table|nil
 function DBContext:NewObject(classDef, data)
-    local result = DBObjectState { ClassDef = classDef, ID = self:GetNewObjectID(), Data = data }
+    local result = DBObjectState( { ClassDef = classDef, ID = self:GetNewObjectID(), Data = data }, Constants.OPERATION.CREATE)
     self.Objects[result.ID] = result
     return result
 end

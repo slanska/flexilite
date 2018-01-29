@@ -281,26 +281,6 @@ function ProxyDBObject:resolveReferences()
     end
 end
 
----@param classDef ClassDef
----@param data table
-function ProxyDBObject:processReferenceProperties()
-    -- TODO
-
-    --for name, value in pairs(data) do
-    --    local prop = self.ClassDef:hasProperty(name)
-    --    -- if reference property, proceed recursively
-    --    if prop:isReference() then
-    --        if prop.rules.type == 'nested' or prop.rules.type == 'master' then
-    --            -- Sub-data is data
-    --        else
-    --            -- Sub-data is query to return ID(s) to update or delete references
-    --        end
-    --    else
-    --        -- assign scalar value or array of scalar values
-    --    end
-    --end
-end
-
 ---@param params DBObjectCtorParams
 function ReadOnlyDBObject:_init(params)
     self:super(params)
@@ -430,7 +410,7 @@ local multiKeyIndexSQL = {
 
 ---@param op string @comment 'C', 'U', or 'D
 -- TODO op?
-function EditDBObject:saveMultiKeyIndexes(op)
+function DBObjectState:saveMultiKeyIndexes(op)
     local function save()
         if op == Constants.OPERATION.DELETE then
             local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
@@ -492,7 +472,6 @@ function EditDBObject:saveNestedObjects(data)
     end
 end
 
-
 ---@class DBObjectState
 ---@field state string @comment 'C', 'R', 'U', 'D'
 ---@field origVer BaseDBObject
@@ -500,8 +479,17 @@ end
 local DBObjectState = class()
 
 function DBObjectState:_init(params, state)
-    self.state = Constants.OPERATION.READ
-
+    self.state = state or Constants.OPERATION.READ
+    if state == Constants.OPERATION.CREATE then
+        self.origVer = CreatedVoidDBObject
+        self.curVer = EditDBObject(params)
+    elseif state == Constants.OPERATION.UPDATE then
+        self.origVer = ReadOnlyDBObject(params)
+        self.curVer = EditDBObject(params)
+    else
+        self.origVer = ReadOnlyDBObject(params)
+        self.curVer = ProxyDBObject(params)
+    end
 end
 
 function DBObjectState:original()
@@ -598,8 +586,32 @@ function DBObjectState:GetData(excludeDefault)
     return result
 end
 
+---@param classDef ClassDef
+---@param data table
+function DBObjectState:processReferenceProperties()
+    -- TODO
+
+    --for name, value in pairs(data) do
+    --    local prop = self.ClassDef:hasProperty(name)
+    --    -- if reference property, proceed recursively
+    --    if prop:isReference() then
+    --        if prop.rules.type == 'nested' or prop.rules.type == 'master' then
+    --            -- Sub-data is data
+    --        else
+    --            -- Sub-data is query to return ID(s) to update or delete references
+    --        end
+    --    else
+    --        -- assign scalar value or array of scalar values
+    --    end
+    --end
+end
+
 function DBObjectState:saveToDB()
     local op = self.state
+
+    if op ~= Constants.OPERATION.CREATE and op ~= Constants.OPERATION.UPDATE then
+        error('Invalid object state')
+    end
 
     -- before trigger
     self:fireBeforeTrigger()
@@ -631,7 +643,8 @@ function DBObjectState:saveToDB()
     local params = { ClassID = self.ClassDef.ClassID, ctlo = ctlo, vtypes = self.ClassDef.vtypes,
                      MetaData = JSON.encode( self.MetaData ) }
 
-    self:applyMappedColumns(params)
+    -- Set column mapped values (A - P)
+    self.curVer:applyMappedColumns(params)
 
     if op == Constants.OPERATION.CREATE then
         -- New object
@@ -666,7 +679,7 @@ function DBObjectState:saveToDB()
                 (:ObjectID, :A0, :A1, :B0, :B1, :C0, :C1, :D0, :D1, :E0, :E1);]], self.ClassDef.ClassID)
             self.ClassDef.DBContext:execStatement(sql, rangeParams)
         end
-    elseif op == 'U' then
+    elseif op == Constants.OPERATION.UPDATE then
         -- Existing object
         params.ID = self.ID
         self.ClassDef.DBContext:execStatement([[update [.objects] set ClassID=:ClassID, ctlv=:ctlv,
