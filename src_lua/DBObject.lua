@@ -97,8 +97,8 @@ end
 ---@param propName string
 ---@return DBProperty
 function VoidDBObject:getDBProperty(propName)
-    local tag = self.tag == Constants.OPERATION.DELETE and 'deleted' or 'created'
-    error(string.format('Cannot access %s object', tag))
+    local tag = self.tag == Constants.OPERATION.DELETE and 'New' or 'Old'
+    error(string.format('%s object is not available in this context', tag))
 end
 
 function VoidDBObject:setDBProperty(propName, propValue)
@@ -162,7 +162,7 @@ end
 
 -- Loads row from .objects table. Updates ClassDef if previous ClassDef is null or does not match actual definition
 ---@param DBContext DBContext
-function ProxyDBObject:loadObjectRow(DBContext)
+function ReadOnlyDBObject:loadObjectRow(DBContext)
     -- Load from .objects
     local obj = DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
 
@@ -210,7 +210,7 @@ end
 This is required for updating object. propList is usually determined by list of properties to be updated or to be returned by query
 ]]
 ---@param propList table @comment (optional) list of PropertyDef
-function ProxyDBObject:loadFromDB(propList)
+function ReadOnlyDBObject:loadFromDB(propList)
     local sql
 
     self:loadObjectRow()
@@ -243,12 +243,8 @@ function ProxyDBObject:loadFromDB(propList)
     end
 end
 
-function ProxyDBObject:LoadAllValues()
+function ReadOnlyDBObject:LoadAllValues()
     -- TODO
-end
-
-function ProxyDBObject:IsNew()
-    return self.ID < 0
 end
 
 -- Ensures that user has required permissions for class level
@@ -268,7 +264,7 @@ end
 --[[
 Processes deferred unresolved references
 ]]
-function ProxyDBObject:resolveReferences()
+function EditDBObject:resolveReferences()
     for _, item in ipairs(self.unresolvedReferences) do
         -- item: {propDef, object}
 
@@ -295,11 +291,6 @@ local EditDBObject = class(ProxyDBObject)
 
 function EditDBObject:_init(params)
     self:super(params)
-    if self.ID > 0 then
-        self.state = Constants.OPERATION.UPDATE
-    else
-        self.state = Constants.OPERATION.CREATE
-    end
 end
 
 ---@param propName string
