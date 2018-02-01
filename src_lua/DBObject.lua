@@ -7,21 +7,20 @@
 Internally used facade to [.object] row.
 Provides access to property values, saving in database etc.
 This is low level data operations
-Holds collection of DBProperty
 
 Handles access rules, nested objects, boxed access to object's properties, updating range_data and multi_key indexes
 Instances of DBObject are kept by DBContext in Objects collection.
 
-There are few classes implemented:
+There are few helper classes implemented:
 
-DBObject - central object, which support editing and property access.
-Has current() and original() methods to access boxed version of current and original versions of data, respectively.
-Their internal counterparts are curVer and origVer, which are instances of BaseDBObject and its descendants
+DBObject - central object, which support data loading, editing, saving and property access.
+Has Boxed() method to access boxed version of current and original versions of data.
+Their internal counterparts are curVer and origVer, which are instances of BaseDBOBV and its descendants
 Has state field - one of the following value - 'C', 'R', 'U', 'D'
 
 
 'R': object loaded from database and not yet modified.
-curVer is set to ProxyDBObject which redirects all calls to original()
+curVer is set to WritableDBObject which may redirect property access calls to original()
 origVer is set to ReadOnlyDBObject. Write operations raise error
 Created by DBContext:LoadObject(ID, forUpdate = false). Also, this is state after saving changes to database
 
@@ -29,13 +28,13 @@ Created by DBContext:LoadObject(ID, forUpdate = false). Also, this is state afte
 origVer - VoidDBOV - any property access will raise error
 curVer - WritableDBOV - object allows read and write
 Create by DBContext:CreateNew(classDef)
-After saving origVer is set to ReadOnlyDBObject with props from curVer, curVer is assigned to ProxyDBObject
+After saving origVer is set to ReadOnlyDBOBV with props from curVer, curVer is assigned to new empty WritableDBOV
 
 'U': object is in edit state and not saved yet
-origVer - ReadOnlyDBObject, as in 'R'
+origVer - ReadOnlyDBOV, as in 'R'
 curVer - WritableDBOV, as in 'C'
-State is set by DBObject:Edit()
-After saving origVer stays the same but gets props from curVer, curVer is assigned to ProxyDBObject
+State is set by DBObject:Edit() or by modifying any property
+After saving origVer stays the same but gets props from curVer, curVer is assigned to new empty WritableDBOV
 
 'D': object is marked for deletion (but not yet deleted from database)
 origVer - ReadOnlyDBOV, as in 'R'
@@ -46,16 +45,16 @@ After deleting from database, object gets deleted from DBContext.Objects collect
 Flow of using:
 
 1) get object by ID - DBContext:LoadObject(ID, forUpdate). If forUpdate == true, object also switches to edit mode
-2) to start modification DBObject:Edit(). If already in edit mode, it is safe no-op
+2) to start modification DBObject:Edit() or assign property a new value. If already in edit mode, it is safe no-op
 3) to delete, DBObject:Delete()
 
 The following is list of DBObject class family:
-VoidDBObject
--- ProxyDBObject
----- ReadOnlyDBObject
----- EditDBObject
+VoidDBOBV
+BaseDBOV
+--ReadOnlyDBOBV
+----WritableDBOV
 
-DBObject
+*DBOV
     - props - collection of DBProperty by property name
         - Boxed() - BoxedDBProperty
         - values - array of DBValue
