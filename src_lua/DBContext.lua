@@ -29,7 +29,7 @@ local ClassDef = require('ClassDef')
 local PropertyDef = require('PropertyDef')
 local UserInfo = require('UserInfo')
 local AccessControl = require 'AccessControl'
-local DBObjectState = require 'DBObject'
+local DBObject = require 'DBObject'
 local EnumManager = require 'EnumManager'
 local Constants = require 'Constants'
 
@@ -209,7 +209,7 @@ function DBContext:LoadObject(id, propIds, forUpdate)
     local op = forUpdate and Constants.OPERATION.UPDATE or Constants.OPERATION.READ
     if not result then
         -- TODO Check access rules for class and specific object
-        result = DBObjectState( { ID = id, PropIDs = propIds, DBContext = self }, op)
+        result = DBObject( { ID = id, PropIDs = propIds, DBContext = self }, op)
         self.Objects[id] = result
     end
     return result
@@ -249,7 +249,7 @@ end
 ---@param classDef ClassDef
 ---@param data table|nil
 function DBContext:NewObject(classDef, data)
-    local result = DBObjectState( { ClassDef = classDef, ID = self:GetNewObjectID(), Data = data }, Constants.OPERATION.CREATE)
+    local result = DBObject( { ClassDef = classDef, ID = self:GetNewObjectID(), Data = data }, Constants.OPERATION.CREATE)
     self.Objects[result.ID] = result
     return result
 end

@@ -10,11 +10,11 @@ This is low level data operations
 Holds collection of DBProperty
 
 Handles access rules, nested objects, boxed access to object's properties, updating range_data and multi_key indexes
-Instances of DBObjectState are kept by DBContext in Objects collection.
+Instances of DBObject are kept by DBContext in Objects collection.
 
 There are few classes implemented:
 
-DBObjectState - central object, which support editing and property access.
+DBObject - central object, which support editing and property access.
 Has current() and original() methods to access boxed version of current and original versions of data, respectively.
 Their internal counterparts are curVer and origVer, which are instances of BaseDBObject and its descendants
 Has state field - one of the following value - 'C', 'R', 'U', 'D'
@@ -26,28 +26,28 @@ origVer is set to ReadOnlyDBObject. Write operations raise error
 Created by DBContext:LoadObject(ID, forUpdate = false). Also, this is state after saving changes to database
 
 'C': object is newly created and not saved yet.
-origVer - VoidDBObject - any property access will raise error
-curVer - EditDBObject - object allows read and write
+origVer - VoidDBOV - any property access will raise error
+curVer - WritableDBOV - object allows read and write
 Create by DBContext:CreateNew(classDef)
 After saving origVer is set to ReadOnlyDBObject with props from curVer, curVer is assigned to ProxyDBObject
 
 'U': object is in edit state and not saved yet
 origVer - ReadOnlyDBObject, as in 'R'
-curVer - EditDBObject, as in 'C'
-State is set by DBObjectState:Edit()
+curVer - WritableDBOV, as in 'C'
+State is set by DBObject:Edit()
 After saving origVer stays the same but gets props from curVer, curVer is assigned to ProxyDBObject
 
 'D': object is marked for deletion (but not yet deleted from database)
-origVer - ReadOnlyDBObject, as in 'R'
-curVer - VoidDBObject
+origVer - ReadOnlyDBOV, as in 'R'
+curVer - VoidDBOV
 This object is not found by subsequent LoadObject (TODO ??? confirm)
 After deleting from database, object gets deleted from DBContext.Objects collection
 
 Flow of using:
 
 1) get object by ID - DBContext:LoadObject(ID, forUpdate). If forUpdate == true, object also switches to edit mode
-2) to start modification DBObjectState:Edit(). If already in edit mode, it is safe no-op
-3) to delete, DBObjectState:Delete()
+2) to start modification DBObject:Edit(). If already in edit mode, it is safe no-op
+3) to delete, DBObject:Delete()
 
 The following is list of DBObject class family:
 VoidDBObject
@@ -83,47 +83,47 @@ local Constants = require 'Constants'
 local schema = require 'schema'
 local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 
+---@class BaseDBOV
+---@method getProp
+---@method setProp
+
 --[[
 Void DB objects exist as 2 singletons, handling access to inserted.old and deleted.new states
 ]]
----@class VoidDBObject
-local VoidDBObject = class()
+---@class VoidDBOV
+local VoidDBOV = class()
 
 ---@param state string
-function VoidDBObject:_init(tag)
+function VoidDBOV:_init(tag)
     self.tag = tag
 end
 
 ---@param propName string
 ---@return DBProperty
-function VoidDBObject:getDBProperty(propName)
-    local tag = self.tag == Constants.OPERATION.DELETE and 'New' or 'Old'
-    error(string.format('%s object is not available in this context', tag))
+function VoidDBOV:getDBProperty(propName)
+    error(self.tag)
 end
 
-function VoidDBObject:setDBProperty(propName, propValue)
+function VoidDBOV:setDBProperty(propName, propValue)
     local p = self:getDBProperty(propName)
     return p:SetValue(1, propValue)
 end
 
-local DeletedVoidDBObject = VoidDBObject('D')
-local CreatedVoidDBObject = VoidDBObject('C')
+local DeletedVoidDBObject = VoidDBOV('New object is not available in this context')
+local CreatedVoidDBObject = VoidDBOV('Old object is not available in this context')
 
 ---@class ObjectMetadata
 ---@field format table <number, table>
 
----@class ProxyDBObject : VoidDBObject
+---@class ReadOnlyDBOV
 ---@field ID number @comment > 0 for existing objects, < 0 for newly created objects
 ---@field ClassDef ClassDef
 ---@field MetaData ObjectMetadata
----@field origVer VoidDBObject
+---@field origVer VoidDBOV
 ---@field props table <string, DBProperty>
 ---@field ctlo number @comment [.objects].ctlo
 ---@field vtypes number @comment [.objects].vtypes
-local ProxyDBObject = class(VoidDBObject)
-
----@class ReadOnlyDBObject : ProxyDBObject
-local ReadOnlyDBObject = class(ProxyDBObject)
+local ReadOnlyDBOV = class()
 
 --[[
     ID is required, either ClassDef or DBContext are required, other params are optional.
@@ -134,10 +134,10 @@ local ReadOnlyDBObject = class(ProxyDBObject)
 ---@field DBContext DBContext
 ---@field ID number @comment > 0 - existing object, < 0 - new not yet saved object, 0 - object to be deleted
 ---@field PropIDs table @comment array of integers
----@field origVer ReadOnlyDBObject
+---@field origVer ReadOnlyDBOV
 
 ---@param params DBObjectCtorParams
-function ProxyDBObject:_init(params)
+function ReadOnlyDBOV:_init(params)
     self:super()
     self.ID = assert(params.ID)
     self.origVer = assert(params.origVer)
@@ -162,7 +162,7 @@ end
 
 -- Loads row from .objects table. Updates ClassDef if previous ClassDef is null or does not match actual definition
 ---@param DBContext DBContext
-function ReadOnlyDBObject:loadObjectRow(DBContext)
+function ReadOnlyDBOV:loadObjectRow(DBContext)
     -- Load from .objects
     local obj = DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
 
@@ -199,7 +199,7 @@ function ReadOnlyDBObject:loadObjectRow(DBContext)
 end
 
 ---@param propName string
-function ProxyDBObject:getDBProperty(propName)
+function BaseDBOV:getDBProperty(propName)
     -- TODO Check permissions
 
     local result = self.origVer:getDBProperty(propName)
@@ -210,7 +210,7 @@ end
 This is required for updating object. propList is usually determined by list of properties to be updated or to be returned by query
 ]]
 ---@param propList table @comment (optional) list of PropertyDef
-function ReadOnlyDBObject:loadFromDB(propList)
+function ReadOnlyDBOV:loadFromDB(propList)
     local sql
 
     self:loadObjectRow()
@@ -243,28 +243,44 @@ function ReadOnlyDBObject:loadFromDB(propList)
     end
 end
 
-function ReadOnlyDBObject:LoadAllValues()
+function ReadOnlyDBOV:LoadAllValues()
     -- TODO
 end
 
 -- Ensures that user has required permissions for class level
 ---@param classDef ClassDef
 ---@param op string @comment 'C' or 'U' or 'D'
-function ProxyDBObject:checkClassAccess(classDef, op)
+function ReadOnlyDBOV:checkClassAccess(classDef, op)
     self.DBContext.ensureCurrentUserAccessForClass(classDef.ClassID, op)
 end
 
 -- Ensures that user has required permissions for property level
 ---@param propDef PropertyDef
 ---@param op string @comment 'C' or 'U' or 'D'
-function ProxyDBObject:checkPermissionAccess(propDef, op)
+function ReadOnlyDBOV:checkPermissionAccess(propDef, op)
     self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
+end
+
+---@param params DBObjectCtorParams
+function ReadOnlyDBOV:_init(params)
+    self:super(params)
+end
+
+function ReadOnlyDBOV:setDBProperty(propName, propValue)
+    error('Cannot modify read-only object')
+end
+
+---@class WritableDBOV : ReadOnlyDBOV
+local WritableDBOV = class(ReadOnlyDBOV)
+
+function WritableDBOV:_init(params)
+    self:super(params)
 end
 
 --[[
 Processes deferred unresolved references
 ]]
-function EditDBObject:resolveReferences()
+function WritableDBOV:resolveReferences()
     for _, item in ipairs(self.unresolvedReferences) do
         -- item: {propDef, object}
 
@@ -277,24 +293,8 @@ function EditDBObject:resolveReferences()
     end
 end
 
----@param params DBObjectCtorParams
-function ReadOnlyDBObject:_init(params)
-    self:super(params)
-end
-
-function ReadOnlyDBObject:setDBProperty(propName, propValue)
-    error('Cannot modify read-only object')
-end
-
----@class EditDBObject : ProxyDBObject
-local EditDBObject = class(ProxyDBObject)
-
-function EditDBObject:_init(params)
-    self:super(params)
-end
-
 ---@param propName string
-function EditDBObject:getDBProperty(propName)
+function WritableDBOV:getDBProperty(propName)
     local result = self.props[propName]
     if not result then
         -- TODO Check permissions
@@ -311,13 +311,13 @@ function EditDBObject:getDBProperty(propName)
     return result
 end
 
-function EditDBObject:setMappedPropertyValue(prop, value)
+function WritableDBOV:setMappedPropertyValue(prop, value)
     -- TODO
 end
 
 -- Apply values of mapped columns, if class is set to use column mapping
 ---@param params table
-function EditDBObject:applyMappedColumns(params)
+function WritableDBOV:applyMappedColumns(params)
     if self.ClassDef.ColMapActive then
         for col, prop in pairs(self.ClassDef.propColMap) do
             local cell = self:getRefValue(prop.PropertyID, 1)
@@ -331,7 +331,7 @@ function EditDBObject:applyMappedColumns(params)
     end
 end
 
-function EditDBObject:getParamsForSaveFullText(params)
+function WritableDBOV:getParamsForSaveFullText(params)
     --TODO indexes?
     if not (self.ClassDef.fullTextIndexing and tablex.size(self.ClassDef.fullTextIndexing) > 0) then
         return false
@@ -354,7 +354,7 @@ function EditDBObject:getParamsForSaveFullText(params)
     return true
 end
 
-function EditDBObject:getParamsForSaveRangeIndex(params)
+function WritableDBOV:getParamsForSaveRangeIndex(params)
     --TODO indexes?
     if not (self.ClassDef.rangeIndex and tablex.size(self.ClassDef.rangeIndex) > 0) then
         return false
@@ -399,9 +399,43 @@ local multiKeyIndexSQL = {
     }
 }
 
+
+---@param data table
+function WritableDBOV:saveNestedObjects(data)
+    for _, propDef in ipairs(self.ClassDef.DBContext.GetNestedAndMasterProperties(self.ClassDef.ClassID)) do
+        local dd = data[propDef.Name.text]
+        if dd and type(dd) == 'table' then
+            dd['$master'] = self.ID
+            -- TODO Init tested object
+            --self:saveToDB(propDef.refDef.classRef.text, nil, nil, dd)
+        end
+    end
+end
+
+---@class DBObject
+---@field state string @comment 'C', 'R', 'U', 'D'
+---@field origVer ReadOnlyDBOV
+---@field curVer EditableDBOV
+local DBObject = class()
+
+function DBObject:_init(params, state)
+    self.state = state or Constants.OPERATION.READ
+    if state == Constants.OPERATION.CREATE then
+        self.origVer = CreatedVoidDBObject
+        self.curVer = WritableDBOV(params)
+    elseif state == Constants.OPERATION.UPDATE then
+        self.origVer = ReadOnlyDBOV(params)
+        self.curVer = WritableDBOV(params)
+    else
+        self.origVer = ReadOnlyDBOV(params)
+        self.curVer = EditableDBOV(params)
+    end
+end
+
+
 ---@param op string @comment 'C', 'U', or 'D
 -- TODO op?
-function DBObjectState:saveMultiKeyIndexes(op)
+function DBObject:saveMultiKeyIndexes(op)
     local function save()
         if op == Constants.OPERATION.DELETE then
             local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
@@ -451,39 +485,7 @@ function DBObjectState:saveMultiKeyIndexes(op)
     --                  end)
 end
 
----@param data table
-function EditDBObject:saveNestedObjects(data)
-    for _, propDef in ipairs(self.ClassDef.DBContext.GetNestedAndMasterProperties(self.ClassDef.ClassID)) do
-        local dd = data[propDef.Name.text]
-        if dd and type(dd) == 'table' then
-            dd['$master'] = self.ID
-            -- TODO Init tested object
-            --self:saveToDB(propDef.refDef.classRef.text, nil, nil, dd)
-        end
-    end
-end
-
----@class DBObjectState
----@field state string @comment 'C', 'R', 'U', 'D'
----@field origVer BaseDBObject
----@field curVer BaseDBObject
-local DBObjectState = class()
-
-function DBObjectState:_init(params, state)
-    self.state = state or Constants.OPERATION.READ
-    if state == Constants.OPERATION.CREATE then
-        self.origVer = CreatedVoidDBObject
-        self.curVer = EditDBObject(params)
-    elseif state == Constants.OPERATION.UPDATE then
-        self.origVer = ReadOnlyDBObject(params)
-        self.curVer = EditDBObject(params)
-    else
-        self.origVer = ReadOnlyDBObject(params)
-        self.curVer = ProxyDBObject(params)
-    end
-end
-
-function DBObjectState:original()
+function DBObject:original()
     if not self._original then
         self._original = setmetatable({}, {
             __index = function(propName)
@@ -500,7 +502,7 @@ function DBObjectState:original()
     return self._original
 end
 
-function DBObjectState:current()
+function DBObject:current()
     if not self._current then
         self._current = setmetatable({}, {
             __index = function(propName)
@@ -517,7 +519,7 @@ function DBObjectState:current()
     return self._current
 end
 
-function DBObjectState:Edit()
+function DBObject:Edit()
     if self.state == Constants.OPERATION.CREATE or self.state == Constants.OPERATION.UPDATE then
         -- Already editing
         return
@@ -527,10 +529,10 @@ function DBObjectState:Edit()
         error('Cannot edit deleted object')
     end
     self.state = Constants.OPERATION.UPDATE
-    self.curVer = EditDBObject { ClassDef = self.origVer.ClassDef, ID = self.origVer.ID }
+    self.curVer = WritableDBOV { ClassDef = self.origVer.ClassDef, ID = self.origVer.ID }
 end
 
-function DBObjectState:Delete()
+function DBObject:Delete()
     if self.state == Constants.OPERATION.DELETE then
         return
     end
@@ -543,7 +545,7 @@ end
 -- and links (using queries).
 -- Object must be in 'C' or 'U' state
 ---@param data table
-function DBObjectState:SetData(data)
+function DBObject:SetData(data)
     if not data then
         return
     end
@@ -556,7 +558,7 @@ end
 -- Builds table with all non null property values
 -- Includes detail objects. Does not include links
 ---@param excludeDefault boolean
-function DBObjectState:GetData(excludeDefault)
+function DBObject:GetData(excludeDefault)
     local result = {}
     local curVer = self.curVer
     for propName, propDef in pairs(curVer.ClassDef.Properties) do
@@ -579,7 +581,7 @@ end
 
 ---@param classDef ClassDef
 ---@param data table
-function DBObjectState:processReferenceProperties()
+function DBObject:processReferenceProperties()
     -- TODO
 
     --for name, value in pairs(data) do
@@ -597,7 +599,7 @@ function DBObjectState:processReferenceProperties()
     --end
 end
 
-function DBObjectState:saveToDB()
+function DBObject:saveToDB()
     local op = self.state
 
     if op ~= Constants.OPERATION.CREATE and op ~= Constants.OPERATION.UPDATE then
@@ -733,7 +735,7 @@ function DBObjectState:saveToDB()
 end
 
 ---@param data table
-function DBObjectState:setDefaultData()
+function DBObject:setDefaultData()
     if self.state == Constants.OPERATION.CREATE then
         for propName, propDef in pairs(self.ClassDef.Properties) do
             local dd = propDef.D.defaultValue
@@ -749,12 +751,12 @@ function DBObjectState:setDefaultData()
     end
 end
 
-function DBObjectState:fireBeforeTrigger()
+function DBObject:fireBeforeTrigger()
     -- TODO call custom _before_ trigger (defined in Lua), first for mixin classes (if applicable)
 
 end
 
-function DBObjectState:ValidateData()
+function DBObject:ValidateData()
     local data = self:GetData()
     local op = self.state
     if op == Constants.OPERATION.CREATE or op == Constants.OPERATION.UPDATE then
@@ -769,9 +771,9 @@ function DBObjectState:ValidateData()
     end
 end
 
-function DBObjectState:fireAfterTrigger()
+function DBObject:fireAfterTrigger()
     -- TODO call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
 
 end
 
-return DBObjectState
+return DBObject
