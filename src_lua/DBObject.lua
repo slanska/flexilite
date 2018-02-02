@@ -198,7 +198,7 @@ function ReadOnlyDBOV:loadObjectRow(DBContext)
 end
 
 ---@param propName string
-function BaseDBOV:getDBProperty(propName)
+function ReadOnlyDBOV:getDBProperty(propName)
     -- TODO Check permissions
 
     local result = self.origVer:getDBProperty(propName)
@@ -246,6 +246,10 @@ function ReadOnlyDBOV:LoadAllValues()
     -- TODO
 end
 
+function ReadOnlyDBOV:loadScalarValues()
+
+end
+
 -- Ensures that user has required permissions for class level
 ---@param classDef ClassDef
 ---@param op string @comment 'C' or 'U' or 'D'
@@ -258,11 +262,6 @@ end
 ---@param op string @comment 'C' or 'U' or 'D'
 function ReadOnlyDBOV:checkPermissionAccess(propDef, op)
     self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
-end
-
----@param params DBObjectCtorParams
-function ReadOnlyDBOV:_init(params)
-    self:super(params)
 end
 
 function ReadOnlyDBOV:setDBProperty(propName, propValue)
@@ -293,7 +292,7 @@ function WritableDBOV:resolveReferences()
 end
 
 ---@param propName string
-function WritableDBOV:getDBProperty(propName)
+function WritableDBOV:getProp(propName)
     local result = self.props[propName]
     if not result then
         -- TODO Check permissions
@@ -316,7 +315,7 @@ end
 
 -- Apply values of mapped columns, if class is set to use column mapping
 ---@param params table
-function WritableDBOV:applyMappedColumns(params)
+function WritableDBOV:applyMappedColumnValues(params)
     if self.ClassDef.ColMapActive then
         for col, prop in pairs(self.ClassDef.propColMap) do
             local cell = self:getRefValue(prop.PropertyID, 1)
@@ -328,6 +327,14 @@ function WritableDBOV:applyMappedColumns(params)
             end
         end
     end
+end
+
+function WritableDBOV:saveCreate()
+    -- TODO
+end
+
+function WritableDBOV:saveUpdate()
+    -- TODO
 end
 
 function WritableDBOV:getParamsForSaveFullText(params)
@@ -397,7 +404,6 @@ local multiKeyIndexSQL = {
         [4] = [[delete from [.multi_key4] where ObjectID = :ObjectID;]]
     }
 }
-
 
 ---@param data table
 function WritableDBOV:saveNestedObjects(data)
@@ -636,7 +642,7 @@ function DBObject:saveToDB()
                      MetaData = JSON.encode( self.MetaData ) }
 
     -- Set column mapped values (A - P)
-    self.curVer:applyMappedColumns(params)
+    self.curVer:applyMappedColumnValues(params)
 
     if op == Constants.OPERATION.CREATE then
         -- New object
@@ -773,6 +779,10 @@ end
 function DBObject:fireAfterTrigger()
     -- TODO call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
 
+end
+
+function DBObject:Boxed()
+    --TODO
 end
 
 return DBObject
