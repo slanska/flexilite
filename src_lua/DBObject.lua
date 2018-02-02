@@ -99,12 +99,12 @@ end
 
 ---@param propName string
 ---@return DBProperty
-function VoidDBOV:getDBProperty(propName)
+function VoidDBOV:getProp(propName)
     error(self.tag)
 end
 
-function VoidDBOV:setDBProperty(propName, propValue)
-    local p = self:getDBProperty(propName)
+function VoidDBOV:setProp(propName, propValue)
+    local p = self:getProp(propName)
     return p:SetValue(1, propValue)
 end
 
@@ -118,28 +118,28 @@ local CreatedVoidDBObject = VoidDBOV('Old object is not available in this contex
 ---@field ID number @comment > 0 for existing objects, < 0 for newly created objects
 ---@field ClassDef ClassDef
 ---@field MetaData ObjectMetadata
----@field origVer VoidDBOV
+---@field DBObject DBObject
 ---@field props table <string, DBProperty>
 ---@field ctlo number @comment [.objects].ctlo
 ---@field vtypes number @comment [.objects].vtypes
 local ReadOnlyDBOV = class()
 
 --[[
+    DBObject
     ID is required, either ClassDef or DBContext are required, other params are optional.
-    DBObject does not manage DBContext.Objects or DirtyObjects. It behaves as standalone entity.
  ]]
 ---@class DBObjectCtorParams
 ---@field ClassDef ClassDef
 ---@field DBContext DBContext
 ---@field ID number @comment > 0 - existing object, < 0 - new not yet saved object, 0 - object to be deleted
 ---@field PropIDs table @comment array of integers
----@field origVer ReadOnlyDBOV
+---@field DBObject DBObject
 
 ---@param params DBObjectCtorParams
 function ReadOnlyDBOV:_init(params)
     self:super()
     self.ID = assert(params.ID)
-    self.origVer = assert(params.origVer)
+    self.DBObject = assert(params.DBObject)
 
     if self.ID > 0 then
         -- Existing object
@@ -198,18 +198,18 @@ function ReadOnlyDBOV:loadObjectRow(DBContext)
 end
 
 ---@param propName string
-function ReadOnlyDBOV:getDBProperty(propName)
+function ReadOnlyDBOV:getProp(propName)
     -- TODO Check permissions
 
-    local result = self.origVer:getDBProperty(propName)
+    local result = self.origVer:getProp(propName)
     return result
 end
 
 --[[ Ensures that all values with PropIndex == 1 and all vector values for properties in the propList are loaded
 This is required for updating object. propList is usually determined by list of properties to be updated or to be returned by query
 ]]
----@param propList table @comment (optional) list of PropertyDef
-function ReadOnlyDBOV:loadFromDB(propList)
+---@param propIDs table @comment (optional) list of PropertyDef
+function ReadOnlyDBOV:loadFromDB(propIDs)
     local sql
 
     self:loadObjectRow()
@@ -218,10 +218,14 @@ function ReadOnlyDBOV:loadFromDB(propList)
     -- tables.difference(ClassDef.Properties, propColMap)
 
     local params = { ObjectID = self.ObjectID }
-    if propList then
+    if propIDs ~= nil and type(propIDs) ~= 'table' then
+        propIDs = { propIDs }
+    end
+
+    if propIDs then
         params.PropIDs = JSON.encode(tablex.map(function(prop)
             return prop.PropertyID
-        end, propList))
+        end, propIDs))
 
         sql = [[select PropertyID, PropIndex, [Value], ctlv, MetaData
             from [.ref-values] where ObjectID=:ObjectID and (PropIndex=1 or PropertyID in (select [value] from json_each(:PropIDs)));]]
@@ -247,7 +251,7 @@ function ReadOnlyDBOV:LoadAllValues()
 end
 
 function ReadOnlyDBOV:loadScalarValues()
-
+    -- TODO
 end
 
 -- Ensures that user has required permissions for class level
@@ -264,7 +268,7 @@ function ReadOnlyDBOV:checkPermissionAccess(propDef, op)
     self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
 end
 
-function ReadOnlyDBOV:setDBProperty(propName, propValue)
+function ReadOnlyDBOV:setProp(propName, propValue)
     error('Cannot modify read-only object')
 end
 
@@ -494,7 +498,7 @@ function DBObject:original()
     if not self._original then
         self._original = setmetatable({}, {
             __index = function(propName)
-                return self.origVer:getDBProperty(propName)
+                return self.origVer:getProp(propName)
             end,
 
             __newindex = function(propName, propValue)
@@ -511,11 +515,11 @@ function DBObject:current()
     if not self._current then
         self._current = setmetatable({}, {
             __index = function(propName)
-                return self.curVer:getDBProperty(propName)
+                return self.curVer:getProp(propName)
             end,
 
             __newindex = function(propName, propValue)
-                return self.curVer:setDBProperty(propName, propValue)
+                return self.curVer:setProp(propName, propValue)
             end,
 
             __metatable = nil
@@ -556,7 +560,7 @@ function DBObject:SetData(data)
     end
     self:Edit()
     for propName, propValue in pairs(data) do
-        self.curVer:setDBProperty(propName, propValue)
+        self.curVer:setProp(propName, propValue)
     end
 end
 
@@ -567,7 +571,7 @@ function DBObject:GetData(excludeDefault)
     local result = {}
     local curVer = self.curVer
     for propName, propDef in pairs(curVer.ClassDef.Properties) do
-        local pp = curVer:getDBProperty(propName)
+        local pp = curVer:getProp(propName)
         if pp then
             result[propName] = tablex.deepcopy(pp:GetValue().Value)
         end
@@ -745,7 +749,7 @@ function DBObject:setDefaultData()
         for propName, propDef in pairs(self.ClassDef.Properties) do
             local dd = propDef.D.defaultValue
             if dd ~= nil then
-                local pp = self:getDBProperty(propName, op)
+                local pp = self:getProp(propName, op)
                 local vv = pp:GetValue()
 
                 if vv == nil then
