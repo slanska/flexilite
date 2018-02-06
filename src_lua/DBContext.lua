@@ -249,8 +249,9 @@ end
 ---@param classDef ClassDef
 ---@param data table|nil
 function DBContext:NewObject(classDef, data)
-    local result = DBObject( { ClassDef = classDef, ID = self:GetNewObjectID(), Data = data }, Constants.OPERATION.CREATE)
-    self.Objects[result.ID] = result
+    local pp = { ClassDef = classDef, ID = self:GetNewObjectID(), Data = data }
+    local result = DBObject(pp , Constants.OPERATION.CREATE)
+    self.Objects[pp.ID] = result
     return result
 end
 

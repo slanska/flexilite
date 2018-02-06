@@ -6,7 +6,8 @@
 --[[
 This file is used as an entry point for testing Flexilite library
 ]]
-require( "mobdebug" ). start()
+local mobdebug = require( "mobdebug" )
+mobdebug.start()
 
 -- Source: https://gist.github.com/Tieske/b1654b27fa422afb63eb
 
@@ -93,7 +94,7 @@ local ok, error = xpcall(function()
 
     -- Insert data
         local dataDump = readAll(path.join(__dirname, 'test/json/Northwind_Regions.db3.data.json' ))
-    --local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.data.json' ))
+    --local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.trimmed.data.json' ))
     sql = "select flexi('import data', '" .. stringx.replace(dataDump, "'", "''") .. "');"
     for row in db:rows(sql) do
         print(row[1])

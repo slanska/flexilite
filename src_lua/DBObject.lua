@@ -98,14 +98,13 @@ function VoidDBOV:_init(tag)
 end
 
 ---@param propName string
----@return DBProperty
-function VoidDBOV:getProp(propName)
+---@param propIndex number @comment optional, if not set, 1 is assumed
+function VoidDBOV:getProp(propName, propIndex)
     error(self.tag)
 end
 
-function VoidDBOV:setProp(propName, propValue)
-    local p = self:getProp(propName)
-    return p:SetValue(1, propValue)
+function VoidDBOV:setProp(propName, propIndex, propValue)
+    error(self.tag)
 end
 
 local DeletedVoidDBObject = VoidDBOV('New object is not available in this context')
@@ -137,7 +136,6 @@ local ReadOnlyDBOV = class()
 
 ---@param params DBObjectCtorParams
 function ReadOnlyDBOV:_init(params)
-    self:super()
     self.ID = assert(params.ID)
     self.DBObject = assert(params.DBObject)
 
@@ -159,11 +157,17 @@ function ReadOnlyDBOV:_init(params)
     self.props = {}
 end
 
+---@param propIDs table <number, number> | number[] | number @comment single property ID or array of property IDs
+-- or map of property IDs to fetch count
+function ReadOnlyDBOV:loadProps(propIDs)
+
+end
+
 -- Loads row from .objects table. Updates ClassDef if previous ClassDef is null or does not match actual definition
 ---@param DBContext DBContext
-function ReadOnlyDBOV:loadObjectRow(DBContext)
+function ReadOnlyDBOV:loadObjectRow()
     -- Load from .objects
-    local obj = DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
+    local obj = self.DBObject.ClassDef.DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
 
     -- Theoretically, object ID may not match class def passed in constructor
     if not self.ClassDef or obj.ClassID ~= self.ClassDef.ClassID then
@@ -198,10 +202,11 @@ function ReadOnlyDBOV:loadObjectRow(DBContext)
 end
 
 ---@param propName string
-function ReadOnlyDBOV:getProp(propName)
+---@param propIndex number @comment optional, if not set, 1 is assumed
+function ReadOnlyDBOV:getProp(propName, propIndex)
     -- TODO Check permissions
 
-    local result = self.origVer:getProp(propName)
+    local result = self.props[propName]
     return result
 end
 
@@ -268,7 +273,10 @@ function ReadOnlyDBOV:checkPermissionAccess(propDef, op)
     self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
 end
 
-function ReadOnlyDBOV:setProp(propName, propValue)
+---@param propName string
+---@param propIndex number @comment optional, if not set, 1 is assumed
+---@param propValue any
+function ReadOnlyDBOV:setProp(propName, propIndex, propValue)
     error('Cannot modify read-only object')
 end
 
@@ -333,10 +341,12 @@ function WritableDBOV:applyMappedColumnValues(params)
     end
 end
 
+-- Inserts new object
 function WritableDBOV:saveCreate()
     -- TODO
 end
 
+-- Updates existing object
 function WritableDBOV:saveUpdate()
     -- TODO
 end
@@ -396,7 +406,7 @@ local multiKeyIndexSQL = {
         [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3 where ObjectID = :ObjectID;]],
         [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4 where ObjectID = :ObjectID;]],
     },
--- Extended version of update when ObjectID also gets changed
+    -- Extended version of update when ObjectID also gets changed
     UX = {
         [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
         [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
@@ -423,24 +433,24 @@ end
 
 ---@class DBObject
 ---@field state string @comment 'C', 'R', 'U', 'D'
----@field origVer ReadOnlyDBOV
----@field curVer EditableDBOV
+---@field origVer ReadOnlyDBOV | VoidDBOV
+---@field curVer WritableDBOV | VoidDBOV
 local DBObject = class()
 
 function DBObject:_init(params, state)
+    params.DBObject = self
     self.state = state or Constants.OPERATION.READ
     if state == Constants.OPERATION.CREATE then
         self.origVer = CreatedVoidDBObject
         self.curVer = WritableDBOV(params)
-    elseif state == Constants.OPERATION.UPDATE then
+    elseif state == Constants.OPERATION.DELETE then
         self.origVer = ReadOnlyDBOV(params)
-        self.curVer = WritableDBOV(params)
+        self.curVer = DeletedVoidDBObject(params)
     else
         self.origVer = ReadOnlyDBOV(params)
-        self.curVer = EditableDBOV(params)
+        self.curVer = WritableDBOV(params)
     end
 end
-
 
 ---@param op string @comment 'C', 'U', or 'D
 -- TODO op?
@@ -611,12 +621,24 @@ end
 function DBObject:saveToDB()
     local op = self.state
 
+    -- before trigger
+    self:fireBeforeTrigger()
+
+    if op == Constants.OPERATION.CREATE then
+        self:setDefaultData()
+        self.curVer:saveCreate()
+    elseif op == Constants.OPERATION.UPDATE then
+        self.curVer:saveUpdate()
+    elseif op == Constants.OPERATION.DELETE then
+
+    else
+        -- no-op
+        return
+    end
+
     if op ~= Constants.OPERATION.CREATE and op ~= Constants.OPERATION.UPDATE then
         error('Invalid object state')
     end
-
-    -- before trigger
-    self:fireBeforeTrigger()
 
     if op == Constants.OPERATION.CREATE then
         self:setDefaultData()
@@ -643,7 +665,7 @@ function DBObject:saveToDB()
     end
 
     local params = { ClassID = self.ClassDef.ClassID, ctlo = ctlo, vtypes = self.ClassDef.vtypes,
-                     MetaData = JSON.encode( self.MetaData ) }
+                     MetaData = JSON.encode(self.MetaData) }
 
     -- Set column mapped values (A - P)
     self.curVer:applyMappedColumnValues(params)
@@ -746,7 +768,7 @@ end
 ---@param data table
 function DBObject:setDefaultData()
     if self.state == Constants.OPERATION.CREATE then
-        for propName, propDef in pairs(self.ClassDef.Properties) do
+        for propName, propDef in pairs(self.curVer.ClassDef.Properties) do
             local dd = propDef.D.defaultValue
             if dd ~= nil then
                 local pp = self:getProp(propName, op)

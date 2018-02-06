@@ -92,3 +92,10 @@ node_modules
 /test/json/Chinook.db.data.json
 /test/json/Northwind.db3.data.json
 /data/Flexilite.db
+/bin/minilua
+/bin/buildvm
+/bin/flexilite_test
+/bin/libFlexilite.dylib
+/bin/sqlite_shell
+/bin/libluajit.dylib
+/bin/luajit
