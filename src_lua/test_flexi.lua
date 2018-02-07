@@ -93,8 +93,8 @@ local ok, error = xpcall(function()
     end
 
     -- Insert data
-        local dataDump = readAll(path.join(__dirname, 'test/json/Northwind_Regions.db3.data.json' ))
-    --local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.trimmed.data.json' ))
+    --    local dataDump = readAll(path.join(__dirname, 'test/json/Northwind_Regions.db3.data.json' ))
+    local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.trimmed.data.json' ))
     sql = "select flexi('import data', '" .. stringx.replace(dataDump, "'", "''") .. "');"
     for row in db:rows(sql) do
         print(row[1])

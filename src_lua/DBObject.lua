@@ -474,7 +474,8 @@ function DBObject:saveMultiKeyIndexes(op)
                         end
                     end
 
-                    if op == 'U' and self.ID ~= self.old.ID then
+                    if op == Constants.OPERATION.UPDATE and (self.curVer.ID ~= self.origVer.ID
+                            or self.curVer.ClassDef.ClassID ~= self.origVer.ClassDef.ClassID) then
                         op = 'UX'
                         p.NewObjectID = self.ID
                         p.ObjectID = self.old.ID
@@ -583,7 +584,10 @@ function DBObject:GetData(excludeDefault)
     for propName, propDef in pairs(curVer.ClassDef.Properties) do
         local pp = curVer:getProp(propName)
         if pp then
-            result[propName] = tablex.deepcopy(pp:GetValue().Value)
+            local pv =pp:GetValue()
+            if pv  then
+                result[propName] = tablex.deepcopy(pv.Value())
+            end
         end
     end
 
@@ -791,7 +795,7 @@ function DBObject:ValidateData()
     local data = self:GetData()
     local op = self.state
     if op == Constants.OPERATION.CREATE or op == Constants.OPERATION.UPDATE then
-        local objSchema = self.ClassDef:getObjectSchema(op)
+        local objSchema = self.curVer.ClassDef:getObjectSchema(op)
         if objSchema then
             local err = schema.CheckSchema(data, objSchema)
             if err then

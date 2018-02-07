@@ -98,6 +98,10 @@ end
 function DBProperty:GetValue(idx)
     idx = idx or 1
 
+    if not self.values then
+        return nil
+    end
+
     ---@type DBValue
     local v = self.values[idx]
     if v then
