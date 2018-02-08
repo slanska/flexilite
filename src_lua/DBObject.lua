@@ -131,7 +131,6 @@ local ReadOnlyDBOV = class()
 ---@field ClassDef ClassDef
 ---@field DBContext DBContext
 ---@field ID number @comment > 0 - existing object, < 0 - new not yet saved object, 0 - object to be deleted
----@field PropIDs table @comment array of integers
 ---@field DBObject DBObject
 
 ---@param params DBObjectCtorParams
@@ -144,9 +143,6 @@ function ReadOnlyDBOV:_init(params)
         assert(params.DBContext or params.ClassDef, 'Either ClassDef or DBContext are required')
         local DBContext = params.DBContext or params.ClassDef.DBContext
         self:loadObjectRow(DBContext)
-        if params.PropIDs then
-            self:loadFromDB(params.PropIDs)
-        end
     else
         -- New or temporary object
         self.ClassDef = assert(params.ClassDef)
@@ -154,18 +150,25 @@ function ReadOnlyDBOV:_init(params)
         -- ctlo
     end
 
+    -- Dictionary of DBProperty
     self.props = {}
 end
 
 ---@param propIDs table <number, number> | number[] | number @comment single property ID or array of property IDs
 -- or map of property IDs to fetch count
 function ReadOnlyDBOV:loadProps(propIDs)
+    if type(propIDs) ~= 'table' then
+        propIDs = { propIDs }
+    end
 
+    for propID, fetchCnt in pairs(propIDs) do
+        -- TODO
+    end
 end
 
 -- Loads row from .objects table. Updates ClassDef if previous ClassDef is null or does not match actual definition
----@param DBContext DBContext
-function ReadOnlyDBOV:loadObjectRow()
+---@param propIDs number | number[] | table<number, number> @comment optional
+function ReadOnlyDBOV:loadObjectRow(propIDs)
     -- Load from .objects
     local obj = self.DBObject.ClassDef.DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
 
@@ -199,13 +202,17 @@ function ReadOnlyDBOV:loadObjectRow()
             --self.props[prop.PropertyID][1] = cell
         end
     end
+
+    if propIDs then
+        self:loadProps(propIDs)
+    end
 end
 
 ---@param propName string
 ---@param propIndex number @comment optional, if not set, 1 is assumed
 function ReadOnlyDBOV:getProp(propName, propIndex)
-    -- TODO Check permissions
-
+    local propDef = self.ClassDef:getProperty(propName)
+    self:checkPropertyAccess(propDef, self.DBObject.state)
     local result = self.props[propName]
     return result
 end
@@ -251,14 +258,6 @@ function ReadOnlyDBOV:loadFromDB(propIDs)
     end
 end
 
-function ReadOnlyDBOV:LoadAllValues()
-    -- TODO
-end
-
-function ReadOnlyDBOV:loadScalarValues()
-    -- TODO
-end
-
 -- Ensures that user has required permissions for class level
 ---@param classDef ClassDef
 ---@param op string @comment 'C' or 'U' or 'D'
@@ -269,7 +268,10 @@ end
 -- Ensures that user has required permissions for property level
 ---@param propDef PropertyDef
 ---@param op string @comment 'C' or 'U' or 'D'
-function ReadOnlyDBOV:checkPermissionAccess(propDef, op)
+function ReadOnlyDBOV:checkPropertyAccess(propDef, op)
+    if not propDef then
+        -- error
+    end
     self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
 end
 
@@ -304,7 +306,8 @@ function WritableDBOV:resolveReferences()
 end
 
 ---@param propName string
-function WritableDBOV:getProp(propName)
+---@param propIndex number
+function WritableDBOV:getProp(propName, propIndex)
     local result = self.props[propName]
     if not result then
         -- TODO Check permissions
@@ -406,7 +409,7 @@ local multiKeyIndexSQL = {
         [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3 where ObjectID = :ObjectID;]],
         [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4 where ObjectID = :ObjectID;]],
     },
-    -- Extended version of update when ObjectID also gets changed
+-- Extended version of update when ObjectID also gets changed
     UX = {
         [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
         [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
@@ -584,8 +587,8 @@ function DBObject:GetData(excludeDefault)
     for propName, propDef in pairs(curVer.ClassDef.Properties) do
         local pp = curVer:getProp(propName)
         if pp then
-            local pv =pp:GetValue()
-            if pv  then
+            local pv = pp:GetValue()
+            if pv then
                 result[propName] = tablex.deepcopy(pv.Value())
             end
         end

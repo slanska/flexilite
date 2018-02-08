@@ -32,6 +32,12 @@ first 2 parameters. Thus DBObject is accessed from DBProperty.DBObject, Property
 ]]
 
 local class = require 'pl.class'
+local JSON = require 'cjson'
+
+---@class DBValueCtorParams
+---@field Value any
+---@field ctlv number
+---@field MetaData table | string
 
 ---@class DBValue
 ---@field Value any
@@ -40,11 +46,15 @@ local class = require 'pl.class'
 local DBValue = class()
 
 -- constructor
----@param row table @comment {Value:any, ctlv: number, MetaData: table}
+---@param row DBValueCtorParams
 function DBValue:_init(row)
     self.Value = row.Value
     self.ctlv = row.ctlv
-    self.MetaData = row.MetaData
+    if type(row.MetaData) == 'string' then
+        self.MetaData = JSON.decode(row.MetaData)
+    else
+        self.MetaData = row.MetaData
+    end
 end
 
 function DBValue:Boxed()

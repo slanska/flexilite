@@ -15,6 +15,8 @@ Hold list of DBValue items, one item per .ref-value row (or A..P columns in .obj
 
 local class = require 'pl.class'
 local DBValue = require 'DBValue'
+local tablex = require 'pl.tablex'
+local Constants = require 'Constants'
 
 -- Constant Null DBValue
 local NullDBValue = setmetatable({}, {
@@ -31,30 +33,22 @@ local NullDBValue = setmetatable({}, {
 -- TODO other methods
 })
 
--- Base abstract property. Not used directly
----@class BaseDBProperty
----@field DBObject DBObject
----@field PropDef PropertyDef
-local BaseDBProperty = class()
-
----@param DBObject DBObject
----@param propDef PropertyDef
-function BaseDBProperty:_init(DBObject, propDef)
-    self.DBObject = assert(DBObject)
-    self.PropDef = assert(propDef)
-end
-
 -------------------------------------------------------------------------------
 --[[
 DBProperty
 Provides access to simple values (both scalar and vector)
 ]]
 -------------------------------------------------------------------------------
----@class DBProperty : BaseDBProperty
-local DBProperty = class(BaseDBProperty)
+---@class DBProperty
+---@field DBOV ReadOnlyDBOV @comment DB Object Version
+---@field PropDef PropertyDef
+local DBProperty = class()
 
-function DBProperty:_init(DBObject, propDef)
-    self:super(DBObject, propDef)
+---@param DBOV ReadOnlyDBOV
+---@param propDef PropertyDef
+function DBProperty:_init(DBOV, propDef)
+    self.DBOV = assert(DBOV)
+    self.PropDef = assert(propDef)
 end
 
 function DBProperty:Boxed()
@@ -82,65 +76,102 @@ end
 ---@param idx number @comment 1 based index
 ---@param val any
 function DBProperty:SetValue(idx, val)
-    -- Check access permission
-    -- todo
+    error( string.format('Cannot modify readonly version of %s.%s',
+                         self.PropDef.ClassDef.Name.text, self.PropDef.Name.text))
+end
+
+---@param idx number @comment 1 based
+function DBProperty:GetValue(idx)
+    self.PropDef.ClassDef.DBContext.AccessControl:ensureCurrentUserAccessForProperty(
+            self.PropDef.ID, Constants.OPERATION.READ)
+
+    idx = idx or 1
 
     if not self.values then
         self.values = {}
     end
 
-    --TODO Make sure to load all preceding items
-    local vv = DBValue({ Value = val })
-    self.values[idx] = vv
+    ---@type DBValue
+    local v = self.values[idx]
+
+    if not v then
+        -- load from db
+        local sql = [[select * from [.ref-values]
+            where ObjectID = :ObjectID and PropertyID = :PropertyID and PropIndex <= :PropIndex
+            order by ObjectID, PropertyID, PropIndex;]]
+        for row in self.DBOV.ClassDef.DBContext:loadRows(sql, { ObjectID = self.DBOV.ID,
+                                                                PropertyID = self.PropDef.ID, PropIndex = idx }) do
+            table.insert(self.values, row.PropIndex, DBValue(row))
+        end
+
+        v = assert(self.values[idx])
+    end
+
+    return v
+end
+
+---@param idx number
+---@return DBValue
+function DBProperty:cloneValue(idx)
+    return tablex.deepcopy( assert(self.values[idx]))
+end
+
+-------------------------------------------------------------------------------
+--[[
+ChangedDBProperty
+Used by WritableDBOV (DBObject.curVer)
+]]
+-------------------------------------------------------------------------------
+---@class ChangedDBProperty
+---@field DBOV WritableDBOV
+---@field PropDef PropertyDef
+local ChangedDBProperty = class(DBProperty)
+
+function ChangedDBProperty:_init(DBObject, propDef)
+    self:super(DBObject, propDef)
+end
+
+---@return DBProperty
+function ChangedDBProperty:getOriginalProperty()
+    return assert(self.DBOV.DBObject.origVer.props[self.PropDef.Name.text],
+                  '' ) -- TODO error message
 end
 
 ---@param idx number @comment 1 based index
-function DBProperty:GetValue(idx)
+---@param val any
+function ChangedDBProperty:SetValue(idx, val)
+    if not self.values then
+        self.values = {}
+    end
+
+    local result = self.values[idx]
+    if not result then
+        self.PropDef.ClassDef.DBContext.AccessControl:ensureCurrentUserAccessForProperty(
+                self.PropDef.ID, self.DBOV.DBObject.state)
+        local prop = self:getOriginalProperty()
+        result = prop:cloneValue(idx)
+        self.values[idx] = result
+    end
+
+    result.Value = val
+    -- TODO convert? set ctlv?
+end
+
+---@param idx number @comment 1 based index
+---@return DBValue
+function ChangedDBProperty:GetValue(idx)
     idx = idx or 1
 
-    if not self.values then
-        return nil
+    local result
+    if not self.values or not self.values[idx] then
+        return self:getOriginalProperty():GetValue(idx)
     end
 
-    ---@type DBValue
-    local v = self.values[idx]
-    if v then
-        return v
-    end
-
-    -- load from db?
-    -- TODO return nil?
-end
-
--------------------------------------------------------------------------------
---[[
-MixinDBProperty
-Provides access to simple values (both scalar and vector)
-]]
--------------------------------------------------------------------------------
----@class MixinDBProperty
-local MixinDBProperty = class(BaseDBProperty)
-
-function MixinDBProperty:_init(DBObject, propDef)
-    self:super(DBObject, propDef)
-end
-
--------------------------------------------------------------------------------
---[[
-LinkDBProperty
-Provides access to simple values (both scalar and vector)
-]]
--------------------------------------------------------------------------------
----@class LinkDBProperty
-local LinkDBProperty = class(MixinDBProperty)
-
-function LinkDBProperty:_init(DBObject, propDef)
-    self:super(DBObject, propDef)
+    return self.values[idx]
 end
 
 return {
     DBProperty = DBProperty,
-    MixinDBProperty = MixinDBProperty,
-    LinkDBProperty = LinkDBProperty,
+    ChangedDBProperty = ChangedDBProperty,
     NullDBValue = NullDBValue
 }
