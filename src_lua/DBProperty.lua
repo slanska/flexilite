@@ -6,10 +6,9 @@
 
 --[[
 DBProperty and derived classes.
-Used by DBObject to access object property values
-Instantiated by PropertyDef and its descendants
+Used by DBObject/*DBOV to access object property values
 
-Provides access to BoxedProperty, to be called from custom scripts and functions
+Provides access to Boxed(), to be called from custom scripts and functions
 Hold list of DBValue items, one item per .ref-value row (or A..P columns in .objects row)
 ]]
 
@@ -129,8 +128,8 @@ Used by WritableDBOV (DBObject.curVer)
 ---@field PropDef PropertyDef
 local ChangedDBProperty = class(DBProperty)
 
-function ChangedDBProperty:_init(DBObject, propDef)
-    self:super(DBObject, propDef)
+function ChangedDBProperty:_init(DBOV, propDef)
+    self:super(DBOV, propDef)
 end
 
 ---@return DBProperty
