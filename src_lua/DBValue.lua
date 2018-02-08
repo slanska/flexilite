@@ -6,8 +6,8 @@
 --[[
 Single value holder. Maps to row in [.ref-values] table (or A-P columns in .objects table).
 
-DBCell has no knowledge on column mapping and operates solely as all data is stored in .ref-values only.
-This is DBObject responsibility to handle column mapping
+DBValue has no knowledge on column mapping and operates solely as all data is stored in .ref-values only.
+This is DBObject/*DBOV responsibility to handle column mapping
 
 Access to object property value to be used in user's custom
 functions and triggers.
@@ -97,7 +97,7 @@ function DBValue:Boxed(DBProperty, propIndex)
     return self.boxed
 end
 
----@param DBProperty BaseDBProperty
+---@param DBProperty DBProperty
 ---@param propIndex number
 function DBValue:beforeSaveToDB(DBProperty, propIndex)
 
@@ -107,13 +107,13 @@ function DBValue:beforeSaveToDB(DBProperty, propIndex)
     end
 end
 
----@param DBProperty BaseDBProperty
+---@param DBProperty DBProperty
 ---@param propIndex number
 function DBValue:afterSaveToDB(DBProperty, propIndex)
 
 end
 
----@param DBProperty BaseDBProperty
+---@param DBProperty DBProperty
 ---@param propIndex number
 function DBValue:saveToDB(DBProperty, propIndex)
     if DBProperty.PropDef.ColMap then
@@ -122,7 +122,7 @@ function DBValue:saveToDB(DBProperty, propIndex)
     end
 
     local sql
-    if DBProperty.DBObject:IsNew() then
+    if DBProperty.DBOV.DBObjectstate == Constants.OPERATION.CREATE then
         sql = [[insert into [.ref-values] (ObjectID, PropertyID, PropIndex, Value, ctlv, MetaData)
             values (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv); ]]
     else
@@ -136,18 +136,8 @@ function DBValue:saveToDB(DBProperty, propIndex)
 
     end
     local p = { ObjectID = DBProperty.DBObject.ID, PropertyID = DBProperty.PropDef.ID,
-                ctlv = self.ctlv, Value = self.Value, PropIndex = propIndex, MetaData = self.MetaData }
-    self.Object.ClassDef.DBContext:execStatement(sql, p)
-end
-
-function DBValue:isLink()
-    -- TODO
-end
-
----@param DBContext DBContext
-function DBValue:GetLinkedObject(DBProperty, propIndex)
-    local result = DBProperty.ClassDef.DBContext:LoadObject(self.Value)
-    return result
+                ctlv = self.ctlv, Value = self.Value, PropIndex = propIndex, MetaData = JSON.encode(self.MetaData) }
+    self.DBOV.ClassDef.DBContext:execStatement(sql, p)
 end
 
 function DBValue:__tostring()
