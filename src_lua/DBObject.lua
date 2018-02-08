@@ -81,6 +81,8 @@ local Util64 = require 'Util'
 local Constants = require 'Constants'
 local schema = require 'schema'
 local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
+local DBProperty = require('DBProperty').DBProperty
+local ChangedDBProperty = require('DBProperty').ChangedDBProperty
 
 ---@class BaseDBOV
 ---@method getProp
@@ -157,6 +159,11 @@ end
 ---@param propIDs table <number, number> | number[] | number @comment single property ID or array of property IDs
 -- or map of property IDs to fetch count
 function ReadOnlyDBOV:loadProps(propIDs)
+    if not propIDs then
+        -- Nothing to do
+        return
+    end
+
     if type(propIDs) ~= 'table' then
         propIDs = { propIDs }
     end
@@ -190,16 +197,15 @@ function ReadOnlyDBOV:loadObjectRow(propIDs)
     -- Set values from mapped columns
     if self.ClassDef.ColMapActive then
         for col, prop in pairs(self.ClassDef.propColMap) do
-            -- Build ctlv
+            -- TODO Build ctlv
             local ctlv = 0
             --col:byte() -string.byte('A')
 
             -- Extract cell MetaData
+            local dbProp = self.props[prop.Name.text] or DBProperty(self, prop)
             local colMetaData = self.MetaData and self.MetaData.colMapMetaData and self.MetaData.colMapMetaData[prop.PropertyID]
-            local cell = DBValue { Object = self, Property = prop, PropIndex = 1, Value = obj[col], ctlv = ctlv, MetaData = colMetaData }
-            -- TODO
-            --self.props[prop.Name.text] = self.props[prop.PropertyID] or {}
-            --self.props[prop.PropertyID][1] = cell
+            local cell = DBValue { Object = self, Property = dbProp, PropIndex = 1, Value = obj[col], ctlv = ctlv, MetaData = colMetaData }
+            dbProp.values[1] = cell
         end
     end
 
@@ -322,6 +328,19 @@ function WritableDBOV:getProp(propName, propIndex)
         self.props[propName] = result
     end
     return result
+end
+
+---@param propName string
+---@param propIndex number @comment optional, if not set, 1 is assumed
+---@param propValue any
+function WritableDBOV:setProp(propName, propIndex, propValue)
+    local dbProp = self.props[propName]
+    if not dbProp then
+        -- TODO Create new property?
+        local propDef = self.ClassDef:getProperty(propName)
+        dbProp = ChangedDBProperty(self, propDef)
+    end
+    dbProp:SetValue(propIndex, propValue)
 end
 
 function WritableDBOV:setMappedPropertyValue(prop, value)

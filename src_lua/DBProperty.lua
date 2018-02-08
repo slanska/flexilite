@@ -30,7 +30,7 @@ local NullDBValue = setmetatable({}, {
 
     __metatable = nil,
 
--- TODO other methods
+-- TODO other methods?
 })
 
 -------------------------------------------------------------------------------
@@ -66,7 +66,9 @@ function DBProperty:Boxed()
                 return self:SetValue(idx, val)
             end,
 
-            __metatable = nil
+            __metatable = nil,
+
+            -- TODO __add, __sub... - for single value
         })
     end
 
@@ -153,8 +155,15 @@ function ChangedDBProperty:SetValue(idx, val)
         self.values[idx] = result
     end
 
-    result.Value = val
-    -- TODO convert? set ctlv?
+    if result then
+        result.Value = val
+    else
+        self.PropDef.ClassDef.DBContext.AccessControl:ensureCurrentUserAccessForProperty(
+                self.PropDef.ID, idx == 1 and Constants.OPERATION.UPDATE or Constants.OPERATION.CREATE)
+        -- is not set - create new one
+        result = DBValue { Value = val }
+        self.values[idx] = result
+    end
 end
 
 ---@param idx number @comment 1 based index
@@ -162,7 +171,6 @@ end
 function ChangedDBProperty:GetValue(idx)
     idx = idx or 1
 
-    local result
     if not self.values or not self.values[idx] then
         return self:getOriginalProperty():GetValue(idx)
     end

@@ -57,11 +57,40 @@ function DBValue:_init(row)
     end
 end
 
-function DBValue:Boxed()
+---@param DBProperty DBProperty
+---@param propIndex number
+function DBValue:Boxed(DBProperty, propIndex)
     if not self.boxed then
         self.boxed = setmetatable({}, {
             __metatable = nil,
-        -- add, sub...
+
+        -- set value by index
+            ---@param idx number
+            ---@param val any
+            __newindex = function(idx, val)
+
+            end,
+
+        -- get value by index
+            ---@param idx number
+            ---@return any
+            __index = function(idx)
+
+            end,
+
+            __add = self.__add,
+            __sub = self.__sub,
+            __mul = self.__mul,
+            __div = self.__div,
+            __pow = self.__pow,
+            __concat = self.__concat,
+            __len = self.__len,
+            __tostring = self.__tostring,
+            __unm = self.__unm,
+            __eq = self.__eq,
+            __lt = self.__lt,
+            __le = self.__le,
+            __mod = self.__mod,
         })
     end
 
