@@ -129,33 +129,19 @@ local ReadOnlyDBOV = class()
     DBObject
     ID is required, either ClassDef or DBContext are required, other params are optional.
  ]]
----@class DBObjectCtorParams
----@field ClassDef ClassDef
----@field DBContext DBContext
----@field ID number @comment > 0 - existing object, < 0 - new not yet saved object, 0 - object to be deleted
----@field DBObject DBObject
-
----@param params DBObjectCtorParams
-function ReadOnlyDBOV:_init(params)
-    self.ID = assert(params.ID)
-    self.DBObject = assert(params.DBObject)
-
-    if self.ID > 0 then
-        -- Existing object
-        assert(params.DBContext or params.ClassDef, 'Either ClassDef or DBContext are required')
-        local DBContext = params.DBContext or params.ClassDef.DBContext
-        self:loadObjectRow(DBContext)
-    else
-        -- New or temporary object
-        self.ClassDef = assert(params.ClassDef)
-        -- TODO initialize new object
-        -- ctlo
-    end
-
-    -- Dictionary of DBProperty
+---@param DBObject DBObject
+---@param ID number
+function ReadOnlyDBOV:_init(DBObject, ID)
+    self.ID = assert(ID)
+    self.DBObject = assert(DBObject)
     self.props = {}
 end
 
+--[[ Loads specific property values. propIDs can be:
+1) single property ID
+2) dictionary of property IDs
+3) dictionary of property IDs as keys and fetchCount as values
+]]
 ---@param propIDs table <number, number> | number[] | number @comment single property ID or array of property IDs
 -- or map of property IDs to fetch count
 function ReadOnlyDBOV:loadProps(propIDs)
@@ -173,15 +159,17 @@ function ReadOnlyDBOV:loadProps(propIDs)
     end
 end
 
--- Loads row from .objects table. Updates ClassDef if previous ClassDef is null or does not match actual definition
----@param propIDs number | number[] | table<number, number> @comment optional
-function ReadOnlyDBOV:loadObjectRow(propIDs)
+-- Loads row from .objects table. Updates ClassDef if previous ClassDef is null
+-- or does not match actual definition
+---@param DBContext DBContext
+---@param propIDs number | number[] | table<number, number> | nil
+function ReadOnlyDBOV:loadObjectRow(DBContext, propIDs)
     -- Load from .objects
-    local obj = self.DBObject.ClassDef.DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
+    local obj = DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
 
     -- Theoretically, object ID may not match class def passed in constructor
     if not self.ClassDef or obj.ClassID ~= self.ClassDef.ClassID then
-        self.ClassDef = self.ClassDef.DBContext:getClassDef(obj.ClassID)
+        self.ClassDef = DBContext:getClassDef(obj.ClassID)
     end
 
     if obj.MetaData then
@@ -276,7 +264,7 @@ end
 ---@param op string @comment 'C' or 'U' or 'D'
 function ReadOnlyDBOV:checkPropertyAccess(propDef, op)
     if not propDef then
-        -- error
+        -- TODO error
     end
     self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
 end
@@ -459,18 +447,24 @@ end
 ---@field curVer WritableDBOV | VoidDBOV
 local DBObject = class()
 
+---@param params table
+---@param state string @comment optional, 'C', 'R', 'U', 'D'
 function DBObject:_init(params, state)
     params.DBObject = self
     self.state = state or Constants.OPERATION.READ
     if state == Constants.OPERATION.CREATE then
         self.origVer = CreatedVoidDBObject
         self.curVer = WritableDBOV(params)
-    elseif state == Constants.OPERATION.DELETE then
-        self.origVer = ReadOnlyDBOV(params)
-        self.curVer = DeletedVoidDBObject(params)
     else
-        self.origVer = ReadOnlyDBOV(params)
-        self.curVer = WritableDBOV(params)
+        local DBContext = params.DBContext or params.ClassDef.DBContext
+        self.origVer = ReadOnlyDBOV(self, params.ID)
+        self.origVer:loadObjectRow(DBContext, params.propIDs)
+
+        if state == Constants.OPERATION.DELETE then
+            self.curVer = DeletedVoidDBObject(params)
+        else
+            self.curVer = WritableDBOV(params)
+        end
     end
 end
 
@@ -570,8 +564,8 @@ function DBObject:Edit()
     if self.state == Constants.OPERATION.DELETE then
         error('Cannot edit deleted object')
     end
+
     self.state = Constants.OPERATION.UPDATE
-    self.curVer = WritableDBOV { ClassDef = self.origVer.ClassDef, ID = self.origVer.ID }
 end
 
 function DBObject:Delete()
@@ -652,8 +646,10 @@ function DBObject:saveToDB()
 
     if op == Constants.OPERATION.CREATE then
         self:setDefaultData()
+        self:ValidateData()
         self.curVer:saveCreate()
     elseif op == Constants.OPERATION.UPDATE then
+        self:ValidateData()
         self.curVer:saveUpdate()
     elseif op == Constants.OPERATION.DELETE then
 
@@ -665,12 +661,6 @@ function DBObject:saveToDB()
     if op ~= Constants.OPERATION.CREATE and op ~= Constants.OPERATION.UPDATE then
         error('Invalid object state')
     end
-
-    if op == Constants.OPERATION.CREATE then
-        self:setDefaultData()
-    end
-
-    self:ValidateData()
 
     self:processReferenceProperties()
 
