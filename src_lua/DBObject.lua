@@ -137,6 +137,12 @@ function ReadOnlyDBOV:_init(DBObject, ID)
     self.props = {}
 end
 
+function ReadOnlyDBOV.Create(DBObject, ID)
+    local result = ReadOnlyDBOV(DBObject, ID)
+    result:loadObjectRow()
+    return result
+    end
+
 --[[ Loads specific property values. propIDs can be:
 1) single property ID
 2) dictionary of property IDs
