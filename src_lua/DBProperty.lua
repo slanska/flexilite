@@ -67,7 +67,7 @@ function DBProperty:Boxed()
 
             __metatable = nil,
 
-            -- TODO __add, __sub... - for single value
+        -- TODO __add, __sub... - for single value
         })
     end
 
@@ -95,20 +95,24 @@ function DBProperty:GetValue(idx)
     ---@type DBValue
     local v = self.values[idx]
 
-    if not v then
-        -- load from db
-        local sql = [[select * from [.ref-values]
-            where ObjectID = :ObjectID and PropertyID = :PropertyID and PropIndex <= :PropIndex
-            order by ObjectID, PropertyID, PropIndex;]]
-        for row in self.DBOV.ClassDef.DBContext:loadRows(sql, { ObjectID = self.DBOV.ID,
-                                                                PropertyID = self.PropDef.ID, PropIndex = idx }) do
-            table.insert(self.values, row.PropIndex, DBValue(row))
-        end
-
-        v = assert(self.values[idx])
+    if v then
+        return v
     end
 
-    return v
+    -- load from db
+    local sql = [[select * from [.ref-values]
+            where ObjectID = :ObjectID and PropertyID = :PropertyID and PropIndex <= :PropIndex
+            order by ObjectID, PropertyID, PropIndex;]]
+    for row in self.DBOV.ClassDef.DBContext:loadRows(sql, { ObjectID = self.DBOV.ID,
+                                                            PropertyID = self.PropDef.ID, PropIndex = idx }) do
+        table.insert(self.values, row.PropIndex, DBValue(row))
+    end
+
+    if not self.values[idx] then
+        return NullDBValue
+    end
+
+    return self.values[idx]
 end
 
 ---@param idx number
@@ -134,8 +138,12 @@ end
 
 ---@return DBProperty
 function ChangedDBProperty:getOriginalProperty()
-    return assert(self.DBOV.DBObject.origVer.props[self.PropDef.Name.text],
-                  '' ) -- TODO error message
+    local result = self.DBOV.DBObject.origVer.props[self.PropDef.Name.text]
+    if not result then
+        error(string.format('DBProperty %s.%s not found',
+                            self.DBOV.ClassDef.Name.text, self.PropDef.Name.text))
+    end
+    return result
 end
 
 ---@param idx number @comment 1 based index
