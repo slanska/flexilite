@@ -105,6 +105,7 @@ function DBProperty:GetValue(idx)
             order by ObjectID, PropertyID, PropIndex;]]
     for row in self.DBOV.ClassDef.DBContext:loadRows(sql, { ObjectID = self.DBOV.ID,
                                                             PropertyID = self.PropDef.ID, PropIndex = idx }) do
+        -- TODO what if index 1 is set in .ref-values and in .objects[A..P]? Override? Ignore?
         table.insert(self.values, row.PropIndex, DBValue(row))
     end
 

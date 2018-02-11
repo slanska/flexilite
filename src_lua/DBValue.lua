@@ -33,6 +33,8 @@ first 2 parameters. Thus DBObject is accessed from DBProperty.DBObject, Property
 
 local class = require 'pl.class'
 local JSON = require 'cjson'
+local bits = type(jit) == 'table' and require('bit') or require('bit32')
+local Constants = require 'Constants'
 
 ---@class DBValueCtorParams
 ---@field Value any
@@ -95,6 +97,10 @@ function DBValue:Boxed(DBProperty, propIndex)
     end
 
     return self.boxed
+end
+
+function DBValue:getVType()
+    return bits.band(self.ctlv, Constants.CTLV_FLAGS.VTYPE_MASK)
 end
 
 ---@param DBProperty DBProperty

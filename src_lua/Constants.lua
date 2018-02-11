@@ -36,6 +36,7 @@ local Constants = {
     bit 10 - no track changes
     ]]
     CTLV_FLAGS = {
+        VTYPE_MASK = 7,
         UNIQUE = 0x0008,
         INDEX = 0x0010,
         REF_STD = 32, -- 1 << 5

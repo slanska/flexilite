@@ -27,8 +27,7 @@ end
 local function BOr64(base, value)
     local d, r = divide(base)
     local d2, r2 = divide(value)
-    local result = bits.bor(d, d2) * MAX27 + bits.bor(r, r2)
-    return result
+    return bits.bor(d, d2) * MAX27 + bits.bor(r, r2)
 end
 
 ---@param base number
@@ -36,23 +35,26 @@ end
 local function BAnd64(base, value)
     local d, r = divide(base)
     local d2, r2 = divide(value)
-    local result = bits.band(d, d2) * MAX27 + bits.band(r, r2)
-    return result
+    return bits.band(d, d2) * MAX27 + bits.band(r, r2)
 end
 
 ---@param base number
 ---@param mask number
 ---@param value number
 local function BSet64(base, mask, value)
-    local result = BOr64(BAnd64(base, mask), value)
-    return result
+    return BOr64(BAnd64(base, mask), value)
 end
 
 ---@param base number
 ---@param shift number
 local function BLShift64(base, shift)
-    local result = base * (2 ^ shift)
-    return result
+    return base * (2 ^ shift)
+end
+
+---@param base number
+---@param shift number
+local function BRShift64(base, shift)
+    return base / (2 ^ shift)
 end
 
 -----@param base number
@@ -62,9 +64,15 @@ local function BNot64(base)
 end
 
 return {
-    BOr64 = BOr64,
-    BAnd64 = BAnd64,
-    BSet64 = BSet64,
-    BNot64 = BNot64,
-    BLShift64 = BLShift64
+-- Bit operations on 52-bit values
+-- (52 bit integer are natively supported by Lua's number)
+    bit52 = {
+        ---@type function
+        bor = BOr64,
+        band = BAnd64,
+        set = BSet64,
+        bnot = BNot64,
+        lshift = BLShift64,
+        rshift = BRShift64
+    }
 }

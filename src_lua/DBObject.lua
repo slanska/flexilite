@@ -77,7 +77,7 @@ local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local DBValue = require 'DBValue'
 local tablex = require 'pl.tablex'
 local JSON = require 'cjson'
-local Util64 = require 'Util'
+local bit52 = require( 'Util').bit52
 local Constants = require 'Constants'
 local schema = require 'schema'
 local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
@@ -101,11 +101,11 @@ end
 
 ---@param propName string
 ---@param propIndex number @comment optional, if not set, 1 is assumed
-function VoidDBOV:getProp(propName, propIndex)
+function VoidDBOV:getPropValue(propName, propIndex)
     error(self.tag)
 end
 
-function VoidDBOV:setProp(propName, propIndex, propValue)
+function VoidDBOV:setPropValue(propName, propIndex, propValue)
     error(self.tag)
 end
 
@@ -125,10 +125,6 @@ local CreatedVoidDBObject = VoidDBOV('Old object is not available in this contex
 ---@field vtypes number @comment [.objects].vtypes
 local ReadOnlyDBOV = class()
 
---[[
-    DBObject
-    ID is required, either ClassDef or DBContext are required, other params are optional.
- ]]
 ---@param DBObject DBObject
 ---@param ID number
 function ReadOnlyDBOV:_init(DBObject, ID)
@@ -137,11 +133,12 @@ function ReadOnlyDBOV:_init(DBObject, ID)
     self.props = {}
 end
 
+-- Create pure readonly dbobject version and load .objects data
 function ReadOnlyDBOV.Create(DBObject, ID)
     local result = ReadOnlyDBOV(DBObject, ID)
     result:loadObjectRow()
     return result
-    end
+end
 
 --[[ Loads specific property values. propIDs can be:
 1) single property ID
@@ -161,21 +158,21 @@ function ReadOnlyDBOV:loadProps(propIDs)
     end
 
     for propID, fetchCnt in pairs(propIDs) do
-        -- TODO
+        local propDef = assert(self.ClassDef.DBContext.ClassProps[propID])
+        -- getProp will force loading data for up to specific property index
+        self:getPropValue(propDef.Name.text, fetchCnt)
     end
 end
 
 -- Loads row from .objects table. Updates ClassDef if previous ClassDef is null
 -- or does not match actual definition
----@param DBContext DBContext
----@param propIDs number | number[] | table<number, number> | nil
-function ReadOnlyDBOV:loadObjectRow(DBContext, propIDs)
+function ReadOnlyDBOV:loadObjectRow()
     -- Load from .objects
-    local obj = DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
+    local obj = self.DBObject.DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
 
     -- Theoretically, object ID may not match class def passed in constructor
     if not self.ClassDef or obj.ClassID ~= self.ClassDef.ClassID then
-        self.ClassDef = DBContext:getClassDef(obj.ClassID)
+        self.ClassDef = self.DBObject.DBContext:getClassDef(obj.ClassID)
     end
 
     if obj.MetaData then
@@ -187,13 +184,24 @@ function ReadOnlyDBOV:loadObjectRow(DBContext, propIDs)
     end
 
     self.ctlo = obj.ctlo
+    self.vtypes = obj.vtypes
 
     -- Set values from mapped columns
     if self.ClassDef.ColMapActive then
         for col, prop in pairs(self.ClassDef.propColMap) do
-            -- TODO Build ctlv
+            -- Build ctlv from ctlo and vtypes
             local ctlv = 0
-            --col:byte() -string.byte('A')
+            local colIdx = col:byte() - string.byte('A')
+            if bits.band(self.ctlo, bits.lshift(Constants.CTLO_FLAGS.UNIQUE_SHIFT + colIdx)) ~= 0 then
+                ctlv = bits.bor(ctlv, Constants.CTLV_FLAGS.UNIQUE)
+            end
+
+            if bits.band(self.ctlo, bits.lshift(Constants.CTLO_FLAGS.INDEX_SHIFT + colIdx)) ~= 0 then
+                ctlv = bits.bor(ctlv, Constants.CTLV_FLAGS.INDEX)
+            end
+
+            local vtype = bit52.lshift(self.vtypes, 3 * (colIdx + 1))
+            bit52.set(ctlv, Constants.CTLV_FLAGS.VTYPE_MASK, vtype)
 
             -- Extract cell MetaData
             local dbProp = self.props[prop.Name.text] or DBProperty(self, prop)
@@ -202,97 +210,68 @@ function ReadOnlyDBOV:loadObjectRow(DBContext, propIDs)
             dbProp.values[1] = cell
         end
     end
+end
 
-    if propIDs then
-        self:loadProps(propIDs)
+---@param propName string
+---@return DBProperty
+function ReadOnlyDBOV:getProp(propName)
+    local propDef = self.ClassDef:getProperty(propName)
+    if propDef then
+        self:checkPropertyAccess(propDef, self.DBObject.state)
     end
+
+    return self.props[propName]
 end
 
 ---@param propName string
 ---@param propIndex number @comment optional, if not set, 1 is assumed
-function ReadOnlyDBOV:getProp(propName, propIndex)
-    local propDef = self.ClassDef:getProperty(propName)
-    self:checkPropertyAccess(propDef, self.DBObject.state)
-    local result = self.props[propName]
-    return result
-end
-
---[[ Ensures that all values with PropIndex == 1 and all vector values for properties in the propList are loaded
-This is required for updating object. propList is usually determined by list of properties to be updated or to be returned by query
-]]
----@param propIDs table @comment (optional) list of PropertyDef
-function ReadOnlyDBOV:loadFromDB(propIDs)
-    local sql
-
-    self:loadObjectRow()
-
-    -- TODO Optimize: check if .ref-values need to be loaded whatsoever
-    -- tables.difference(ClassDef.Properties, propColMap)
-
-    local params = { ObjectID = self.ObjectID }
-    if propIDs ~= nil and type(propIDs) ~= 'table' then
-        propIDs = { propIDs }
+---@return DBValue | nil
+function ReadOnlyDBOV:getPropValue(propName, propIndex)
+    ---@type DBProperty
+    local result = self:getProp(propName)
+    if result then
+        return result:GetValue(propIndex)
     end
 
-    if propIDs then
-        params.PropIDs = JSON.encode(tablex.map(function(prop)
-            return prop.PropertyID
-        end, propIDs))
-
-        sql = [[select PropertyID, PropIndex, [Value], ctlv, MetaData
-            from [.ref-values] where ObjectID=:ObjectID and (PropIndex=1 or PropertyID in (select [value] from json_each(:PropIDs)));]]
-    else
-        sql = [[select PropertyID, PropIndex, [Value], ctlv, MetaData
-            from [.ref-values] where ObjectID=:ObjectID and PropIndex=1;]]
-    end
-
-    for row in self.ClassDef.DBContext:loadRows(sql, params) do
-        -- Skip already loaded mapped columns
-        if not self.props[row.PropertyID][row.PropIndex] then
-            row.Object = self
-            row.Property = self.ClassDef.DBContext.ClassProps[row.PropertyID]
-            local cell = DBValue(row)
-            self.props[row.PropertyID] = self.props[row.PropertyID] or {}
-            self.props[row.PropertyID][row.PropIndex] = cell
-        end
-    end
+    return nil
 end
 
 -- Ensures that user has required permissions for class level
----@param classDef ClassDef
 ---@param op string @comment 'C' or 'U' or 'D'
-function ReadOnlyDBOV:checkClassAccess(classDef, op)
-    self.DBContext.ensureCurrentUserAccessForClass(classDef.ClassID, op)
+function ReadOnlyDBOV:checkClassAccess(op)
+    self.ClassDef.DBContext.ensureCurrentUserAccessForClass(self.ClassDef.ClassID, op)
 end
 
 -- Ensures that user has required permissions for property level
 ---@param propDef PropertyDef
 ---@param op string @comment 'C' or 'U' or 'D'
 function ReadOnlyDBOV:checkPropertyAccess(propDef, op)
-    if not propDef then
-        -- TODO error
-    end
-    self.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
+    self.ClassDef.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
 end
 
 ---@param propName string
 ---@param propIndex number @comment optional, if not set, 1 is assumed
 ---@param propValue any
-function ReadOnlyDBOV:setProp(propName, propIndex, propValue)
+function ReadOnlyDBOV:setPropValue(propName, propIndex, propValue)
     error('Cannot modify read-only object')
 end
 
 ---@class WritableDBOV : ReadOnlyDBOV
 local WritableDBOV = class(ReadOnlyDBOV)
 
-function WritableDBOV:_init(params)
-    self:super(params)
+---@param DBObject DBObject
+---@param ClassDef ClassDef
+---@param ID number
+function WritableDBOV:_init(DBObject, ClassDef, ID)
+    self:super(DBObject, ID)
+    self.ClassDef = ClassDef
 end
 
 --[[
 Processes deferred unresolved references
 ]]
 function WritableDBOV:resolveReferences()
+    -- TODO Needed?
     for _, item in ipairs(self.unresolvedReferences) do
         -- item: {propDef, object}
 
@@ -305,51 +284,78 @@ function WritableDBOV:resolveReferences()
     end
 end
 
+-- Ensures that PropertyDef exists if ClassDef allows ad-hoc properties
+-- Throws error if property does not exist and cannot be created
 ---@param propName string
----@param propIndex number
-function WritableDBOV:getProp(propName, propIndex)
-    local result = self.props[propName]
+---@return PropertyDef
+function WritableDBOV:ensurePropertyDef(propName)
+    local result = self.ClassDef:hasProperty(propName)
     if not result then
-        -- TODO Check permissions
-        -- Property may not be available for 2 reasons: not yet loaded, and is not defined in class
-        local propDef = self.ClassDef:hasProperty(propName)
-        if not propDef and self.ClassDef.allowAnyProps then
-            propDef = CreateAnyProperty(self.ClassDef.DBContext, self.ClassDef, propName)
+        if self.ClassDef.D.allowAnyProps then
+            result = CreateAnyProperty(self.ClassDef.DBContext, self.ClassDef, propName)
         end
-        assert(propDef, string.format('Property %s not found', propName))
+    end
 
-        result = propDef:CreateDBProperty(self)
-        self.props[propName] = result
+    if not result then
+        error(string.format('Property %s.%s not found', self.ClassDef.Name.text, propName))
+    end
+
+    return result
+end
+
+---@param propName string
+---@param op string @comment 'C', 'R', 'U', 'D'
+---@return DBProperty
+function WritableDBOV:getProp(propName, op)
+    local result = self.props[propName]
+
+    if not result then
+        if op == Constants.OPERATION.READ then
+            if self.DBObject.state ~= Constants.OPERATION.CREATE then
+                result = self.DBObject.origVer:getProp(propName)
+            end
+        else
+            if op == Constants.OPERATION.CREATE or op == Constants.OPERATION.UPDATE then
+                local propDef = self:ensurePropertyDef(propName)
+                result = ChangedDBProperty(self, propDef)
+                self.props[propName] = result
+            end
+        end
     end
     return result
 end
 
 ---@param propName string
+---@param propIndex number
+---@return DBValue | nil
+function WritableDBOV:getPropValue(propName, propIndex)
+    return self:getProp(propName, Constants.OPERATION.READ):GetValue(propIndex)
+end
+
+---@param propName string
 ---@param propIndex number @comment optional, if not set, 1 is assumed
 ---@param propValue any
-function WritableDBOV:setProp(propName, propIndex, propValue)
-    local dbProp = self.props[propName]
-    if not dbProp then
-        -- TODO Create new property?
-        local propDef = self.ClassDef:getProperty(propName)
-        dbProp = ChangedDBProperty(self, propDef)
-    end
+---@return nil
+function WritableDBOV:setPropValue(propName, propIndex, propValue)
+    local dbProp = self:getProp(propName, self.DBObject.state)
     dbProp:SetValue(propIndex, propValue)
 end
 
-function WritableDBOV:setMappedPropertyValue(prop, value)
-    -- TODO
-end
-
--- Apply values of mapped columns, if class is set to use column mapping
+-- Apply values of mapped columns to params, for insert or update operation
 ---@param params table
 function WritableDBOV:applyMappedColumnValues(params)
     if self.ClassDef.ColMapActive then
         for col, prop in pairs(self.ClassDef.propColMap) do
-            local cell = self:getRefValue(prop.PropertyID, 1)
-            if cell then
+            local vv = self:getPropValue(prop.PropertyID, 1)
+            if vv then
+                local colIdx = col:byte() - string.byte('A')
                 -- update vtypes
-                params[col] = cell.Value
+                self.vtypes = bit52.set(self.vtypes, bit52.lshift(Constants.CTLV_FLAGS.VTYPE_MASK, colIdx * 3), vv.ctlv)
+
+                -- update ctlo
+                self.ctlo = bit52.set(self.ctlo, bit52.lshift(1, Constants.CTLO_FLAGS.INDEX_SHIFT + colIdx ), prop.D.indexing == 'index' and 1 or 0)
+                self.ctlo = bit52.set(self.ctlo, bit52.lshift(1, Constants.CTLO_FLAGS.UNIQUE_SHIFT + colIdx ), prop.D.indexing == 'unique' and 1 or 0)
+                params[col] = vv.Value
             else
                 params[col] = nil
             end
@@ -359,14 +365,109 @@ end
 
 -- Inserts new object
 function WritableDBOV:saveCreate()
-    -- TODO
+    -- set ctlo & vtypes
+    self:setObjectMetaData()
+    local params = { ClassID = self.ClassDef.ClassID, ctlo = self.ctlo, vtypes = self.ClassDef.vtypes,
+                     MetaData = JSON.encode(self.MetaData) }
+
+    -- Set column mapped values (A - P)
+    self:applyMappedColumnValues(params)
+
+    --[[
+    insert into .objects
+    insert into .ref-values
+    insert into .full_text_data
+    insert into .range_data_
+    insert into .multi_keyX
+
+    insert/defer links
+    ]]
+
+    -- New object
+    self.ClassDef.DBContext:execStatement([[insert into [.objects] (ClassID, ctlo, vtypes,
+        A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, MetaData) values (
+        :ClassID, :ctlo, :vtypes, :A, :B, :C, :D, :E, :F, :G, :H, :I, :J, :J, :K, :L, :M, :N, :O, :P);]],
+                                          params)
+    -- TODO process deferred links
+    table.remove(self.ClassDef.DBContext.Objects, self.ID)
+    self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
+    self.ClassDef.DBContext.Objects[self.ID] = self
+
+    -- Save multi-key index if applicable
+    self:saveMultiKeyIndexes('C')
+
+    -- Save full text index, if applicable
+    local fts = {}
+    if self:getParamsForSaveFullText(fts) then
+        self.ClassDef.DBContext:execStatement([[
+            insert into [.full_text_data] (docid, ClassID, X1, X2, X3, X4, X5)
+            values (:docid, :ClassID, :X1, :X2, :X3, :X4, :X5);
+            ]], fts)
+    end
+
+    -- Save rtree if applicable
+    local rangeParams = {}
+    if self:getParamsForSaveRangeIndex(rangeParams) then
+        local sql = string.format([[insert into [.range_data_%d]
+                (ObjectID, [A0], [A1],  [B0], [B1],  [C0], [C1],  [D0], [D1], [E0], [E1]) values
+                (:ObjectID, :A0, :A1, :B0, :B1, :C0, :C1, :D0, :D1, :E0, :E1);]], self.ClassDef.ClassID)
+        self.ClassDef.DBContext:execStatement(sql, rangeParams)
+    end
+
+    self:processReferenceProperties()
+
+    -- TODO Save .change_log
+
+    -- Save nested/child objects
+    self:saveNestedObjects()
 end
 
 -- Updates existing object
 function WritableDBOV:saveUpdate()
-    -- TODO
+    self:setObjectMetaData()
+    local params = { ClassID = self.ClassDef.ClassID, ctlo = self.ctlo, vtypes = self.ClassDef.vtypes,
+                     MetaData = JSON.encode(self.MetaData) }
+
+    self:applyMappedColumnValues(params)
+
+    --[[
+    update .objects
+    insert/update/delete .ref-values
+    insert/update/delete .full_text_data
+    insert/update/delete .range_data_
+    update .multi_keyX
+
+    insert/update/delete/defer links
+    ]]
+    -- Existing object
+    params.ID = self.ID
+    self.ClassDef.DBContext:execStatement([[update [.objects] set ClassID=:ClassID, ctlv=:ctlv,
+         vtypes=:vtypes, A=:A, B=:B, C=:C, D=:D, E=:E, F=:F, G=:G, H=:H, J=:J, K=:K, L=:L,
+         M=:M, N=:N, O=:O, P=:P, MetaData=:MetaData where ObjectID = :ID]], params)
+
+    -- Save multi-key index if applicable
+    self:saveMultiKeyIndexes('U')
+
+    -- Save full text index, if applicable
+    local fts = {}
+    if self:getParamsForSaveFullText(fts) then
+        self.ClassDef.DBContext:execStatement([[
+            update [.full_text_data] set ClassID = :ClassID, X1 = :X1, X2 = :X2, X3 = :X3, X4 = :X4, X5 = :X5
+                where docid = :docid;]], fts)
+    end
+
+    -- Save rtree if applicable
+    local rangeParams = {}
+    if self:getParamsForSaveRangeIndex(rangeParams) then
+        local sql = string.format([[update [.range_data_%d] set
+                [A0] = :A0, [A1] = :A1,  [B0] = :B0, [B1]= :B1,  [C0] =:C0,
+                [C1] = :C1,  [D0] =:D0, [D1] = :D1, [E0] = :E0, [E1] = :E1
+                where ObjectID = :ObjectID;]], self.ClassDef.ClassID)
+        self.ClassDef.DBContext:execStatement(sql, rangeParams)
+    end
 end
 
+-- Initializes params for .full_text_data insert/update
 function WritableDBOV:getParamsForSaveFullText(params)
     --TODO indexes?
     if not (self.ClassDef.fullTextIndexing and tablex.size(self.ClassDef.fullTextIndexing) > 0) then
@@ -390,6 +491,7 @@ function WritableDBOV:getParamsForSaveFullText(params)
     return true
 end
 
+-- Initializes params for .range_data_ insert/update
 function WritableDBOV:getParamsForSaveRangeIndex(params)
     --TODO indexes?
     if not (self.ClassDef.rangeIndex and tablex.size(self.ClassDef.rangeIndex) > 0) then
@@ -447,36 +549,28 @@ function WritableDBOV:saveNestedObjects(data)
     end
 end
 
----@class DBObject
----@field state string @comment 'C', 'R', 'U', 'D'
----@field origVer ReadOnlyDBOV | VoidDBOV
----@field curVer WritableDBOV | VoidDBOV
-local DBObject = class()
+function WritableDBOV:setObjectMetaData()
+    local ctlo = self.ClassDef.ctlo
+    if self.MetaData then
+        if self.MetaData.accessRules then
+            ctlo = bit52.bor(ctlo, Constants.CTLO_FLAGS.HAS_ACCESS_RULES)
+        end
 
----@param params table
----@param state string @comment optional, 'C', 'R', 'U', 'D'
-function DBObject:_init(params, state)
-    params.DBObject = self
-    self.state = state or Constants.OPERATION.READ
-    if state == Constants.OPERATION.CREATE then
-        self.origVer = CreatedVoidDBObject
-        self.curVer = WritableDBOV(params)
-    else
-        local DBContext = params.DBContext or params.ClassDef.DBContext
-        self.origVer = ReadOnlyDBOV(self, params.ID)
-        self.origVer:loadObjectRow(DBContext, params.propIDs)
+        if self.MetaData.formulas then
+            ctlo = bit52.bor(ctlo, Constants.CTLO_FLAGS.HAS_FORMULAS)
+        end
 
-        if state == Constants.OPERATION.DELETE then
-            self.curVer = DeletedVoidDBObject(params)
-        else
-            self.curVer = WritableDBOV(params)
+        if self.MetaData.colMetaData then
+            ctlo = bit52.bor(ctlo, Constants.CTLO_FLAGS.HAS_COL_META_DATA)
         end
     end
+    self.ctlo = ctlo
 end
 
 ---@param op string @comment 'C', 'U', or 'D
 -- TODO op?
-function DBObject:saveMultiKeyIndexes(op)
+function WritableDBOV:saveMultiKeyIndexes(op)
+
     local function save()
         if op == Constants.OPERATION.DELETE then
             local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
@@ -527,11 +621,44 @@ function DBObject:saveMultiKeyIndexes(op)
     --                  end)
 end
 
+---@class DBObject
+---@field state string @comment 'C', 'R', 'U', 'D'
+---@field origVer ReadOnlyDBOV | VoidDBOV
+---@field curVer WritableDBOV | VoidDBOV
+---@field DBContext DBContext
+local DBObject = class()
+
+---@class DBObjectCtorParams
+---@field ID number
+---@field op string
+---@field ClassDef ClassDef
+---@field DBContext DBContext
+
+---@param params DBObjectCtorParams
+---@param state string @comment optional, 'C', 'R', 'U', 'D'
+function DBObject:_init(params, state)
+    self.state = state or Constants.OPERATION.READ
+    self.DBContext = assert(params.DBContext or params.ClassDef.DBContext)
+
+    if state == Constants.OPERATION.CREATE then
+        self.origVer = CreatedVoidDBObject
+        self.curVer = WritableDBOV(self, assert(params.ClassDef), params.ID)
+    else
+        self.origVer = ReadOnlyDBOV.Create(self, params.ID)
+
+        if state == Constants.OPERATION.DELETE then
+            self.curVer = DeletedVoidDBObject
+        else
+            self.curVer = WritableDBOV(self, self.origVer.ClassDef, params.ID)
+        end
+    end
+end
+
 function DBObject:original()
     if not self._original then
         self._original = setmetatable({}, {
             __index = function(propName)
-                return self.origVer:getProp(propName)
+                return self.origVer:getPropValue(propName)
             end,
 
             __newindex = function(propName, propValue)
@@ -548,11 +675,11 @@ function DBObject:current()
     if not self._current then
         self._current = setmetatable({}, {
             __index = function(propName)
-                return self.curVer:getProp(propName)
+                return self.curVer:getPropValue(propName)
             end,
 
             __newindex = function(propName, propValue)
-                return self.curVer:setProp(propName, propValue)
+                return self.curVer:setPropValue(propName, propValue)
             end,
 
             __metatable = nil
@@ -561,6 +688,7 @@ function DBObject:current()
     return self._current
 end
 
+-- Starts edit mode. If already in CREATE/UPDATE state, this is no op
 function DBObject:Edit()
     if self.state == Constants.OPERATION.CREATE or self.state == Constants.OPERATION.UPDATE then
         -- Already editing
@@ -574,6 +702,7 @@ function DBObject:Edit()
     self.state = Constants.OPERATION.UPDATE
 end
 
+-- Deletes object from database
 function DBObject:Delete()
     if self.state == Constants.OPERATION.DELETE then
         return
@@ -581,6 +710,19 @@ function DBObject:Delete()
 
     self.state = Constants.OPERATION.DELETE
     self.curVer = DeletedVoidDBObject
+
+    assert(self.old)
+    local sql = [[delete from [.objects] where ObjectID = :ObjectID;]]
+    local args = { ObjectID = self.old.ID }
+    self.ClassDef.DBContext:execStatement(sql, args)
+
+    sql = [[delete from [.ref-values] where ObjectID = :ID]]
+    self.ClassDef.DBContext:execStatement(sql, args)
+
+    sql = string.format([[delete from [.range_data_%d] were ObjectID = :ObjectID;]], self.ClassDef.ClassID)
+    self.ClassDef.DBContext:execStatement(sql, args)
+
+    self:saveMultiKeyIndexes(Constants.OPERATION.DELETE)
 end
 
 -- Sets entire object data, including child objects
@@ -593,7 +735,7 @@ function DBObject:SetData(data)
     end
     self:Edit()
     for propName, propValue in pairs(data) do
-        self.curVer:setProp(propName, propValue)
+        self.curVer:setPropValue(propName, propValue)
     end
 end
 
@@ -604,7 +746,7 @@ function DBObject:GetData(excludeDefault)
     local result = {}
     local curVer = self.curVer
     for propName, propDef in pairs(curVer.ClassDef.Properties) do
-        local pp = curVer:getProp(propName)
+        local pp = curVer:getPropValue(propName)
         if pp then
             local pv = pp:GetValue()
             if pv then
@@ -658,130 +800,11 @@ function DBObject:saveToDB()
         self:ValidateData()
         self.curVer:saveUpdate()
     elseif op == Constants.OPERATION.DELETE then
-
+        --self:Delete()
     else
         -- no-op
         return
     end
-
-    if op ~= Constants.OPERATION.CREATE and op ~= Constants.OPERATION.UPDATE then
-        error('Invalid object state')
-    end
-
-    self:processReferenceProperties()
-
-    -- set ctlo TODO move to EditDBObject
-    local ctlo = self.ClassDef.ctlo
-    if self.MetaData then
-        if self.MetaData.accessRules then
-            ctlo = Util64.BOr64(ctlo, Constants.CTLO_FLAGS.HAS_ACCESS_RULES)
-        end
-
-        if self.MetaData.formulas then
-            ctlo = Util64.BOr64(ctlo, Constants.CTLO_FLAGS.HAS_FORMULAS)
-        end
-
-        if self.MetaData.colMetaData then
-            ctlo = Util64.BOr64(ctlo, Constants.CTLO_FLAGS.HAS_COL_META_DATA)
-        end
-    end
-
-    local params = { ClassID = self.ClassDef.ClassID, ctlo = ctlo, vtypes = self.ClassDef.vtypes,
-                     MetaData = JSON.encode(self.MetaData) }
-
-    -- Set column mapped values (A - P)
-    self.curVer:applyMappedColumnValues(params)
-
-    if op == Constants.OPERATION.CREATE then
-        -- New object
-        self.ClassDef.DBContext:execStatement([[insert into [.objects] (ClassID, ctlo, vtypes,
-        A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, MetaData) values (
-        :ClassID, :ctlo, :vtypes, :A, :B, :C, :D, :E, :F, :G, :H, :I, :J, :J, :K, :L, :M, :N, :O, :P);]],
-                                              params)
-        self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
-
-        self.ClassDef.DBContext.Objects[self.ID] = self
-
-        -- TODO Fix referenced
-        self.NewID = nil
-
-        -- Save multi-key index if applicable
-        self:saveMultiKeyIndexes('C')
-
-        -- Save full text index, if applicable
-        local fts = {}
-        if self:getParamsForSaveFullText(ftd) then
-            self.ClassDef.DBContext:execStatement([[
-            insert into [.full_text_data] (docid, ClassID, X1, X2, X3, X4, X5)
-            values (:docid, :ClassID, :X1, :X2, :X3, :X4, :X5);
-            ]], fts)
-        end
-
-        -- Save rtree if applicable
-        local rangeParams = {}
-        if self:getParamsForSaveRangeIndex(rangeParams) then
-            local sql = string.format([[insert into [.range_data_%d]
-                (ObjectID, [A0], [A1],  [B0], [B1],  [C0], [C1],  [D0], [D1], [E0], [E1]) values
-                (:ObjectID, :A0, :A1, :B0, :B1, :C0, :C1, :D0, :D1, :E0, :E1);]], self.ClassDef.ClassID)
-            self.ClassDef.DBContext:execStatement(sql, rangeParams)
-        end
-    elseif op == Constants.OPERATION.UPDATE then
-        -- Existing object
-        params.ID = self.ID
-        self.ClassDef.DBContext:execStatement([[update [.objects] set ClassID=:ClassID, ctlv=:ctlv,
-         vtypes=:vtypes, A=:A, B=:B, C=:C, D=:D, E=:E, F=:F, G=:G, H=:H, J=:J, K=:K, L=:L,
-         M=:M, N=:N, O=:O, P=:P, MetaData=:MetaData where ObjectID = :ID]], params)
-
-        -- Save multi-key index if applicable
-        self:saveMultiKeyIndexes('U')
-
-        -- Save full text index, if applicable
-        local fts = {}
-        if self:getParamsForSaveFullText(fts) then
-            self.ClassDef.DBContext:execStatement([[
-            update [.full_text_data] set ClassID = :ClassID, X1 = :X1, X2 = :X2, X3 = :X3, X4 = :X4, X5 = :X5
-                where docid = :docid;]], fts)
-        end
-
-        -- Save rtree if applicable
-        local rangeParams = {}
-        if self:getParamsForSaveRangeIndex(rangeParams) then
-            local sql = string.format([[update [.range_data_%d] set
-                [A0] = :A0, [A1] = :A1,  [B0] = :B0, [B1]= :B1,  [C0] =:C0,
-                [C1] = :C1,  [D0] =:D0, [D1] = :D1, [E0] = :E0, [E1] = :E1
-                where ObjectID = :ObjectID;]], self.ClassDef.ClassID)
-            self.ClassDef.DBContext:execStatement(sql, rangeParams)
-        end
-    else
-        -- 'D'
-        assert(self.old)
-        local sql = [[delete from [.objects] where ObjectID = :ObjectID;]]
-        local args = { ObjectID = self.old.ID }
-        self.ClassDef.DBContext:execStatement(sql, args)
-
-        sql = [[delete from [.ref-values] where ObjectID = :ID]]
-        self.ClassDef.DBContext:execStatement(sql, args)
-
-        sql = string.format([[delete from [.range_data_%d] were ObjectID = :ObjectID;]], self.ClassDef.ClassID)
-        self.ClassDef.DBContext:execStatement(sql, args)
-
-        self:saveMultiKeyIndexes('D')
-    end
-
-    -- TODO Save .change_log
-
-    -- Save .ref-values, except references (those will be deferred until all objects in the current batch are saved)
-    for i, cell in ipairs(self.props) do
-        if not cell:IsLink() then
-            cell:saveToDB()
-        else
-            -- TODO store references in deferred list ??
-
-        end
-    end
-
-    -- Save nested/child objects
-    self:saveNestedObjects()
 
     -- After trigger
     self:fireAfterTrigger()
@@ -827,10 +850,6 @@ end
 function DBObject:fireAfterTrigger()
     -- TODO call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
 
-end
-
-function DBObject:Boxed()
-    --TODO
 end
 
 return DBObject
