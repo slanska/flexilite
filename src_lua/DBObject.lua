@@ -83,6 +83,7 @@ local schema = require 'schema'
 local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 local DBProperty = require('DBProperty').DBProperty
 local ChangedDBProperty = require('DBProperty').ChangedDBProperty
+local NullDBValue = require('DBProperty').NullDBValue
 
 ---@class BaseDBOV
 ---@method getProp
@@ -217,6 +218,7 @@ end
 function ReadOnlyDBOV:getProp(propName)
     local propDef = self.ClassDef:getProperty(propName)
     if propDef then
+        -- TODO Optimize
         self:checkPropertyAccess(propDef, self.DBObject.state)
     end
 
@@ -233,7 +235,7 @@ function ReadOnlyDBOV:getPropValue(propName, propIndex)
         return result:GetValue(propIndex)
     end
 
-    return nil
+    return NullDBValue
 end
 
 -- Ensures that user has required permissions for class level
@@ -264,7 +266,7 @@ local WritableDBOV = class(ReadOnlyDBOV)
 ---@param ID number
 function WritableDBOV:_init(DBObject, ClassDef, ID)
     self:super(DBObject, ID)
-    self.ClassDef = ClassDef
+    self.ClassDef = assert(ClassDef)
 end
 
 --[[
@@ -322,6 +324,11 @@ function WritableDBOV:getProp(propName, op)
             end
         end
     end
+
+    if not result then
+        error(string.format('Property %s.%s not found', self.ClassDef.Name.text, propName))
+    end
+
     return result
 end
 
@@ -337,8 +344,7 @@ end
 ---@param propValue any
 ---@return nil
 function WritableDBOV:setPropValue(propName, propIndex, propValue)
-    local dbProp = self:getProp(propName, self.DBObject.state)
-    dbProp:SetValue(propIndex, propValue)
+    self:getProp(propName, self.DBObject.state):SetValue(propIndex, propValue)
 end
 
 -- Apply values of mapped columns to params, for insert or update operation
@@ -360,6 +366,12 @@ function WritableDBOV:applyMappedColumnValues(params)
                 params[col] = nil
             end
         end
+    end
+end
+
+function WritableDBOV:saveRefValues()
+    for propName, prop in pairs(self.props) do
+
     end
 end
 
@@ -392,6 +404,10 @@ function WritableDBOV:saveCreate()
     table.remove(self.ClassDef.DBContext.Objects, self.ID)
     self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
     self.ClassDef.DBContext.Objects[self.ID] = self
+
+    for propName, prop in pairs(self.props) do
+        prop:SaveToDB()
+    end
 
     -- Save multi-key index if applicable
     self:saveMultiKeyIndexes('C')
@@ -445,6 +461,10 @@ function WritableDBOV:saveUpdate()
          vtypes=:vtypes, A=:A, B=:B, C=:C, D=:D, E=:E, F=:F, G=:G, H=:H, J=:J, K=:K, L=:L,
          M=:M, N=:N, O=:O, P=:P, MetaData=:MetaData where ObjectID = :ID]], params)
 
+    for propName, prop in pairs(self.props) do
+        prop:SaveToDB()
+    end
+
     -- Save multi-key index if applicable
     self:saveMultiKeyIndexes('U')
 
@@ -478,9 +498,9 @@ function WritableDBOV:getParamsForSaveFullText(params)
     params.docid = self.ID
 
     for key, propRef in pairs(self.ClassDef.fullTextIndexing) do
-        local cell = self:getRefValue(propRef.id, 1)
-        if cell then
-            local v = cell.Value
+        local vv = self:getProp(propRef.Name.text, 1)
+        if vv then
+            local v = vv.Value
             -- TODO Check type and value?
             if type(v) == 'string' then
                 params[key] = v
@@ -502,8 +522,10 @@ function WritableDBOV:getParamsForSaveRangeIndex(params)
 
     -- TODO check if all values are not null
     for key, propRef in pairs(self.ClassDef.rangeIndex) do
-        local cell = self:getRefValue(propRef.id, 1)
-        params[key] = cell.Value
+        local vv = self:getProp(propRef.Name.text, 1)
+        if vv then
+            params[key] = vv.Value
+        end
     end
 
     return true
@@ -584,9 +606,9 @@ function WritableDBOV:saveMultiKeyIndexes(op)
 
                     local p = { ObjectID = self.ID, ClassID = self.ClassDef.ClassID }
                     for i, propRef in ipairs(idxDef.properties) do
-                        local cell = self:getRefValue(propRef.id, 1)
-                        if cell and cell.Value then
-                            p[i] = cell.Value
+                        local vv = self:getProp(propRef.Name.text, 1)
+                        if vv and vv.Value then
+                            p[i] = vv.Value
                         end
                     end
 
