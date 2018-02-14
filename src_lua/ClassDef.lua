@@ -16,7 +16,7 @@ Validates existing data with new class definition
 
 local json = require 'cjson'
 local schema = require 'schema'
-local Util64 = require 'Util'
+local bit52 = require ('Util').bit52
 local Constants = require 'Constants'
 local PropertyDef = require('PropertyDef')
 local name_ref = require('NameRef')
@@ -68,7 +68,7 @@ function IndexDefinitions:AddFullTextIndexedProperty(propDef)
     assert(propDef and propDef.ID)
 
     local supportedIndexTypes = propDef:GetSupportedIndexTypes()
-    if bit.BAnd(supportedIndexTypes, Constants.INDEX_TYPES.FTS) ~= Constants.INDEX_TYPES.FTS then
+    if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.FTS) ~= Constants.INDEX_TYPES.FTS then
         return false, string.format('Property [%s] does not support full text indexing', propDef.Name.text)
     end
 
@@ -95,7 +95,7 @@ function IndexDefinitions:AddRangeIndexedProperties(propDef0, propDef1)
 
     for _, propDef in ipairs({ propDef0, propDef1 }) do
         local supportedIndexTypes = propDef:GetSupportedIndexTypes()
-        if bit.BAnd(supportedIndexTypes, Constants.INDEX_TYPES.RNG) ~= Constants.INDEX_TYPES.RNG then
+        if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.RNG) ~= Constants.INDEX_TYPES.RNG then
             return false, string.format('Property [%s] does not support range indexing', propDef.Name.text)
         end
     end
@@ -132,7 +132,7 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
 
     for _, propDef in ipairs(propDefs) do
         local supportedIndexTypes = propDef:GetSupportedIndexTypes()
-        if bit.BAnd(supportedIndexTypes, Constants.INDEX_TYPES.MUL) ~= Constants.INDEX_TYPES.MUL then
+        if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.MUL) ~= Constants.INDEX_TYPES.MUL then
             return false, string.format('Property [%s] does not support multi key indexing', propDef.Name.text)
         end
 
@@ -161,7 +161,7 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
 
     local supportedIndexTypes = propDef:GetSupportedIndexTypes()
     local expectedIndexType = unique and Constants.INDEX_TYPES.UNQ or Constants.INDEX_TYPES.STD
-    if bit.BAnd(supportedIndexTypes, expectedIndexType) ~= expectedIndexType then
+    if bit52.band(supportedIndexTypes, expectedIndexType) ~= expectedIndexType then
         return false, string.format('Property [%s] does not support indexing', propDef.Name.text)
     end
 
@@ -539,18 +539,18 @@ function ClassDef:saveToDB()
     for _, propDef in pairs(self.propColMap) do
         assert(propDef)
         local colIdx = string.lower(propDef.ColMap):byte() - string.byte('a')
-        local vtmask = Util64.BNot64(Util64.BLShift64(7, colIdx * 3))
-        local vtype = Util64.BLShift64(propDef:GetVType(), colIdx * 3)
+        local vtmask = bit52.bnot(bit52.lshift(7, colIdx * 3))
+        local vtype = bit52.lshift(propDef:GetVType(), colIdx * 3)
 
-        self.vtypes = Util64.BSet64(self.vtypes, vtmask, vtype)
+        self.vtypes = bit52.set(self.vtypes, vtmask, vtype)
 
         if propDef.index == 'unique' then
-            local idxMask = Util64.BNot64(Util64.BLShift64(1, colIdx + Constants.CTLO_FLAGS.UNIQUE_SHIFT))
-            self.ctloMask = Util64.BSet64(self.ctloMask, idxMask, 1)
+            local idxMask = bit52.bnot(bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.UNIQUE_SHIFT))
+            self.ctloMask = bit52.set(self.ctloMask, idxMask, 1)
         elseif propDef.index == 'index' then
             -- TODO Check if property should be indexed
-            local idxMask = Util64.BNot64(Util64.BLShift64(1, colIdx + Constants.CTLO_FLAGS.INDEX_SHIFT))
-            self.ctloMask = Util64.BSet64(self.ctloMask, idxMask, 1)
+            local idxMask = bit52.bnot(bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.INDEX_SHIFT))
+            self.ctloMask = bit52.set(self.ctloMask, idxMask, 1)
         end
     end
 
@@ -672,7 +672,7 @@ function ClassDef.ApplyIndexing(oldDef, newDef)
             -- TODO set ctlo
             local colIdx = string.byte(propDef.ColMap) - string.byte('A')
             if propDef.index == 'unique' then
-                local mask = bit.blshift(1, colIdx + Constants.CTLO_FLAGS.UNIQUE_SHIFT)
+                local mask = bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.UNIQUE_SHIFT)
             elseif propDef.index == 'index' then
 
             end

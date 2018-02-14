@@ -16,6 +16,7 @@ Uses DBObject and DBCell Api for data manipulation.
 local json = require('cjson')
 local class = require 'pl.class'
 local QueryBuilder = require 'QueryBuilder'
+local Constants = require 'Constants'
 
 --[[
 Internal helper class to save objects to DB
@@ -48,10 +49,11 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
     local classDef = self.DBContext:getClassDef(className)
     local obj
 
-    local op = not oldRowID and 'C' or (newRowID and 'U' or 'D')
-    if op == 'C' then
+    local op = not oldRowID and Constants.OPERATION.CREATE or (newRowID and Constants.OPERATION.UPDATE
+            or Constants.OPERATION.DELETE)
+    if op == Constants.OPERATION.CREATE then
         obj = self.DBContext:NewObject(classDef, data)
-    elseif op == 'U' then
+    elseif op == Constants.OPERATION.UPDATE then
         obj = self.DBContext:EditObject(oldRowID)
         if oldRowID ~= newRowID then
             obj.ID = newRowID

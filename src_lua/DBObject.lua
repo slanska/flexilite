@@ -307,8 +307,9 @@ end
 
 ---@param propName string
 ---@param op string @comment 'C', 'R', 'U', 'D'
----@return DBProperty
-function WritableDBOV:getProp(propName, op)
+---@param returnNil boolean @comment if true, will return nil for not found property. Otherwise, will raise error
+---@return DBProperty | nil
+function WritableDBOV:getProp(propName, op, returnNil)
     local result = self.props[propName]
 
     if not result then
