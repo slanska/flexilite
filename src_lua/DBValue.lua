@@ -50,12 +50,14 @@ local DBValue = class()
 -- constructor
 ---@param row DBValueCtorParams
 function DBValue:_init(row)
-    self.Value = row.Value
-    self.ctlv = row.ctlv
-    if type(row.MetaData) == 'string' then
-        self.MetaData = JSON.decode(row.MetaData)
-    else
-        self.MetaData = row.MetaData
+    if row then
+        self.Value = row.Value
+        self.ctlv = row.ctlv
+        if type(row.MetaData) == 'string' then
+            self.MetaData = JSON.decode(row.MetaData)
+        else
+            self.MetaData = row.MetaData
+        end
     end
 end
 

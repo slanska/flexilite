@@ -101,14 +101,14 @@ end
 -- Ensures that current user has required permission for class level
 function AccessControl:ensureCurrentUserAccessForClass(classID, op)
     local classDef = self.DBContext:getClassDef(classID)
-    self.ensureUserPermission(self.DBContext.UserInfo, classDef.D.accessRules, op)
+    self:ensureUserPermission(self.DBContext.UserInfo, classDef.D.accessRules, op)
 end
 
 -- Ensures that current user has required permission for property level
 function AccessControl:ensureCurrentUserAccessForProperty(propID, op)
     local propDef = self.DBContext.ClassProps[propID]
     assert(propDef)
-    self.ensureUserPermission(self.DBContext.UserInfo, propDef.D.accessRules, op)
+    self:ensureUserPermission(self.DBContext.UserInfo, propDef.D.accessRules, op)
 end
 
 -- Reset temp data

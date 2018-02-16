@@ -217,12 +217,19 @@ end
 ---@return DBProperty
 function ReadOnlyDBOV:getProp(propName)
     local propDef = self.ClassDef:getProperty(propName)
-    if propDef then
-        -- TODO Optimize
-        self:checkPropertyAccess(propDef, self.DBObject.state)
+    if not propDef then
+        return nil
     end
 
-    return self.props[propName]
+    -- TODO Optimize
+    self:checkPropertyAccess(propDef, self.DBObject.state)
+    local result = self.props[propName]
+    if not result then
+        result = DBProperty(self, propDef)
+        self.props[propName] = result
+    end
+
+    return result
 end
 
 ---@param propName string
@@ -326,7 +333,7 @@ function WritableDBOV:getProp(propName, op, returnNil)
         end
     end
 
-    if not result then
+    if not result and not returnNil then
         error(string.format('Property %s.%s not found', self.ClassDef.Name.text, propName))
     end
 
@@ -335,9 +342,29 @@ end
 
 ---@param propName string
 ---@param propIndex number
+---@param returnNil boolean
 ---@return DBValue | nil
-function WritableDBOV:getPropValue(propName, propIndex)
-    return self:getProp(propName, Constants.OPERATION.READ):GetValue(propIndex)
+function WritableDBOV:getPropValue(propName, propIndex, returnNil)
+    local prop = self:getProp(propName, Constants.OPERATION.READ, returnNil)
+    if prop then
+        return prop:GetValue(propIndex)
+    end
+
+    return NullDBValue
+end
+
+-- Returns all values for the given property
+-- If maxLength == 1, return scalar value, if maxLength > 1, always returns array of values
+---@param propName string
+---@return any
+function WritableDBOV:getPropValues(propName)
+    local prop = self:getProp(propName, self.DBObject.state, true)
+    if prop then
+        local result = prop:GetValues()
+        return result
+    end
+
+    return nil
 end
 
 ---@param propName string
@@ -345,7 +372,8 @@ end
 ---@param propValue any
 ---@return nil
 function WritableDBOV:setPropValue(propName, propIndex, propValue)
-    self:getProp(propName, self.DBObject.state):SetValue(propIndex, propValue)
+    local prop = self:getProp(propName, self.DBObject.state, false)
+    prop:SetValue(propIndex, propValue)
 end
 
 -- Apply values of mapped columns to params, for insert or update operation
@@ -353,7 +381,7 @@ end
 function WritableDBOV:applyMappedColumnValues(params)
     if self.ClassDef.ColMapActive then
         for col, prop in pairs(self.ClassDef.propColMap) do
-            local vv = self:getPropValue(prop.PropertyID, 1)
+            local vv = self:getPropValue(prop.PropertyID, 1, true)
             if vv then
                 local colIdx = col:byte() - string.byte('A')
                 -- update vtypes
@@ -656,6 +684,7 @@ local DBObject = class()
 ---@field op string
 ---@field ClassDef ClassDef
 ---@field DBContext DBContext
+---@field Data table @comment optional data payload
 
 ---@param params DBObjectCtorParams
 ---@param state string @comment optional, 'C', 'R', 'U', 'D'
@@ -666,6 +695,9 @@ function DBObject:_init(params, state)
     if state == Constants.OPERATION.CREATE then
         self.origVer = CreatedVoidDBObject
         self.curVer = WritableDBOV(self, assert(params.ClassDef), params.ID)
+        if params.Data then
+            self:SetData(params.Data)
+        end
     else
         self.origVer = ReadOnlyDBOV.Create(self, params.ID)
 
@@ -673,6 +705,9 @@ function DBObject:_init(params, state)
             self.curVer = DeletedVoidDBObject
         else
             self.curVer = WritableDBOV(self, self.origVer.ClassDef, params.ID)
+            if params.Data then
+                self:SetData(params.Data)
+            end
         end
     end
 end
@@ -766,21 +801,23 @@ end
 -- Includes detail objects. Does not include links
 ---@param excludeDefault boolean
 function DBObject:GetData(excludeDefault)
+    if self.state == Constants.OPERATION.DELETE then
+        error(string.format('Cannot get data of deleted object %d', self.origVer.ID))
+    end
+
     local result = {}
     local curVer = self.curVer
     for propName, propDef in pairs(curVer.ClassDef.Properties) do
-        local pp = curVer:getPropValue(propName)
-        if pp then
-            local pv = pp:GetValue()
-            if pv then
-                result[propName] = tablex.deepcopy(pv.Value())
-            end
+        -- TODO get all indexes 1..N
+        local pv = curVer:getPropValues(propName)
+        if pv then
+            result[propName] = tablex.deepcopy(pv.Value())
         end
     end
 
     for propName, propList in pairs(curVer.ClassDef.MixinProperties) do
         if #propList == 1 and not curVer.ClassDef.Properties[propName] then
-            -- Process properties in mixin classes only if there is no conflict
+            -- Process properties in mixin classes only if there is no prop name conflict
         else
             -- Other mixin properties are processed as 'nested' objects
         end

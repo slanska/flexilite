@@ -75,6 +75,11 @@ PropertyDef
 
 ---@class PropertyRules
 ---@field type string
+---@field maxLength number
+---@field maxOccurrences number
+---@field minOccurrences number
+---@field maxValue number
+---@field minValue number
 
 ---@class PropertyEnumDef
 ---@field items table @comment EnumItemDef[]

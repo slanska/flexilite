@@ -117,6 +117,26 @@ function DBProperty:GetValue(idx)
     return self.values[idx]
 end
 
+-- Returns all values as table or scalar value, depending on property's maxOccurrences
+function DBProperty:GetValues()
+    if self.PropDef.D.rules.maxOccurrences > 1 then
+        local result = {}
+        if self.values then
+            for
+            ---@type number
+            ii,
+            ---@type DBValue
+            dbv in pairs(self.values) do
+                -- TODO Handle references
+                table.insert(result, ii, dbv.Value)
+            end
+        end
+        return result
+    else
+        return self:GetValue(1)
+    end
+end
+
 ---@param idx number
 ---@return DBValue
 function DBProperty:cloneValue(idx)
@@ -138,9 +158,13 @@ function ChangedDBProperty:_init(DBOV, propDef)
     self:super(DBOV, propDef)
 end
 
----@return DBProperty
+-- Internal method to get access to original counterpart property
+---@return DBProperty | nil
 function ChangedDBProperty:getOriginalProperty()
-    local result = self.DBOV.DBObject.origVer.props[self.PropDef.Name.text]
+    if self.DBOV.DBObject.state == Constants.OPERATION.CREATE then
+        return nil
+    end
+    local result = self.DBOV.DBObject.origVer:getProp(self.PropDef.Name.text)
     if not result then
         error(string.format('DBProperty %s.%s not found',
                             self.DBOV.ClassDef.Name.text, self.PropDef.Name.text))
@@ -160,7 +184,11 @@ function ChangedDBProperty:SetValue(idx, val)
         self.PropDef.ClassDef.DBContext.AccessControl:ensureCurrentUserAccessForProperty(
                 self.PropDef.ID, self.DBOV.DBObject.state)
         local prop = self:getOriginalProperty()
-        result = prop:cloneValue(idx)
+        if prop then
+            result = prop:cloneValue(idx)
+        else
+            result = DBValue {  }
+        end
         self.values[idx] = result
     end
 
