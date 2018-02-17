@@ -171,7 +171,7 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
         end
     end
 
-    saveHelper:resolveReferences()
+    -- TODO saveHelper:resolveReferences()
 end
 
 -- flexi('import data', 'data-as-json')

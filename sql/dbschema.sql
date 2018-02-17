@@ -884,7 +884,7 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
     bit 9 - deleted
     bit 10 - no track changes
   */
-  [ctlv]       INTEGER,
+  [ctlv]       INTEGER NOT NULL DEFAULT 0,
   /*
 Optional data for cell (font/color/format etc. customization)
 */
@@ -907,102 +907,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS [idxValuesByPropUniqueValue]
   ON [.ref-values] ([PropertyID], [Value])
   WHERE ([ctlv] & 8);
 
-CREATE TRIGGER IF NOT EXISTS [trigValuesAfterInsert]
-  AFTER INSERT
-  ON [.ref-values]
-  FOR EACH ROW
-BEGIN
-  INSERT INTO [.change_log] ([KEY], [Value])
-    SELECT
-      printf('.%s/%s[%s]#%s',
-             new.[ObjectID], new.[PropertyID], new.PropIndex,
-             new.ctlv),
-      new.[Value]
-    WHERE (new.[ctlv] & 64) <> 64;
-
-  INSERT INTO [.full_text_data] ([PropertyID], [ObjectID], [PropertyIndex], [Value])
-    SELECT
-      printf('#%s#', new.[PropertyID]),
-      printf('#%s#', new.[ObjectID]),
-      printf('#%s#', new.[PropIndex]),
-      new.[Value]
-    WHERE new.ctlv & 16 AND typeof(new.[Value]) = 'text';
-END;
-
-CREATE TRIGGER IF NOT EXISTS [trigValuesAfterUpdate]
-  AFTER UPDATE
-  ON [.ref-values]
-  FOR EACH ROW
-BEGIN
-  INSERT INTO [.change_log] ([OldKey], [OldValue], [KEY], [Value])
-    SELECT
-      [OldKey],
-      [OldValue],
-      [KEY],
-      [Value]
-    FROM
-      (SELECT
-         /* Each piece of old key is formatted independently so that for cases when old and new value is the same,
-         result will be null and will be placed to OldKey as empty string */
-         printf('%s%s%s%s',
-                '.' || CAST(nullif(old.[ObjectID], new.[ObjectID]) AS TEXT),
-                '/' || CAST(nullif(old.[PropertyID], new.[PropertyID]) AS TEXT),
-                '[' || CAST(nullif(old.[PropIndex], new.[PropIndex]) AS TEXT) || ']',
-                '#' || CAST(nullif(old.[ctlv], new.[ctlv]) AS TEXT)
-         )                                                         AS [OldKey],
-         old.[Value]                                               AS [OldValue],
-         printf('.%s/%s[%s]%s',
-                new.[ObjectID], new.[PropertyID], new.PropIndex,
-                '#' || CAST(nullif(new.ctlv, old.[ctlv]) AS TEXT)) AS [KEY],
-         new.[Value]                                               AS [Value])
-    WHERE (new.[ctlv] & 64) <> 64 AND ([OldValue] <> [Value] OR (nullif([OldKey], [KEY])) IS NOT NULL);
-
-  -- Process full text data based on ctlv
-  DELETE FROM [.full_text_data]
-  WHERE
-    old.ctlv & 16 AND typeof(old.[Value]) = 'text'
-    AND [PropertyID] MATCH printf('#%s#', old.[PropertyID])
-    AND [ClassID] MATCH printf('#%s#', old.[ClassID])
-    AND [ObjectID] MATCH printf('#%s#', old.[ObjectID])
-    AND [PropertyIndex] MATCH printf('#%s#', old.[PropIndex]);
-
-  INSERT INTO [.full_text_data] ([PropertyID], [ClassID], [ObjectID], [PropertyIndex], [Value])
-    SELECT
-      printf('#%s#', new.[PropertyID]),
-      printf('#%s#', new.[ClassID]),
-      printf('#%s#', new.[ObjectID]),
-      printf('#%s#', new.[PropIndex]),
-      new.[Value]
-    WHERE new.ctlv & 16 AND typeof(new.[Value]) = 'text';
-END;
-
 CREATE TRIGGER IF NOT EXISTS [trigValuesAfterDelete]
   AFTER DELETE
   ON [.ref-values]
   FOR EACH ROW
 BEGIN
-  INSERT INTO [.change_log] ([OldKey], [OldValue])
-    SELECT
-      printf('.%s/%s[%s]',
-             old.[ObjectID], old.[PropertyID],
-             old.PropIndex),
-      old.[Value]
-    WHERE (old.[ctlv] & 64) <> 64;
-
   -- Delete weak referenced object in case this Value record was last reference to that object
   DELETE FROM [.objects]
   WHERE old.ctlv IN (3) AND ObjectID = old.Value AND
         (ctlo & 1) = 1 AND (SELECT count(*)
                             FROM [.ref-values]
                             WHERE [Value] = ObjectID AND ctlv IN (3)) = 0;
-
-  -- Process full text data based on ctlv
-  DELETE FROM [.full_text_data]
-  WHERE
-    old.[ctlv] & 16 AND typeof(old.[Value]) = 'text'
-    AND [PropertyID] MATCH printf('#%s#', old.[PropertyID])
-    AND [ObjectID] MATCH printf('#%s#', old.[ObjectID])
-    AND [PropertyIndex] MATCH printf('#%s#', old.[PropIndex]);
 END;
 
 ------------------------------------------------------------------------------------------

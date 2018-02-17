@@ -265,6 +265,19 @@ function ReadOnlyDBOV:setPropValue(propName, propIndex, propValue)
     error('Cannot modify read-only object')
 end
 
+-- Returns full object payload, based on propIDs
+---@param propIDs nil | number | table<number, number>
+---@return table
+function ReadOnlyDBOV:getCompleteDataPayload(propIDs)
+    local result = {}
+    self:loadProps(propIDs)
+    for propName, dbp in pairs(self.props) do
+        result[propName] = dbp:GetValues()
+    end
+
+    return result
+end
+
 ---@class WritableDBOV : ReadOnlyDBOV
 local WritableDBOV = class(ReadOnlyDBOV)
 
@@ -409,7 +422,7 @@ function WritableDBOV:saveCreate()
     -- set ctlo & vtypes
     self:setObjectMetaData()
     local params = { ClassID = self.ClassDef.ClassID, ctlo = self.ctlo, vtypes = self.ClassDef.vtypes,
-                     MetaData = JSON.encode(self.MetaData) }
+                     MetaData = self.MetaData and JSON.encode(self.MetaData) or nil }
 
     -- Set column mapped values (A - P)
     self:applyMappedColumnValues(params)
@@ -430,16 +443,16 @@ function WritableDBOV:saveCreate()
         :ClassID, :ctlo, :vtypes, :A, :B, :C, :D, :E, :F, :G, :H, :I, :J, :J, :K, :L, :M, :N, :O, :P);]],
                                           params)
     -- TODO process deferred links
-    table.remove(self.ClassDef.DBContext.Objects, self.ID)
+    self.ClassDef.DBContext.Objects[self.ID] = nil
     self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
-    self.ClassDef.DBContext.Objects[self.ID] = self
+    self.ClassDef.DBContext.Objects[self.ID] = self.DBObject
 
     for propName, prop in pairs(self.props) do
         prop:SaveToDB()
     end
 
     -- Save multi-key index if applicable
-    self:saveMultiKeyIndexes('C')
+    self:saveMultiKeyIndexes(Constants.OPERATION.CREATE)
 
     -- Save full text index, if applicable
     local fts = {}
@@ -459,12 +472,14 @@ function WritableDBOV:saveCreate()
         self.ClassDef.DBContext:execStatement(sql, rangeParams)
     end
 
-    self:processReferenceProperties()
+    --TODO
+    --self:processReferenceProperties()
 
     -- TODO Save .change_log
 
     -- Save nested/child objects
-    self:saveNestedObjects()
+    -- TODO
+    --self:saveNestedObjects()
 end
 
 -- Updates existing object
@@ -495,7 +510,7 @@ function WritableDBOV:saveUpdate()
     end
 
     -- Save multi-key index if applicable
-    self:saveMultiKeyIndexes('U')
+    self:saveMultiKeyIndexes(Constants.OPERATION.UPDATE)
 
     -- Save full text index, if applicable
     local fts = {}
@@ -628,7 +643,9 @@ function WritableDBOV:saveMultiKeyIndexes(op)
             self.ClassDef.DBContext:execStatement(sql, { ObjectID = self.old.ID })
         else
             -- TODO
-            for idxName, idxDef in pairs(self.ClassDef.D.indexes) do
+            for idxName, idxDef in pairs(self.ClassDef.indexes.multiKeyIndexing) do
+              --[[
+              
                 local keyCnt = #idxDef.properties
                 if idxDef.type == 'unique' and keyCnt > 1 then
                     -- Multi key unique index detected
@@ -654,7 +671,9 @@ function WritableDBOV:saveMultiKeyIndexes(op)
                     end
 
                     self.ClassDef.DBContext:execStatement(sql, p)
+                   
                 end
+                ]]
             end
         end
     end
@@ -670,6 +689,16 @@ function WritableDBOV:saveMultiKeyIndexes(op)
     --
     --                      error(string.format('Error updating multikey unique index: %d', errorMsg))
     --                  end)
+end
+
+-- Returns data of all changed properties
+---@return table
+function WritableDBOV:getChangedDataPayload()
+    local result = {}
+    for propName, dbp in pairs(self.props) do
+        result[propName] = dbp:GetValues()
+    end
+    return result
 end
 
 ---@class DBObject
@@ -793,7 +822,7 @@ function DBObject:SetData(data)
     end
     self:Edit()
     for propName, propValue in pairs(data) do
-        self.curVer:setPropValue(propName, propValue)
+        self.curVer:setPropValue(propName, 1, propValue)
     end
 end
 
@@ -893,7 +922,8 @@ function DBObject:fireBeforeTrigger()
 end
 
 function DBObject:ValidateData()
-    local data = self:GetData()
+    local data = self.curVer:getChangedDataPayload()
+    
     local op = self.state
     if op == Constants.OPERATION.CREATE or op == Constants.OPERATION.UPDATE then
         local objSchema = self.curVer.ClassDef:getObjectSchema(op)

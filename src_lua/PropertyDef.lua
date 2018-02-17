@@ -144,7 +144,7 @@ function PropertyDef:_init(params)
     else
         assert(params.dbrow)
         assert(params.jsonData)
-        self.Name = NameRef(params.dbrow.NameID, params.dbrow.Name)
+        self.Name = NameRef(params.dbrow.Name, params.dbrow.NameID)
 
         -- Copy property attributes
         ---@type number

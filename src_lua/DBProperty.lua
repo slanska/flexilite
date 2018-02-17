@@ -133,7 +133,7 @@ function DBProperty:GetValues()
         end
         return result
     else
-        return self:GetValue(1)
+        return self:GetValue(1).Value
     end
 end
 
@@ -247,8 +247,8 @@ function ChangedDBProperty:SaveToDB()
                                         PropertyID = self.PropDef.ID,
                                         PropIndex = propIndex,
                                         Value = dbv.Value,
-                                        ctlv = dbv.ctlv,
-                                        MetaData = JSON.encode(dbv.MetaData) })
+                                        ctlv = dbv.ctlv or 0,
+                                        MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
         end
     end
 
@@ -316,9 +316,9 @@ function ChangedDBProperty:SaveToDB()
             insertRefValues(self.values)
         end
     elseif op == Constants.OPERATION.CREATE then
-        deleteRefValues(self, self.values)
-    elseif op == Constants.OPERATION.DELETE then
         insertRefValues(self.values)
+    elseif op == Constants.OPERATION.DELETE then
+        deleteRefValues(self, self.values)
     end
 end
 
