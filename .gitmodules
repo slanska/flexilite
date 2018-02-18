@@ -19,3 +19,6 @@
 [submodule "lib/lua-sandbox"]
 	path = lib/lua-sandbox
 	url = https://github.com/APItools/sandbox.lua.git
+[submodule "lib/lua-base64"]
+	path = lib/lua-base64
+	url = https://github.com/LuaDist/lbase64.git

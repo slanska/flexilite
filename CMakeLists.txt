@@ -211,6 +211,8 @@ set(EXT_FILES
         lib/lua-cjson/fpconv.c
         lib/lua-cjson/lua_cjson.c
         lib/lua-cjson/strbuf.c
+        lib/lua-base64/lbase64.c
+
         src/misc/json1.c
         src/typings/DBDefinitions.h
         src/project_defs.h

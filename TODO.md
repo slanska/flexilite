@@ -107,12 +107,16 @@ data: Database, statements, user info, class definitions, cache of referenced va
     - DBContext on init, create/open aside database for log and statistics
     - check how SQLite query analysis engine can be used for virtual tables
     - TEMP TRIGGER on .ref-values to check minOccurrences..maxOccurrences
+    - date validation
+    - PropertyDef - convert defaultData to property specific format (e.g. string date to number)
+    - base64 for blob processing. Set path
     
-- Saved JSON in .classes do not have property rules    
+    
+- &#10003; Saved JSON in .classes do not have property rules    
 - Saved JSON in .classes do not have special properties & indexing    
     
 - ensure that create classes is ok
-- try insert data
+- &#10003; try insert data
 - enum property - generate enum class, save items
 - try sandbox mode
 

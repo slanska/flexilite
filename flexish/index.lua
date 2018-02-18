@@ -17,7 +17,7 @@ package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua
 
 local prettyJson = require "prettycjson"
 
--- Checks presense of database path argument and ensures it is stored as absolute path
+-- Checks presence of database path argument and ensures it is stored as absolute path
 local function EnsureAbsPathArg(cli_args, argName)
     if cli_args[argName] and not path.isabs( cli_args[argName]) then
         cli_args[argName] = path.abspath(path.relpath(cli_args[argName]))
