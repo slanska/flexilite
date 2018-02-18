@@ -84,6 +84,7 @@ local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 local DBProperty = require('DBProperty').DBProperty
 local ChangedDBProperty = require('DBProperty').ChangedDBProperty
 local NullDBValue = require('DBProperty').NullDBValue
+local pretty = require 'pl.pretty'
 
 ---@class BaseDBOV
 ---@method getProp
@@ -766,7 +767,7 @@ function DBObject:current()
             end,
 
             __newindex = function(propName, propValue)
-                return self.curVer:setPropValue(propName, propValue)
+                return self.curVer:setPropValue(propName, 1, propValue)
             end,
 
             __metatable = nil
@@ -905,12 +906,13 @@ function DBObject:setDefaultData()
         for propName, propDef in pairs(self.curVer.ClassDef.Properties) do
             local dd = propDef.D.defaultValue
             if dd ~= nil then
-                local pp = self:getProp(propName, op)
-                local vv = pp:GetValue()
+              -- TODO assign all property values
+                local pp = self.curVer:setPropValue(propName, 1, tablex.deepcopy(dd))
+                --local vv = pp:GetValue()
 
-                if vv == nil then
-                    pp:SetValue(1, tablex.deepcopy(dd))
-                end
+--                if vv == nil then
+  --                  pp:SetValue(1, tablex.deepcopy(dd))
+    --            end
             end
         end
     end
@@ -931,6 +933,7 @@ function DBObject:ValidateData()
             local err = schema.CheckSchema(data, objSchema)
             if err then
                 -- TODO 'Invalid input data:'
+                print('error data: ', pretty.dump(data))
                 error(err)
             end
         end

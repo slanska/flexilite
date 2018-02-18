@@ -17,6 +17,8 @@ local DBValue = require 'DBValue'
 local tablex = require 'pl.tablex'
 local Constants = require 'Constants'
 local JSON = require 'cjson'
+--local pretty = require 'pl.pretty'
+--TODO local base64 = require 'base64'
 
 -- Constant Null DBValue
 local NullDBValue = setmetatable({}, {
@@ -119,7 +121,8 @@ end
 
 -- Returns all values as table or scalar value, depending on property's maxOccurrences
 function DBProperty:GetValues()
-    if self.PropDef.D.rules.maxOccurrences > 1 then
+    local maxOccurr = (self.PropDef.D and self.PropDef.D.rules and self.PropDef.D.rules.maxOccurrences) or 1
+    if maxOccurr > 1 then
         local result = {}
         if self.values then
             for
@@ -241,14 +244,14 @@ function ChangedDBProperty:SaveToDB()
     ---@param values table<number, DBValue>
     local function insertRefValues(values)
         for propIndex, dbv in pairs(values) do
-            DBContext:execStatement(refValSQL[Constants.OPERATION.CREATE],
-                                    {
-                                        ObjectID = self.DBOV.ID,
-                                        PropertyID = self.PropDef.ID,
-                                        PropIndex = propIndex,
-                                        Value = dbv.Value,
-                                        ctlv = dbv.ctlv or 0,
-                                        MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
+            local params = {
+                ObjectID = self.DBOV.ID,
+                PropertyID = self.PropDef.ID,
+                PropIndex = propIndex,
+                Value = dbv.Value,
+                ctlv = dbv.ctlv or 0,
+                MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil }
+            DBContext:execStatement(refValSQL[Constants.OPERATION.CREATE], params)
         end
     end
 

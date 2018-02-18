@@ -73,7 +73,7 @@ local ok, error = xpcall(function()
     if not db then
         error(errMsg)
     end
-    db = sqlite.open_memory()
+    --db = sqlite.open_memory()
     DBContext = Flexi:newDBContext(db)
 
     local sql = "select flexi('configure')"
@@ -93,8 +93,9 @@ local ok, error = xpcall(function()
     end
 
     -- Insert data
-       local dataDump = readAll(path.join(__dirname, 'test/json/Northwind_Regions.db3.data.json' ))
-    -- local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.trimmed.data.json' ))
+    --   local dataDump = readAll(path.join(__dirname, 'test/json/Northwind_Regions.db3.data.json' ))
+     local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.data.json' ))
+     --local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.trimmed.data.json' ))
     sql = "select flexi('import data', '" .. stringx.replace(dataDump, "'", "''") .. "');"
     for row in db:rows(sql) do
         print(row[1])

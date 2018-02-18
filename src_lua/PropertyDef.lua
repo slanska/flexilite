@@ -268,13 +268,13 @@ function PropertyDef:saveToDB()
         self.ClassDef.DBContext:execStatement([[update [.class_props]
         set NameID = :nameID, ctlv = :ctlv, ctlvPlan = :ctlvPlan, ColMap = :ColMap
         where ID = :id]],
-                {
-                    nameID = self.Name.id,
-                    ctlv = self.ctlv,
-                    ctlvPlan = self.ctlvPlan,
-                    ColMap = self.ColMap,
-                    id = self.ID
-                })
+                                              {
+                                                  nameID = self.Name.id,
+                                                  ctlv = self.ctlv,
+                                                  ctlvPlan = self.ctlvPlan,
+                                                  ColMap = self.ColMap,
+                                                  id = self.ID
+                                              })
     else
         -- Insert new
         self.ClassDef.DBContext:execStatement(
@@ -351,7 +351,8 @@ end
 
 function PropertyDef:buildValueSchema(valueSchema)
     local s = { valueSchema }
-    if self.D.rules.maxOccurrences > 1 then
+    local maxOccurr = (self.D.rules and self.D.rules.maxOccurrences) or 1
+    if maxOccurr > 1 then
         -- collection
         s[2] = schema.Collection(valueSchema)
     else
@@ -359,7 +360,8 @@ function PropertyDef:buildValueSchema(valueSchema)
         s[2] = schema.Tuple(valueSchema)
     end
 
-    if self.D.rules.minOccurrences == 0 then
+    local minOccurr = (self.D.rules and self.D.rules.minOccurrences) or 0
+    if minOccurr == 0 then
         s[3] = schema.Nil
     end
 
@@ -457,7 +459,7 @@ end
 function NumberPropertyDef:GetValueSchema(op)
     local result = self:buildValueSchema(
             schema.NumberFrom(self.D.rules.minValue or Constants.MIN_NUMBER,
-                    self.D.rules.maxValue or Constants.MAX_NUMBER))
+                              self.D.rules.maxValue or Constants.MAX_NUMBER))
     return result
 end
 
@@ -524,7 +526,7 @@ end
 ---@param op string @comment 'C' or 'U'
 function IntegerPropertyDef:GetValueSchema(op)
     local result = self:buildValueSchema(schema.AllOf(schema.NumberFrom(self.D.rules.minValue or Constants.MIN_INTEGER,
-            self.D.rules.maxValue or Constants.MAX_INTEGER), schema.Integer))
+                                                                        self.D.rules.maxValue or Constants.MAX_INTEGER), schema.Integer))
     return result
 end
 
@@ -1028,6 +1030,18 @@ function DateTimePropertyDef:GetVType()
     return Constants.vtype.datetime
 end
 
+---@param op string @comment 'C' or 'U'
+function DateTimePropertyDef:GetValueSchema(op)
+    local result = self:buildValueSchema(
+            schema.OneOf(
+                    --schema.Pattern(''), TODO custom function
+                    schema.String,
+                    schema.NumberFrom(self.D.rules.minValue or Constants.MIN_NUMBER,
+                                      self.D.rules.maxValue or Constants.MAX_NUMBER)))
+    return result
+end
+
+
 --[[
 ===============================================================================
 TimeSpanPropertyDef
@@ -1173,23 +1187,23 @@ Optional relation rule when object gets deleted. If not specified, 'link' is ass
     Referenced object(s) are details (dependents).
     They will be deleted when master is deleted. Equivalent of DELETE CASCADE
     ]]
-            'master',
+                        'master',
 
     --[[
     Loose association between 2 objects. When object gets deleted, references are deleted too.
     Equivalent of DELETE SET NULL
     ]]
-            'link',
+                        'link',
 
     --[[
     Similar to master but referenced objects are treated as part of master object
     ]]
-            'nested',
+                        'nested',
 
     --[[
     Object cannot be deleted if there are references. Equivalent of DELETE RESTRICT
     ]]
-            'dependent'
+                        'dependent'
     ),
 }
 
@@ -1221,32 +1235,32 @@ PropertyDef.Schema = schema.AllOf( schema.Record {
     noTrackChanges = schema.Optional(schema.Boolean),
 
     enumDef = schema.Case('rules.type',
-            { schema.OneOf( 'enum', 'fkey', 'foreignkey'),
-              schema.Optional(schema.Record(EnumDefSchemaDef)) },
-            { schema.Any, schema.Any }),
+                          { schema.OneOf( 'enum', 'fkey', 'foreignkey'),
+                            schema.Optional(schema.Record(EnumDefSchemaDef)) },
+                          { schema.Any, schema.Any }),
 
     refDef = schema.Case('rules.type',
-            { schema.OneOf('link', 'mixin', 'ref', 'reference'), schema.Record( RefDefSchemaDef) },
-            { schema.OneOf( 'enum', 'fkey', 'foreignkey'), schema.Optional(schema.Record( EnumRefDefSchemaDef)) },
-            { schema.Any, schema.Any }),
+                         { schema.OneOf('link', 'mixin', 'ref', 'reference'), schema.Record( RefDefSchemaDef) },
+                         { schema.OneOf( 'enum', 'fkey', 'foreignkey'), schema.Optional(schema.Record( EnumRefDefSchemaDef)) },
+                         { schema.Any, schema.Any }),
 
 -- todo check type
     defaultValue = schema.Any,
     accessRules = schema.Optional(AccessControl.Schema),
 }
 ,
-        schema.Test(
-                function(propDef)
-                    -- Test enum definition
-                    local t = string.lower(propDef.rules.type)
-                    if t == 'enum' or t == 'fkey' or t == 'foreignkey' then
-                        local def = propDef.enumDef and 1 or 0
-                        def = def + (propDef.refDef and 2 or 0)
-                        return def == 1 or def == 2
-                    end
-                    return true
-                end, 'Enum property requires either enumDef or refDef (but not both)'
-        )
+                                   schema.Test(
+                                           function(propDef)
+                                               -- Test enum definition
+                                               local t = string.lower(propDef.rules.type)
+                                               if t == 'enum' or t == 'fkey' or t == 'foreignkey' then
+                                                   local def = propDef.enumDef and 1 or 0
+                                                   def = def + (propDef.refDef and 2 or 0)
+                                                   return def == 1 or def == 2
+                                               end
+                                               return true
+                                           end, 'Enum property requires either enumDef or refDef (but not both)'
+                                   )
 )
 
 return PropertyDef
