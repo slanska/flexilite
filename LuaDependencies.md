@@ -8,6 +8,6 @@
 * luarocks install luacheck
 * luarocks install busted
 * luarocks install penlight
-* schema
-* prettycjson
-* ansicolors
+* luarocks install schema
+* luarocks install prettycjson
+* luarocks install ansicolors
