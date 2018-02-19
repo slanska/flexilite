@@ -45,7 +45,13 @@ package.path = path.abspath(path.relpath('../lib/lua-date/?.lua'))
         .. ';' .. package.path
 
 local date = require 'date'
-print(date('1992-10-15T15:10:00'))
+local pretty = require 'pl.pretty'
+local date_str = '1992-10-15 15:10:00 +04'
+print(pretty.dump(date(date_str)))
+
+local JulianDate = require 'JulianDate'
+print(JulianDate.dateToJulian(1992, 10, 15, 15, 10, 00))
+
 
 local __dirname = path.abspath('..')
 
@@ -80,6 +86,7 @@ local ok, error = xpcall(function()
         error(errMsg)
     end
     --db = sqlite.open_memory()
+
     DBContext = Flexi:newDBContext(db)
 
     local sql = "select flexi('configure')"

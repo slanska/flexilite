@@ -639,36 +639,36 @@ function WritableDBOV:saveMultiKeyIndexes(op)
         else
             -- TODO
             for idxName, idxDef in pairs(self.ClassDef.indexes.multiKeyIndexing) do
-              --[[
-              
-                local keyCnt = #idxDef.properties
-                if idxDef.type == 'unique' and keyCnt > 1 then
-                    -- Multi key unique index detected
+                --[[
 
-                    local p = { ObjectID = self.ID, ClassID = self.ClassDef.ClassID }
-                    for i, propRef in ipairs(idxDef.properties) do
-                        local vv = self:getProp(propRef.Name.text, 1)
-                        if vv and vv.Value then
-                            p[i] = vv.Value
-                        end
-                    end
+                  local keyCnt = #idxDef.properties
+                  if idxDef.type == 'unique' and keyCnt > 1 then
+                      -- Multi key unique index detected
 
-                    if op == Constants.OPERATION.UPDATE and (self.curVer.ID ~= self.origVer.ID
-                            or self.curVer.ClassDef.ClassID ~= self.origVer.ClassDef.ClassID) then
-                        op = 'UX'
-                        p.NewObjectID = self.ID
-                        p.ObjectID = self.old.ID
-                    end
+                      local p = { ObjectID = self.ID, ClassID = self.ClassDef.ClassID }
+                      for i, propRef in ipairs(idxDef.properties) do
+                          local vv = self:getProp(propRef.Name.text, 1)
+                          if vv and vv.Value then
+                              p[i] = vv.Value
+                          end
+                      end
 
-                    local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
-                    if not sql then
-                        error('Invalid multi-key index update specification')
-                    end
+                      if op == Constants.OPERATION.UPDATE and (self.curVer.ID ~= self.origVer.ID
+                              or self.curVer.ClassDef.ClassID ~= self.origVer.ClassDef.ClassID) then
+                          op = 'UX'
+                          p.NewObjectID = self.ID
+                          p.ObjectID = self.old.ID
+                      end
 
-                    self.ClassDef.DBContext:execStatement(sql, p)
-                   
-                end
-                ]]
+                      local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
+                      if not sql then
+                          error('Invalid multi-key index update specification')
+                      end
+
+                      self.ClassDef.DBContext:execStatement(sql, p)
+
+                  end
+                  ]]
             end
         end
     end
@@ -900,13 +900,13 @@ function DBObject:setDefaultData()
         for propName, propDef in pairs(self.curVer.ClassDef.Properties) do
             local dd = propDef.D.defaultValue
             if dd ~= nil then
-              -- TODO assign all property values
+                -- TODO assign all property values
                 local pp = self.curVer:setPropValue(propName, 1, tablex.deepcopy(dd))
                 --local vv = pp:GetValue()
 
---                if vv == nil then
-  --                  pp:SetValue(1, tablex.deepcopy(dd))
-    --            end
+                --                if vv == nil then
+                --                  pp:SetValue(1, tablex.deepcopy(dd))
+                --            end
             end
         end
     end
@@ -919,15 +919,13 @@ end
 
 function DBObject:ValidateData()
     local data = self.curVer:getChangedDataPayload()
-    
+
     local op = self.state
     if op == Constants.OPERATION.CREATE or op == Constants.OPERATION.UPDATE then
         local objSchema = self.curVer.ClassDef:getObjectSchema(op)
         if objSchema then
             local err = schema.CheckSchema(data, objSchema)
             if err then
-                -- TODO 'Invalid input data:'
-                print('error data: ', pretty.dump(data))
                 error(err)
             end
         end

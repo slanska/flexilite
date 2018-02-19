@@ -65,8 +65,9 @@ local Constants = require 'Constants'
 local AccessControl = require 'AccessControl'
 local dbprops = require 'DBProperty'
 local parseDatTimeToJulian = require('Util').parseDatTimeToJulian
-local stringifyJulianToDateTime = require('Util').stringifyJulianToDateTime
+--local stringifyJulianToDateTime = require('Util').stringifyJulianToDateTime
 local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
+local pretty = require 'pl.pretty'
 
 --[[
 ===============================================================================
@@ -984,9 +985,17 @@ function DateTimePropertyDef:GetVType()
 end
 
 function DateTimePropertyDef:validateValue(obj, path)
+    if path == nil then
+        return nil
+    end
+
+    if obj == nil then
+        return schema.Error('Null date value', path)
+    end
+
     local v, err = self:toJulian(obj)
     if err then
-        return schema.Error(err)
+        return schema.Error(err, path)
     else
         -- Check min/max
         local lower = self.D.rules.minValue or Constants.MIN_NUMBER
@@ -994,7 +1003,7 @@ function DateTimePropertyDef:validateValue(obj, path)
         if v >= lower and v <= upper then
             return nil
         else
-            return schema.Error(string.format("Invalid value: %s must be between %s and %s", path, lower, upper))
+            return schema.Error(string.format("Invalid value: %s must be between %s and %s", path, lower, upper), path)
         end
     end
 end
@@ -1002,14 +1011,14 @@ end
 ---@param op string @comment 'C' or 'U'
 function DateTimePropertyDef:GetValueSchema(op)
 
-    --local function ValidateDateTime(obj, path)
-    --    return self:validateValue(obj, path)
-    --end
-    --
-    --local result = self:buildValueSchema(ValidateDateTime)
-    --
-    --return result
-    return self:buildValueSchema(schema.String)
+    local function ValidateDateTime(obj, path)
+        return self:validateValue(obj, path)
+    end
+
+    return self:buildValueSchema(ValidateDateTime)
+    --return self:buildValueSchema(schema.Test(ValidateDateTime), 'invalid date value')
+
+    --return self:buildValueSchema(schema.String)
 end
 
 -- Attempts to convert arbitrary value to number in Julian calendar (number of days starting from 0 AC)

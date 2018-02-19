@@ -15,6 +15,7 @@ local math = require 'math'
 local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local JulianDate = require 'JulianDate'
 local pretty = require 'pl.pretty'
+local date = require 'date'
 
 -- Max value for 26 bit integer
 local MAX27 = 0x8000000 -- 134217728
@@ -65,34 +66,27 @@ local function BNot64(base)
     return base
 end
 
+---@class DateObject
+---@field daynum number @comment number of days since 0 AD
+---@field dayfrc number @comment ticks (1 sec = 1 000 000 ticks)
+
 -- Converts string in JavaScript datetime format to number in Julian calendar
 -- Source: https://forums.coronalabs.com/topic/29019-convert-string-to-date/
 ---@param str string
 ---@return number
 local function parseDatTimeToJulian(str)
-    local yr, mo, day = str:match('^%s*(%d+)%-(%d+)%-(%d+)')
-    local hr, min, sec = str:match('[T,%s](%d+)([%:%d+])?[%:(%d+)]?')
-
-    local pattern = "^(%d+)%-(%d+)%-(%d+)[T,%s*]?[(%d+)%:(%d+)]?[%:(%d+)]?([%+,%-])?[(%d+)%:(%d+)]?$"
-    local yr, mo, day, hr, min, sec, xoffset, xoffsethour, xoffsetmin = str:match(pattern)
-
-    print('parseDatTimeToJulian', pretty.dump({ str = str, year = yr, month = mo, day = day, hour = hr,
-                                                min = min, sec = sec, xoffseet = xoffset, xoffsethour = xoffsethour,
-                                                xoffsetmin = xoffsetmin }))
-
-    local offset = (xoffsethour or 0) * 60 + (xoffsetmin or 0)
-    if xoffset == "-" then
-        offset = offset * -1
-    end
-    local result = JulianDate.dateToJulian('', yr, mo, day, hr, min, sec)
-    result = result + (offset / (60 * 24))
+    ---@type DateObject
+    local dateObj = date(str)
+    local ticksPerDay = 24 * 60 * 60 * 1000000
+    local result = dateObj.daynum + 1721425.5 + dateObj.dayfrc / ticksPerDay
     return result
 end
 
 ---@param dt DateTimeInfo
 ---@return string
 local function stringifyDateTimeInfo(dt)
-    local result = string.format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2dZ',
+    -- TODO time zone
+    local result = string.format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d',
                                  dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
     return result
 end
