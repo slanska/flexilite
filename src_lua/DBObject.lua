@@ -412,12 +412,6 @@ function WritableDBOV:applyMappedColumnValues(params)
     end
 end
 
-function WritableDBOV:saveRefValues()
-    for propName, prop in pairs(self.props) do
-
-    end
-end
-
 -- Inserts new object
 function WritableDBOV:saveCreate()
     -- set ctlo & vtypes

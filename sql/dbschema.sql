@@ -1,6 +1,4 @@
--- TODO Configurable page size?
--- PRAGMA page_size = 8192;
---PRAGMA journal_mode = WAL;
+--PRAGMA journal_mode = WAL; -- TODO run separately, not in transaction
 PRAGMA foreign_keys = 1;
 PRAGMA encoding = 'UTF-8';
 PRAGMA recursive_triggers = 1;
@@ -416,9 +414,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByMap]
 CREATE VIEW IF NOT EXISTS [flexi_prop] AS
   SELECT
     cp.[ID]                                                          AS PropertyID,
-    cp.ClassID                                                        AS ClassID,
+    cp.ClassID                                                       AS ClassID,
     c.Class                                                          AS Class,
-    cp.[NameID]                                                  AS NameID,
+    cp.[NameID]                                                      AS NameID,
     (SELECT n.[Value]
      FROM [.sym_names] n
      WHERE n.ID = cp.NameID
@@ -426,9 +424,9 @@ CREATE VIEW IF NOT EXISTS [flexi_prop] AS
     cp.ctlv                                                          AS ctlv,
     cp.ctlvPlan                                                      AS ctlvPlan,
     (json_extract(c.Definition, printf('$.properties.%d', cp.[ID]))) AS Definition,
-    cp.Deleted AS Deleted,
-    cp.SearchHitCount as SearchHitCount,
-    cp.NonNullCount as NonNullCount
+    cp.Deleted                                                       AS Deleted,
+    cp.SearchHitCount                                                AS SearchHitCount,
+    cp.NonNullCount                                                  AS NonNullCount
 
   FROM [.class_props] cp
     JOIN [flexi_class] c ON cp.ClassID = c.ClassID
@@ -465,10 +463,10 @@ BEGIN
 
   UPDATE [.class_props]
   SET NameID = (SELECT ID
-                    FROM [.sym_names]
-                    WHERE Value = new.Property
-                    LIMIT 1),
-    ClassID      = new.ClassID, ctlv = new.ctlv, ctlvPlan = new.ctlvPlan
+                FROM [.sym_names]
+                WHERE Value = new.Property
+                LIMIT 1),
+    ClassID  = new.ClassID, ctlv = new.ctlv, ctlvPlan = new.ctlvPlan
   WHERE ID = old.PropertyID;
 END;
 
@@ -506,23 +504,26 @@ CREATE TABLE IF NOT EXISTS [.objects] (
   Only scalar short properties can be mapped to these columns. E.g. all reference properties,
   long text properties (maxLength > 255), binary (maxLength > 255) cannot be mapped
 
+  Columns A-P are defined as INT to help SQLite with type inferring. Lua does not distinct between float and
+  integer types, and thus lsqlite3 always uses REAL for all numeric values.
+
    */
-  A                  NULL,
-  B                  NULL,
-  C                  NULL,
-  D                  NULL,
-  E                  NULL,
-  F                  NULL,
-  G                  NULL,
-  H                  NULL,
-  I                  NULL,
-  J                  NULL,
-  K                  NULL,
-  L                  NULL,
-  M                  NULL,
-  N                  NULL,
-  O                  NULL,
-  P                  NULL,
+  A          INT     NULL,
+  B          INT     NULL,
+  C          INT     NULL,
+  D          INT     NULL,
+  E          INT     NULL,
+  F          INT     NULL,
+  G          INT     NULL,
+  H          INT     NULL,
+  I          INT     NULL,
+  J          INT     NULL,
+  K          INT     NULL,
+  L          INT     NULL,
+  M          INT     NULL,
+  N          INT     NULL,
+  O          INT     NULL,
+  P          INT     NULL,
 
   /*
       -- bits 0 - 15 - unique indexes for A - P
@@ -872,7 +873,7 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
   [ObjectID]   INTEGER NOT NULL,
   [PropertyID] INTEGER NOT NULL,
   [PropIndex]  INTEGER NOT NULL DEFAULT 0,
-  [Value]              NOT NULL,
+  [Value]      INTEGER     NOT NULL,
 
   /*
   ctlv - value bit flags (indexing etc). Possible values:

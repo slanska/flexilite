@@ -84,7 +84,6 @@ node_modules
 /js/tests/data_import.spec.js
 /js/lib/drivers/SQLite/SQLiteDataRefactor.js.map
 /js/lib/drivers/SQLite/SQLiteDataRefactor.js
-!/lib/rapidjson/
 /js/__build/flexi-duk.js
 /build/bin/duk-deps.js
 /build/bin/flexilite_test

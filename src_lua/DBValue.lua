@@ -121,33 +121,6 @@ function DBValue:afterSaveToDB(DBProperty, propIndex)
 
 end
 
----@param DBProperty DBProperty
----@param propIndex number
-function DBValue:saveToDB(DBProperty, propIndex)
-    if DBProperty.PropDef.ColMap then
-        -- Already processed
-        return
-    end
-
-    local sql
-    if DBProperty.DBOV.DBObjectstate == Constants.OPERATION.CREATE then
-        sql = [[insert into [.ref-values] (ObjectID, PropertyID, PropIndex, Value, ctlv, MetaData)
-            values (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv); ]]
-    else
-        if self.Value == nil then
-            sql = [[delete from [.ref-values] where ObjectID = :ObjectID and PropertyID = :PropertyID
-                and PropIndex = :PropIndex;]]
-        else
-            sql = [[insert or replace into [.ref-values] (ObjectID, PropertyID, PropIndex, Value, ctlv, MetaData)
-            values (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv);]]
-        end
-
-    end
-    local p = { ObjectID = DBProperty.DBObject.ID, PropertyID = DBProperty.PropDef.ID,
-                ctlv = self.ctlv, Value = self.Value, PropIndex = propIndex, MetaData = JSON.encode(self.MetaData) }
-    self.DBOV.ClassDef.DBContext:execStatement(sql, p)
-end
-
 function DBValue:__tostring()
 
 end

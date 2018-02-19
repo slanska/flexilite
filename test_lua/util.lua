@@ -17,3 +17,6 @@ package.path = path.abspath(path.relpath('../lib/lua-sandbox/?.lua'))
 
 package.path = path.abspath(path.relpath('../lib/lua-schema/?.lua'))
 .. ';' .. package.path
+
+package.path = path.abspath(path.relpath('../lib/lua-date/?.lua'))
+.. ';' .. package.path

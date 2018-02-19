@@ -4,15 +4,15 @@
 ---
 
 --[[
-// Julian date conversion utilities.
-// Borrowed from: http://www.onlineconversion.com/julian_date.htm
-//-------
-// convert calendar to Julian date
-// (Julian day number algorithm adopted from Press et al.)
-//-------
+ Julian date conversion utilities.
+ Borrowed from: http://www.onlineconversion.com/julian_date.htm
+-------
+ convert calendar to Julian date
+ (Julian day number algorithm adopted from Press et al.)
+-------
 ]]
 
----@param era string @comment 'BCE'
+---@param era string @comment 'BCE' or anything else
 ---@param y number
 ---@param m number
 ---@param d number
@@ -60,7 +60,7 @@ local function dateToJulian(era, y, m, d, h, mn, s)
     end
 
     -- now set the fraction of a day
-    local frac = dayfrac + (mn + s / 60.0) / 60.0 / 24.0
+    local frac = dayfrac + ((mn or 0) + (s or 0) / 60.0) / 60.0 / 24.0
 
     -- round to nearest second
     local jd0 = (intgr + frac) * 100000
@@ -71,16 +71,24 @@ local function dateToJulian(era, y, m, d, h, mn, s)
     return jd / 100000
 end
 
---[[
-// convert Julian date to calendar date
-// (algorithm adopted from Press et al.)
-//-------
+---@class DateTimeInfo
+---@field year number
+---@field month number
+---@field day number
+---@field hour number
+---@field minute number
+---@field second number
 
-// form - typed object
+--[[
+ convert Julian date to calendar date
+ (algorithm adopted from Press et al.)
+-------
+
+ form - typed object
 ]]
 ---@param jd number
----@return table @comment typed object
-local function julianToDate(jd, form)
+---@return DateTimeInfo
+local function julianToDate(jd)
 
     local j1, j2, j3, j4, j5            --scratch
 

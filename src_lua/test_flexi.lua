@@ -41,6 +41,12 @@ end
 require 'cjson'
 local path = require 'pl.path'
 
+package.path = path.abspath(path.relpath('../lib/lua-date/?.lua'))
+        .. ';' .. package.path
+
+local date = require 'date'
+print(date('1992-10-15T15:10:00'))
+
 local __dirname = path.abspath('..')
 
 require('io')
@@ -93,13 +99,15 @@ local ok, error = xpcall(function()
     end
 
     -- Insert data
+    local started = os.clock()
     --   local dataDump = readAll(path.join(__dirname, 'test/json/Northwind_Regions.db3.data.json' ))
-     local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.data.json' ))
-     --local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.trimmed.data.json' ))
+    local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.data.json' ))
+    --local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.trimmed.data.json' ))
     sql = "select flexi('import data', '" .. stringx.replace(dataDump, "'", "''") .. "');"
     for row in db:rows(sql) do
         print(row[1])
     end
+    print(string.format('Elapsed %s sec', os.clock() - started))
 
     db:close()
 end,

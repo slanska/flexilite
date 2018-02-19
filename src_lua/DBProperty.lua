@@ -280,7 +280,7 @@ function ChangedDBProperty:SaveToDB()
             local updated_values = tablex.intersection(self.values, old_values)
 
             ---@type table<number, DBValue>
-            local deleted_values = tables.difference(old_values, self.values)
+            local deleted_values = tablex.difference(old_values, self.values)
             for propIndex, dbv in pairs(self.values) do
                 if dbv.Value == nil and deleted_values[propIndex] == nil then
                     deleted_values[propIndex] = dbv
@@ -299,8 +299,8 @@ function ChangedDBProperty:SaveToDB()
                                               PropertyID = self.PropDef.ID,
                                               PropIndex = propIndex,
                                               Value = dbv.Value,
-                                              ctlv = dbv.ctlv,
-                                              MetaData = JSON.encode(dbv.MetaData) })
+                                              ctlv = dbv.ctlv or 0,
+                                              MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
                 else
                     DBContext:execStatement(refValSQL[Constants.OPERATION.UPDATE],
                                             {
@@ -308,8 +308,8 @@ function ChangedDBProperty:SaveToDB()
                                                 PropertyID = self.PropDef.ID,
                                                 PropIndex = propIndex,
                                                 Value = dbv.Value,
-                                                ctlv = dbv.ctlv,
-                                                MetaData = JSON.encode(dbv.MetaData) })
+                                                ctlv = dbv.ctlv or 0,
+                                                MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
                 end
             end
 

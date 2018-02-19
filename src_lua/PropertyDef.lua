@@ -64,6 +64,9 @@ local NameRef, ClassNameRef, PropNameRef = name_ref.NameRef, name_ref.ClassNameR
 local Constants = require 'Constants'
 local AccessControl = require 'AccessControl'
 local dbprops = require 'DBProperty'
+local parseDatTimeToJulian = require('Util').parseDatTimeToJulian
+local stringifyJulianToDateTime = require('Util').stringifyJulianToDateTime
+local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
 
 --[[
 ===============================================================================
@@ -177,59 +180,9 @@ function PropertyDef:CanBeUsedAsUID()
     return true
 end
 
---[[
-Fields:
-======
-ClassID
-ID
-ctlvPlan
-ctlv
-Deleted?
-PropNameID
-ColMap
-D - json part
-
-Methods:
-
-canChangeTo
-isValidDef
-isValidData
-saveToDB
-export
-import
-getNativeType
-applyDef -- resolves references by names, sets ctlv, ctlvPlan, name etc.
-
-]]
-
 function PropertyDef:supportsRangeIndexing()
     return false
 end
-
---- Common validation of property definition
--- raw table, decoded from JSON
---- @return boolean, string @comment true if definition is valid, false if not and error message
--- true if propDef is valid; false otherwise
---function PropertyDef:isValidDef()
---    assert(self, 'Property not defined')
---
---    --TODO check property name
---
---    -- Check common property settings
---    -- minOccurrences & maxOccurences
---    local minOccurrences = self.D.rules.minOccurrences or 0
---    local maxOccurrences = self.D.rules.maxOccurrences or 1
---
---    if type(minOccurrences) ~= 'number' or minOccurrences < 0 then
---        return false, 'minOccurrences must be a positive number'
---    end
---
---    if type(maxOccurrences) ~= 'number' or maxOccurrences < minOccurrences then
---        return false, 'maxOccurrences must be a number greater or equal of minOccurrences'
---    end
---
---    return true
---end
 
 -- Definite 'yes' is returned when a) propA.canChangeTo(propB) returned 'yes' and b) property types are compatible
 -- and c) minOccurrences and maxOccurrences do not shrink
@@ -1030,17 +983,72 @@ function DateTimePropertyDef:GetVType()
     return Constants.vtype.datetime
 end
 
----@param op string @comment 'C' or 'U'
-function DateTimePropertyDef:GetValueSchema(op)
-    local result = self:buildValueSchema(
-            schema.OneOf(
-                    --schema.Pattern(''), TODO custom function
-                    schema.String,
-                    schema.NumberFrom(self.D.rules.minValue or Constants.MIN_NUMBER,
-                                      self.D.rules.maxValue or Constants.MAX_NUMBER)))
-    return result
+function DateTimePropertyDef:validateValue(obj, path)
+    local v, err = self:toJulian(obj)
+    if err then
+        return schema.Error(err)
+    else
+        -- Check min/max
+        local lower = self.D.rules.minValue or Constants.MIN_NUMBER
+        local upper = self.D.rules.maxValue or Constants.MAX_NUMBER
+        if v >= lower and v <= upper then
+            return nil
+        else
+            return schema.Error(string.format("Invalid value: %s must be between %s and %s", path, lower, upper))
+        end
+    end
 end
 
+---@param op string @comment 'C' or 'U'
+function DateTimePropertyDef:GetValueSchema(op)
+
+    --local function ValidateDateTime(obj, path)
+    --    return self:validateValue(obj, path)
+    --end
+    --
+    --local result = self:buildValueSchema(ValidateDateTime)
+    --
+    --return result
+    return self:buildValueSchema(schema.String)
+end
+
+-- Attempts to convert arbitrary value to number in Julian calendar (number of days starting from 0 AC)
+---@param value any
+---@param culture string | nil
+---@return number, string @comment date/time in Julian (the same as SQLite) and error message (nil if OK)
+function DateTimePropertyDef:toJulian(value)
+    if type(value) == 'string' then
+        return parseDatTimeToJulian(value)
+    elseif type(value) == 'number' then
+        return value, nil
+    elseif type(value) == 'table' then
+        local result = stringifyDateTimeInfo(value)
+        return result, nil
+    else
+        return 0, 'Unsupported value type for date/time'
+    end
+end
+
+function DateTimePropertyDef:applyDef()
+    PropertyDef.applyDef(self)
+
+    ---@param cntnr table
+    ---@param attrName string
+    local function convertDateTime(cntnr, attrName)
+        if cntnr and cntnr[attrName] then
+            local v, err = self:toJulian(cntnr[attrName])
+            if err then
+                -- TODO 'Default data is not in valid format'
+                error(err)
+            end
+            cntnr[attrName] = v
+        end
+    end
+
+    convertDateTime(self.D, 'defaultValue')
+    convertDateTime(self.D.rules, 'minValue')
+    convertDateTime(self.D.rules, 'maxValue')
+end
 
 --[[
 ===============================================================================
@@ -1244,7 +1252,7 @@ PropertyDef.Schema = schema.AllOf( schema.Record {
                          { schema.OneOf( 'enum', 'fkey', 'foreignkey'), schema.Optional(schema.Record( EnumRefDefSchemaDef)) },
                          { schema.Any, schema.Any }),
 
--- todo check type
+-- todo specific property value
     defaultValue = schema.Any,
     accessRules = schema.Optional(AccessControl.Schema),
 }

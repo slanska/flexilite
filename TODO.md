@@ -109,7 +109,8 @@ data: Database, statements, user info, class definitions, cache of referenced va
     - TEMP TRIGGER on .ref-values to check minOccurrences..maxOccurrences
     - date validation
     - PropertyDef - convert defaultData to property specific format (e.g. string date to number)
-    - base64 for blob processing. Set path
+    - base64 for blob processing. Set path (copy lbase64 to LuaJIT path)
+    - multi-key indexes: save data
     
     
 - &#10003; Saved JSON in .classes do not have property rules    
