@@ -244,11 +244,12 @@ function ChangedDBProperty:SaveToDB()
     ---@param values table<number, DBValue>
     local function insertRefValues(values)
         for propIndex, dbv in pairs(values) do
+            local vv = self.PropDef:GetRawValue(dbv)
             local params = {
                 ObjectID = self.DBOV.ID,
                 PropertyID = self.PropDef.ID,
                 PropIndex = propIndex,
-                Value = dbv.Value,
+                Value = vv,
                 ctlv = dbv.ctlv or 0,
                 MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil }
             DBContext:execStatement(refValSQL[Constants.OPERATION.CREATE], params)
@@ -290,6 +291,7 @@ function ChangedDBProperty:SaveToDB()
             deleteRefValues(orig_prop, deleted_values)
 
             for propIndex, dbv in pairs(updated_values) do
+                local vv = self.PropDef:GetRawValue(dbv)
                 if self.DBOV.ID ~= orig_prop.DBOV.ID then
                     DBContext:execStatement(refValSQL['UX'],
                                             { old_ObjectID = orig_prop.DBOV.ID,
@@ -298,7 +300,7 @@ function ChangedDBProperty:SaveToDB()
                                               ObjectID = self.DBOV.ID,
                                               PropertyID = self.PropDef.ID,
                                               PropIndex = propIndex,
-                                              Value = dbv.Value,
+                                              Value = vv,
                                               ctlv = dbv.ctlv or 0,
                                               MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
                 else
@@ -307,7 +309,7 @@ function ChangedDBProperty:SaveToDB()
                                                 ObjectID = self.DBOV.ID,
                                                 PropertyID = self.PropDef.ID,
                                                 PropIndex = propIndex,
-                                                Value = dbv.Value,
+                                                Value = vv,
                                                 ctlv = dbv.ctlv or 0,
                                                 MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
                 end

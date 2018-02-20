@@ -9,6 +9,12 @@ This file is used as an entry point for testing Flexilite library
 local mobdebug = require( "mobdebug" )
 mobdebug.start()
 
+--ProFi = require 'ProFi'
+
+if jit then
+    jit.on()
+end
+
 -- Source: https://gist.github.com/Tieske/b1654b27fa422afb63eb
 
 --[[== START ============= temporary debug code ==============================--
@@ -44,14 +50,8 @@ local path = require 'pl.path'
 package.path = path.abspath(path.relpath('../lib/lua-date/?.lua'))
         .. ';' .. package.path
 
-local date = require 'date'
-local pretty = require 'pl.pretty'
-local date_str = '1992-10-15 15:10:00 +04'
-print(pretty.dump(date(date_str)))
-
-local JulianDate = require 'JulianDate'
-print(JulianDate.dateToJulian(1992, 10, 15, 15, 10, 00))
-
+--local date = require 'date'
+--local pretty = require 'pl.pretty'
 
 local __dirname = path.abspath('..')
 
@@ -85,7 +85,7 @@ local ok, error = xpcall(function()
     if not db then
         error(errMsg)
     end
-    --db = sqlite.open_memory()
+    db = sqlite.open_memory()
 
     DBContext = Flexi:newDBContext(db)
 
@@ -105,6 +105,8 @@ local ok, error = xpcall(function()
         print(row[1])
     end
 
+    --ProFi:start()
+
     -- Insert data
     local started = os.clock()
     --   local dataDump = readAll(path.join(__dirname, 'test/json/Northwind_Regions.db3.data.json' ))
@@ -114,7 +116,16 @@ local ok, error = xpcall(function()
     for row in db:rows(sql) do
         print(row[1])
     end
-    print(string.format('Elapsed %s sec', os.clock() - started))
+    print(string.format('flexi_data - Elapsed %s sec', os.clock() - started))
+
+    local dbPath2 = path.abspath(path.relpath('./Flexilite2.db'))
+    local db2 = sqlite3.open_memory()
+    --local db2 = sqlite3.open(dbPath2)
+    content = readAll(path.abspath(path.relpath( './flexilite.data.sql')))
+    started = os.clock()
+    db2:exec(content)
+    print(string.format('Direct load - Elapsed %s sec', os.clock() - started))
+    db2:close()
 
     db:close()
 end,
@@ -125,3 +136,6 @@ end,
                              print(debug.traceback(tostring(error)))
                          end)
 
+
+--ProFi:stop()
+--ProFi:writeReport(path.abspath(path.relpath( './ProfileReport.txt')))

@@ -354,6 +354,17 @@ function PropertyDef:CreateDBProperty(object)
     return result
 end
 
+---@param dbv DBValue
+function PropertyDef:GetRawValue(dbv)
+    return dbv.Value
+end
+
+---@param dbv DBValue
+---@param val any
+function PropertyDef:SetRawValue(dbv, val)
+    dbv.Value = val
+end
+
 --[[
 ===============================================================================
 AnyPropertyDef
@@ -950,6 +961,12 @@ function BlobPropertyDef:CanBeUsedAsUID()
     return false
 end
 
+---@param dbv DBValue
+function BlobPropertyDef:GetRawValue(dbv)
+    -- TODO base64.decode
+    return dbv.Value
+end
+
 --[[
 ===============================================================================
 UuidPropertyDef
@@ -1016,9 +1033,6 @@ function DateTimePropertyDef:GetValueSchema(op)
     end
 
     return self:buildValueSchema(ValidateDateTime)
-    --return self:buildValueSchema(schema.Test(ValidateDateTime), 'invalid date value')
-
-    --return self:buildValueSchema(schema.String)
 end
 
 -- Attempts to convert arbitrary value to number in Julian calendar (number of days starting from 0 AC)
@@ -1057,6 +1071,11 @@ function DateTimePropertyDef:applyDef()
     convertDateTime(self.D, 'defaultValue')
     convertDateTime(self.D.rules, 'minValue')
     convertDateTime(self.D.rules, 'maxValue')
+end
+
+---@param dbv DBValue
+function DateTimePropertyDef:GetRawValue(dbv)
+    return self:toJulian(dbv.Value)
 end
 
 --[[
