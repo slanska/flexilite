@@ -50,9 +50,8 @@ Flow of using:
 
 The following is list of DBObject class family:
 VoidDBOBV
-BaseDBOV
---ReadOnlyDBOBV
-----WritableDBOV
+ReadOnlyDBOBV
+--WritableDBOV
 
 *DBOV
     - props - collection of DBProperty by property name
@@ -86,9 +85,6 @@ local ChangedDBProperty = require('DBProperty').ChangedDBProperty
 local NullDBValue = require('DBProperty').NullDBValue
 local pretty = require 'pl.pretty'
 
----@class BaseDBOV
----@method getProp
----@method setProp
 
 --[[
 Void DB objects exist as 2 singletons, handling access to inserted.old and deleted.new states
