@@ -9,7 +9,6 @@ local os = require 'os'
 local path = require 'pl.path'
 local lapp = require 'pl.lapp'
 local DumpDatabase = require('dumpDatabase')
-local stringx = require 'pl.stringx'
 
 -- set lua path
 package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua'))

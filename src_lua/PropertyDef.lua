@@ -68,6 +68,7 @@ local parseDatTimeToJulian = require('Util').parseDatTimeToJulian
 --local stringifyJulianToDateTime = require('Util').stringifyJulianToDateTime
 local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
 local pretty = require 'pl.pretty'
+local base64 = require 'base64'
 
 --[[
 ===============================================================================
@@ -363,6 +364,45 @@ end
 ---@param val any
 function PropertyDef:SetRawValue(dbv, val)
     dbv.Value = val
+end
+
+-- Sets dbv.Value from source data v, with possible conversion and/or validation
+---@param dbv DBValue
+---@param v any
+function PropertyDef:ImportDBValue(dbv, v)
+    dbv.Value = v
+end
+
+-- Converts dbv.Value to the format, appropriate for JSON serialization
+---@param dbv DBValue
+---@return any
+function PropertyDef:ExportDBValue(dbv)
+    return dbv.Value
+end
+
+-- Binds Value parameter to insert/update .ref-values
+---@param stmt sqlite3_statement
+---@param param_no number
+---@param dbv DBValue
+function PropertyDef:BindValueParameter(stmt, param_no, dbv)
+    stmt:bind(param_no, dbv.Value)
+end
+
+--[[ Called before .ref-value row is inserted/updated
+Returns tuple of 2 values: boolean and function
+If boolean part is true, .ref-values row gets inserted/updated immediately.
+Otherwise, update operation is skipped at this time
+If function part is not nil, it gets added to deferredActions list to be called when all objects in batch are inserted/updated
+
+Possible combinations:
+true, nil - normal scalar value, gets inserted/updated immediately
+true, function - value gets inserted/updated, and also deferred action gets registered
+false, nil - no-op
+false, function - typically, reference. No .ref-values row is inserted/updated and deferred action is registered
+]]
+---@return boolean, function
+function PropertyDef:BeforeDBValueSave(dbv)
+    return true, nil
 end
 
 --[[
@@ -910,6 +950,23 @@ function EnumPropertyDef:GetSupportedIndexTypes()
     return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.STD
 end
 
+---@return boolean, function
+function EnumPropertyDef:BeforeDBValueSave(dbv)
+
+    ---@return bool
+    local function validateEnumRef()
+        -- TODO
+
+    end
+
+    local resolved = validateEnumRef()
+    if resolved then
+        return true, nil
+    end
+
+    return true, validateEnumRef
+end
+
 --[[
 ===============================================================================
 BoolPropertyDef
@@ -965,6 +1022,28 @@ end
 function BlobPropertyDef:GetRawValue(dbv)
     -- TODO base64.decode
     return dbv.Value
+end
+
+-- Sets dbv.Value from source data v, with possible conversion and/or validation
+---@param dbv DBValue
+---@param v any
+function BlobPropertyDef:ImportDBValue(dbv, v)
+    dbv.Value = base64.decode(v)
+end
+
+---@param dbv DBValue
+---@return any
+function BlobPropertyDef:ExportDBValue(dbv)
+    local result = base64.encode(dbv.Value)
+    return result
+end
+
+-- Binds Value parameter to insert/update .ref-values
+---@param stmt sqlite3_statement
+---@param param_no number
+---@param dbv DBValue
+function BlobPropertyDef:BindValueParameter(stmt, param_no, dbv)
+    stmt:bind_blob(param_no, dbv.Value)
 end
 
 --[[

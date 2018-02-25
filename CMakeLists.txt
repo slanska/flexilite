@@ -64,6 +64,7 @@ include_directories(
         lib/sqlite
         lib/luajit-2.1/src
         src/util
+        lib/lua-lpeglabel
 )
 
 add_custom_target(Generate_Resources
@@ -166,6 +167,15 @@ set(LUA_FILES
 
         # sandbox
         lib/lua-sandbox/sandbox.lua
+
+        # lpeglabel
+        lib/lua-lpeglabel/relabel.lua
+
+        # AST parser
+        lib/lua-parser/lua-parser/parser.lua
+        lib/lua-parser/lua-parser/pp.lua
+        lib/lua-parser/lua-parser/scope.lua
+        lib/lua-parser/lua-parser/validator.lua
         )
 
 execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/src_lua")
@@ -212,6 +222,13 @@ set(EXT_FILES
         lib/lua-cjson/lua_cjson.c
         lib/lua-cjson/strbuf.c
         lib/lua-base64/lbase64.c
+
+        # lpeglabel C sources
+        lib/lua-lpeglabel/lpcap.c
+        lib/lua-lpeglabel/lpcode.c
+        lib/lua-lpeglabel/lpprint.c
+        lib/lua-lpeglabel/lptree.c
+        lib/lua-lpeglabel/lpvm.c
 
         src/misc/json1.c
         src/typings/DBDefinitions.h
@@ -280,6 +297,7 @@ set(EXT_FILES
         src/flexi/PropertyDef.cpp
         src/flexi/PropertyDef.h
         flexish/main.c
+
         ${oLuaFiles}
         )
 

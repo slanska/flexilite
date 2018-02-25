@@ -28,3 +28,12 @@
 [submodule "lib/lua-date"]
 	path = lib/lua-date
 	url = https://github.com/Tieske/date.git
+[submodule "src_lua/lib/lua-parser"]
+	path = src_lua/lib/lua-parser
+	url = https://github.com/andremm/lua-parser.git
+[submodule "lib/lua-parser"]
+	path = lib/lua-parser
+	url = https://github.com/andremm/lua-parser.git
+[submodule "lib/lua-lpeglabel"]
+	path = lib/lua-lpeglabel
+	url = https://github.com/sqmedeiros/lpeglabel.git
