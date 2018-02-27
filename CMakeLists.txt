@@ -64,7 +64,6 @@ include_directories(
         lib/sqlite
         lib/luajit-2.1/src
         src/util
-        lib/lua-lpeglabel
 )
 
 add_custom_target(Generate_Resources
@@ -82,6 +81,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_definitions(-DRESOURCES_GENERATED
         )
 
+# TODO Use custom module names
 set(LUA_FILES
         # src_lua/
         src_lua/NameRef.lua
@@ -129,7 +129,7 @@ set(LUA_FILES
         lib/lua-penlight/lua/pl/Set.lua
         lib/lua-penlight/lua/pl/comprehension.lua
         lib/lua-penlight/lua/pl/func.lua
-        lib/lua-penlight/lua/pl/lexer.lua
+#        lib/lua-penlight/lua/pl/lexer.lua
         lib/lua-penlight/lua/pl/pretty.lua
         lib/lua-penlight/lua/pl/stringx.lua
         lib/lua-penlight/lua/pl/types.lua
@@ -168,14 +168,22 @@ set(LUA_FILES
         # sandbox
         lib/lua-sandbox/sandbox.lua
 
-        # lpeglabel
-        lib/lua-lpeglabel/relabel.lua
-
-        # AST parser
-        lib/lua-parser/lua-parser/parser.lua
-        lib/lua-parser/lua-parser/pp.lua
-        lib/lua-parser/lua-parser/scope.lua
-        lib/lua-parser/lua-parser/validator.lua
+        # metalua-parser
+        lib/lua-metalua/metalua/grammar/generator.lua
+        lib/lua-metalua/metalua/grammar/lexer.lua
+        lib/lua-metalua/metalua/compiler/parser.lua
+        lib/lua-metalua/metalua/compiler/parser/common.lua
+        lib/lua-metalua/metalua/compiler/parser/table.lua
+        lib/lua-metalua/metalua/compiler/parser/ext.lua
+        lib/lua-metalua/metalua/compiler/parser/annot/generator.lua
+        lib/lua-metalua/metalua/compiler/parser/annot/grammar.lua
+        lib/lua-metalua/metalua/compiler/parser/stat.lua
+        lib/lua-metalua/metalua/compiler/parser/misc.lua
+        lib/lua-metalua/metalua/compiler/parser/lexer.lua
+        lib/lua-metalua/metalua/compiler/parser/meta.lua
+        lib/lua-metalua/metalua/compiler/parser/expr.lua
+        lib/lua-metalua/metalua/compiler.lua
+        lib/lua-metalua/metalua/pprint.lua
         )
 
 execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/src_lua")
@@ -183,6 +191,12 @@ execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/
 execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-schema")
 execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-penlight/lua/pl")
 execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-sandbox")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-metalua/metalua")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-metalua/metalua/compiler/bytecode")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-metalua/metalua/compiler/parser/annot")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-metalua/metalua/extension")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-metalua/metalua/grammar")
+execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-metalua/metalua/treequery")
 
 # Variable to store compiled Lua files
 set(oLuaFiles)
@@ -191,7 +205,8 @@ set(oLuaFiles)
 foreach (lua_file ${LUA_FILES})
     MESSAGE(STATUS "Generating Lua compile for ${lua_file}")
     SET(oLuaFile "cmake-build-debug/lua/${lua_file}.o")
-    execute_process(COMMAND luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
+    execute_process(COMMAND /torch/luajit/bin/luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
+#    execute_process(COMMAND luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
 
     SET(luaTarget)
     STRING(MAKE_C_IDENTIFIER ${lua_file} luaTarget)
@@ -200,7 +215,8 @@ foreach (lua_file ${LUA_FILES})
             OUTPUT "${oLuaFile}"
             ALL
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            COMMAND luajit -b "${lua_file}" "${oLuaFile}"
+            COMMAND /torch/luajit/bin/luajit -b "${lua_file}" "${oLuaFile}"
+#            COMMAND luajit -b "${lua_file}" "${oLuaFile}"
             COMMENT "Compiling ${lua_file}.lua to .o"
             DEPENDS ${lua_file}
     )
@@ -223,26 +239,15 @@ set(EXT_FILES
         lib/lua-cjson/strbuf.c
         lib/lua-base64/lbase64.c
 
-        # lpeglabel C sources
-        lib/lua-lpeglabel/lpcap.c
-        lib/lua-lpeglabel/lpcode.c
-        lib/lua-lpeglabel/lpprint.c
-        lib/lua-lpeglabel/lptree.c
-        lib/lua-lpeglabel/lpvm.c
-
         src/misc/json1.c
         src/typings/DBDefinitions.h
         src/project_defs.h
         src/main.cpp
 
-        # compress.c is temporarily disabled because of the following error: Undefined symbols for architecture x86_64:
-        #        "_compress", referenced from:
-        #        src/misc/compress.c
         src/misc/eval.c
         src/misc/fileio.c
         src/misc/regexp.c
         src/misc/totype.c
-        #        src/_old_flexilite/flexi_get.c
         src/misc/var.c
 
         src/util/hash.c
@@ -250,48 +255,21 @@ set(EXT_FILES
         src/misc/hash.c
 
         src/misc/memstat.c
-        #        src/flexi/flexi_data.cpp
-
-        #        src/flexi/flexi_class.cpp
-        #        src/flexi/flexi_class_alter.cpp
-        #        src/flexi/flexi_props_to_object.c
 
         src/fts/fts3_expr.c
         src/fts/fts3_tokenizer.c
         src/fts/fts3_hash.c
-        #        src/flexi/flexi_prop.c
-        #        src/flexi/flexi_prop_merge.c
-        #        src/flexi/flexi_query.cpp
-        #        src/util/json_proc.c
+
         src/common/common.h
         src/util/Array.c
         src/util/Array.h
         src/flexi/flexi_func.cpp
 
-        #        src/flexi/flexi_prop_merge.h
-        #        src/flexi/flexi_db_ctx.cpp
-        #        src/flexi/flexi_db_ctx.h
-        #        src/flexi/flexi_UserInfo_t.c
-        #        src/flexi/flexi_UserInfo_t.h
-        #        src/util/rbtree.c
-        #        src/flexi/class_ref_def.c
-        #        src/flexi/class_ref_def.h
-        #        src/util/List.c
-        #        src/util/List.h
         src/util/Path.c
         src/util/Path.h
         src/util/StringBuilder.c
         src/util/StringBuilder.h
-        #        src/flexi/flexi_data_adhoc.c
-        #        src/flexi/flexi_data_vtable.c
-        #        src/flexi/class_build_json.c
-        #        src/flexi/flexi_data.h
-        #        src/flexi/flexi_Object.c
-        #        src/flexi/flexi_Object.h
-        #        src/flexi/flexi_PropValue.c
-        #        src/flexi/flexi_PropValue.h
-        #        src/flexi/DBContext.cpp
-        #        src/flexi/DBContext.h
+
         src/flexi/ClassDef.cpp
         src/flexi/ClassDef.h
         src/flexi/PropertyDef.cpp
