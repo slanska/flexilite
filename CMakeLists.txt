@@ -82,6 +82,18 @@ add_definitions(-DRESOURCES_GENERATED
         )
 
 # TODO Use custom module names
+
+# https://cmake.org/Wiki/CMake:VariablesListsStrings
+#you can do the following in CMake:
+#MACRO(INSERT_INTO_MAP _KEY _VALUE)
+#SET("MyMap_${_KEY}" "${_VALUE}")
+#ENDMACRO(INSERT_INTO_MAP)
+#
+#SET(MyKey "foo")
+#SET(MyValue "bar")
+#INSERT_INTO_MAP("${MyKey}" "${MyValue}")
+#You can test for the existence of a key using IF(DEFINED ...)
+
 set(LUA_FILES
         # src_lua/
         src_lua/NameRef.lua
@@ -129,7 +141,7 @@ set(LUA_FILES
         lib/lua-penlight/lua/pl/Set.lua
         lib/lua-penlight/lua/pl/comprehension.lua
         lib/lua-penlight/lua/pl/func.lua
-#        lib/lua-penlight/lua/pl/lexer.lua
+        lib/lua-penlight/lua/pl/lexer.lua
         lib/lua-penlight/lua/pl/pretty.lua
         lib/lua-penlight/lua/pl/stringx.lua
         lib/lua-penlight/lua/pl/types.lua
