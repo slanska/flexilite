@@ -4,4 +4,48 @@
 --- DateTime: 2018-02-25 1:59 PM
 ---
 
--- TODO
+require 'util'
+
+local FilterDef = require('QueryBuilder').FilterDef
+
+local DummyClassDef = {
+    hasProperty = function(propName)
+        return { ID = 1 }
+    end
+}
+
+-- Tests for using indexes for query
+
+---@class IndexCase
+---@field expr string
+---@field indexedProps QueryBuilderIndexItem[]
+---@field params table | nil
+
+---@type IndexCase[]
+local expr_cases = {
+    { expr = [[A1 == 1]], indexedProps = {} },
+    { expr = [[A1 > 1 and A1 < 10]], indexedProps = {} },
+    { expr = [[(A1 ~= 1)]], indexedProps = {} },
+    { expr = [[((A1 == 1 and (A2 == 2 and A3 > 3)))]], indexedProps = {} },
+    { expr = [[MATCH(A1, 'Lucifer*')]], indexedProps = {} },
+    { expr = [[MATCH(A1, 'Lucifer*') and MATCH(A2, params.A2)]], indexedProps = {},
+      params = { A2 = 'burn*' } },
+    { expr = [[A1 > 1 and A1 < 10 and A2 >= 1.34 and (A2 <= params.A2 and (A3 >= '2015-11-07')) and A3 < params.A3]], indexedProps = {},
+      params = { A2 = 3.45, A3 = '2016-04-13T13:00' } },
+    { expr = [[((A1 == 1 and (A2 == 2 or A3 > 3)))]], indexedProps = {} },
+    { expr = [[((A1 == 1 and (A2 == 2 and not A3 > 3)))]], indexedProps = {} },
+}
+
+---@param case IndexCase
+local function generate_indexed_items(case)
+    local filterDef = FilterDef(DummyClassDef, case.expr, case.params)
+
+end
+
+local function process_expr_cases()
+    for i, case in ipairs(expr_cases) do
+        generate_indexed_items(case)
+    end
+end
+
+process_expr_cases()

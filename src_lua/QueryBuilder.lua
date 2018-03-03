@@ -37,7 +37,7 @@ on q1.ObjectID = q2.ObjectID
 
 
 In order to expression to qualify for index search the following criteria must be met:
-- only sub-expressions like 'propName op constant' or match(propName, constant) (for full text search)
+- only sub-expressions like 'op constant' or match(propName, constant) (for full text search)
 will be considered for indexing.
 - expression may have only 'and'. 'or', 'not' will degrade to full scan
 
@@ -99,43 +99,42 @@ A0 > 1 and A1 < 10 and B0 > 2 and B1 < 20 and C0 == 30 -> range index will be us
 
 local schema = require 'schema'
 local class = require 'pl.class'
-local metalua = require 'metalua.compiler'
+local lua_compiler = require('metalua.compiler').new()
+local tablex = require 'pl.tablex'
+local List = require 'pl.list'
+
+---@class QueryBuilderIndexItem
+---@field propID number
+---@field cond string
+---@field val nil | boolean | number | string | table @comment params.Name
+---@field processed number
 
 ---@class FilterDef
 ---@field ClassDef ClassDef
 ---@field Expression string
 ---@field ast table
+---@field indexedItems QueryBuilderIndexItem[] @comment property IDs may be duplicated
+---@field params table
 local FilterDef = class()
 
-local operators = {
-    ['.'] = {},
-    ['=='] = {},
-    ['>'] = {},
-    ['<'] = {},
-    ['<='] = {},
-    ['~='] = {},
-    ['>'] = {},
-    ['>='] = {},
-    ['..'] = {},
-    ['^'] = {},
-    ['+'] = {},
-    ['-'] = {},
-    ['*'] = {},
-    ['/'] = {},
-    ['%'] = {},
-    ['.'] = {},
+---@class ASTToken
+---@field tag string
 
-}
+---@param astToken ASTToken
+---@return ASTToken
+local function skip_parens(astToken)
+    while astToken and astToken.tag == 'Paren' do
+        astToken = astToken[1]
+    end
+    return astToken
+end
 
--- Only these operators are considered for finding best index
-local indexable_operators = {
-    ['=='] = {},
-    ['>'] = {},
-    ['<'] = {},
-    ['<='] = {},
-    ['>'] = {},
-    ['>='] = {},
-}
+local function escape_single_quotes(val)
+    if type(val) == 'string' then
+        return string.format([['%s']], string.gsub(val, [[']], [['']]))
+    end
+    return tostring(val)
+end
 
 ---@class ExprItem
 ---@field isProp boolean
@@ -144,105 +143,241 @@ local indexable_operators = {
 
 ---@param ClassDef ClassDef
 ---@param expr string
-function FilterDef:_init(ClassDef, expr)
+---@param params table
+function FilterDef:_init(ClassDef, expr, params)
     self.ClassDef = ClassDef
+    self.indexedItems = {}
+    self.params = params
 
-    local compiler = metalua.new()
     if not string.match(expr, '^%s*return%s*')
     then
         expr = 'return ' .. expr
     end
     self.Expression = expr
-    self.ast = compiler:src_to_ast(expr)
+    self.ast = lua_compiler:src_to_ast(expr)
 
-    local best_index = self:find_best_index()
+    local best_index = self:build_index_query()
 end
 
-function FilterDef:is_and_expr(expr)
-
+---@param astToken ASTToken
+function FilterDef:process_token(astToken)
+    if self:is_and_expr(astToken) then
+    elseif self:is_prop_expression(astToken) then
+    end
 end
 
-function FilterDef:is_property_name(expr)
+-- Determines if astToken is MATCH function call
+---@param astToken ASTToken
+function FilterDef:is_match_call(astToken)
+    astToken = skip_parens(astToken)
+    if astToken.tag == 'Call' and astToken[1] == 'MATCH' then
+        -- first parameter is expected to be property name
+        local propID = self:is_property_name(astToken[2])
+        if not propID then
+            return false
+        end
 
-end
-
-function FilterDef:is_valid_value(expr)
-
-end
-
-function FilterDef:is_prop_expression(expr)
-    if expr.tag == 'Op' and (expr[1] == 'lt' or expr[1] == 'le' or expr[1] == 'eq') then
-        if self:is_property_name(expr[2]) and self:is_valid_value(expr[1]) then
+        -- second parameter is expected to be string literal/param
+        local propVal = self:is_valid_value(astToken[3])
+        if propVal then
+            table.insert(self.indexedItems, { propID = propID, cond = 'MATCH', val = propVal })
             return true
         end
-        if self:is_property_name(expr[1]) and self:is_valid_value(expr[2]) then
+    end
+
+    return false
+end
+
+---@param astToken ASTToken
+function FilterDef:is_and_expr(astToken)
+    astToken = skip_parens(astToken)
+    if astToken.tag == 'Op' and astToken[1] == 'and' then
+        self:process_token(astToken[2])
+        self:process_token(astToken[3])
+        return true
+    end
+
+    return false
+end
+
+-- Evaluates if astToken is property name
+---@param astToken ASTToken | string[]
+---@return number | nil @comment property ID
+function FilterDef:is_property_name(astToken)
+    astToken = skip_parens(astToken)
+    if astToken.tag == 'Id' and #astToken == 1 then
+        local prop = self.ClassDef:hasProperty(astToken[1])
+        if prop then
+            return prop.ID
+        end
+    end
+    return nil
+end
+
+-- Evaluates if astToken is literal value or param
+---@param astToken ASTToken | string[]
+---@return number | string | nil
+function FilterDef:is_valid_value(astToken)
+    astToken = skip_parens(astToken)
+    if astToken.tag == 'Number' or astToken.tag == 'String' then
+        return astToken[1]
+    end
+    if astToken.tag == 'Index' and astToken[1].tag == 'Id' and astToken[1][1] == 'params'
+            and astToken[2].tag == 'String' and type(astToken[2][1]) == 'string'
+            and self.params then
+        return self.params[ astToken[2][1]]
+    end
+end
+
+local reversedConditions = {
+    ['eq'] = '=',
+    ['lt'] = '>',
+    ['le'] = '<',
+}
+
+local directConditions = {
+    ['eq'] = '=',
+    ['lt'] = '<',
+    ['le'] = '<=',
+}
+
+---@param astToken ASTToken
+function FilterDef:is_prop_expression(astToken)
+    local cond = astToken.tag
+    astToken = skip_parens(astToken)
+
+    if astToken.tag == 'Op' and (astToken[1] == 'lt' or astToken[1] == 'le' or astToken[1] == 'eq') then
+        local propID = self:is_property_name(astToken[2])
+        local propVal = self:is_valid_value(astToken[1])
+
+        if propID and propVal then
+            table.insert( self.indexedItems, { propID = propID,
+                                               cond = reversedConditions[cond], val = propVal })
+            return true
+        end
+        propID = self:is_property_name(astToken[1])
+        propVal = self:is_valid_value(astToken[2])
+        if propID and propVal then
+            table.insert( self.indexedItems, { propID = propID,
+                                               cond = directConditions[cond], val = propVal })
             return true
         end
     end
     return false
 end
 
-function FilterDef:find_best_index()
+-- Finds first matching index item, byt property ID. Starts from (optional) startIndex
+-- If (optional) ignoreProcessed == true and item is marked as processed, item gets skipped
+---@param propID number
+---@param startIndex number | nil
+---@param ignoreProcessed boolean | nil
+---@return QueryBuilderIndexItem | nil, number
+function FilterDef:find_indexed_prop(propID, startIndex, ignoreProcessed)
+    local index = startIndex or 1
+    while index <= #self.indexedItems do
+        local pp = self.indexedItems[index]
+        if pp.propID == propID and (not pp.processed or ignoreProcessed) then
+            return pp, index
+        end
+    end
 
+    return nil, index
+end
+
+---@param keyCount number @comment 2, 3, 4
+---@return string | nil
+function FilterDef:check_multi_key_index(keyCount)
+    local indexes = self.ClassDef.indexes
+    local mkey = indexes.multiKeyIndexing[keyCount]
+    if mkey ~= nil then
+        local result = List()
+        for mkIndex, propID in ipairs(mkey) do
+            for i, tok in ipairs(self.indexedItems) do
+                if tok.propID == propID and tok.cond ~= 'MATCH' then
+                    if #result > 0 then
+                        result:append ' and '
+                    end
+                    result:append(string.format([[Z%d %s %s]], mkIndex, tok.cond, escape_single_quotes(tok.val)))
+                    tok.processed = (tok.processed or 0) + 1
+
+                    if tok.cond ~= '=' then
+                        break
+                    end
+                end
+            end
+        end
+
+        if #result > 0 then
+            return string.format([[(select * from [.multi_key_%d] where %s)]], keyCount, result:join(''))
+        end
+    end
+
+    return nil
+end
+
+function FilterDef:build_index_query()
     -- Skip external wrapper and 'Return' tag - they will be always there
-    local x = self.ast[1][1]
-    if self:is_and_expr(x) or self:is_prop_expression(x) then
+    self:process_token(self.ast[1][1])
 
-    end
+    ---@type List
+    local result = List()
+    result:append '('
+    local indexes = self.ClassDef.indexes
+    local firstCond = true
 
-    --[[ Uses Penlight lexer to parse expr defined
-    in a format resembling MongoDB filter expression in pseudo JSON.
-    Generated execution flow in Polish (reversed notation), i.e. push val, push val,call op;
-    op will push result to stack
-    ]]
+    -- multi key unique indexes
+    ---@type string
+    local mkey_filter = self:check_multi_key_index(4)
+            or self:check_multi_key_index(3)
+            or self:check_multi_key_index(2)
 
-
-    local execFlow = {}
-    local expectedToken = nil
-    local curFlow = {}
-
-    local op
-
-    local symbol_stack = {}
-
-    local function push_symbol(tok, val)
-
-    end
-
-    local function processToken(tok, val)
-        local expected = 'prop'
-        for tok, val in lexer.lua(self.Expression) do
-            if tok == 'iden' then
-                -- Treated as property name or class name
-                -- after 'iden' we expect operator
-                if expected == 'prop' and self.ClassDef:hasProperty(val) then
-                    push_symbol(tok, val)
-                else
-                    return false
+    -- check range indexing
+    if #indexes.rangeIndexing > 0 then
+        local rngIdxMap = indexes:RangeIndexAsMap()
+        for _, v in ipairs(self.indexedItems) do
+            if v.cond ~= 'MATCH' then
+                local i = rngIdxMap[v.propID]
+                if i ~= nil then
+                    if not firstCond then
+                        result:append ' and '
+                    else
+                        firstCond = false
+                    end
+                    result:append(string.format([[%s %s %s]],
+                                                indexes.rngCols[i], v.cond, escape_single_quotes(v.val)))
+                    v.processed = (v.processed or 0) + 1
                 end
-            elseif tok == 'number' then
-            elseif tok == 'keyword' then
-                -- and, or, not
-                if val == 'and' then
-
-                else
-                    return false
-                end
-            elseif tok == 'string' then
-            elseif tok == '(' then
-                if expected == 'prop' then
-
-                end
-                -- Inc paren
-            elseif tok == ')' then
-                -- Dec paren
-            elseif indexable_operators[tok] ~= nil then
-                table.insert(symbol_stack, tok)
-            else
-                return false
             end
         end
     end
+
+    -- 3) full text search
+    if #indexes.fullTextIndexing > 0 then
+        local ftsCandidates = {}
+        for i, v in ipairs(self.indexedItems) do
+            if v.cond == 'MATCH' then
+                table.insert( ftsCandidates, v.propID)
+            end
+        end
+        ftsCandidates = tablex.intersection(ftsCandidates, indexes.fullTextIndexing)
+        for i, propID in ipairs(ftsCandidates) do
+            if #result == 0 then
+                result:append(string.format([[select id from [.full_text_data] where ClassID=%d
+                ]],
+                                            self.ClassDef.ClassID))
+            end
+            result:append(string.format([[ and X%d match %s]], escape_single_quotes() ))
+        end
+    end
+
+    -- 4) single property indexes
+    for i, v in ipairs(self.indexedItems) do
+        if not v.processed and indexes.propIndexing[v.propID] then
+
+        end
+    end
+
+    return result:join('\n')
 end
 
 ---@class QueryBuilder
@@ -263,13 +398,4 @@ QueryBuilder.Schema = schema.Record {
 
 }
 
---[[
-"or", tag="Op"
-"and", tag="Op"
-
-]]
-
-return QueryBuilder
-
-
-
+return { QueryBuilder = QueryBuilder, FilterDef = FilterDef }

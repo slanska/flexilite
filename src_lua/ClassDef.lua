@@ -16,7 +16,7 @@ Validates existing data with new class definition
 
 local json = require 'cjson'
 local schema = require 'schema'
-local bit52 = require ('Util').bit52
+local bit52 = require('Util').bit52
 local Constants = require 'Constants'
 local PropertyDef = require('PropertyDef')
 local name_ref = require('NameRef')
@@ -37,10 +37,10 @@ d) storing and loading index definitions (in [.classes].Data.indexes)
 ]]
 
 ---@class IndexDefinitions
----@field fullTextIndexing table
----@field rangeIndexing table
----@field multiKeyIndexing table
----@field propIndexing table
+---@field fullTextIndexing number[] @comment array of property IDs
+---@field rangeIndexing number[] @comment array of property IDs
+---@field multiKeyIndexing table<number, number[]> @comment len 2, 3 or 4, array of property IDs
+---@field propIndexing table<number, boolean> @comment map of property IDs to boolean (unique or not)
 local IndexDefinitions = class()
 
 -- Internal static variables
@@ -60,6 +60,24 @@ function IndexDefinitions:_init()
     -- Indexes for single properties. Map by property ID to boolean
     -- (false - non-unique index, true - unique index)
     self.propIndexing = {}
+end
+
+-- Converts array of property IDs to dictionary of number and index
+---@param arr number[]
+function IndexDefinitions:IndexArrayToMap(arr)
+    local result = {}
+    for i, v in ipairs(arr) do
+        result[v] = i
+    end
+    return result
+end
+
+function IndexDefinitions:FullTextIndexAsMap()
+    return self:IndexArrayToMap(self.fullTextIndexing)
+end
+
+function IndexDefinitions:RangeIndexAsMap()
+    return self:IndexArrayToMap(self.rangeIndexing)
 end
 
 ---@param propDef PropertyDef
@@ -137,8 +155,8 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
         end
 
         -- Check for accidental duplicates
-        local all = tables.imap(function(p)
-            return p.ID == propDefID
+        local all = tablex.imap(function(p)
+            return p.ID == propDef.ID
         end, propDefs)
 
         if #all > 1 then
