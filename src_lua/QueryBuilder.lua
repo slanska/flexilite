@@ -102,6 +102,7 @@ local class = require 'pl.class'
 local lua_compiler = require('metalua.compiler').new()
 local tablex = require 'pl.tablex'
 local List = require 'pl.list'
+local DBValue = require 'DBValue'
 
 ---@class QueryBuilderIndexItem
 ---@field propID number
@@ -163,6 +164,8 @@ end
 function FilterDef:process_token(astToken)
     if self:is_and_expr(astToken) then
     elseif self:is_prop_expression(astToken) then
+    elseif self:is_match_call(astToken) then
+        -- TODO
     end
 end
 
@@ -170,18 +173,21 @@ end
 ---@param astToken ASTToken
 function FilterDef:is_match_call(astToken)
     astToken = skip_parens(astToken)
-    if astToken.tag == 'Call' and astToken[1] == 'MATCH' then
-        -- first parameter is expected to be property name
-        local propID = self:is_property_name(astToken[2])
-        if not propID then
-            return false
-        end
+    if #astToken == 3 and astToken.tag == 'Call' then
+        local callToken = astToken[1]
+        if callToken and #callToken == 1 and callToken[1] == 'MATCH' and callToken.tag == 'Id' then
+            -- first parameter is expected to be property name
+            local prop = self:is_property_name(astToken[2])
+            if not prop then
+                return false
+            end
 
-        -- second parameter is expected to be string literal/param
-        local propVal = self:is_valid_value(astToken[3])
-        if propVal then
-            table.insert(self.indexedItems, { propID = propID, cond = 'MATCH', val = propVal })
-            return true
+            -- second parameter is expected to be string literal/param
+            local propVal = self:is_valid_value(prop, astToken[3])
+            if propVal then
+                table.insert(self.indexedItems, { propID = prop.ID, cond = 'MATCH', val = propVal })
+                return true
+            end
         end
     end
 
@@ -202,43 +208,48 @@ end
 
 -- Evaluates if astToken is property name
 ---@param astToken ASTToken | string[]
----@return number | nil @comment property ID
+---@return PropertyDef | nil @comment property ID
 function FilterDef:is_property_name(astToken)
     astToken = skip_parens(astToken)
     if astToken.tag == 'Id' and #astToken == 1 then
         local prop = self.ClassDef:hasProperty(astToken[1])
-        if prop then
-            return prop.ID
-        end
+        return prop
     end
     return nil
 end
 
 -- Evaluates if astToken is literal value or param
+---@param propDef PropertyDef
 ---@param astToken ASTToken | string[]
 ---@return number | string | nil
-function FilterDef:is_valid_value(astToken)
+function FilterDef:is_valid_value(propDef, astToken)
     astToken = skip_parens(astToken)
     if astToken.tag == 'Number' or astToken.tag == 'String' then
-        return astToken[1]
+        local dbv = DBValue { }
+        local result = propDef:ImportDBValue(dbv, astToken[1])
+        if type(result) == 'string' then
+            result = escape_single_quotes(result)
+        end
+        return result
     end
     if astToken.tag == 'Index' and astToken[1].tag == 'Id' and astToken[1][1] == 'params'
             and astToken[2].tag == 'String' and type(astToken[2][1]) == 'string'
             and self.params then
-        return self.params[ astToken[2][1]]
+
+        return string.format([['%s']], escape_single_quotes(astToken[2][1]))
     end
 end
 
 local reversedConditions = {
-    ['eq'] = '=',
-    ['lt'] = '>',
-    ['le'] = '<',
+    eq = '=',
+    lt = '>',
+    le = '>=',
 }
 
 local directConditions = {
-    ['eq'] = '=',
-    ['lt'] = '<',
-    ['le'] = '<=',
+    eq = '=',
+    lt = '<',
+    le = '<=',
 }
 
 ---@param astToken ASTToken
@@ -247,19 +258,19 @@ function FilterDef:is_prop_expression(astToken)
     astToken = skip_parens(astToken)
 
     if astToken.tag == 'Op' and (astToken[1] == 'lt' or astToken[1] == 'le' or astToken[1] == 'eq') then
-        local propID = self:is_property_name(astToken[2])
-        local propVal = self:is_valid_value(astToken[1])
+        local prop = self:is_property_name(astToken[2])
+        local propVal = self:is_valid_value(prop, astToken[3])
 
-        if propID and propVal then
-            table.insert( self.indexedItems, { propID = propID,
-                                               cond = reversedConditions[cond], val = propVal })
+        if prop and propVal then
+            table.insert( self.indexedItems, { propID = prop.ID,
+                                               cond = directConditions[astToken[1]], val = propVal })
             return true
         end
-        propID = self:is_property_name(astToken[1])
-        propVal = self:is_valid_value(astToken[2])
-        if propID and propVal then
-            table.insert( self.indexedItems, { propID = propID,
-                                               cond = directConditions[cond], val = propVal })
+        prop = self:is_property_name(astToken[3])
+        propVal = self:is_valid_value(prop, astToken[2])
+        if prop and propVal then
+            table.insert( self.indexedItems, { propID = prop.ID,
+                                               cond = reversedConditions[astToken[1]], val = propVal })
             return true
         end
     end
@@ -288,6 +299,10 @@ end
 ---@return string | nil
 function FilterDef:check_multi_key_index(keyCount)
     local indexes = self.ClassDef.indexes
+    if not indexes then
+        return nil
+    end
+
     local mkey = indexes.multiKeyIndexing[keyCount]
     if mkey ~= nil then
         local result = List()
@@ -332,7 +347,7 @@ function FilterDef:build_index_query()
             or self:check_multi_key_index(2)
 
     -- check range indexing
-    if #indexes.rangeIndexing > 0 then
+    if indexes ~= nil and #indexes.rangeIndexing > 0 then
         local rngIdxMap = indexes:RangeIndexAsMap()
         for _, v in ipairs(self.indexedItems) do
             if v.cond ~= 'MATCH' then
@@ -352,7 +367,7 @@ function FilterDef:build_index_query()
     end
 
     -- 3) full text search
-    if #indexes.fullTextIndexing > 0 then
+    if indexes ~= nil and #indexes.fullTextIndexing > 0 then
         local ftsCandidates = {}
         for i, v in ipairs(self.indexedItems) do
             if v.cond == 'MATCH' then
@@ -371,9 +386,11 @@ function FilterDef:build_index_query()
     end
 
     -- 4) single property indexes
-    for i, v in ipairs(self.indexedItems) do
-        if not v.processed and indexes.propIndexing[v.propID] then
+    if indexes ~= nil then
+        for i, v in ipairs(self.indexedItems) do
+            if not v.processed and indexes.propIndexing[v.propID] then
 
+            end
         end
     end
 

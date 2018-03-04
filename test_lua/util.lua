@@ -39,6 +39,7 @@ package.path = path.abspath(path.relpath('../lib/lua-metalua/extension/?.lua'))
 package.path = path.abspath(path.relpath('../lib/lua-metalua/treequery/?.lua'))
 .. ';' .. package.path
 
+unpack = table.unpack
 
 local mobdebug = require('mobdebug')
 mobdebug.start()

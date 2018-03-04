@@ -32,3 +32,6 @@
 [submodule "lib/lua-metalua"]
 	path = lib/lua-metalua
 	url = https://github.com/fab13n/metalua.git
+[submodule "lib/luadec"]
+	path = lib/luadec
+	url = https://github.com/viruscamp/luadec

@@ -6,12 +6,23 @@
 
 require 'util'
 
+local pretty = require 'pl.pretty'
 local FilterDef = require('QueryBuilder').FilterDef
+local PropertyDef = require 'PropertyDef'
+
+local DummyPropIDs = { A1 = 1, A2 = 2, A3 = 3 }
 
 local DummyClassDef = {
-    hasProperty = function(propName)
-        return { ID = 1 }
+    hasProperty = function(self, propName)
+        local result = self.properties[propName]
+        return result
     end
+}
+
+DummyClassDef.properties = {
+    A1 = PropertyDef.Classes.IntegerPropertyDef(),
+    A2 = PropertyDef.Classes.IntegerPropertyDef(),
+    A3 = PropertyDef.Classes.DateTimePropertyDef(),
 }
 
 -- Tests for using indexes for query
@@ -23,23 +34,76 @@ local DummyClassDef = {
 
 ---@type IndexCase[]
 local expr_cases = {
-    { expr = [[A1 == 1]], indexedProps = {} },
-    { expr = [[A1 > 1 and A1 < 10]], indexedProps = {} },
-    { expr = [[(A1 ~= 1)]], indexedProps = {} },
-    { expr = [[((A1 == 1 and (A2 == 2 and A3 > 3)))]], indexedProps = {} },
-    { expr = [[MATCH(A1, 'Lucifer*')]], indexedProps = {} },
-    { expr = [[MATCH(A1, 'Lucifer*') and MATCH(A2, params.A2)]], indexedProps = {},
+    { expr = [[A1 == 6]], indexedProps = {
+        propID = 1,
+        val = 6,
+        cond = "="
+    } },
+    { expr = [[A1 > 4 and A1 < 10]], indexedProps = {} },
+    { expr = [[(A1 ~= 5)]], indexedProps = {
+        {
+            propID = 1,
+            val = 4,
+            cond = ">"
+        },
+        {
+            propID = 1,
+            val = 10,
+            cond = "<"
+        }
+    } },
+    { expr = [[((A1 == 7 and (A2 == 2 and A3 > 3)))]], indexedProps = {
+        {
+            propID = 1,
+            val = 7,
+            cond = "="
+        },
+        {
+            propID = 2,
+            val = 2,
+            cond = "="
+        },
+        {
+            propID = 3,
+            val = 3,
+            cond = ">"
+        }
+    } },
+    { expr = [[MATCH(A1, 'Lucifer*')]], indexedProps = {
+        {
+            propID = 1,
+            val = "Lucifer*",
+            cond = "MATCH"
+        }
+    } },
+    { expr = [[MATCH(A1, 'Lucifer*') and MATCH(A2, params.A2)]], indexedProps = {
+        {
+            propID = 1,
+            val = "Lucifer*",
+            cond = "MATCH"
+        },
+        {
+            propID = 2,
+            val = "burn*",
+            cond = "MATCH"
+        }
+    },
       params = { A2 = 'burn*' } },
-    { expr = [[A1 > 1 and A1 < 10 and A2 >= 1.34 and (A2 <= params.A2 and (A3 >= '2015-11-07')) and A3 < params.A3]], indexedProps = {},
+    { expr = [[A1 > 8 and A1 < 10 and A2 >= 1.34 and (A2 <= params.A2 and (A3 >= '2015-11-07')) and A3 < params.A3]], indexedProps = {
+
+    },
       params = { A2 = 3.45, A3 = '2016-04-13T13:00' } },
-    { expr = [[((A1 == 1 and (A2 == 2 or A3 > 3)))]], indexedProps = {} },
-    { expr = [[((A1 == 1 and (A2 == 2 and not A3 > 3)))]], indexedProps = {} },
+    { expr = [[((A1 == 11 and (A2 == 12 or A3 > 3)))]], indexedProps = {} },
+    { expr = [[((A1 == 12 and (A2 == 12 and not A3 > 3)))]], indexedProps = {} },
+    { expr = [[((12 <= A1 and (12 >= A2 and 3 < A3)))]], indexedProps = {} },
+    { expr = [[(11 < A1 and 12 > A2 and 13 <= A3 and 14 >= A1)]], indexedProps = {} },
 }
 
 ---@param case IndexCase
 local function generate_indexed_items(case)
     local filterDef = FilterDef(DummyClassDef, case.expr, case.params)
-
+    print(case.expr)
+    pretty.dump(filterDef.indexedItems)
 end
 
 local function process_expr_cases()

@@ -67,7 +67,7 @@ local dbprops = require 'DBProperty'
 local parseDatTimeToJulian = require('Util').parseDatTimeToJulian
 --local stringifyJulianToDateTime = require('Util').stringifyJulianToDateTime
 local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
-local pretty = require 'pl.pretty'
+--local pretty = require 'pl.pretty'
 local base64 = require 'base64'
 
 --[[
