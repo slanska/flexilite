@@ -294,8 +294,16 @@ end
 ---@field vtypes number
 local ClassDef = class()
 
+---@class ClassDefCtorParamsData
+---@field NameID number
+
+---@class ClassDefCtorParams
+---@field DBContext DBContext
+---@field newClassName string
+---@field data ClassDefCtorParamsData | string @comment .classes row or encoded JSON
+
 --- ClassDef constructor
----@param params table @comment {DBContext: DBContext, newClassName:string, data: table | string | table as parsed json}
+---@param params ClassDefCtorParams
 function ClassDef:_init(params)
     self.DBContext = params.DBContext
 

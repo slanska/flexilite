@@ -4,26 +4,29 @@
 --- DateTime: 2018-02-25 1:59 PM
 ---
 
-require 'util'
+local util = require 'util'
 
 local pretty = require 'pl.pretty'
 local FilterDef = require('QueryBuilder').FilterDef
-local PropertyDef = require 'PropertyDef'
 
-local DummyPropIDs = { A1 = 1, A2 = 2, A3 = 3 }
+local path = require 'pl.path'
+local ClassDef = require 'ClassDef'
+local CreateClass = require('flexi_CreateClass').CreateClass
 
-local DummyClassDef = {
-    hasProperty = function(self, propName)
-        local result = self.properties[propName]
-        return result
-    end
-}
+---@param DBContext DBContext
+---@return ClassDef
+local function createProductsClass(DBContext)
+    local __dirname = path.abspath('..')
+    local schemaFile = path.join(__dirname, 'test', 'json', 'Northwind.Products.schema.json')
+    local schema = util.readAll(schemaFile)
 
-DummyClassDef.properties = {
-    A1 = PropertyDef.Classes.IntegerPropertyDef(),
-    A2 = PropertyDef.Classes.IntegerPropertyDef(),
-    A3 = PropertyDef.Classes.DateTimePropertyDef(),
-}
+    CreateClass(DBContext, 'Product', schema, false)
+    local classDef = DBContext:getClassDef('Product')
+    return classDef
+end
+
+local DBContext = util.openFlexiDatabaseInMem()
+local ProductClassDef = createProductsClass(DBContext)
 
 -- Tests for using indexes for query
 
@@ -33,81 +36,70 @@ DummyClassDef.properties = {
 ---@field params table | nil
 
 ---@type IndexCase[]
-local expr_cases = {
-    { expr = [[A1 == 6]], indexedProps = {
-        propID = 1,
-        val = 6,
-        cond = "="
-    } },
-    { expr = [[A1 > 4 and A1 < 10]], indexedProps = {} },
-    { expr = [[(A1 ~= 5)]], indexedProps = {
-        {
-            propID = 1,
-            val = 4,
-            cond = ">"
-        },
-        {
-            propID = 1,
-            val = 10,
-            cond = "<"
-        }
-    } },
-    { expr = [[((A1 == 7 and (A2 == 2 and A3 > 3)))]], indexedProps = {
-        {
-            propID = 1,
-            val = 7,
-            cond = "="
-        },
-        {
-            propID = 2,
-            val = 2,
-            cond = "="
-        },
-        {
-            propID = 3,
-            val = 3,
-            cond = ">"
-        }
-    } },
-    { expr = [[MATCH(A1, 'Lucifer*')]], indexedProps = {
-        {
-            propID = 1,
-            val = "Lucifer*",
-            cond = "MATCH"
-        }
-    } },
-    { expr = [[MATCH(A1, 'Lucifer*') and MATCH(A2, params.A2)]], indexedProps = {
-        {
-            propID = 1,
-            val = "Lucifer*",
-            cond = "MATCH"
-        },
-        {
-            propID = 2,
-            val = "burn*",
-            cond = "MATCH"
-        }
-    },
-      params = { A2 = 'burn*' } },
-    { expr = [[A1 > 8 and A1 < 10 and A2 >= 1.34 and (A2 <= params.A2 and (A3 >= '2015-11-07')) and A3 < params.A3]], indexedProps = {
+--[[
+UnitsOnOrder
+QuantityPerUnit
+ReorderLevel
+ProductID
+UnitPrice
+DiscontinuedDate
+Discontinued
+ProductName
+UnitsInStock
 
+Full text index:
+ProductName
+* Description
+
+Range index:
+UnitsOnOrder
+QuantityPerUnit
+ReorderLevel
+UnitPrice
+
+Non-unique index
+DiscontinuedDate
+
+Unique index
+ProductName
+
+Multi-key unique index
+
+]]
+local expr_cases = {
+    { expr = [[ProductID == 6]], indexedProps = {
+    } },
+    { expr = [[ReorderLevel > 4 and ReorderLevel < 10]], indexedProps = {} },
+    { expr = [[(QuantityPerUnit ~= 5)]], indexedProps = {
+    } },
+    { expr = [[((QuantityPerUnit == 7 and (ReorderLevel == 2 and A3 > 3)))]], indexedProps = {
+    } },
+    { expr = [[MATCH(Description, 'Lucifer*')]], indexedProps = {
+    } },
+    { expr = [[MATCH(Description, 'Lucifer*') and MATCH(ProductName, params.ProductName)]], indexedProps = {
     },
-      params = { A2 = 3.45, A3 = '2016-04-13T13:00' } },
-    { expr = [[((A1 == 11 and (A2 == 12 or A3 > 3)))]], indexedProps = {} },
-    { expr = [[((A1 == 12 and (A2 == 12 and not A3 > 3)))]], indexedProps = {} },
-    { expr = [[((12 <= A1 and (12 >= A2 and 3 < A3)))]], indexedProps = {} },
-    { expr = [[(11 < A1 and 12 > A2 and 13 <= A3 and 14 >= A1)]], indexedProps = {} },
+      params = { ProductName = 'burn*' } },
+    { expr = [[QuantityPerUnit > 8 and QuantityPerUnit < 10 and ReorderLevel >= 1.34
+    and (ReorderLevel <= params.ReorderLevel and (UnitPrice >= '2015-11-07')) and DiscontinuedDate < params.DiscontinuedDate]],
+      indexedProps = {
+
+      },
+      params = { ReorderLevel = 3.45, DiscontinuedDate = '2016-04-13T13:00' } },
+    { expr = [[((QuantityPerUnit == 11 and (ReorderLevel == 12 or UnitPrice > 3)))]], indexedProps = {} },
+    { expr = [[((QuantityPerUnit == 12 and (ReorderLevel == 12 and not UnitPrice > 3)))]], indexedProps = {} },
+    { expr = [[((12 <= QuantityPerUnit and (12 >= ReorderLevel and 3 < UnitPrice)))]], indexedProps = {} },
+    { expr = [[(11 < QuantityPerUnit and 12 > ReorderLevel and 13 <= UnitPrice and 14 >= QuantityPerUnit)]], indexedProps = {} },
 }
 
 ---@param case IndexCase
 local function generate_indexed_items(case)
-    local filterDef = FilterDef(DummyClassDef, case.expr, case.params)
+    local filterDef = FilterDef(ProductClassDef, case.expr, case.params)
     print(case.expr)
     pretty.dump(filterDef.indexedItems)
 end
 
 local function process_expr_cases()
-    for i, case in ipairs(expr_cases) do
+    for _, case in ipairs(expr_cases) do
         generate_indexed_items(case)
     end
 end

@@ -14,13 +14,14 @@ local bits = type(jit) == 'table' and require('bit') or require('bit32')
 
 -- Configure Lua path for libraries
 package.path = string.format('%s;%s;%s',
-path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua')),
-path.abspath(path.relpath('../lib/lua-schema/?.lua')), package.path)
+                             path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua')),
+                             path.abspath(path.relpath('../lib/lua-schema/?.lua')), package.path)
 
 local DBContext = require('DBContext')
 
+-- Global singletone
 Flexi = {
-    -- List of all active contexts, key is sqlite database handle
+-- List of all active contexts, key is sqlite database handle
     Contexts = {},
 }
 
@@ -39,10 +40,6 @@ function Flexi.flexiFunction(ctx, action, ...)
 end
 
 function Flexi:newDBContext(db)
-    --local result = {
-    --    db = db,
-    --    ClassDefs = {} }
-
     local result = DBContext(db)
     self.Contexts[db] = result
     result.Vars = {}

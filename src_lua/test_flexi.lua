@@ -93,10 +93,6 @@ local ok, error = xpcall(function()
     db:exec(sql)
 
     local content = readAll(path.join(__dirname, 'test', 'json', 'Employees.schema.json'))
-    --sql = "select flexi('create class', 'Employees', '" .. content .. "', 0);"
-    --for row in db:rows(sql) do
-    --    print(row[1])
-    --end
 
     -- Create Northwind schema
     content = readAll(path.join(__dirname, 'test', 'json', 'Northwind.db3.schema.json'))

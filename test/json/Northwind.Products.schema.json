@@ -17,6 +17,7 @@
       }
     },
     "QuantityPerUnit": {
+      "index": "range",
       "rules": {
         "type": "text",
         "maxLength": 20
@@ -24,6 +25,7 @@
     },
     "ReorderLevel": {
       "defaultValue": 0,
+      "index": "range",
       "rules": {
         "maxValue": 32767,
         "type": "integer",
@@ -40,11 +42,13 @@
     },
     "UnitPrice": {
       "defaultValue": 0,
+      "index": "range",
       "rules": {
         "type": "money"
       }
     },
     "DiscontinuedDate": {
+      "index": "range",
       "rules": {
         "type": "date"
       }
@@ -66,13 +70,52 @@
         "maxLength": 40
       }
     },
+    "Description": {
+      "index": "fulltext",
+      "rules": {
+        "type": "text",
+        "minOccurrences": 1,
+        "maxOccurrences": 1,
+        "maxLength": 400
+      }
+    },
     "UnitsInStock": {
       "defaultValue": 0,
+      "index": "range",
       "rules": {
         "maxValue": 32767,
         "type": "integer",
         "minValue": -32768
       }
+    },
+    "CategoryID": {
+      "rules": {
+        "type": "integer",
+        "minOccurrences": 1,
+        "maxOccurrences": 1
+      }
+    },
+    "ProductCode": {
+      "index": "unique",
+      "rules": {
+        "type": "text",
+        "maxLength": 20,
+        "minOccurrences": 1,
+        "maxOccurrences": 1
+      }
+    }
+  },
+  "indexes": {
+    "byCategoryAndName": {
+      "type": "unique",
+      "properties": [
+        {
+          "text": "CategoryID"
+        },
+        {
+          "text": "ProductName"
+        }
+      ]
     }
   }
 }

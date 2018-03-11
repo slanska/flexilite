@@ -225,6 +225,10 @@ end
 function FilterDef:is_valid_value(propDef, astToken)
     astToken = skip_parens(astToken)
     if astToken.tag == 'Number' or astToken.tag == 'String' then
+        if not propDef then
+            return nil
+        end
+        
         local dbv = DBValue { }
         local result = propDef:ImportDBValue(dbv, astToken[1])
         if type(result) == 'string' then

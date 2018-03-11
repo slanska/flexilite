@@ -19,9 +19,9 @@ local function insertNewClass(self, clsObject)
     -- Save new class record to get ID
     clsObject.Name:resolve(clsObject)
     self:execStatement("insert into [.classes] (NameID) values (:ClassNameID);",
-            {
-                ClassNameID = clsObject.Name.id,
-            })
+                       {
+                           ClassNameID = clsObject.Name.id,
+                       })
     clsObject.D.ClassID = self.db:last_insert_rowid()
     clsObject.ClassID = clsObject.D.ClassID
 
@@ -118,10 +118,11 @@ end
 ---@param className string
 ---@param classDef table
 ---@param createVirtualTable boolean
+---@return string @comment result of operation
 local function createSingleClass(self, className, classDef, createVirtualTable)
     local schemaDef = { [className] = classDef }
     createMultiClasses(self, schemaDef, createVirtualTable)
-    return string.format('Class [%s] has been created')
+    return string.format('Class [%s] has been created', className)
 end
 
 --- Internal function to create class
