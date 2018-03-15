@@ -24,7 +24,7 @@ local NameRef = name_ref.NameRef
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 local AccessControl = require 'AccessControl'
-local bit = type(jit) == 'table' and require('bit') or require('bit32')
+--local bit = type(jit) == 'table' and require('bit') or require('bit32')
 
 --[[
 Index definitions for class. Operate with property IDs only,
@@ -238,6 +238,7 @@ end
 
 function IndexDefinitions:toInternalJSON()
     local result = {}
+    -- TODO
     return result
 end
 

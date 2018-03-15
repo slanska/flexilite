@@ -228,7 +228,7 @@ function FilterDef:is_valid_value(propDef, astToken)
         if not propDef then
             return nil
         end
-        
+
         local dbv = DBValue { }
         local result = propDef:ImportDBValue(dbv, astToken[1])
         if type(result) == 'string' then

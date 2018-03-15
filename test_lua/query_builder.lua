@@ -10,7 +10,6 @@ local pretty = require 'pl.pretty'
 local FilterDef = require('QueryBuilder').FilterDef
 
 local path = require 'pl.path'
-local ClassDef = require 'ClassDef'
 local CreateClass = require('flexi_CreateClass').CreateClass
 
 ---@param DBContext DBContext
@@ -72,7 +71,7 @@ local expr_cases = {
     { expr = [[ReorderLevel > 4 and ReorderLevel < 10]], indexedProps = {} },
     { expr = [[(QuantityPerUnit ~= 5)]], indexedProps = {
     } },
-    { expr = [[((QuantityPerUnit == 7 and (ReorderLevel == 2 and A3 > 3)))]], indexedProps = {
+    { expr = [[((QuantityPerUnit == 7 and (ReorderLevel == 2 and UnitPrice > 3)))]], indexedProps = {
     } },
     { expr = [[MATCH(Description, 'Lucifer*')]], indexedProps = {
     } },

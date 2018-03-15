@@ -121,6 +121,22 @@ data: Database, statements, user info, class definitions, cache of referenced va
 - enum property - generate enum class, save items
 - try sandbox mode
 
+- ignore case for schema - property types
+- ignore case for class and property names - custom Dictionary class?
+- generate valid SQL for indexed properties
+- filter records using Lua sandbox
+    - Params
+    - Literal values
+- Boxed() for DBValue
+- unit tests for insert and query
+    - Datetime
+- update and delete objects
+- Enum processing
+- References processing
+- unit tests for all property types, number of occurrences
+- property rules - object or array of objects (union)
+
+
 text|integer -> enum -> reference
 enum -> mixin
 properties -> mixin -> reference
