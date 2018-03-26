@@ -15,7 +15,11 @@ local math = require 'math'
 local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local JulianDate = require 'JulianDate'
 local pretty = require 'pl.pretty'
+
+-- TODO Use Penlight Date module
 local date = require 'date'
+
+local class = require 'pl.class'
 
 -- Max value for 26 bit integer
 local MAX27 = 0x8000000 -- 134217728
@@ -96,9 +100,37 @@ local function stringifyJulianToDateTime(num)
     return stringifyDateTimeInfo(dt)
 end
 
+---@class DictCI
+local DictCI = class()
+
+---@param values table | nil
+function DictCI:_init(values)
+    if values then
+        for k, v in pairs(values) do
+            self[k] = v
+        end
+    end
+end
+
+function DictCI:__index(key)
+    if type(key) == 'string' then
+        return rawget(self, string.lower(key))
+    end
+
+    return rawget(self, key)
+end
+
+function DictCI:__newindex(key, value)
+    if type(key) == 'string' then
+        return rawset(self, string.lower(key), value)
+    end
+
+    return rawset(self, key, value)
+end
+
 return {
--- Bit operations on 52-bit values
--- (52 bit integer are natively supported by Lua's number)
+    -- Bit operations on 52-bit values
+    -- (52 bit integer are natively supported by Lua's number)
     bit52 = {
         ---@type function
         bor = BOr64,
@@ -111,5 +143,6 @@ return {
 
     parseDatTimeToJulian = parseDatTimeToJulian,
     stringifyJulianToDateTime = stringifyJulianToDateTime,
-    stringifyDateTimeInfo = stringifyDateTimeInfo
+    stringifyDateTimeInfo = stringifyDateTimeInfo,
+    DictCI = DictCI
 }

@@ -12,7 +12,7 @@ name registration
 ]]
 
 local mobdebug = require('mobdebug')
-mobdebug.start()
+--mobdebug.start()
 
 sqlite3 = require 'lsqlite3complete'
 

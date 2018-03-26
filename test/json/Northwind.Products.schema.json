@@ -19,7 +19,7 @@
     "QuantityPerUnit": {
       "index": "range",
       "rules": {
-        "type": "text",
+        "type": "integer",
         "maxLength": 20
       }
     },

@@ -5,6 +5,7 @@
 
 local json = require 'cjson'
 local tablex = require 'pl.tablex'
+local ClassDef = require 'ClassDef'
 
 -- Detects differences between old and new properties.
 -- Returns tuple of added, modified and unchanged properties.
@@ -142,7 +143,9 @@ local function AlterClass(self, className, newClassDefJSON, createVTable, invali
 
     -- save changes
     -- replace class definition
-    self:addClassToList(newClass)
+    self:addClassToList(newClassDef)
+
+    ClassDef.ApplyIndexing(oldClassDef, newClassDef)
 
     self.SchemaChanged = true
 end

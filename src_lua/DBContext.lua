@@ -32,7 +32,7 @@ local AccessControl = require 'AccessControl'
 local DBObject = require 'DBObject'
 local EnumManager = require 'EnumManager'
 local Constants = require 'Constants'
-
+local DictCI = require('Util').DictCI
 
 --[[
 Maintains list of (normally deferred) actions to execute
@@ -123,7 +123,8 @@ function DBContext:_init(db)
     self.UserInfo = UserInfo()
 
     -- Collection of classes. Each class is referenced twice - by ID and Name
-    self.Classes = {}
+    self.Classes = DictCI()
+    --TODO self.Classes = {}
 
     -- Global list of registered functions. Each function is referenced twice - by ID and name
     self.Functions = {}
@@ -762,7 +763,7 @@ end
 
 -- Executes ad hoc SQL
 ---@param sql string
----@param params table
+---@param params table | nil
 function DBContext:ExecAdhocSql(sql, params)
     local stmt = self:getAdhocStmt(sql, params)
     local result = stmt:step()

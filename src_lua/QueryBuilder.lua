@@ -266,15 +266,15 @@ function FilterDef:is_prop_expression(astToken)
         local propVal = self:is_valid_value(prop, astToken[3])
 
         if prop and propVal then
-            table.insert( self.indexedItems, { propID = prop.ID,
-                                               cond = directConditions[astToken[1]], val = propVal })
+            table.insert(self.indexedItems, { propID = prop.ID,
+                                              cond = directConditions[astToken[1]], val = propVal })
             return true
         end
         prop = self:is_property_name(astToken[3])
         propVal = self:is_valid_value(prop, astToken[2])
         if prop and propVal then
-            table.insert( self.indexedItems, { propID = prop.ID,
-                                               cond = reversedConditions[astToken[1]], val = propVal })
+            table.insert(self.indexedItems, { propID = prop.ID,
+                                              cond = reversedConditions[astToken[1]], val = propVal })
             return true
         end
     end
@@ -375,7 +375,7 @@ function FilterDef:build_index_query()
         local ftsCandidates = {}
         for i, v in ipairs(self.indexedItems) do
             if v.cond == 'MATCH' then
-                table.insert( ftsCandidates, v.propID)
+                table.insert(ftsCandidates, v.propID)
             end
         end
         ftsCandidates = tablex.intersection(ftsCandidates, indexes.fullTextIndexing)
@@ -385,7 +385,7 @@ function FilterDef:build_index_query()
                 ]],
                                             self.ClassDef.ClassID))
             end
-            result:append(string.format([[ and X%d match %s]], escape_single_quotes() ))
+            result:append(string.format([[ and X%d match %s]], i, escape_single_quotes()))
         end
     end
 

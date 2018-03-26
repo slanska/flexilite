@@ -8,6 +8,7 @@
 local json = require 'cjson'
 local schema = require 'schema'
 local tablex = require 'pl.tablex'
+local ClassDef = require 'ClassDef'
 
 local alt_cls = require('flexi_AlterClass')
 local AlterClass, MergeClassDefinitions = alt_cls.AlterClass, alt_cls.MergeClassDefinitions
@@ -94,7 +95,6 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
             end
 
             -- Check if class is fully resolved, i.e. does not have references to non-existing classes
-            local unresolved = {}
             clsObject.D.Unresolved = false
             for _, p in pairs(clsObject.Properties) do
                 if p:hasUnresolvedReferences() then
@@ -110,6 +110,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
     for className in pairs(schemaDef) do
         local clsObject = self:getClassDef(className)
+        ClassDef.ApplyIndexing(nil, clsObject)
         clsObject:saveToDB()
     end
 end
