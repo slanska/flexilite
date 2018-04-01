@@ -372,20 +372,23 @@ function FilterDef:build_index_query()
 
     -- 3) full text search
     if indexes ~= nil and #indexes.fullTextIndexing > 0 then
-        local ftsCandidates = {}
+        local ftsMap = indexes:IndexArrayToMap(indexes.fullTextIndexing)
+        local firstFts = true
         for i, v in ipairs(self.indexedItems) do
             if v.cond == 'MATCH' then
-                table.insert(ftsCandidates, v.propID)
-            end
-        end
-        ftsCandidates = tablex.intersection(ftsCandidates, indexes.fullTextIndexing)
-        for i, propID in ipairs(ftsCandidates) do
-            if #result == 0 then
-                result:append(string.format([[select id from [.full_text_data] where ClassID=%d
+                if ftsMap[v.propID] ~= nil then
+                    if firstFts then
+                        if #result > 0 then
+                            result:append(' and ') -- TODO
+                        end
+                        result:append(string.format([[select id from [.full_text_data] where ClassID=%d
                 ]],
-                                            self.ClassDef.ClassID))
+                                                    self.ClassDef.ClassID))
+                        firstFts = false
+                    end
+                end
+                result:append(string.format([[ and X%d match %s]], ftsMap[v.propID], escape_single_quotes(v.val)))
             end
-            result:append(string.format([[ and X%d match %s]], i, escape_single_quotes()))
         end
     end
 

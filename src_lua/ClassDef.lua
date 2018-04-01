@@ -26,6 +26,7 @@ local tablex = require 'pl.tablex'
 local AccessControl = require 'AccessControl'
 local DictCI = require('Util').DictCI
 --local bit = type(jit) == 'table' and require('bit') or require('bit32')
+local pretty = require 'pl.pretty'
 
 --[[
 Index definitions for class. Operate with property IDs only,
@@ -64,9 +65,10 @@ function IndexDefinitions:_init()
     self.propIndexing = {}
 end
 
--- Internal method to convert array of property IDs to dictionary of number and index
+-- Converts array of property IDs to dictionary of number and index
 ---@param arr number[]
-function IndexDefinitions:indexArrayToMap(arr)
+---@return table<number, number> @comment key - property ID, value - index in arr
+function IndexDefinitions:IndexArrayToMap(arr)
     local result = {}
     for i, v in ipairs(arr) do
         result[v] = i
@@ -76,12 +78,12 @@ end
 
 -- Converts full text index definition from array to dictionary
 function IndexDefinitions:FullTextIndexAsMap()
-    return self:indexArrayToMap(self.fullTextIndexing)
+    return self:IndexArrayToMap(self.fullTextIndexing)
 end
 
 -- Converts range index definition from array to dictionary
 function IndexDefinitions:RangeIndexAsMap()
-    return self:indexArrayToMap(self.rangeIndexing)
+    return self:IndexArrayToMap(self.rangeIndexing)
 end
 
 ---@param propDef PropertyDef
@@ -565,9 +567,15 @@ end
 function ClassDef:saveToDB()
     assert(self.ClassID > 0)
 
-    --ClassDef.ApplyIndexing(nil, self)
-
-    local internalJson = json.encode(self:internalToJSON())
+    local internalJson = ''
+    local ok = xpcall(
+            function()
+                local internal = self:internalToJSON()
+                internalJson = json.encode(internal)
+            end,
+            function(error)
+                print(pretty.dump(internal))
+            end)
 
     -- Calculate ctloMask and vtypes
     self.vtypes = 0
