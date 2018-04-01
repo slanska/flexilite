@@ -81,11 +81,6 @@ function IndexDefinitions:FullTextIndexAsMap()
     return self:IndexArrayToMap(self.fullTextIndexing)
 end
 
--- Converts range index definition from array to dictionary
-function IndexDefinitions:RangeIndexAsMap()
-    return self:IndexArrayToMap(self.rangeIndexing)
-end
-
 ---@param propDef PropertyDef
 ---@return boolean, string @comment true if ok, false and error message if failed
 function IndexDefinitions:AddFullTextIndexedProperty(propDef)

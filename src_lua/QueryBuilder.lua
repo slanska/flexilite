@@ -106,7 +106,7 @@ local DBValue = require 'DBValue'
 
 ---@class QueryBuilderIndexItem
 ---@field propID number
----@field cond string
+---@field cond string @comment >=, <, =, >, <=
 ---@field val nil | boolean | number | string | table @comment params.Name
 ---@field processed number
 
@@ -208,7 +208,7 @@ end
 
 -- Evaluates if astToken is property name
 ---@param astToken ASTToken | string[]
----@return PropertyDef | nil @comment property ID
+---@return PropertyDef | nil
 function FilterDef:is_property_name(astToken)
     astToken = skip_parens(astToken)
     if astToken.tag == 'Id' and #astToken == 1 then
@@ -236,10 +236,11 @@ function FilterDef:is_valid_value(propDef, astToken)
         end
         return result
     end
+
     if astToken.tag == 'Index' and astToken[1].tag == 'Id' and astToken[1][1] == 'params'
             and astToken[2].tag == 'String' and type(astToken[2][1]) == 'string'
             and self.params then
-
+        -- TODO Use property parse string method
         return string.format([['%s']], escape_single_quotes(astToken[2][1]))
     end
 end
@@ -316,7 +317,7 @@ function FilterDef:check_multi_key_index(keyCount)
                     if #result > 0 then
                         result:append ' and '
                     end
-                    result:append(string.format([[Z%d %s %s]], mkIndex, tok.cond, escape_single_quotes(tok.val)))
+                    result:append(string.format([[Z%d %s %s]], mkIndex, tok.cond, tok.val))
                     tok.processed = (tok.processed or 0) + 1
 
                     if tok.cond ~= '=' then
@@ -344,26 +345,40 @@ function FilterDef:build_index_query()
     local indexes = self.ClassDef.indexes
     local firstCond = true
 
-    -- multi key unique indexes
+    -- 1) multi key unique indexes
     ---@type string
     local mkey_filter = self:check_multi_key_index(4)
             or self:check_multi_key_index(3)
             or self:check_multi_key_index(2)
+    -- TODO Generate mkey-based filter
 
-    -- check range indexing
+    -- 2) check range indexing
     if indexes ~= nil and #indexes.rangeIndexing > 0 then
-        local rngIdxMap = indexes:RangeIndexAsMap()
         for _, v in ipairs(self.indexedItems) do
             if v.cond ~= 'MATCH' then
-                local i = rngIdxMap[v.propID]
-                if i ~= nil then
+                local idx0 = tablex.find(indexes.rangeIndexing, v.propID)
+                local idx1 = tablex.rfind(indexes.rangeIndexing, v.propID)
+                local idx
+                if v.cond == '>' or v.cond == '>=' or v.cond == '=' then
+                    -- Use idx0
+                    if idx0 then
+                        idx = idx0
+                    end
+                else
+                    -- Use idx1
+                    if idx1 then
+                        idx = idx1
+                    end
+                end
+
+                if idx ~= nil then
                     if not firstCond then
                         result:append ' and '
                     else
                         firstCond = false
                     end
-                    result:append(string.format([[%s %s %s]],
-                                                indexes.rngCols[i], v.cond, escape_single_quotes(v.val)))
+                    result:append(string.format([[(%s %s %s)]],
+                                                indexes.rngCols[idx], v.cond, v.val))
                     v.processed = (v.processed or 0) + 1
                 end
             end
@@ -386,8 +401,8 @@ function FilterDef:build_index_query()
                                                     self.ClassDef.ClassID))
                         firstFts = false
                     end
+                    result:append(string.format([[ and X%d match %s]], ftsMap[v.propID], v.val))
                 end
-                result:append(string.format([[ and X%d match %s]], ftsMap[v.propID], escape_single_quotes(v.val)))
             end
         end
     end
@@ -396,10 +411,12 @@ function FilterDef:build_index_query()
     if indexes ~= nil then
         for i, v in ipairs(self.indexedItems) do
             if not v.processed and indexes.propIndexing[v.propID] then
-
+                -- TODO
             end
         end
     end
+
+    print('SQL:' .. result:join('\n'))
 
     return result:join('\n')
 end
