@@ -41,10 +41,6 @@ In order to expression to qualify for index search the following criteria must b
 will be considered for indexing.
 - expression may have only 'and'. 'or', 'not' will degrade to full scan
 
-Flexilite will attempt to use the best index available. Logic is based on relative weights of every index
-For example, if prop A and B are included into range index, and A is also indexed, then
-filter A == 1 and B == 2 will use range index rather than index by A only.
-
 For multi-key indexes Flexilite will attempt to apply as much properties as possible.
 For example, for multi-key index on A, B, C, D:
 A == 1 and B > 2 -> multi-key index will be used on A and B
@@ -241,7 +237,7 @@ function FilterDef:is_valid_value(propDef, astToken)
             and astToken[2].tag == 'String' and type(astToken[2][1]) == 'string'
             and self.params then
         -- TODO Use property parse string method
-        return string.format([['%s']], escape_single_quotes(astToken[2][1]))
+        return string.format([[params.%s]], astToken[2][1])
     end
 end
 
