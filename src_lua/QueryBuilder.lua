@@ -178,7 +178,7 @@ function FilterDef:is_match_call(astToken)
                 return false
             end
 
-            -- second parameter is expected to be string literal/param
+            -- second parameter is expected to be string literal or param
             local propVal = self:is_valid_value(prop, astToken[3])
             if propVal then
                 table.insert(self.indexedItems, { propID = prop.ID, cond = 'MATCH', val = propVal })
@@ -220,24 +220,28 @@ end
 ---@return number | string | nil
 function FilterDef:is_valid_value(propDef, astToken)
     astToken = skip_parens(astToken)
+    local vv = nil
     if astToken.tag == 'Number' or astToken.tag == 'String' then
         if not propDef then
             return nil
         end
+        vv = astToken[1]
+    elseif astToken.tag == 'Index' and astToken[1].tag == 'Id' and astToken[1][1] == 'params'
+            and astToken[2].tag == 'String' and type(astToken[2][1]) == 'string'
+            and self.params then
+        vv = astToken[2][1]
+    end
 
+    if vv then
         local dbv = DBValue { }
-        local result = propDef:ImportDBValue(dbv, astToken[1])
+        propDef:ImportDBValue(dbv, vv)
+        local result = dbv.Value
         if type(result) == 'string' then
             result = escape_single_quotes(result)
         end
         return result
-    end
-
-    if astToken.tag == 'Index' and astToken[1].tag == 'Id' and astToken[1][1] == 'params'
-            and astToken[2].tag == 'String' and type(astToken[2][1]) == 'string'
-            and self.params then
-        -- TODO Use property parse string method
-        return string.format([[params.%s]], astToken[2][1])
+    else
+        return nil
     end
 end
 
@@ -335,11 +339,10 @@ function FilterDef:build_index_query()
     -- Skip external wrapper and 'Return' tag - they will be always there
     self:process_token(self.ast[1][1])
 
-    ---@type List
+    ---@type List @comment used as a string builder
     local result = List()
-    result:append '('
+    --result:append '('
     local indexes = self.ClassDef.indexes
-    local firstCond = true
 
     -- 1) multi key unique indexes
     ---@type string
@@ -350,6 +353,7 @@ function FilterDef:build_index_query()
 
     -- 2) check range indexing
     if indexes ~= nil and #indexes.rangeIndexing > 0 then
+        local firstCond = true
         for _, v in ipairs(self.indexedItems) do
             if v.cond ~= 'MATCH' then
                 local idx0 = tablex.find(indexes.rangeIndexing, v.propID)
@@ -372,12 +376,19 @@ function FilterDef:build_index_query()
                         result:append ' and '
                     else
                         firstCond = false
+                        result:append(string.format('ObjectID in (select ObjectID from [.range_data_%d] where ',
+                                                    self.ClassDef.ClassID))
                     end
                     result:append(string.format([[(%s %s %s)]],
                                                 indexes.rngCols[idx], v.cond, v.val))
                     v.processed = (v.processed or 0) + 1
                 end
             end
+        end
+
+        if not firstCond then
+            -- Some conditions were encountered - need to close sub-query statement
+            result:append(')')
         end
     end
 
@@ -392,7 +403,7 @@ function FilterDef:build_index_query()
                         if #result > 0 then
                             result:append(' and ') -- TODO
                         end
-                        result:append(string.format([[select id from [.full_text_data] where ClassID=%d
+                        result:append(string.format([[ObjectID in (select id from [.full_text_data] where ClassID=%d
                 ]],
                                                     self.ClassDef.ClassID))
                         firstFts = false
@@ -401,13 +412,25 @@ function FilterDef:build_index_query()
                 end
             end
         end
+        if not firstFts then
+            result:append(')')
+        end
     end
 
     -- 4) single property indexes
     if indexes ~= nil then
         for i, v in ipairs(self.indexedItems) do
-            if not v.processed and indexes.propIndexing[v.propID] then
+            local idxMode = indexes.propIndexing[v.propID]
+            if not v.processed and idxMode ~= nil then
                 -- TODO
+                if #result > 0 then
+                    result:append(' and ')
+                end
+                result:append(string.format([[ObjectID in (select ObjectID from [.ref-values]
+                where PropertyID = %d and Value %s %s]], v.propID, v.cond, v.val))
+                if idxMode == true then
+                    result:append('') -- TODO ctlv
+                end
             end
         end
     end

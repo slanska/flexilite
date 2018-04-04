@@ -279,7 +279,7 @@ function PropertyDef:applyDef()
     elseif idx == 'unique' then
         self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.UNIQUE)
     else
-        self.ctlv = bit.band(self.ctlv, bit.bnot(bit.bor(Constants.CTLV_FLAGS.INDEX, Constants.CTLV_FLAGS.UNIQUE)) )
+        self.ctlv = bit.band(self.ctlv, bit.bnot(bit.bor(Constants.CTLV_FLAGS.INDEX, Constants.CTLV_FLAGS.UNIQUE)))
     end
 
     if self.D.noTrackChanges then
@@ -340,7 +340,7 @@ function PropertyDef:GetColumnExpression(first)
     if self.ColMap then
         return string.format(
                 '%s coalesce([%s], (select [Value] from [.ref-values] where ClassID=%d and PropertyID=%d and PropIndex=0 limit 1)) as [%s]',
-                first and ' ' or ',', self.ColMap, self.ClassDef.ClassID, self.ID, self.Name.text )
+                first and ' ' or ',', self.ColMap, self.ClassDef.ClassID, self.ID, self.Name.text)
     else
         return string.format(
                 '%s (select [Value] from [.ref-values] where ClassID=%d and PropertyID=%d and PropIndex=0 limit 1) as [%s]',
@@ -1157,6 +1157,17 @@ function DateTimePropertyDef:GetRawValue(dbv)
     return self:toJulian(dbv.Value)
 end
 
+---@param dbv DBValue
+---@param v any
+function DateTimePropertyDef:ImportDBValue(dbv, v)
+    if type(v) == 'string' then
+        -- TODO convert date from string
+    elseif type(v) == 'number' then
+        -- TODO treat value as Julian date (number of days)
+    else
+    end
+end
+
 --[[
 ===============================================================================
 TimeSpanPropertyDef
@@ -1276,26 +1287,26 @@ local RefDefSchemaDef = {
         })
     }),
 
---[[
-Property name ID (in `classRef` class) used as reversed reference property for this one. Optional. If set,
-Flexilite will ensure that referenced class does have this property (by creating if needed).
-'reversed property' is treated as slave of master definition. It means the following:
-1) reversed object ID is stored in [Value] field (master's object ID in [ObjectID] field)
-     2) when master property gets modified (switches to different class or reverse property) or deleted,
-     reverse property definition also gets deleted
-     ]]
+    --[[
+    Property name ID (in `classRef` class) used as reversed reference property for this one. Optional. If set,
+    Flexilite will ensure that referenced class does have this property (by creating if needed).
+    'reversed property' is treated as slave of master definition. It means the following:
+    1) reversed object ID is stored in [Value] field (master's object ID in [ObjectID] field)
+         2) when master property gets modified (switches to different class or reverse property) or deleted,
+         reverse property definition also gets deleted
+         ]]
     reverseProperty = schema.Optional(name_ref.IdentifierSchema),
 
---[[
-Defines number of items fetched as a part of master object load. Applicable only > 0
-]]
+    --[[
+    Defines number of items fetched as a part of master object load. Applicable only > 0
+    ]]
     autoFetchLimit = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
 
-    autoFetchDepth = schema.Optional(schema.AllOf( schema.Integer, schema.PositiveNumber)),
+    autoFetchDepth = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
 
---[[
-Optional relation rule when object gets deleted. If not specified, 'link' is assumed
-]]
+    --[[
+    Optional relation rule when object gets deleted. If not specified, 'link' is assumed
+    ]]
     rule = schema.OneOf(schema.Nil,
 
     --[[
@@ -1322,25 +1333,25 @@ Optional relation rule when object gets deleted. If not specified, 'link' is ass
     ),
 }
 
-PropertyDef.Schema = schema.AllOf( schema.Record {
+PropertyDef.Schema = schema.AllOf(schema.Record {
     rules = schema.AllOf(
             schema.Record {
                 type = schema.OneOf(unpack(tablex.keys(PropertyDef.PropertyTypes))),
-                subType = schema.OneOf(schema.Nil, 'text', 'email', 'ip', 'password', 'ip6v', 'url', 'image', 'html' ), -- TODO list to be extended
+                subType = schema.OneOf(schema.Nil, 'text', 'email', 'ip', 'password', 'ip6v', 'url', 'image', 'html'), -- TODO list to be extended
                 minOccurrences = schema.Optional(schema.AllOf(schema.NonNegativeNumber, schema.Integer)),
                 maxOccurrences = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
                 maxLength = schema.Optional(schema.AllOf(schema.Integer, schema.NumberFrom(-1, Constants.MAX_INTEGER))),
-            -- TODO integer, float or date/time, depending on property type
+                -- TODO integer, float or date/time, depending on property type
                 minValue = schema.Optional(schema.Number),
                 maxValue = schema.Optional(schema.Number),
                 regex = schema.Optional(schema.String),
             },
-            schema.Test( function(rules)
+            schema.Test(function(rules)
                 return (rules.maxOccurrences or 1) >= (rules.minOccurrences or 0)
             end, 'maxOccurrences must be greater or equal than minOccurrences')
     ,
 
-            schema.Test( function(rules)
+            schema.Test(function(rules)
                 -- TODO Check property type
                 return (rules.maxValue or Constants.MAX_NUMBER) >= (rules.minValue or Constants.MIN_NUMBER)
             end, 'maxValue must be greater or equal than minValue')
@@ -1350,32 +1361,32 @@ PropertyDef.Schema = schema.AllOf( schema.Record {
     noTrackChanges = schema.Optional(schema.Boolean),
 
     enumDef = schema.Case('rules.type',
-                          { schema.OneOf( 'enum', 'fkey', 'foreignkey'),
+                          { schema.OneOf('enum', 'fkey', 'foreignkey'),
                             schema.Optional(schema.Record(EnumDefSchemaDef)) },
                           { schema.Any, schema.Any }),
 
     refDef = schema.Case('rules.type',
-                         { schema.OneOf('link', 'mixin', 'ref', 'reference'), schema.Record( RefDefSchemaDef) },
-                         { schema.OneOf( 'enum', 'fkey', 'foreignkey'), schema.Optional(schema.Record( EnumRefDefSchemaDef)) },
+                         { schema.OneOf('link', 'mixin', 'ref', 'reference'), schema.Record(RefDefSchemaDef) },
+                         { schema.OneOf('enum', 'fkey', 'foreignkey'), schema.Optional(schema.Record(EnumRefDefSchemaDef)) },
                          { schema.Any, schema.Any }),
 
--- todo specific property value
+    -- todo specific property value
     defaultValue = schema.Any,
     accessRules = schema.Optional(AccessControl.Schema),
 }
 ,
-                                   schema.Test(
-                                           function(propDef)
-                                               -- Test enum definition
-                                               local t = string.lower(propDef.rules.type)
-                                               if t == 'enum' or t == 'fkey' or t == 'foreignkey' then
-                                                   local def = propDef.enumDef and 1 or 0
-                                                   def = def + (propDef.refDef and 2 or 0)
-                                                   return def == 1 or def == 2
-                                               end
-                                               return true
-                                           end, 'Enum property requires either enumDef or refDef (but not both)'
-                                   )
+                                  schema.Test(
+                                          function(propDef)
+                                              -- Test enum definition
+                                              local t = string.lower(propDef.rules.type)
+                                              if t == 'enum' or t == 'fkey' or t == 'foreignkey' then
+                                                  local def = propDef.enumDef and 1 or 0
+                                                  def = def + (propDef.refDef and 2 or 0)
+                                                  return def == 1 or def == 2
+                                              end
+                                              return true
+                                          end, 'Enum property requires either enumDef or refDef (but not both)'
+                                  )
 )
 
 return PropertyDef
