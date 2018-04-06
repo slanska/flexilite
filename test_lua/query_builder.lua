@@ -88,13 +88,14 @@ local expr_cases = {
     { expr = [[((QuantityPerUnit == 12 and (ReorderLevel == 12 and not UnitPrice > 3)))]], indexedProps = {} },
     { expr = [[((12 <= QuantityPerUnit and (12 >= ReorderLevel and 3 < UnitPrice)))]], indexedProps = {} },
     { expr = [[(11 < QuantityPerUnit and 12 > ReorderLevel and 13 <= UnitPrice and 14 >= QuantityPerUnit)]], indexedProps = {} },
+    { expr = [[CategoryID == 6 and ProductName >= 'B' and ProductName < 'C']], indexedProps = {} },
 }
 
 ---@param case IndexCase
 local function generate_indexed_items(case)
     print('#Expression: '..case.expr)
     local filterDef = FilterDef(ProductClassDef, case.expr, case.params)
-    pretty.dump(filterDef.indexedItems)
+    --pretty.dump(filterDef.indexedItems)
 end
 
 local function process_expr_cases()

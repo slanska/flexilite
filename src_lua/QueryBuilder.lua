@@ -99,6 +99,8 @@ local lua_compiler = require('metalua.compiler').new()
 local tablex = require 'pl.tablex'
 local List = require 'pl.list'
 local DBValue = require 'DBValue'
+local Constants = require 'Constants'
+local pretty = require 'pl.pretty'
 
 ---@class QueryBuilderIndexItem
 ---@field propID number
@@ -220,7 +222,7 @@ end
 ---@return number | string | nil
 function FilterDef:is_valid_value(propDef, astToken)
     astToken = skip_parens(astToken)
-    local vv = nil
+    local vv
     if astToken.tag == 'Number' or astToken.tag == 'String' then
         if not propDef then
             return nil
@@ -229,7 +231,7 @@ function FilterDef:is_valid_value(propDef, astToken)
     elseif astToken.tag == 'Index' and astToken[1].tag == 'Id' and astToken[1][1] == 'params'
             and astToken[2].tag == 'String' and type(astToken[2][1]) == 'string'
             and self.params then
-        vv = astToken[2][1]
+        vv = self.params[astToken[2][1]]
     end
 
     if vv then
@@ -349,7 +351,11 @@ function FilterDef:build_index_query()
     local mkey_filter = self:check_multi_key_index(4)
             or self:check_multi_key_index(3)
             or self:check_multi_key_index(2)
-    -- TODO Generate mkey-based filter
+
+    if mkey_filter ~= nil then
+        -- TODO Generate mkey-based filter
+        pretty.dump(mkey_filter)
+    end
 
     -- 2) check range indexing
     if indexes ~= nil and #indexes.rangeIndexing > 0 then
@@ -417,25 +423,44 @@ function FilterDef:build_index_query()
         end
     end
 
-    -- 4) single property indexes
-    if indexes ~= nil then
-        for i, v in ipairs(self.indexedItems) do
-            local idxMode = indexes.propIndexing[v.propID]
-            if not v.processed and idxMode ~= nil then
-                -- TODO
-                if #result > 0 then
-                    result:append(' and ')
+    -- 4) single property search - indexed or not
+    for i, v in ipairs(self.indexedItems) do
+        if not v.processed then
+            local propDef = self.ClassDef.DBContext.ClassProps[v.propID]
+            if indexes ~= nil then
+                local idxMode = indexes.propIndexing[v.propID]
+                if idxMode ~= nil and v.cond ~= 'MATCH' then
+                    -- TODO
+                    if #result > 0 then
+                        result:append(' and ')
+                    end
+                    result:append(string.format([[ObjectID in (select ObjectID from [.ref-values]
+                        where PropertyID = %d and Value %s %s]], v.propID, v.cond, v.val))
+
+                    local idxFlag = idxMode and Constants.CTLV_FLAGS.UNIQUE or Constants.CTLV_FLAGS.INDEX
+                    result:append(string.format(' and ctlv & %d <> 0)', idxFlag))
+                    v.processed = true
                 end
-                result:append(string.format([[ObjectID in (select ObjectID from [.ref-values]
-                where PropertyID = %d and Value %s %s]], v.propID, v.cond, v.val))
-                if idxMode == true then
-                    result:append('') -- TODO ctlv
+            end
+
+            -- Index was not found - apply direct search
+            if not v.processed then
+                if propDef and propDef.ColMap then
+                    if #result > 0 then
+                        result:append(' and ')
+                    end
+                    result:append(string.format('(%s %s %s)', propDef.ColMap, v.cond, v.val))
                 end
             end
         end
     end
 
-    print('SQL:' .. result:join('\n'))
+    -- 5. For all 'indexable' tokens (i.e. those which meet criteria to search by index)
+    -- and are column-mapped generate SQL 'where' clause to apply to .objects fields directly
+    -- TODO
+
+    print('-> SQL:' .. result:join(' ') .. '\n')
+    --print('-> SQL:' .. result:join('\n'))
 
     return result:join('\n')
 end

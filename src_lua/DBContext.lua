@@ -93,7 +93,7 @@ end
 ---@field UserInfo UserInfo
 ---@field Classes table <string, ClassDef>
 ---@field Functions table
----@field ClassProps table
+---@field ClassProps table<number, PropertyDef>
 ---@field Objects tables <number, DBObject>
 ---@field DirtyObjects table <number, DBObject>
 ---@field ClassDef ClassDef @comment constructor
