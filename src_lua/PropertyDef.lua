@@ -472,6 +472,12 @@ function NumberPropertyDef:GetSupportedIndexTypes()
     return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.RNG + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ
 end
 
+---@param dbv DBValue
+---@param v any
+function NumberPropertyDef:ImportDBValue(dbv, v)
+    dbv.Value = tonumber(v)
+end
+
 --[[
 ===============================================================================
 MoneyPropertyDef
@@ -1161,10 +1167,11 @@ end
 ---@param v any
 function DateTimePropertyDef:ImportDBValue(dbv, v)
     if type(v) == 'string' then
-        -- TODO convert date from string
+        dbv.Value = parseDatTimeToJulian(v)
     elseif type(v) == 'number' then
-        -- TODO treat value as Julian date (number of days)
+        dbv.Value = tonumber(v)
     else
+        -- TODO error()
     end
 end
 

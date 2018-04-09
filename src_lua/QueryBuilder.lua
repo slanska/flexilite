@@ -114,6 +114,8 @@ local pretty = require 'pl.pretty'
 ---@field ast table
 ---@field indexedItems QueryBuilderIndexItem[] @comment property IDs may be duplicated
 ---@field params table
+---@field matchCallCount number @comment Number of MATCH function calls
+---@field callCount number @comment Total umber of function calls
 local FilterDef = class()
 
 ---@class ASTToken
@@ -160,11 +162,22 @@ end
 
 ---@param astToken ASTToken
 function FilterDef:process_token(astToken)
-    if self:is_and_expr(astToken) then
+    if self:is_and_or_not_expr(astToken) then
     elseif self:is_prop_expression(astToken) then
     elseif self:is_match_call(astToken) then
         -- TODO
     end
+end
+
+-- Clones ast and trims all non-expression tokens (i.e. function calls other than MATCH,
+-- arithmetical operators etc)
+---@param ast table
+---@return table @comment trimmed clone of self.ast
+function FilterDef:get_prop_expressions_only(ast)
+    local result = tablex.map(function()
+
+    end, ast)
+    return result
 end
 
 -- Determines if astToken is MATCH function call
@@ -172,6 +185,7 @@ end
 function FilterDef:is_match_call(astToken)
     astToken = skip_parens(astToken)
     if #astToken == 3 and astToken.tag == 'Call' then
+        self.callCount = self.callCount + 1
         local callToken = astToken[1]
         if callToken and #callToken == 1 and callToken[1] == 'MATCH' and callToken.tag == 'Id' then
             -- first parameter is expected to be property name
@@ -183,6 +197,7 @@ function FilterDef:is_match_call(astToken)
             -- second parameter is expected to be string literal or param
             local propVal = self:is_valid_value(prop, astToken[3])
             if propVal then
+                self.matchCallCount = self.matchCallCount + 1
                 table.insert(self.indexedItems, { propID = prop.ID, cond = 'MATCH', val = propVal })
                 return true
             end
@@ -193,9 +208,12 @@ function FilterDef:is_match_call(astToken)
 end
 
 ---@param astToken ASTToken
-function FilterDef:is_and_expr(astToken)
+---@param orCond string | nil @comment 'or'
+---@param notCond string | nil @comment 'not'
+function FilterDef:is_and_or_not_expr(astToken, orCond, notCond)
     astToken = skip_parens(astToken)
-    if astToken.tag == 'Op' and astToken[1] == 'and' then
+    if astToken.tag == 'Op' and (astToken[1] == 'and'
+            or astToken[1] == orCond or astToken[1] == notCond) then
         self:process_token(astToken[2])
         self:process_token(astToken[3])
         return true
@@ -261,7 +279,6 @@ local directConditions = {
 
 ---@param astToken ASTToken
 function FilterDef:is_prop_expression(astToken)
-    local cond = astToken.tag
     astToken = skip_parens(astToken)
 
     if astToken.tag == 'Op' and (astToken[1] == 'lt' or astToken[1] == 'le' or astToken[1] == 'eq') then
@@ -302,9 +319,11 @@ function FilterDef:find_indexed_prop(propID, startIndex, ignoreProcessed)
     return nil, index
 end
 
+-- Checks if there is multi-key index defined for this
 ---@param keyCount number @comment 2, 3, 4
+---@param sql List
 ---@return string | nil
-function FilterDef:check_multi_key_index(keyCount)
+function FilterDef:check_multi_key_index(keyCount, sql)
     local indexes = self.ClassDef.indexes
     if not indexes then
         return nil
@@ -312,14 +331,18 @@ function FilterDef:check_multi_key_index(keyCount)
 
     local mkey = indexes.multiKeyIndexing[keyCount]
     if mkey ~= nil then
-        local result = List()
+        local itemsAdded = 0
         for mkIndex, propID in ipairs(mkey) do
             for i, tok in ipairs(self.indexedItems) do
                 if tok.propID == propID and tok.cond ~= 'MATCH' then
-                    if #result > 0 then
-                        result:append ' and '
+                    if #sql > 0 then
+                        sql:append ' and '
                     end
-                    result:append(string.format([[Z%d %s %s]], mkIndex, tok.cond, tok.val))
+                    if itemsAdded == 0 then
+                        sql:append(string.format([[(select * from [.multi_key_%d] where ]], keyCount))
+                    end
+                    itemsAdded = itemsAdded + 1
+                    sql:append(string.format([[Z%d %s %s]], mkIndex, tok.cond, tok.val))
                     tok.processed = (tok.processed or 0) + 1
 
                     if tok.cond ~= '=' then
@@ -329,35 +352,17 @@ function FilterDef:check_multi_key_index(keyCount)
             end
         end
 
-        if #result > 0 then
-            return string.format([[(select * from [.multi_key_%d] where %s)]], keyCount, result:join(''))
+        if itemsAdded > 0 then
+            sql:append ')'
         end
     end
 
     return nil
 end
 
-function FilterDef:build_index_query()
-    -- Skip external wrapper and 'Return' tag - they will be always there
-    self:process_token(self.ast[1][1])
-
-    ---@type List @comment used as a string builder
-    local result = List()
-    --result:append '('
+---@param sql List
+function FilterDef:process_range_index(sql)
     local indexes = self.ClassDef.indexes
-
-    -- 1) multi key unique indexes
-    ---@type string
-    local mkey_filter = self:check_multi_key_index(4)
-            or self:check_multi_key_index(3)
-            or self:check_multi_key_index(2)
-
-    if mkey_filter ~= nil then
-        -- TODO Generate mkey-based filter
-        pretty.dump(mkey_filter)
-    end
-
-    -- 2) check range indexing
     if indexes ~= nil and #indexes.rangeIndexing > 0 then
         local firstCond = true
         for _, v in ipairs(self.indexedItems) do
@@ -379,14 +384,14 @@ function FilterDef:build_index_query()
 
                 if idx ~= nil then
                     if not firstCond then
-                        result:append ' and '
+                        sql:append ' and '
                     else
                         firstCond = false
-                        result:append(string.format('ObjectID in (select ObjectID from [.range_data_%d] where ',
-                                                    self.ClassDef.ClassID))
+                        sql:append(string.format('ObjectID in (select ObjectID from [.range_data_%d] where ',
+                                                 self.ClassDef.ClassID))
                     end
-                    result:append(string.format([[(%s %s %s)]],
-                                                indexes.rngCols[idx], v.cond, v.val))
+                    sql:append(string.format([[(%s %s %s)]],
+                                             indexes.rngCols[idx], v.cond, v.val))
                     v.processed = (v.processed or 0) + 1
                 end
             end
@@ -394,11 +399,14 @@ function FilterDef:build_index_query()
 
         if not firstCond then
             -- Some conditions were encountered - need to close sub-query statement
-            result:append(')')
+            sql:append(')')
         end
     end
+end
 
-    -- 3) full text search
+---@param sql List
+function FilterDef:process_full_text_index(sql)
+    local indexes = self.ClassDef.indexes
     if indexes ~= nil and #indexes.fullTextIndexing > 0 then
         local ftsMap = indexes:IndexArrayToMap(indexes.fullTextIndexing)
         local firstFts = true
@@ -406,24 +414,28 @@ function FilterDef:build_index_query()
             if v.cond == 'MATCH' then
                 if ftsMap[v.propID] ~= nil then
                     if firstFts then
-                        if #result > 0 then
-                            result:append(' and ') -- TODO
+                        if #sql > 0 then
+                            sql:append(' and ') -- TODO
                         end
-                        result:append(string.format([[ObjectID in (select id from [.full_text_data] where ClassID=%d
+                        sql:append(string.format([[ObjectID in (select id from [.full_text_data] where ClassID=%d
                 ]],
-                                                    self.ClassDef.ClassID))
+                                                 self.ClassDef.ClassID))
                         firstFts = false
                     end
-                    result:append(string.format([[ and X%d match %s]], ftsMap[v.propID], v.val))
+                    sql:append(string.format([[ and X%d match %s]], ftsMap[v.propID], v.val))
                 end
             end
         end
         if not firstFts then
-            result:append(')')
+            sql:append(')')
         end
     end
 
-    -- 4) single property search - indexed or not
+end
+
+---@param sql List
+function FilterDef:process_single_properties(sql)
+    local indexes = self.ClassDef.indexes
     for i, v in ipairs(self.indexedItems) do
         if not v.processed then
             local propDef = self.ClassDef.DBContext.ClassProps[v.propID]
@@ -431,14 +443,14 @@ function FilterDef:build_index_query()
                 local idxMode = indexes.propIndexing[v.propID]
                 if idxMode ~= nil and v.cond ~= 'MATCH' then
                     -- TODO
-                    if #result > 0 then
-                        result:append(' and ')
+                    if #sql > 0 then
+                        sql:append(' and ')
                     end
-                    result:append(string.format([[ObjectID in (select ObjectID from [.ref-values]
+                    sql:append(string.format([[ObjectID in (select ObjectID from [.ref-values]
                         where PropertyID = %d and Value %s %s]], v.propID, v.cond, v.val))
 
                     local idxFlag = idxMode and Constants.CTLV_FLAGS.UNIQUE or Constants.CTLV_FLAGS.INDEX
-                    result:append(string.format(' and ctlv & %d <> 0)', idxFlag))
+                    sql:append(string.format(' and (ctlv & %d <> 0))', idxFlag))
                     v.processed = true
                 end
             end
@@ -446,14 +458,52 @@ function FilterDef:build_index_query()
             -- Index was not found - apply direct search
             if not v.processed then
                 if propDef and propDef.ColMap then
-                    if #result > 0 then
-                        result:append(' and ')
+                    if #sql > 0 then
+                        sql:append(' and ')
                     end
-                    result:append(string.format('(%s %s %s)', propDef.ColMap, v.cond, v.val))
+                    sql:append(string.format('(%s %s %s)', propDef.ColMap, v.cond, v.val))
                 end
             end
         end
     end
+end
+
+---@param sql List
+function FilterDef:process_multi_key_index(sql)
+    local indexes = self.ClassDef.indexes
+    ---@type string
+    local mkey_filter = self:check_multi_key_index(4, sql)
+            or self:check_multi_key_index(3, sql)
+            or self:check_multi_key_index(2, sql)
+
+    if mkey_filter ~= nil then
+        -- TODO Generate mkey-based filter
+        pretty.dump(mkey_filter)
+    end
+end
+
+function FilterDef:build_index_query()
+    self.matchCallCount = 0
+    self.callCount = 0
+
+    -- Skip external wrapper and 'Return' tag - they will be always there
+    self:process_token(self.ast[1][1])
+
+    ---@type List @comment used as a string builder
+    local result = List()
+    --result:append '('
+
+    -- 1) multi key unique indexes
+    self:process_multi_key_index(result)
+
+    -- 2) check range indexing
+    self:process_range_index(result)
+
+    -- 3) full text search
+    self:process_full_text_index(result)
+
+    -- 4) single property search - indexed or not
+    self:process_single_properties(result)
 
     -- 5. For all 'indexable' tokens (i.e. those which meet criteria to search by index)
     -- and are column-mapped generate SQL 'where' clause to apply to .objects fields directly
@@ -479,6 +529,7 @@ function QueryBuilder:GetReferencedObjects(propDef, filter)
 
 end
 
+-- TODO
 QueryBuilder.Schema = schema.Record {
 
 }
