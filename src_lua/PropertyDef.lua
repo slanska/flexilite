@@ -405,6 +405,12 @@ function PropertyDef:BeforeDBValueSave(dbv)
     return true, nil
 end
 
+-- Returns index of column mapped
+---@return number | nil
+function PropertyDef:ColMapIndex()
+    return self.ColMap ~= nil and string.lower(self.ColMap):byte() - string.byte('a') or nil
+end
+
 --[[
 ===============================================================================
 AnyPropertyDef

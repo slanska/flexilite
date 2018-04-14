@@ -83,7 +83,7 @@ local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 local DBProperty = require('DBProperty').DBProperty
 local ChangedDBProperty = require('DBProperty').ChangedDBProperty
 local NullDBValue = require('DBProperty').NullDBValue
-local pretty = require 'pl.pretty'
+--TODO local pretty = require 'pl.pretty'
 
 
 --[[
@@ -701,9 +701,8 @@ local DBObject = class()
 
 ---@class DBObjectCtorParams
 ---@field ID number
----@field op string
 ---@field ClassDef ClassDef
----@field DBContext DBContext
+---@field DBContext DBContext @comment optional if ClassDef is supplied
 ---@field Data table @comment optional data payload
 
 ---@param params DBObjectCtorParams
@@ -732,6 +731,7 @@ function DBObject:_init(params, state)
     end
 end
 
+-- Provides read only boxed (protected) access to properties or original object
 function DBObject:original()
     if not self._original then
         self._original = setmetatable({}, {
@@ -749,6 +749,7 @@ function DBObject:original()
     return self._original
 end
 
+-- Provides read and write boxed (protected) access to properties or current object
 function DBObject:current()
     if not self._current then
         self._current = setmetatable({}, {

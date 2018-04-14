@@ -83,6 +83,25 @@ function ActionList:Clear()
     self.tags = {}
 end
 
+
+--[[
+Utility class for boxed access to DBObject and registered user functions.
+Used in filtering, user functions and triggers
+]]
+---@class DBObjectWrap
+---@field DBObject DBObject
+
+local DBObjectWrap = class()
+
+---@param DBObject DBObject
+function DBObjectWrap:_init(DBObject)
+    self.DBObject = DBObject
+end
+
+function DBObjectWrap:Boxed()
+    
+end
+
 ---@class DBContextConfig
 ---@field createVirtualTable boolean
 
@@ -210,7 +229,7 @@ function DBContext:LoadObject(id, propIds, forUpdate)
     local op = forUpdate and Constants.OPERATION.UPDATE or Constants.OPERATION.READ
     if not result then
         -- TODO Check access rules for class and specific object
-        result = DBObject( { ID = id, PropIDs = propIds, DBContext = self }, op)
+        result = DBObject({ ID = id, PropIDs = propIds, DBContext = self }, op)
         self.Objects[id] = result
     end
     return result
@@ -251,7 +270,7 @@ end
 ---@param data table|nil
 function DBContext:NewObject(classDef, data)
     local pp = { ClassDef = classDef, ID = self:GetNewObjectID(), Data = data }
-    local result = DBObject(pp , Constants.OPERATION.CREATE)
+    local result = DBObject(pp, Constants.OPERATION.CREATE)
     self.Objects[pp.ID] = result
     return result
 end
@@ -485,7 +504,7 @@ end
 function DBContext:loadOneRow(sql, params, errorIfNotFound)
     local stmt = self:getStatement(sql)
     if params then
-        self:checkSqlite( stmt:bind_names(params))
+        self:checkSqlite(stmt:bind_names(params))
     end
     for r in stmt:nrows() do
         return r
@@ -891,50 +910,50 @@ flexiFuncs = {
     ['load data'] = flexi_DataUpdate.flexi_ImportData,
     ['load'] = flexi_DataUpdate.flexi_ImportData,
 
---[[
+    --[[
 
-    /*
- Change class ID of given objects. Updates schemas and possibly columns A..J to match new class schema
- */
-move to another class
+        /*
+     Change class ID of given objects. Updates schemas and possibly columns A..J to match new class schema
+     */
+    move to another class
 
-    /*
- Removes duplicated objects. Updates references to point to a new object. When resolving conflict, selects object
- with larger number of references to it, or object that was updated more recently.
- */
-remove duplicates
+        /*
+     Removes duplicated objects. Updates references to point to a new object. When resolving conflict, selects object
+     with larger number of references to it, or object that was updated more recently.
+     */
+    remove duplicates
 
-    /*
- Splits objects vertically, i.e. one set of properties goes to class A, another - to class B.
- Resulting objects do not have any relation to each other
- */
-structural split
+        /*
+     Splits objects vertically, i.e. one set of properties goes to class A, another - to class B.
+     Resulting objects do not have any relation to each other
+     */
+    structural split
 
-    /*
- Joins 2 non related objects into single object, using optional property map. Corresponding objects will be found using sourceKeyPropIDs
- and targetKeyPropIDs
- */
-structural merge
+        /*
+     Joins 2 non related objects into single object, using optional property map. Corresponding objects will be found using sourceKeyPropIDs
+     and targetKeyPropIDs
+     */
+    structural merge
 
-reorderArrayItems
+    reorderArrayItems
 
-    /*
- Returns report on results of last refactoring action
- */
-getLastActionReport
+        /*
+     Returns report on results of last refactoring action
+     */
+    getLastActionReport
 
-    /*
- Retrieves list of invalid objects for the given class (objects which do not pass property rules)
- Returns list of object IDs.
- @className - class name to perform validation on
- @markAsnInvalid - if set to true, invalid objects will be marked with CTLO_HAS_INVALID_DATA
- Note that all objects will be affected and valid objects will get this flag cleared.
- */
- get invalid objects
+        /*
+     Retrieves list of invalid objects for the given class (objects which do not pass property rules)
+     Returns list of object IDs.
+     @className - class name to perform validation on
+     @markAsnInvalid - if set to true, invalid objects will be marked with CTLO_HAS_INVALID_DATA
+     Note that all objects will be affected and valid objects will get this flag cleared.
+     */
+     get invalid objects
 
-]]
+    ]]
 
--- TODO ['convert custom eav'] = ConvertCustomEAV,
+    -- TODO ['convert custom eav'] = ConvertCustomEAV,
 }
 
 -- Run once - find all synonyms for actions

@@ -31,6 +31,7 @@ local paths = {
     '../lib/lua-metalua/compiler/parser/?.lua',
     '../lib/lua-metalua/extension/?.lua',
     '../lib/lua-metalua/treequery/?.lua',
+    '../lib/lua-sandbox/?.lua',
 }
 for _, pp in ipairs(paths) do
     package.path = path.abspath(path.relpath(pp)) .. ';' .. package.path

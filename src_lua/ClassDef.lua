@@ -577,7 +577,7 @@ function ClassDef:saveToDB()
     self.ctloMask = 0
     for _, propDef in pairs(self.propColMap) do
         assert(propDef)
-        local colIdx = string.lower(propDef.ColMap):byte() - string.byte('a')
+        local colIdx = propDef:ColMapIndex()
         local vtmask = bit52.bnot(bit52.lshift(7, colIdx * 3))
         local vtype = bit52.lshift(propDef:GetVType(), colIdx * 3)
 
@@ -602,7 +602,6 @@ function ClassDef:saveToDB()
                                      vtypes = self.vtypes,
                                      ClassID = self.ClassID
                                  })
-
 end
 
 -- Converts "free" index definition to a normalized format.
