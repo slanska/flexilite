@@ -76,7 +76,7 @@ local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local DBValue = require 'DBValue'
 local tablex = require 'pl.tablex'
 local JSON = require 'cjson'
-local bit52 = require( 'Util').bit52
+local bit52 = require('Util').bit52
 local Constants = require 'Constants'
 local schema = require 'schema'
 local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
@@ -132,9 +132,13 @@ function ReadOnlyDBOV:_init(DBObject, ID)
 end
 
 -- Create pure readonly dbobject version and load .objects data
-function ReadOnlyDBOV.Create(DBObject, ID)
+---@param DBObject DBObject
+---@param ID number
+---@param objRow table | nil @comment row of [.objects]
+---@return ReadOnlyDBOV
+function ReadOnlyDBOV.Create(DBObject, ID, objRow)
     local result = ReadOnlyDBOV(DBObject, ID)
-    result:loadObjectRow()
+    result:loadObjectRow(objRow)
     return result
 end
 
@@ -162,12 +166,8 @@ function ReadOnlyDBOV:loadProps(propIDs)
     end
 end
 
--- Loads row from .objects table. Updates ClassDef if previous ClassDef is null
--- or does not match actual definition
-function ReadOnlyDBOV:loadObjectRow()
-    -- Load from .objects
-    local obj = self.DBObject.DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
-
+---@param obj table @comment [.objects] row
+function ReadOnlyDBOV:initFromObjectRow(obj)
     -- Theoretically, object ID may not match class def passed in constructor
     if not self.ClassDef or obj.ClassID ~= self.ClassDef.ClassID then
         self.ClassDef = self.DBObject.DBContext:getClassDef(obj.ClassID)
@@ -208,6 +208,17 @@ function ReadOnlyDBOV:loadObjectRow()
             dbProp.values[1] = cell
         end
     end
+end
+
+-- Loads row from .objects table. Updates ClassDef if previous ClassDef is null
+-- or does not match actual definition
+---@param obj table @comment row of [.objects]
+function ReadOnlyDBOV:loadObjectRow(obj)
+    -- Load from .objects
+    if not obj then
+        obj = self.DBObject.DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
+    end
+    self:initFromObjectRow(obj)
 end
 
 ---@param propName string
@@ -398,8 +409,8 @@ function WritableDBOV:applyMappedColumnValues(params)
                 self.vtypes = bit52.set(self.vtypes, bit52.lshift(Constants.CTLV_FLAGS.VTYPE_MASK, colIdx * 3), vv.ctlv)
 
                 -- update ctlo
-                self.ctlo = bit52.set(self.ctlo, bit52.lshift(1, Constants.CTLO_FLAGS.INDEX_SHIFT + colIdx ), prop.D.indexing == 'index' and 1 or 0)
-                self.ctlo = bit52.set(self.ctlo, bit52.lshift(1, Constants.CTLO_FLAGS.UNIQUE_SHIFT + colIdx ), prop.D.indexing == 'unique' and 1 or 0)
+                self.ctlo = bit52.set(self.ctlo, bit52.lshift(1, Constants.CTLO_FLAGS.INDEX_SHIFT + colIdx), prop.D.indexing == 'index' and 1 or 0)
+                self.ctlo = bit52.set(self.ctlo, bit52.lshift(1, Constants.CTLO_FLAGS.UNIQUE_SHIFT + colIdx), prop.D.indexing == 'unique' and 1 or 0)
                 params[col] = vv.Value
             else
                 params[col] = nil
@@ -581,7 +592,7 @@ local multiKeyIndexSQL = {
         [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3 where ObjectID = :ObjectID;]],
         [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4 where ObjectID = :ObjectID;]],
     },
--- Extended version of update when ObjectID also gets changed
+    -- Extended version of update when ObjectID also gets changed
     UX = {
         [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
         [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
@@ -704,6 +715,7 @@ local DBObject = class()
 ---@field ClassDef ClassDef
 ---@field DBContext DBContext @comment optional if ClassDef is supplied
 ---@field Data table @comment optional data payload
+---@field ObjRow table | nil @comment row of [.objects]
 
 ---@param params DBObjectCtorParams
 ---@param state string @comment optional, 'C', 'R', 'U', 'D'
@@ -711,16 +723,16 @@ function DBObject:_init(params, state)
     self.state = state or Constants.OPERATION.READ
     self.DBContext = assert(params.DBContext or params.ClassDef.DBContext)
 
-    if state == Constants.OPERATION.CREATE then
+    if self.state == Constants.OPERATION.CREATE then
         self.origVer = CreatedVoidDBObject
         self.curVer = WritableDBOV(self, assert(params.ClassDef), params.ID)
         if params.Data then
             self:SetData(params.Data)
         end
     else
-        self.origVer = ReadOnlyDBOV.Create(self, params.ID)
+        self.origVer = ReadOnlyDBOV.Create(self, params.ID, params.ObjRow)
 
-        if state == Constants.OPERATION.DELETE then
+        if self.state == Constants.OPERATION.DELETE then
             self.curVer = DeletedVoidDBObject
         else
             self.curVer = WritableDBOV(self, self.origVer.ClassDef, params.ID)
@@ -932,6 +944,10 @@ end
 function DBObject:fireAfterTrigger()
     -- TODO call custom _after_ trigger (defined in Lua), first for mixin classes (if applicable), then for *this* class
 
+end
+
+function DBObject:InitFromObjectRow(obj)
+    self.curVer:initFromObjectRow(obj)
 end
 
 return DBObject

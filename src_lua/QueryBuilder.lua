@@ -577,6 +577,7 @@ function DBQuery:_init(ClassDef, expr, params)
     self.ObjectIDs = {}
 end
 
+---@return boolean @comment true if any objects were found
 function DBQuery:Run()
     self.ObjectIDs = {}
     local sql = self._filterDef:build_index_query()
@@ -585,15 +586,15 @@ function DBQuery:Run()
     -- TODO set env.quote?
     local filterCallback = loadstring(self._filterDef.expr)
 
-    -- rr is [.objects]
-    for rr in rows do
-        local dbobj = self._filterDef.ClassDef.DBContext:LoadObject(rr.ObjectID)
+    -- objRow is [.objects]
+    for objRow in rows do
+        local dbobj = self._filterDef.ClassDef.DBContext:LoadObject(objRow.ObjectID, nil, false, objRow)
         assert(dbobj)
         local boxed = dbobj:current()
         local sandbox_options = { env = boxed }
         local ok = Sandbox.run(filterCallback, sandbox_options)
         if ok then
-            table.insert(self.ObjectIDs, rr.ObjectID)
+            table.insert(self.ObjectIDs, objRow.ObjectID)
         end
     end
 

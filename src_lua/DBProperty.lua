@@ -17,7 +17,7 @@ local DBValue = require 'DBValue'
 local tablex = require 'pl.tablex'
 local Constants = require 'Constants'
 local JSON = require 'cjson'
---local pretty = require 'pl.pretty'
+--TODO local pretty = require 'pl.pretty'
 --TODO local base64 = require 'base64'
 
 -- Constant Null DBValue
@@ -32,8 +32,59 @@ local NullDBValue = setmetatable({}, {
 
     __metatable = nil,
 
--- TODO other methods?
+    __add = self.__add,
+    __sub = self.__sub,
+    __mul = self.__mul,
+    __div = self.__div,
+    __pow = self.__pow,
+    __concat = self.__concat,
+    __len = self.__len,
+    __tostring = self.__tostring,
+    __unm = self.__unm,
+    __eq = self.__eq,
+    __lt = self.__lt,
+    __le = self.__le,
+    __mod = self.__mod,
 })
+
+function NullDBValue:__add(v1, v2)
+end
+
+function NullDBValue:__sub(v1, v2)
+end
+
+function NullDBValue:__mul(v1, v2)
+end
+
+function NullDBValue:__div(v1, v2)
+end
+
+function NullDBValue:__pow(v1, v2)
+end
+
+function NullDBValue:__concat(v1, v2)
+end
+
+function NullDBValue:__len(v1, v2)
+end
+
+function NullDBValue:__tostring(v1)
+end
+
+function NullDBValue:__unm(v1)
+end
+
+function NullDBValue:__eq(v1, v2)
+end
+
+function NullDBValue:__lt(v1, v2)
+end
+
+function NullDBValue:__le(v1, v2)
+end
+
+function NullDBValue:__mod(v1, v2)
+end
 
 -------------------------------------------------------------------------------
 --[[
@@ -56,6 +107,7 @@ end
 function DBProperty:Boxed()
     if not self.boxed then
         self.boxed = setmetatable({}, {
+            ---@param idx number
             __index = function(idx)
                 local vv = self:GetValue(idx)
                 if vv then
@@ -70,18 +122,57 @@ function DBProperty:Boxed()
 
             __metatable = nil,
 
-        -- TODO __add, __sub... - for single value
+            -- TODO __add, __sub... - for single value
         })
     end
 
     return self.boxed
 end
 
+function DBProperty:__add(v1, v2)
+end
+
+function DBProperty:__sub(v1, v2)
+end
+
+function DBProperty:__mul(v1, v2)
+end
+
+function DBProperty:__div(v1, v2)
+end
+
+function DBProperty:__pow(v1, v2)
+end
+
+function DBProperty:__concat(v1, v2)
+end
+
+function DBProperty:__len(v1, v2)
+end
+
+function DBProperty:__tostring(v1)
+end
+
+function DBProperty:__unm(v1)
+end
+
+function DBProperty:__eq(v1, v2)
+end
+
+function DBProperty:__lt(v1, v2)
+end
+
+function DBProperty:__le(v1, v2)
+end
+
+function DBProperty:__mod(v1, v2)
+end
+
 ---@param idx number @comment 1 based index
 ---@param val any
 function DBProperty:SetValue(idx, val)
-    error( string.format('Cannot modify readonly version of %s.%s',
-                         self.PropDef.ClassDef.Name.text, self.PropDef.Name.text))
+    error(string.format('Cannot modify readonly version of %s.%s',
+                        self.PropDef.ClassDef.Name.text, self.PropDef.Name.text))
 end
 
 ---@param idx number @comment 1 based
@@ -143,7 +234,7 @@ end
 ---@param idx number
 ---@return DBValue
 function DBProperty:cloneValue(idx)
-    return tablex.deepcopy( assert(self.values[idx]))
+    return tablex.deepcopy(assert(self.values[idx]))
 end
 
 -------------------------------------------------------------------------------

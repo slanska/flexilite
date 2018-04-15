@@ -90,16 +90,64 @@ Used in filtering, user functions and triggers
 ]]
 ---@class DBObjectWrap
 ---@field DBObject DBObject
+---@field DBContext DBContext
 
 local DBObjectWrap = class()
 
----@param DBObject DBObject
-function DBObjectWrap:_init(DBObject)
-    self.DBObject = DBObject
+---@param DBContext DBContext
+---@param objectID number | nil
+---@param objRow table | nil @comment row of [.objects]
+function DBObjectWrap:_init(DBContext, objectID, objRow)
+    self.DBContext = assert(DBContext)
+    if objectID then
+        self.DBObject = DBContext:LoadObject(objectID, nil, false, objRow)
+    end
+end
+
+---@param name string
+---@return DBProperty | nil
+function DBObjectWrap:getDBObjectProp(name)
+    if self.DBObject then
+        local result = self.DBObject.current()[name]
+
+    end
+end
+
+---@param name string
+function DBObjectWrap:getRegisteredFunc(name)
+
+end
+
+---@param name string
+function DBObjectWrap:getBoxedAttr(name)
+    -- If DBObject is assigned, check its properties first
+    local prop = self:getDBObjectProp(name)
+    if prop then
+        return prop.Boxed()
+    end
+
+    -- Check registered user functions
+    local func = self:getRegisteredFunc(name)
+    if func then
+        -- TODO
+    end
+
 end
 
 function DBObjectWrap:Boxed()
-    
+    return {
+        __index = function(name)
+            return self:getBoxedAttr(name)
+        end,
+        __newindex = function(name, value)
+            local result = self:getDBObjectProp(name)
+            if result then
+
+            end
+
+        end,
+        __metatable = nil,
+    }
 end
 
 ---@class DBContextConfig
@@ -111,7 +159,7 @@ end
 ---@field MemDB table
 ---@field UserInfo UserInfo
 ---@field Classes table <string, ClassDef>
----@field Functions table
+---@field Functions table @comment TODO use Function class
 ---@field ClassProps table<number, PropertyDef>
 ---@field Objects tables <number, DBObject>
 ---@field DirtyObjects table <number, DBObject>
@@ -221,15 +269,16 @@ properties will be loaded on demand. Also, when object gets edited, its entire c
 ]]
 ---@param id number
 ---@param propIds table|nil @comment list of property IDs to load
----@param forUpdate boolean
+---@param forUpdate boolean | nil
+---@param objRow table | nil @comment row of [.objects]
 ---@return DBObject
-function DBContext:LoadObject(id, propIds, forUpdate)
+function DBContext:LoadObject(id, propIds, forUpdate, objRow)
     local result = self.Objects[id]
 
-    local op = forUpdate and Constants.OPERATION.UPDATE or Constants.OPERATION.READ
     if not result then
+        local op = forUpdate and Constants.OPERATION.UPDATE or Constants.OPERATION.READ
         -- TODO Check access rules for class and specific object
-        result = DBObject({ ID = id, PropIDs = propIds, DBContext = self }, op)
+        result = DBObject({ ID = id, PropIDs = propIds, DBContext = self, ObjRow = objRow }, op)
         self.Objects[id] = result
     end
     return result
@@ -240,7 +289,7 @@ end
 ---@return DBObject
 function DBContext:EditObject(id)
     -- TODO Check access rules for class and specific object
-    local result = assert(self:LoadObject(id), string.format('Object with ID %d not found', id))
+    local result = assert(self:LoadObject(id, nil, false, nil), string.format('Object with ID %d not found', id))
     result:LoadAllValues()
     result:Edit()
     return result
@@ -821,6 +870,13 @@ function DBContext:InitMetadataRef(container, fieldName, refClass)
     v = setmetatable(v, refClass)
     container[fieldName] = v
     return v
+end
+
+---@param objectId number
+---@param objRow table @comment row of [.objects]
+---@return DBObjectWrap
+function DBContext:GetDBObjectWrap(objectId, objRow)
+    return DBObjectWrap(self, objectId, objRow)
 end
 
 local flexi_CreateClass = require 'flexi_CreateClass'

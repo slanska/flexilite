@@ -121,55 +121,55 @@ function DBValue:afterSaveToDB(DBProperty, propIndex)
 
 end
 
-function DBValue:__tostring()
+function DBValue:__tostring(v)
 
 end
 
-function DBValue:__len()
+function DBValue:__len(v)
 
 end
 
-function DBValue:__unm()
+function DBValue:__unm(v)
 
 end
 
-function DBValue:__add()
+function DBValue:__add(v1, v2)
 
 end
 
-function DBValue:__sub()
+function DBValue:__sub(v1, v2)
 
 end
 
-function DBValue:__mul()
+function DBValue:__mul(v1, v2)
 
 end
 
-function DBValue:__div()
+function DBValue:__div(v1, v2)
 
 end
 
-function DBValue:__mod()
+function DBValue:__mod(v1, v2)
 
 end
 
-function DBValue:__pow()
+function DBValue:__pow(v1, v2)
 
 end
 
-function DBValue:__concat()
+function DBValue:__concat(v1, v2)
 
 end
 
-function DBValue:__eq()
+function DBValue:__eq(v1, v2)
 
 end
 
-function DBValue:__lt()
+function DBValue:__lt(v1, v2)
 
 end
 
-function DBValue:__le()
+function DBValue:__le(v1, v2)
 end
 
 return DBValue
