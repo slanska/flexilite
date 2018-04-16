@@ -48,42 +48,54 @@ local NullDBValue = setmetatable({}, {
 })
 
 function NullDBValue:__add(v1, v2)
+    return nil
 end
 
 function NullDBValue:__sub(v1, v2)
+    return nil
 end
 
 function NullDBValue:__mul(v1, v2)
+    return nil
 end
 
 function NullDBValue:__div(v1, v2)
 end
 
 function NullDBValue:__pow(v1, v2)
+    return nil
 end
 
 function NullDBValue:__concat(v1, v2)
+    return nil
 end
 
 function NullDBValue:__len(v1, v2)
+    return nil
 end
 
 function NullDBValue:__tostring(v1)
+    return nil
 end
 
 function NullDBValue:__unm(v1)
+    return nil
 end
 
 function NullDBValue:__eq(v1, v2)
+    return nil
 end
 
 function NullDBValue:__lt(v1, v2)
+    return nil
 end
 
 function NullDBValue:__le(v1, v2)
+    return nil
 end
 
 function NullDBValue:__mod(v1, v2)
+    return nil
 end
 
 -------------------------------------------------------------------------------
@@ -122,7 +134,19 @@ function DBProperty:Boxed()
 
             __metatable = nil,
 
-            -- TODO __add, __sub... - for single value
+            __add = self.__add,
+            __sub = self.__sub,
+            __mul = self.__mul,
+            __div = self.__div,
+            __pow = self.__pow,
+            __concat = self.__concat,
+            __len = self.__len,
+            __tostring = self.__tostring,
+            __unm = self.__unm,
+            __eq = self.__eq,
+            __lt = self.__lt,
+            __le = self.__le,
+            __mod = self.__mod,
         })
     end
 
@@ -130,6 +154,8 @@ function DBProperty:Boxed()
 end
 
 function DBProperty:__add(v1, v2)
+    -- TODO
+    return self.GetValue(1).Boxed(self, 1).__add(v1, v2)
 end
 
 function DBProperty:__sub(v1, v2)

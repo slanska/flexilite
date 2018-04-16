@@ -7,7 +7,9 @@
 Single value holder. Maps to row in [.ref-values] table (or A-P columns in .objects table).
 
 DBValue has no knowledge on column mapping and operates solely as all data is stored in .ref-values only.
-This is DBObject/*DBOV responsibility to handle column mapping
+This is DBObject/*DBOV responsibility to handle column mapping.
+Always operates as it would be .ref-value item. DBObject internally handles mapping to A..P columns
+in .objects table
 
 Access to object property value to be used in user's custom
 functions and triggers.
@@ -15,9 +17,6 @@ Provides Boxed() value which implements all table metamethods to mimic functiona
 of real property,
 so that Order.ShipDate or Order.OrderLines[1] will look as real object
 properties.
-
-Always operates as it would be .ref-value item. DBObject internally handles mapping to A..P columns
-in .objects table
 
 Uses AccessControl to check access rules
 
