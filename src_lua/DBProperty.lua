@@ -119,21 +119,9 @@ end
 function DBProperty:Boxed()
     if not self.boxed then
         self.boxed = setmetatable({}, {
-            ---@param idx number
-            __index = function(idx)
-                local vv = self:GetValue(idx)
-                if vv then
-                    return vv.Boxed()
-                end
-                return NullDBValue
-            end,
-
-            __newindex = function(idx, val)
-                return self:SetValue(idx, val)
-            end,
-
+            __index = self.__index,
+            __newindex = self.__newindex,
             __metatable = nil,
-
             __add = self.__add,
             __sub = self.__sub,
             __mul = self.__mul,
@@ -151,6 +139,28 @@ function DBProperty:Boxed()
     end
 
     return self.boxed
+end
+
+---@param key string | number
+function DBProperty:__index(key)
+    if type(key) == 'number' then
+        local vv = self:GetValue(key)
+        if vv then
+            return vv.Boxed(self, key)
+        end
+        return NullDBValue
+    elseif type(key) == 'string' then
+        -- todo
+        -- ref object property
+    else
+        --
+    end
+end
+
+---@param key string | number
+---@param value any
+function DBProperty:__newindex(key, value)
+    return self:SetValue(key, value)
 end
 
 function DBProperty:__add(v1, v2)

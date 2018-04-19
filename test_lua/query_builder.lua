@@ -4,28 +4,30 @@
 --- DateTime: 2018-02-25 1:59 PM
 ---
 
-local util = require 'util'
+--local util = require 'util'
 
-local pretty = require 'pl.pretty'
+--TODO local pretty = require 'pl.pretty'
 local FilterDef = require('QueryBuilder').FilterDef
 
-local path = require 'pl.path'
-local CreateClass = require('flexi_CreateClass').CreateClass
+--local path = require 'pl.path'
+--local CreateClass = require('flexi_CreateClass').CreateClass
+--
+-----@param DBContext DBContext
+-----@return ClassDef
+--local function createProductsClass(DBContext)
+--    local __dirname = path.abspath('..')
+--    local schemaFile = path.join(__dirname, 'test', 'json', 'Northwind.Products.schema.json')
+--    local schema = util.readAll(schemaFile)
+--
+--    CreateClass(DBContext, 'Product', schema, false)
+--    local classDef = DBContext:getClassDef('Product')
+--    return classDef
+--end
+--
+--local DBContext = util.openFlexiDatabaseInMem()
+--local ProductClassDef = createProductsClass(DBContext)
 
----@param DBContext DBContext
----@return ClassDef
-local function createProductsClass(DBContext)
-    local __dirname = path.abspath('..')
-    local schemaFile = path.join(__dirname, 'test', 'json', 'Northwind.Products.schema.json')
-    local schema = util.readAll(schemaFile)
-
-    CreateClass(DBContext, 'Product', schema, false)
-    local classDef = DBContext:getClassDef('Product')
-    return classDef
-end
-
-local DBContext = util.openFlexiDatabaseInMem()
-local ProductClassDef = createProductsClass(DBContext)
+local ProductClassDef = require 'test_class_def'
 
 -- Tests for using indexes for query
 

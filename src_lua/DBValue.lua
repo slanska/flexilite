@@ -62,6 +62,7 @@ end
 
 ---@param DBProperty DBProperty
 ---@param propIndex number
+-- TODO return function to use DBProperty and propIndex
 function DBValue:Boxed(DBProperty, propIndex)
     if not self.boxed then
         self.boxed = setmetatable({}, {

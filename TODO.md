@@ -119,11 +119,11 @@ data: Database, statements, user info, class definitions, cache of referenced va
 - ensure that create classes is ok
 - &#10003; try insert data
 - enum property - generate enum class, save items
-- try sandbox mode
+- &#10003; try sandbox mode
 
 - ignore case for schema - property types
-- ignore case for class and property names - custom Dictionary class?
-- generate valid SQL for indexed properties
+- &#10003; ignore case for class and property names - custom Dictionary class?
+- &#10003; generate valid SQL for indexed properties
 - filter records using Lua sandbox
     - Params
     - Literal values
