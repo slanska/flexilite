@@ -959,7 +959,8 @@ function EnumPropertyDef:GetVType()
 end
 
 function EnumPropertyDef:GetSupportedIndexTypes()
-    return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.STD
+    return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ
+            + Constants.INDEX_TYPES.FTS_SEARCH
 end
 
 ---@return boolean, function

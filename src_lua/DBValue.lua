@@ -82,19 +82,19 @@ function DBValue:Boxed(DBProperty, propIndex)
 
             end,
 
-            __add = self.__add,
-            __sub = self.__sub,
-            __mul = self.__mul,
-            __div = self.__div,
-            __pow = self.__pow,
-            __concat = self.__concat,
-            __len = self.__len,
-            __tostring = self.__tostring,
-            __unm = self.__unm,
-            __eq = self.__eq,
-            __lt = self.__lt,
-            __le = self.__le,
-            __mod = self.__mod,
+            __add = self.boxed_add,
+            __sub = self.boxed_sub,
+            __mul = self.boxed_mul,
+            __div = self.boxed_div,
+            __pow = self.boxed_pow,
+            __concat = self.boxed_concat,
+            __len = self.boxed_len,
+            __tostring = self.boxed_tostring,
+            __unm = self.boxed_unm,
+            __eq = self.boxed_eq,
+            __lt = self.boxed_lt,
+            __le = self.boxed_le,
+            __mod = self.boxed_mod,
         })
     end
 
@@ -121,55 +121,55 @@ function DBValue:afterSaveToDB(DBProperty, propIndex)
 
 end
 
-function DBValue:__tostring(v)
+function DBValue:boxed_tostring(v)
 
 end
 
-function DBValue:__len(v)
+function DBValue:boxed_len(v)
 
 end
 
-function DBValue:__unm(v)
+function DBValue:boxed_unm(v)
 
 end
 
-function DBValue:__add(v1, v2)
+function DBValue:boxed_add(v1, v2)
 
 end
 
-function DBValue:__sub(v1, v2)
+function DBValue:boxed_sub(v1, v2)
 
 end
 
-function DBValue:__mul(v1, v2)
+function DBValue:boxed_mul(v1, v2)
 
 end
 
-function DBValue:__div(v1, v2)
+function DBValue:boxed_div(v1, v2)
 
 end
 
-function DBValue:__mod(v1, v2)
+function DBValue:boxed_mod(v1, v2)
 
 end
 
-function DBValue:__pow(v1, v2)
+function DBValue:boxed_pow(v1, v2)
 
 end
 
-function DBValue:__concat(v1, v2)
+function DBValue:boxed_concat(v1, v2)
 
 end
 
-function DBValue:__eq(v1, v2)
+function DBValue:boxed_eq(v1, v2)
 
 end
 
-function DBValue:__lt(v1, v2)
+function DBValue:boxed_lt(v1, v2)
 
 end
 
-function DBValue:__le(v1, v2)
+function DBValue:boxed_le(v1, v2)
 end
 
 return DBValue

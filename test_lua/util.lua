@@ -16,6 +16,7 @@ local mobdebug = require('mobdebug')
 
 sqlite3 = require 'lsqlite3complete'
 
+local stringx = require 'pl.stringx'
 local path = require 'pl.path'
 
 -- set lua paths
@@ -63,14 +64,14 @@ Flexi.InitDefaultData = readAll(path.join(__dirname, 'sql', 'init_default_data.s
 ---@param db sqlite3
 ---@return DBContext
 local function initFlexiDatabase(db)
-    result = Flexi:newDBContext(db)
+    local result = Flexi:newDBContext(db)
     db:exec "select flexi('configure')"
     return result
 end
 
 ---@return DBContext
 local function openFlexiDatabaseInMem()
-    db, errMsg = sqlite3.open_memory()
+    local db, errMsg = sqlite3.open_memory()
     if not db then
         error(errMsg)
     end
@@ -80,15 +81,39 @@ end
 ---@param fileName string
 ---@return DBContext
 local function openFlexiDatabase(fileName)
-    db, errMsg = sqlite3.open(fileName)
+    local db, errMsg = sqlite3.open(fileName)
     if not db then
         error(errMsg)
     end
     return initFlexiDatabase(db)
 end
 
+---@param DBContext DBContext
+local function importNorthwindData(DBContext)
+    -- Insert data
+    local started = os.clock()
+    local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.data.json'))
+    local sql = "select flexi('import data', '" .. stringx.replace(dataDump, "'", "''") .. "');"
+    -- TODO temp
+    print(string.format('flexi_data - Elapsed %s sec', os.clock() - started))
+
+end
+
+---@param DBContext DBContext
+local function createNorthwindSchema(DBContext)
+    local content = readAll(path.join(__dirname, 'test', 'json', 'Northwind.db3.schema.json'))
+    local sql = "select flexi('create schema', '" .. content .. "');"
+end
+
+-- load sql scripts into Flexi variables
+-- TODO use relative paths
+Flexi.DBSchemaSQL = readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
+Flexi.InitDefaultData = readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
+
 return {
     readAll = readAll,
     openFlexiDatabaseInMem = openFlexiDatabaseInMem,
-    openFlexiDatabase = openFlexiDatabase
+    openFlexiDatabase = openFlexiDatabase,
+    importNorthwindData = importNorthwindData,
+    createNorthwindSchema = createNorthwindSchema,
 }

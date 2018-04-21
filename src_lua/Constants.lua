@@ -103,8 +103,15 @@ local Constants = {
         UNQ = 0x0004,
         STD = 0x0008,
         MUL = 0x0010,
-        -- Full text index supported, but for search only (used by SymNameProperty)
+        -- Full text index supported, but for search only (used by SymNameProperty and Enum text values)
         FTS_SEARCH = 0x0020,
+    },
+
+    DBOBJECT_SANDBOX_MODE = {
+        FILTER = 'F',
+        ORIGINAL = 'O',
+        CURRENT = 'C',
+        EXPRESSION = 'E',
     }
 
 }

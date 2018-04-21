@@ -86,9 +86,12 @@ local NullDBValue = require('DBProperty').NullDBValue
 --TODO local pretty = require 'pl.pretty'
 
 
+-------------------------------------------------------------------------------
 --[[
-Void DB objects exist as 2 singletons, handling access to inserted.old and deleted.new states
+Void DB objects exist as 2 singletons, handling access to inserted.old
+and deleted.new states
 ]]
+-------------------------------------------------------------------------------
 ---@class VoidDBOV
 local VoidDBOV = class()
 
@@ -109,6 +112,10 @@ end
 
 local DeletedVoidDBObject = VoidDBOV('New object is not available in this context')
 local CreatedVoidDBObject = VoidDBOV('Old object is not available in this context')
+
+-------------------------------------------------------------------------------
+-- ReadOnlyDBOV
+----------------------------------------------------------------------------------
 
 ---@class ObjectMetadata
 ---@field format table <number, table>
@@ -285,6 +292,10 @@ function ReadOnlyDBOV:getCompleteDataPayload(propIDs)
 
     return result
 end
+
+-------------------------------------------------------------------------------
+-- WritableDBOV
+-------------------------------------------------------------------------------
 
 ---@class WritableDBOV : ReadOnlyDBOV
 local WritableDBOV = class(ReadOnlyDBOV)
@@ -703,6 +714,74 @@ function WritableDBOV:getChangedDataPayload()
     return result
 end
 
+-------------------------------------------------------------------------------
+--[[
+Utility class for boxed access to DBObject and registered user functions.
+Used in filtering, user functions and triggers
+]]
+-------------------------------------------------------------------------------
+---@class DBObjectWrap
+---@field DBOV ReadOnlyDBOV
+
+local DBObjectWrap = class()
+
+---@param DBContext DBContext
+---@param objectID number | nil
+---@param objRow table | nil @comment row of [.objects]
+function DBObjectWrap:_init(DBOV)
+    self.DBOV = assert(DBOV)
+end
+
+---@param name string
+---@return DBProperty | nil
+function DBObjectWrap:getDBObjectProp(name)
+    if self.DBObject then
+        local result = self.DBOV.DBObject.original()[name]
+
+    end
+end
+
+---@param name string
+function DBObjectWrap:getRegisteredFunc(name)
+
+end
+
+---@param name string
+function DBObjectWrap:getBoxedAttr(name)
+    -- If DBObject is assigned, check its properties first
+    local prop = self:getDBObjectProp(name)
+    if prop then
+        return prop.Boxed()
+    end
+
+    -- Check registered user functions
+    local func = self:getRegisteredFunc(name)
+    if func then
+        -- TODO
+    end
+
+end
+
+function DBObjectWrap:Boxed()
+    return {
+        __index = function(name)
+            return self:getBoxedAttr(name)
+        end,
+        __newindex = function(name, value)
+            local result = self:getDBObjectProp(name)
+            if result then
+
+            end
+
+        end,
+        __metatable = nil,
+    }
+end
+
+-------------------------------------------------------------------------------
+-- DBObject
+-------------------------------------------------------------------------------
+
 ---@class DBObject
 ---@field state string @comment 'C', 'R', 'U', 'D'
 ---@field origVer ReadOnlyDBOV | VoidDBOV
@@ -948,6 +1027,22 @@ end
 
 function DBObject:InitFromObjectRow(obj)
     self.curVer:initFromObjectRow(obj)
+end
+
+---@param mode string @comment DBOBJECT_SANDBOX_MODE 'F', 'O', 'C', 'E'
+function DBObject:GetSandBoxed(mode)
+    mode = mode or Constants.DBOBJECT_SANDBOX_MODE.FILTER
+    if mode == Constants.DBOBJECT_SANDBOX_MODE.FILTER then
+        return DBObjectWrap(self.origVer)
+    elseif mode == Constants.DBOBJECT_SANDBOX_MODE.ORIGINAL then
+        return self.original()
+    elseif mode == Constants.DBOBJECT_SANDBOX_MODE.CURRENT then
+        return self.current()
+    elseif mode == Constants.DBOBJECT_SANDBOX_MODE.EXPRESSION then
+
+    else
+        error(string.format('Unknown sandboxed mode %s', tostring(mode)))
+    end
 end
 
 return DBObject

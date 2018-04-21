@@ -88,7 +88,8 @@ function IndexDefinitions:AddFullTextIndexedProperty(propDef)
 
     local supportedIndexTypes = propDef:GetSupportedIndexTypes()
     if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.FTS) ~= Constants.INDEX_TYPES.FTS then
-        return false, string.format('Property [%s] does not support full text indexing', propDef.Name.text)
+        return false, string.format('Property [%s].[%s] does not support full text indexing',
+                                    propDef.ClassDef.Name.text, propDef.Name.text)
     end
 
     -- Already set?
@@ -115,7 +116,8 @@ function IndexDefinitions:AddRangeIndexedProperties(propDef0, propDef1)
     for _, propDef in ipairs({ propDef0, propDef1 }) do
         local supportedIndexTypes = propDef:GetSupportedIndexTypes()
         if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.RNG) ~= Constants.INDEX_TYPES.RNG then
-            return false, string.format('Property [%s] does not support range indexing', propDef.Name.text)
+            return false, string.format('Property [%s].[%s] does not support range indexing',
+                                        propDef.ClassDef.Name.text, propDef.Name.text)
         end
     end
 
@@ -126,7 +128,7 @@ function IndexDefinitions:AddRangeIndexedProperties(propDef0, propDef1)
     end
 
     if idx0 or idx1 then
-        return false, 'Existing range index specification onflict'
+        return false, 'Existing range index specification conflict'
     end
 
     if #self.rangeIndexing == 10 then
@@ -152,7 +154,8 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
     for _, propDef in ipairs(propDefs) do
         local supportedIndexTypes = propDef:GetSupportedIndexTypes()
         if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.MUL) ~= Constants.INDEX_TYPES.MUL then
-            return false, string.format('Property [%s] does not support multi key indexing', propDef.Name.text)
+            return false, string.format('Property [%s].[%s] does not support multi key indexing',
+                                        propDef.ClassDef.Name.text, propDef.Name.text)
         end
 
         -- Check for accidental duplicates
@@ -161,7 +164,8 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
         end, propDefs)
 
         if #all > 1 then
-            return false, string.format('Property [%s] is repeated more than once in multi key index', propDef.Name.text)
+            return false, string.format('Property [%s].[%s] is repeated more than once in multi key index',
+                                        propDef.ClassDef.Name.text, propDef.Name.text)
         end
     end
 
@@ -182,7 +186,8 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
     local supportedIndexTypes = propDef:GetSupportedIndexTypes()
     local expectedIndexType = unique and Constants.INDEX_TYPES.UNQ or Constants.INDEX_TYPES.STD
     if bit52.band(supportedIndexTypes, expectedIndexType) ~= expectedIndexType then
-        return false, string.format('Property [%s] does not support indexing', propDef.Name.text)
+        return false, string.format('Property [%s].[%s] does not support indexing',
+                                    propDef.ClassDef.Name.text, propDef.Name.text)
     end
 
     if not unique then
@@ -190,7 +195,8 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
         local idx = tablex.find(self.rangeIndexing, propDef.ID)
         if idx then
             table.remove(self.propIndexing, propDef.ID)
-            return true, string.format('Property %s already included in range index', propDef.Name.text)
+            return true, string.format('Property [%s].[%s] already included in range index',
+                                       propDef.ClassDef.Name.text, propDef.Name.text)
         end
 
         idx = tablex.find_if(self.multiKeyIndexing, function(propIDs)
@@ -198,7 +204,8 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
         end)
         if idx then
             table.remove(self.propIndexing, propDef.ID)
-            return true, string.format('Property %s already included in multi key index', propDef.Name.text)
+            return true, string.format('Property [%s].[%s] already included in multi key index',
+                                       propDef.ClassDef.Name.text, propDef.Name.text)
         end
     end
 

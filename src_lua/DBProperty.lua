@@ -17,86 +17,76 @@ local DBValue = require 'DBValue'
 local tablex = require 'pl.tablex'
 local Constants = require 'Constants'
 local JSON = require 'cjson'
---TODO local pretty = require 'pl.pretty'
---TODO local base64 = require 'base64'
+
+local NullDBValueClass = class()
+
+function NullDBValueClass:_init()
+
+end
+
+NullDBValueClass.__metatable = nil
+
+function NullDBValueClass:__index (idx)
+
+end
+
+function NullDBValueClass:__newindex (value)
+    error('Not assignable null value')
+end
+
+function NullDBValueClass:__add(v1, v2)
+    return nil
+end
+
+function NullDBValueClass:__sub(v1, v2)
+    return nil
+end
+
+function NullDBValueClass:__mul(v1, v2)
+    return nil
+end
+
+function NullDBValueClass:__div(v1, v2)
+end
+
+function NullDBValueClass:__pow(v1, v2)
+    return nil
+end
+
+function NullDBValueClass:__concat(v1, v2)
+    return nil
+end
+
+function NullDBValueClass:__len(v1, v2)
+    return nil
+end
+
+function NullDBValueClass:__tostring(v1)
+    return nil
+end
+
+function NullDBValueClass:__unm(v1)
+    return nil
+end
+
+function NullDBValueClass:__eq(v1, v2)
+    return nil
+end
+
+function NullDBValueClass:__lt(v1, v2)
+    return nil
+end
+
+function NullDBValueClass:__le(v1, v2)
+    return nil
+end
+
+function NullDBValueClass:__mod(v1, v2)
+    return nil
+end
 
 -- Constant Null DBValue
-local NullDBValue = setmetatable({}, {
-    __index = function(idx)
-
-    end,
-
-    __newindex = function(value)
-        error('Not assignable null value')
-    end,
-
-    __metatable = nil,
-
-    __add = self.__add,
-    __sub = self.__sub,
-    __mul = self.__mul,
-    __div = self.__div,
-    __pow = self.__pow,
-    __concat = self.__concat,
-    __len = self.__len,
-    __tostring = self.__tostring,
-    __unm = self.__unm,
-    __eq = self.__eq,
-    __lt = self.__lt,
-    __le = self.__le,
-    __mod = self.__mod,
-})
-
-function NullDBValue:__add(v1, v2)
-    return nil
-end
-
-function NullDBValue:__sub(v1, v2)
-    return nil
-end
-
-function NullDBValue:__mul(v1, v2)
-    return nil
-end
-
-function NullDBValue:__div(v1, v2)
-end
-
-function NullDBValue:__pow(v1, v2)
-    return nil
-end
-
-function NullDBValue:__concat(v1, v2)
-    return nil
-end
-
-function NullDBValue:__len(v1, v2)
-    return nil
-end
-
-function NullDBValue:__tostring(v1)
-    return nil
-end
-
-function NullDBValue:__unm(v1)
-    return nil
-end
-
-function NullDBValue:__eq(v1, v2)
-    return nil
-end
-
-function NullDBValue:__lt(v1, v2)
-    return nil
-end
-
-function NullDBValue:__le(v1, v2)
-    return nil
-end
-
-function NullDBValue:__mod(v1, v2)
-    return nil
-end
+local NullDBValue = NullDBValueClass()
 
 -------------------------------------------------------------------------------
 --[[
@@ -119,22 +109,22 @@ end
 function DBProperty:Boxed()
     if not self.boxed then
         self.boxed = setmetatable({}, {
-            __index = self.__index,
-            __newindex = self.__newindex,
+            __index = self.boxed_index,
+            __newindex = self.boxed_newindex,
             __metatable = nil,
-            __add = self.__add,
-            __sub = self.__sub,
-            __mul = self.__mul,
-            __div = self.__div,
-            __pow = self.__pow,
-            __concat = self.__concat,
-            __len = self.__len,
-            __tostring = self.__tostring,
-            __unm = self.__unm,
-            __eq = self.__eq,
-            __lt = self.__lt,
-            __le = self.__le,
-            __mod = self.__mod,
+            __add = self.boxed_add,
+            __sub = self.boxed_sub,
+            __mul = self.boxed_mul,
+            __div = self.boxed_div,
+            __pow = self.boxed_pow,
+            __concat = self.boxed_concat,
+            __len = self.boxed_len,
+            __tostring = self.boxed_tostring,
+            __unm = self.boxed_unm,
+            __eq = self.boxed_eq,
+            __lt = self.boxed_lt,
+            __le = self.boxed_le,
+            __mod = self.boxed_mod,
         })
     end
 
@@ -142,7 +132,7 @@ function DBProperty:Boxed()
 end
 
 ---@param key string | number
-function DBProperty:__index(key)
+function DBProperty:boxed_index(key)
     if type(key) == 'number' then
         local vv = self:GetValue(key)
         if vv then
@@ -159,49 +149,49 @@ end
 
 ---@param key string | number
 ---@param value any
-function DBProperty:__newindex(key, value)
+function DBProperty:boxed_newindex(key, value)
     return self:SetValue(key, value)
 end
 
-function DBProperty:__add(v1, v2)
+function DBProperty:boxed_add(v1, v2)
     -- TODO
     return self.GetValue(1).Boxed(self, 1).__add(v1, v2)
 end
 
-function DBProperty:__sub(v1, v2)
+function DBProperty:boxed_sub(v1, v2)
 end
 
-function DBProperty:__mul(v1, v2)
+function DBProperty:boxed_mul(v1, v2)
 end
 
-function DBProperty:__div(v1, v2)
+function DBProperty:boxed_div(v1, v2)
 end
 
-function DBProperty:__pow(v1, v2)
+function DBProperty:boxed_pow(v1, v2)
 end
 
-function DBProperty:__concat(v1, v2)
+function DBProperty:boxed_concat(v1, v2)
 end
 
-function DBProperty:__len(v1, v2)
+function DBProperty:boxed_len(v1, v2)
 end
 
-function DBProperty:__tostring(v1)
+function DBProperty:boxed_tostring(v1)
 end
 
-function DBProperty:__unm(v1)
+function DBProperty:boxed_unm(v1)
 end
 
-function DBProperty:__eq(v1, v2)
+function DBProperty:boxed_eq(v1, v2)
 end
 
-function DBProperty:__lt(v1, v2)
+function DBProperty:boxed_lt(v1, v2)
 end
 
-function DBProperty:__le(v1, v2)
+function DBProperty:boxed_le(v1, v2)
 end
 
-function DBProperty:__mod(v1, v2)
+function DBProperty:boxed_mod(v1, v2)
 end
 
 ---@param idx number @comment 1 based index

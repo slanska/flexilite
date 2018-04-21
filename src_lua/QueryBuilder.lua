@@ -590,7 +590,7 @@ function DBQuery:Run()
     for objRow in rows do
         local dbobj = self._filterDef.ClassDef.DBContext:LoadObject(objRow.ObjectID, nil, false, objRow)
         assert(dbobj)
-        local boxed = dbobj:current()
+        local boxed = dbobj:GetSandBoxed(Constants.DBOBJECT_SANDBOX_MODE.FILTER)
         local sandbox_options = { env = boxed }
         local ok = Sandbox.run(filterCallback, sandbox_options)
         if ok then

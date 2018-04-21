@@ -34,6 +34,10 @@ local EnumManager = require 'EnumManager'
 local Constants = require 'Constants'
 local DictCI = require('Util').DictCI
 
+-------------------------------------------------------------------------------
+-- ActionList
+-------------------------------------------------------------------------------
+
 --[[
 Maintains list of (normally deferred) actions to execute
 ]]
@@ -83,72 +87,9 @@ function ActionList:Clear()
     self.tags = {}
 end
 
-
---[[
-Utility class for boxed access to DBObject and registered user functions.
-Used in filtering, user functions and triggers
-]]
----@class DBObjectWrap
----@field DBObject DBObject
----@field DBContext DBContext
-
-local DBObjectWrap = class()
-
----@param DBContext DBContext
----@param objectID number | nil
----@param objRow table | nil @comment row of [.objects]
-function DBObjectWrap:_init(DBContext, objectID, objRow)
-    self.DBContext = assert(DBContext)
-    if objectID then
-        self.DBObject = DBContext:LoadObject(objectID, nil, false, objRow)
-    end
-end
-
----@param name string
----@return DBProperty | nil
-function DBObjectWrap:getDBObjectProp(name)
-    if self.DBObject then
-        local result = self.DBObject.current()[name]
-
-    end
-end
-
----@param name string
-function DBObjectWrap:getRegisteredFunc(name)
-
-end
-
----@param name string
-function DBObjectWrap:getBoxedAttr(name)
-    -- If DBObject is assigned, check its properties first
-    local prop = self:getDBObjectProp(name)
-    if prop then
-        return prop.Boxed()
-    end
-
-    -- Check registered user functions
-    local func = self:getRegisteredFunc(name)
-    if func then
-        -- TODO
-    end
-
-end
-
-function DBObjectWrap:Boxed()
-    return {
-        __index = function(name)
-            return self:getBoxedAttr(name)
-        end,
-        __newindex = function(name, value)
-            local result = self:getDBObjectProp(name)
-            if result then
-
-            end
-
-        end,
-        __metatable = nil,
-    }
-end
+-------------------------------------------------------------------------------
+-- DBContext
+-------------------------------------------------------------------------------
 
 ---@class DBContextConfig
 ---@field createVirtualTable boolean
@@ -870,13 +811,6 @@ function DBContext:InitMetadataRef(container, fieldName, refClass)
     v = setmetatable(v, refClass)
     container[fieldName] = v
     return v
-end
-
----@param objectId number
----@param objRow table @comment row of [.objects]
----@return DBObjectWrap
-function DBContext:GetDBObjectWrap(objectId, objRow)
-    return DBObjectWrap(self, objectId, objRow)
 end
 
 local flexi_CreateClass = require 'flexi_CreateClass'

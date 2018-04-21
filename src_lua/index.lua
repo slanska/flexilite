@@ -19,7 +19,7 @@ package.path = string.format('%s;%s;%s',
 
 local DBContext = require('DBContext')
 
--- Global singletone
+-- Global singleton
 Flexi = {
 -- List of all active contexts, key is sqlite database handle
     Contexts = {},
@@ -29,16 +29,10 @@ Flexi = {
 Gateway to handle all 'select flexi()' requests.
 - Finds DBContext by context ctx
 - Calls DBContext.processFlexiAction
-TODO processFlexiAction ???
 
 - Processing is done within protected call (pcall)
 - All errors are converted to ctx errors and reported back to caller
 ]]
-function Flexi.flexiFunction(ctx, action, ...)
-    ctx:result_string 'wfh?'
-    return 0
-end
-
 function Flexi:newDBContext(db)
     local result = DBContext(db)
     self.Contexts[db] = result

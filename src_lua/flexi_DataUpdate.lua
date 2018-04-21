@@ -15,7 +15,7 @@ Uses DBObject and DBCell Api for data manipulation.
 
 local json = require('cjson')
 local class = require 'pl.class'
-local QueryBuilder = require 'QueryBuilder'
+local QueryBuilder = require('QueryBuilder').QueryBuilder
 local Constants = require 'Constants'
 
 --[[

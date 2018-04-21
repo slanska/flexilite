@@ -8,6 +8,13 @@
 
 local class = require 'pl.class'
 
+local test_util = require 'util'
+
+-- In memory database
+local DBContext = test_util.openFlexiDatabaseInMem()
+test_util.createNorthwindSchema(DBContext)
+test_util.importNorthwindData(DBContext)
+
 ---@class DummyDBOV
 ---@field ID number
 ---@field ClassDef ClassDef
