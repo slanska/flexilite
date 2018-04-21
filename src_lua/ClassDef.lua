@@ -25,8 +25,6 @@ local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 local AccessControl = require 'AccessControl'
 local DictCI = require('Util').DictCI
---local bit = type(jit) == 'table' and require('bit') or require('bit32')
-local pretty = require 'pl.pretty'
 
 --[[
 Index definitions for class. Operate with property IDs only,
@@ -570,14 +568,12 @@ function ClassDef:saveToDB()
     assert(self.ClassID > 0)
 
     local internalJson = ''
-    local ok = xpcall(
-            function()
-                local internal = self:internalToJSON()
-                internalJson = json.encode(internal)
-            end,
-            function(error)
-                print(pretty.dump(internal))
-            end)
+    print('saving ' .. self.Name.text)
+    local internal = self:internalToJSON()
+    local sparse = json.encode_sparse_array()
+    json.encode_sparse_array(true)
+    internalJson = json.encode(internal)
+    json.encode_sparse_array(sparse)
 
     -- Calculate ctloMask and vtypes
     self.vtypes = 0
@@ -609,6 +605,8 @@ function ClassDef:saveToDB()
                                      vtypes = self.vtypes,
                                      ClassID = self.ClassID
                                  })
+    print('Saved ' .. self.Name.text)
+
 end
 
 -- Converts "free" index definition to a normalized format.
@@ -836,9 +834,9 @@ function ClassDef:getObjectSchema(op)
     for propName, propDef in pairs(self.Properties) do
         local propSchema = propDef:GetValueSchema(op)
         if op == 'U' then
-            objSchema[propName] = schema.Optional(propSchema)
+            objSchema[string.lower(propName)] = schema.Optional(propSchema)
         else
-            objSchema[propName] = propSchema
+            objSchema[string.lower(propName)] = propSchema
         end
     end
 

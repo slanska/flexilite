@@ -83,8 +83,7 @@ local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 local DBProperty = require('DBProperty').DBProperty
 local ChangedDBProperty = require('DBProperty').ChangedDBProperty
 local NullDBValue = require('DBProperty').NullDBValue
---TODO local pretty = require 'pl.pretty'
-
+local pretty = require 'pl.pretty'
 
 -------------------------------------------------------------------------------
 --[[
@@ -709,7 +708,7 @@ end
 function WritableDBOV:getChangedDataPayload()
     local result = {}
     for propName, dbp in pairs(self.props) do
-        result[propName] = dbp:GetValues()
+        result[string.lower(propName)] = dbp:GetValues()
     end
     return result
 end

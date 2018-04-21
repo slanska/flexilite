@@ -94,6 +94,7 @@ local function importNorthwindData(DBContext)
     local started = os.clock()
     local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.data.json'))
     local sql = "select flexi('import data', '" .. stringx.replace(dataDump, "'", "''") .. "');"
+    DBContext:ExecAdhocSql(sql)
     -- TODO temp
     print(string.format('flexi_data - Elapsed %s sec', os.clock() - started))
 
@@ -103,6 +104,8 @@ end
 local function createNorthwindSchema(DBContext)
     local content = readAll(path.join(__dirname, 'test', 'json', 'Northwind.db3.schema.json'))
     local sql = "select flexi('create schema', '" .. content .. "');"
+    DBContext:ExecAdhocSql(sql)
+    print('createNorthwindSchema: done')
 end
 
 -- load sql scripts into Flexi variables

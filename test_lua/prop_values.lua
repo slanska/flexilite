@@ -6,30 +6,24 @@
 
 --[[ Busted tests for property value access and operations]]
 
-local class = require 'pl.class'
+local pretty = require 'pl.pretty'
 
 local test_util = require 'util'
+local DBQuery = require('QueryBuilder').DBQuery
 
 -- In memory database
+---@type DBContext
 local DBContext = test_util.openFlexiDatabaseInMem()
 test_util.createNorthwindSchema(DBContext)
 test_util.importNorthwindData(DBContext)
 
----@class DummyDBOV
----@field ID number
----@field ClassDef ClassDef
+--local ProductClassDef = require 'test_class_def'
+--local DBProperty = require 'DBProperty'
 
-local ProductClassDef = require 'test_class_def'
-local DBProperty = require 'DBProperty'
-
-local DummyDBOV = class()
-
-function DummyDBOV:_init(ClassDef, ID)
-    self.ClassDef = ClassDef
-    self.ID = ID
-end
-
-describe('Property Ops', function()
+describe('Property Ops:', function()
+    ---@type ClassDef
+    local productsClassDef = assert(DBContext:getClassDef('Products'))
+    --pretty.dump(DBContext, './DBContext.dump')
 
     it('QuantityPerUnit + 10', function()
 
@@ -37,5 +31,10 @@ describe('Property Ops', function()
 
     it('QuantityPerUnit * UnitPrice', function()
 
+    end)
+
+    it('UnitPrice > 11 and UnitPrice < 21.1', function()
+        local qry = DBQuery(productsClassDef, 'UnitPrice > 11 and UnitPrice < 21.1')
+        local ids = qry:Run()
     end)
 end)

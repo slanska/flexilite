@@ -148,7 +148,7 @@ end
 ---@param expr string
 ---@param params table
 function FilterDef:_init(ClassDef, expr, params)
-    self.ClassDef = ClassDef
+    self.ClassDef = assert(ClassDef)
     self.indexedItems = {}
     self.params = params
 
