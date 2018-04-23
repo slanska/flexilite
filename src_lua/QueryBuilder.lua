@@ -429,57 +429,84 @@ end
 ---@param sql List
 function FilterDef:process_single_properties(sql)
     local indexes = self.ClassDef.indexes
+
+    -- List of already processed props
+    local processedProps = {}
+
     for i, v in ipairs(self.indexedItems) do
         local propDef = self.ClassDef.DBContext.ClassProps[v.propID]
         if propDef then
-            local propIdx = self.ClassDef.indexes.propIndexing[propDef.ID]
-            if propDef.ColMap ~= nil then
-                -- Treat as .objects column
-                sql:append(string.format('and (%s %s %s', propDef.ColMap, v.cond, v.val))
-                if propIdx ~= nil then
-                    -- Index
+            local appendAnd = false
+            local propSql = processedProps[v.propID]
+            local propIndexed = self.ClassDef.indexes.propIndexing[propDef.ID]
+            if propSql == nil then
+                propSql = List()
+                if propDef.ColMap == nil then
+                    -- reg.values
+                    propSql:append(string.format(' and ObjectID in (select ObjectID from [.ref-values] where PropertyID = %d ',
+                                                 propDef.ID))
+                    if propIndexed ~= nil then
+                        propSql:append(' and ctlv & %d <> 0',
+                                       propIndexed == true and Constants.CTLV_FLAGS.UNIQUE or Constants.CTLV_FLAGS.INDEX)
+                    end
+                    appendAnd = true
+                else
+                    -- ColMap Index
                     local colIdx = propDef:ColMapIndex()
-                    local idxMask = propIdx == true
+                    local idxMask = propIndexed == true
                             -- Unique index
                             and bit52.bnot(bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.UNIQUE_SHIFT))
                             -- Non unique index
                             or bit52.bnot(bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.INDEX_SHIFT))
 
-                    sql:append(string.format(' and ctlo & %d <> 0)', idxMask))
-                else
-                    sql:append ')'
+                    propSql:append(string.format(' and (ctlo & %d <> 0', idxMask))
                 end
+                processedProps[v.propID] = propSql
+            else
+                appendAnd = true
+            end
+
+            if appendAnd then
+                propSql:append ' and'
+            else
+                appendAnd = true
+            end
+            if propDef.ColMap ~= nil then
+                -- Treat as .objects column
+
+                propSql:append(string.format(' %s %s %s', propDef.ColMap, v.cond, v.val))
             else
                 -- Treat as .ref-values row
-                sql:append(string.format([[ and ObjectID in (select ObjectID from [.ref-values]
-                where PropertyID = %d and Value %s %s)]], propDef.ID, v.cond, v.val))
-                if propIdx ~= nil then
-                    sql:append(' and ctlv & %d <> 0',
-                               propIdx == true and Constants.CTLV_FLAGS.UNIQUE or Constants.CTLV_FLAGS.INDEX)
-                end
-            end
-        end
-        if not v.processed then
-            if indexes ~= nil then
-                local idxMode = indexes.propIndexing[v.propID]
-                if idxMode ~= nil and v.cond ~= 'MATCH' then
-                    -- TODO
-                    sql:append(string.format([[ and ObjectID in (select ObjectID from [.ref-values]
-                        where PropertyID = %d and Value %s %s]], v.propID, v.cond, v.val))
-
-                    local idxFlag = idxMode and Constants.CTLV_FLAGS.UNIQUE or Constants.CTLV_FLAGS.INDEX
-                    sql:append(string.format(' and (ctlv & %d <> 0))', idxFlag))
-                    v.processed = true
-                end
+                propSql:append(string.format(' Value %s %s', v.cond, v.val))
             end
 
-            -- Index was not found - apply direct search
-            if not v.processed then
-                if propDef and propDef.ColMap then
-                    sql:append(string.format(' and (%s %s %s)', propDef.ColMap, v.cond, v.val))
-                end
-            end
+            --if not v.processed then
+            --    if indexes ~= nil then
+            --        local idxMode = indexes.propIndexing[v.propID]
+            --        if idxMode ~= nil and v.cond ~= 'MATCH' then
+            --            -- TODO
+            --            propSql:append(string.format([[ and ObjectID in (select ObjectID from [.ref-values]
+            --            where PropertyID = %d and Value %s %s]], v.propID, v.cond, v.val))
+            --
+            --            local idxFlag = idxMode and Constants.CTLV_FLAGS.UNIQUE or Constants.CTLV_FLAGS.INDEX
+            --            propSql:append(string.format(' and (ctlv & %d <> 0))', idxFlag))
+            --            v.processed = true
+            --        end
+            --    end
+            --
+            --    -- Index was not found - apply direct search
+            --    if not v.processed then
+            --        if propDef and propDef.ColMap then
+            --            propSql:append(string.format(' and (%s %s %s)', propDef.ColMap, v.cond, v.val))
+            --        end
+            --    end
+            --end
         end
+    end
+
+    for propId, pp in pairs(processedProps) do
+        local ss = pp:join(' ') .. ')'
+        sql:append(ss)
     end
 end
 
@@ -579,7 +606,9 @@ end
 
 ---@return boolean @comment true if any objects were found
 function DBQuery:Run()
+    -- Reset result
     self.ObjectIDs = {}
+
     local sql = self._filterDef:build_index_query()
     --local rows =
 
@@ -595,6 +624,10 @@ function DBQuery:Run()
         local dbobj = self._filterDef.ClassDef.DBContext:LoadObject(objRow.ObjectID, nil, false, objRow)
         assert(dbobj)
         local boxed = dbobj:GetSandBoxed(Constants.DBOBJECT_SANDBOX_MODE.FILTER)
+
+        -->>
+        print('-->> boxed: ', boxed.UnitPrice + 1)
+
         local sandbox_options = { env = boxed }
         local ok = Sandbox.run(filterCallback, sandbox_options)
         if ok then

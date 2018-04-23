@@ -26,62 +26,62 @@ end
 
 NullDBValueClass.__metatable = nil
 
-function NullDBValueClass:__index (idx)
+function NullDBValueClass:boxed_index (idx)
 
 end
 
-function NullDBValueClass:__newindex (value)
+function NullDBValueClass:boxed_newindex (value)
     error('Not assignable null value')
 end
 
-function NullDBValueClass:__add(v1, v2)
+function NullDBValueClass:boxed_add(v1, v2)
     return nil
 end
 
-function NullDBValueClass:__sub(v1, v2)
+function NullDBValueClass:boxed_sub(v1, v2)
     return nil
 end
 
-function NullDBValueClass:__mul(v1, v2)
+function NullDBValueClass:boxed_mul(v1, v2)
     return nil
 end
 
-function NullDBValueClass:__div(v1, v2)
+function NullDBValueClass:boxed_div(v1, v2)
 end
 
-function NullDBValueClass:__pow(v1, v2)
+function NullDBValueClass:boxed_pow(v1, v2)
     return nil
 end
 
-function NullDBValueClass:__concat(v1, v2)
+function NullDBValueClass:boxed_concat(v1, v2)
     return nil
 end
 
-function NullDBValueClass:__len(v1, v2)
+function NullDBValueClass:boxed_len(v1, v2)
     return nil
 end
 
-function NullDBValueClass:__tostring(v1)
+function NullDBValueClass:boxed_tostring(v1)
     return nil
 end
 
-function NullDBValueClass:__unm(v1)
+function NullDBValueClass:boxed_unm(v1)
     return nil
 end
 
-function NullDBValueClass:__eq(v1, v2)
+function NullDBValueClass:boxed_eq(v1, v2)
     return nil
 end
 
-function NullDBValueClass:__lt(v1, v2)
+function NullDBValueClass:boxed_lt(v1, v2)
     return nil
 end
 
-function NullDBValueClass:__le(v1, v2)
+function NullDBValueClass:boxed_le(v1, v2)
     return nil
 end
 
-function NullDBValueClass:__mod(v1, v2)
+function NullDBValueClass:boxed_mod(v1, v2)
     return nil
 end
 
@@ -176,7 +176,9 @@ end
 function DBProperty:boxed_len(v1, v2)
 end
 
-function DBProperty:boxed_tostring(v1)
+function DBProperty:boxed_tostring(boxed, v1)
+    -- TODO
+    return tostring(v1)
 end
 
 function DBProperty:boxed_unm(v1)
@@ -203,6 +205,11 @@ end
 
 ---@param idx number @comment 1 based
 function DBProperty:GetValue(idx)
+    ---->>
+    --if self.PropDef.ID == nil then
+    --    require('pl.pretty').dump(self.PropDef)
+    --end
+
     self.PropDef.ClassDef.DBContext.AccessControl:ensureCurrentUserAccessForProperty(
             self.PropDef.ID, Constants.OPERATION.READ)
 

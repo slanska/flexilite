@@ -209,7 +209,7 @@ function ReadOnlyDBOV:initFromObjectRow(obj)
 
             -- Extract cell MetaData
             local dbProp = self.props[prop.Name.text] or DBProperty(self, prop)
-            local colMetaData = self.MetaData and self.MetaData.colMapMetaData and self.MetaData.colMapMetaData[prop.PropertyID]
+            local colMetaData = self.MetaData and self.MetaData.colMapMetaData and self.MetaData.colMapMetaData[prop.ID]
             local cell = DBValue { Object = self, Property = dbProp, PropIndex = 1, Value = obj[col], ctlv = ctlv, MetaData = colMetaData }
             dbProp.values[1] = cell
         end
@@ -230,7 +230,7 @@ end
 ---@param propName string
 ---@return DBProperty
 function ReadOnlyDBOV:getProp(propName)
-    local propDef = self.ClassDef:getProperty(propName)
+    local propDef = self.ClassDef:hasProperty(propName)
     if not propDef then
         return nil
     end
@@ -269,7 +269,7 @@ end
 ---@param propDef PropertyDef
 ---@param op string @comment 'C' or 'U' or 'D'
 function ReadOnlyDBOV:checkPropertyAccess(propDef, op)
-    self.ClassDef.DBContext.ensureCurrentUserAccessForProperty(propDef.PropertyID, op)
+    self.ClassDef.DBContext.ensureCurrentUserAccessForProperty(propDef.ID, op)
 end
 
 ---@param propName string
@@ -412,7 +412,7 @@ end
 function WritableDBOV:applyMappedColumnValues(params)
     if self.ClassDef.ColMapActive then
         for col, prop in pairs(self.ClassDef.propColMap) do
-            local vv = self:getPropValue(prop.PropertyID, 1, true)
+            local vv = self:getPropValue(prop.ID, 1, true)
             if vv then
                 local colIdx = col:byte() - string.byte('A')
                 -- update vtypes
@@ -721,6 +721,7 @@ Used in filtering, user functions and triggers
 -------------------------------------------------------------------------------
 ---@class DBObjectWrap
 ---@field DBOV ReadOnlyDBOV
+---@field boxed table
 
 local DBObjectWrap = class()
 
@@ -734,15 +735,16 @@ end
 ---@param name string
 ---@return DBProperty | nil
 function DBObjectWrap:getDBObjectProp(name)
-    if self.DBObject then
-        local result = self.DBOV.DBObject.original()[name]
-
+    if self.DBOV then
+        local result = self.DBOV:getProp(name)
+        return result
     end
 end
 
 ---@param name string
 function DBObjectWrap:getRegisteredFunc(name)
-
+    -- TODO
+    return nil
 end
 
 ---@param name string
@@ -750,7 +752,7 @@ function DBObjectWrap:getBoxedAttr(name)
     -- If DBObject is assigned, check its properties first
     local prop = self:getDBObjectProp(name)
     if prop then
-        return prop.Boxed()
+        return prop:Boxed()
     end
 
     -- Check registered user functions
@@ -762,19 +764,22 @@ function DBObjectWrap:getBoxedAttr(name)
 end
 
 function DBObjectWrap:Boxed()
-    return {
-        __index = function(name)
-            return self:getBoxedAttr(name)
-        end,
-        __newindex = function(name, value)
-            local result = self:getDBObjectProp(name)
-            if result then
+    if not self.boxed then
+        self.boxed = setmetatable({}, {
+            __index = function(boxed, name)
+                return self:getBoxedAttr(name)
+            end,
+            __newindex = function(boxed, name, value)
+                local result = self:getDBObjectProp(name)
+                if result then
 
-            end
+                end
 
-        end,
-        __metatable = nil,
-    }
+            end,
+            __metatable = nil,
+        })
+    end
+    return self.boxed
 end
 
 -------------------------------------------------------------------------------
@@ -1046,7 +1051,7 @@ end
 function DBObject:GetSandBoxed(mode)
     mode = mode or Constants.DBOBJECT_SANDBOX_MODE.FILTER
     if mode == Constants.DBOBJECT_SANDBOX_MODE.FILTER then
-        return DBObjectWrap(self.origVer)
+        return DBObjectWrap(self.origVer):Boxed()
     elseif mode == Constants.DBOBJECT_SANDBOX_MODE.ORIGINAL then
         return self.original()
     elseif mode == Constants.DBOBJECT_SANDBOX_MODE.CURRENT then

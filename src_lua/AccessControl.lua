@@ -106,6 +106,7 @@ end
 
 -- Ensures that current user has required permission for property level
 function AccessControl:ensureCurrentUserAccessForProperty(propID, op)
+    assert(type(propID) == 'number')
     local propDef = self.DBContext.ClassProps[propID]
     assert(propDef)
     self:ensureUserPermission(self.DBContext.UserInfo, propDef.D.accessRules, op)
