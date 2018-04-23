@@ -581,13 +581,17 @@ end
 function DBQuery:Run()
     self.ObjectIDs = {}
     local sql = self._filterDef:build_index_query()
-    local rows = self._filterDef.ClassDef.DBContext:LoadAdhocRows(sql, self._filterDef.params)
+    --local rows =
 
     -- TODO set env.quote?
-    local filterCallback = loadstring(self._filterDef.expr)
+
+    local filterCallback, err = load(self._filterDef.Expression)
+    if filterCallback == nil then
+        -- TODO error (err)
+    end
 
     -- objRow is [.objects]
-    for objRow in rows do
+    for objRow in self._filterDef.ClassDef.DBContext:LoadAdhocRows(sql, self._filterDef.params) do
         local dbobj = self._filterDef.ClassDef.DBContext:LoadObject(objRow.ObjectID, nil, false, objRow)
         assert(dbobj)
         local boxed = dbobj:GetSandBoxed(Constants.DBOBJECT_SANDBOX_MODE.FILTER)

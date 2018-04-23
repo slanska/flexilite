@@ -336,7 +336,8 @@ function ChangedDBProperty:GetValue(idx)
 end
 
 local refValSQL = {
-    [Constants.OPERATION.CREATE] = [[insert into [.ref-values]
+    -- TODO insert
+    [Constants.OPERATION.CREATE] = [[insert or replace into [.ref-values]
     (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
     (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv, :MetaData);]],
 
@@ -361,15 +362,27 @@ function ChangedDBProperty:SaveToDB()
     ---@param values table<number, DBValue>
     local function insertRefValues(values)
         for propIndex, dbv in pairs(values) do
-            local vv = self.PropDef:GetRawValue(dbv)
-            local params = {
-                ObjectID = self.DBOV.ID,
-                PropertyID = self.PropDef.ID,
-                PropIndex = propIndex,
-                Value = vv,
-                ctlv = dbv.ctlv or 0,
-                MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil }
-            DBContext:execStatement(refValSQL[Constants.OPERATION.CREATE], params)
+
+            local status, err = xpcall(function()
+                local vv = self.PropDef:GetRawValue(dbv)
+                local params = {
+                    ObjectID = self.DBOV.ID,
+                    PropertyID = self.PropDef.ID,
+                    PropIndex = propIndex,
+                    Value = vv,
+                    ctlv = dbv.ctlv or 0,
+                    MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil }
+                DBContext:execStatement(refValSQL[Constants.OPERATION.CREATE], params)
+            end,
+                                       function(err)
+                                           return err
+                                       end)
+            if not status then
+                local errMsg = tostring(err)
+                error(string.format('%s.%s (%d)[%d]:%d %s',
+                                    self.PropDef.ClassDef.Name.text, self.PropDef.Name.text, self.PropDef.ID, propIndex,
+                                    self.DBOV.ID, errMsg))
+            end
         end
     end
 

@@ -35,6 +35,7 @@ describe('Property Ops:', function()
 
     it('UnitPrice > 11 and UnitPrice < 21.1', function()
         local qry = DBQuery(productsClassDef, 'UnitPrice > 11 and UnitPrice < 21.1')
-        local ids = qry:Run()
+        local found = qry:Run()
+        print('#qry.ObjectIDs:', #qry.ObjectIDs)
     end)
 end)

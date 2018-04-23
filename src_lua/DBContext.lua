@@ -545,9 +545,9 @@ function DBContext:getClassDef(classIdOrName, mustExist)
     -- Check if class already loaded
     if result then
         if type(classIdOrName) == 'string' then
-            assert(result.Name.text == classIdOrName)
+            assert(result.Name.text == classIdOrName, 'result.Name.text == classIdOrName')
         else
-            assert(result.ID == classIdOrName)
+            assert(result.ClassID == classIdOrName, string.format('%s == %s', result.ClassID, classIdOrName))
         end
         return result
     end
@@ -787,7 +787,7 @@ end
 --- @return iterator
 function DBContext:LoadAdhocRows(sql, params)
     local stmt = self:getAdhocStmt(sql, params)
-    return stmt:rows()
+    return stmt:nrows()
 end
 
 -- Internal method to initialize metadata reference (NameRef, PropRef...)

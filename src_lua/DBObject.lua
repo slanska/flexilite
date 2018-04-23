@@ -960,25 +960,39 @@ end
 function DBObject:saveToDB()
     local op = self.state
 
-    -- before trigger
-    self:fireBeforeTrigger()
+    -- TODO safe call
+    local ok, err = xpcall(function()
+        -- before trigger
+        self:fireBeforeTrigger()
 
-    if op == Constants.OPERATION.CREATE then
-        self:setDefaultData()
-        self:ValidateData()
-        self.curVer:saveCreate()
-    elseif op == Constants.OPERATION.UPDATE then
-        self:ValidateData()
-        self.curVer:saveUpdate()
-    elseif op == Constants.OPERATION.DELETE then
-        --self:Delete()
-    else
-        -- no-op
-        return
+        if op == Constants.OPERATION.CREATE then
+            self:setDefaultData()
+            self:ValidateData()
+            self.curVer:saveCreate()
+        elseif op == Constants.OPERATION.UPDATE then
+            self:ValidateData()
+            self.curVer:saveUpdate()
+        elseif op == Constants.OPERATION.DELETE then
+            --self:Delete()
+        else
+            -- no-op
+            return
+        end
+
+        -- After trigger
+        self:fireAfterTrigger()
+
+    end,
+                           function(err)
+                               print(string.format('>>> saveToDB error %s:%d', self.curVer.ClassDef.Name.text, self.curVer.ID))
+                               --error( err)
+                               return err
+                           end)
+
+    if err then
+        error(err)
     end
 
-    -- After trigger
-    self:fireAfterTrigger()
 end
 
 ---@param data table

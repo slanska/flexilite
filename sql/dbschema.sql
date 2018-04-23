@@ -799,13 +799,9 @@ BEGIN
     SELECT
       printf('@%s.%s', old.[ClassID], old.[ObjectID]),
       json_set('{}',
-               CASE WHEN old.Data IS NULL
+               CASE WHEN old.MetaData IS NULL
                  THEN NULL
-               ELSE '$.Data' END, old.Data,
-
-               CASE WHEN old.ExtData IS NULL
-                 THEN NULL
-               ELSE '$.ExtData' END, old.ExtData,
+               ELSE '$.MetaData' END, old.MetaData,
 
                CASE WHEN old.ctlo IS NULL
                  THEN NULL
