@@ -18,75 +18,35 @@ local tablex = require 'pl.tablex'
 local Constants = require 'Constants'
 local JSON = require 'cjson'
 
-local NullDBValueClass = class()
+-- Singleton constant Null DBValue. All operations with Null value result in null
+local NullDBValue
 
-function NullDBValueClass:_init()
-
+local function NullFunc()
+    return NullDBValue
 end
 
-NullDBValueClass.__metatable = nil
-
-function NullDBValueClass:boxed_index (idx)
-
-end
-
-function NullDBValueClass:boxed_newindex (value)
-    error('Not assignable null value')
-end
-
-function NullDBValueClass:boxed_add(v1, v2)
-    return nil
-end
-
-function NullDBValueClass:boxed_sub(v1, v2)
-    return nil
-end
-
-function NullDBValueClass:boxed_mul(v1, v2)
-    return nil
-end
-
-function NullDBValueClass:boxed_div(v1, v2)
-end
-
-function NullDBValueClass:boxed_pow(v1, v2)
-    return nil
-end
-
-function NullDBValueClass:boxed_concat(v1, v2)
-    return nil
-end
-
-function NullDBValueClass:boxed_len(v1, v2)
-    return nil
-end
-
-function NullDBValueClass:boxed_tostring(v1)
-    return nil
-end
-
-function NullDBValueClass:boxed_unm(v1)
-    return nil
-end
-
-function NullDBValueClass:boxed_eq(v1, v2)
-    return nil
-end
-
-function NullDBValueClass:boxed_lt(v1, v2)
-    return nil
-end
-
-function NullDBValueClass:boxed_le(v1, v2)
-    return nil
-end
-
-function NullDBValueClass:boxed_mod(v1, v2)
-    return nil
-end
-
--- Constant Null DBValue
-local NullDBValue = NullDBValueClass()
+NullDBValue = setmetatable({}, {
+    __index = NullFunc,
+    __newindex = function()
+        error('Not assignable null value')
+    end,
+    __metatable = nil,
+    __add = NullFunc,
+    __sub = NullFunc,
+    __mul = NullFunc,
+    __div = NullFunc,
+    __pow = NullFunc,
+    __concat = NullFunc,
+    __len = NullFunc,
+    __tostring = function()
+        return nil
+    end,
+    __unm = NullFunc,
+    __eq = NullFunc,
+    __lt = NullFunc,
+    __le = NullFunc,
+    __mod = NullFunc,
+})
 
 -------------------------------------------------------------------------------
 --[[
@@ -99,40 +59,17 @@ Provides access to simple values (both scalar and vector)
 ---@field PropDef PropertyDef
 local DBProperty = class()
 
----@param DBOV ReadOnlyDBOV
----@param propDef PropertyDef
-function DBProperty:_init(DBOV, propDef)
-    self.DBOV = assert(DBOV)
-    self.PropDef = assert(propDef)
+local DBPropertyBoxed = class(DBValue.BoxedClass)
+
+function DBPropertyBoxed:getValue()
+
 end
 
-function DBProperty:Boxed()
-    if not self.boxed then
-        self.boxed = setmetatable({}, {
-            __index = self.boxed_index,
-            __newindex = self.boxed_newindex,
-            __metatable = nil,
-            __add = self.boxed_add,
-            __sub = self.boxed_sub,
-            __mul = self.boxed_mul,
-            __div = self.boxed_div,
-            __pow = self.boxed_pow,
-            __concat = self.boxed_concat,
-            __len = self.boxed_len,
-            __tostring = self.boxed_tostring,
-            __unm = self.boxed_unm,
-            __eq = self.boxed_eq,
-            __lt = self.boxed_lt,
-            __le = self.boxed_le,
-            __mod = self.boxed_mod,
-        })
-    end
-
-    return self.boxed
+function DBPropertyBoxed:_init(prop, idx)
+    self:super(self.getValue, prop, idx)
 end
 
----@param key string | number
-function DBProperty:boxed_index(key)
+function DBPropertyBoxed:__index(self, key)
     if type(key) == 'number' then
         local vv = self:GetValue(key)
         if vv then
@@ -147,53 +84,28 @@ function DBProperty:boxed_index(key)
     end
 end
 
----@param key string | number
----@param value any
-function DBProperty:boxed_newindex(key, value)
+function DBPropertyBoxed:__newindex(self, v1)
+    -- TODO
     return self:SetValue(key, value)
 end
 
-function DBProperty:boxed_add(v1, v2)
-    -- TODO
-    return self.GetValue(1).Boxed(self, 1).__add(v1, v2)
+function DBPropertyBoxed:__len(self, v1)
+
 end
 
-function DBProperty:boxed_sub(v1, v2)
+---@param DBOV ReadOnlyDBOV
+---@param propDef PropertyDef
+function DBProperty:_init(DBOV, propDef)
+    self.DBOV = assert(DBOV)
+    self.PropDef = assert(propDef)
 end
 
-function DBProperty:boxed_mul(v1, v2)
-end
+function DBProperty:Boxed()
+    if not self.boxed then
+        self.boxed = DBPropertyBoxed(self, 1)
+    end
 
-function DBProperty:boxed_div(v1, v2)
-end
-
-function DBProperty:boxed_pow(v1, v2)
-end
-
-function DBProperty:boxed_concat(v1, v2)
-end
-
-function DBProperty:boxed_len(v1, v2)
-end
-
-function DBProperty:boxed_tostring(boxed, v1)
-    -- TODO
-    return tostring(v1)
-end
-
-function DBProperty:boxed_unm(v1)
-end
-
-function DBProperty:boxed_eq(v1, v2)
-end
-
-function DBProperty:boxed_lt(v1, v2)
-end
-
-function DBProperty:boxed_le(v1, v2)
-end
-
-function DBProperty:boxed_mod(v1, v2)
+    return self.boxed
 end
 
 ---@param idx number @comment 1 based index
@@ -344,6 +256,7 @@ end
 
 local refValSQL = {
     -- TODO insert
+    --[Constants.OPERATION.CREATE] = [[insert into [.ref-values]
     [Constants.OPERATION.CREATE] = [[insert or replace into [.ref-values]
     (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
     (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv, :MetaData);]],
@@ -362,6 +275,9 @@ local refValSQL = {
       and PropIndex=:old_PropIndex;]],
 }
 
+-->>
+local insertedProps = {}
+
 -- Saves values to the database
 function ChangedDBProperty:SaveToDB()
     local DBContext = self.DBOV.ClassDef.DBContext
@@ -379,6 +295,14 @@ function ChangedDBProperty:SaveToDB()
                     Value = vv,
                     ctlv = dbv.ctlv or 0,
                     MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil }
+
+                -->>
+                local id = string.format('%d.%d[%d]', self.DBOV.ID, self.PropDef.ID, propIndex)
+                if insertedProps[id] then
+                    print(string.format('-->> Already inserted %s = %s (%s)', id, vv, insertedProps[id]))
+                end
+                insertedProps[id] = vv
+
                 DBContext:execStatement(refValSQL[Constants.OPERATION.CREATE], params)
             end,
                                        function(err)

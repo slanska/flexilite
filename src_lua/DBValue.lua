@@ -46,6 +46,73 @@ local Constants = require 'Constants'
 ---@field MetaData table|nil
 local DBValue = class()
 
+---@class DBValueBoxed
+---@field ValueGetter function | DBValue
+---@field Prop DBProperty
+---@field Idx number
+local DBValueBoxed = class()
+
+---@param valueGetter function | DBValue
+---@param prop DBProperty
+---@param idx number
+function DBValueBoxed:_init(valueGetter, prop, idx)
+    self.ValueGetter = valueGetter
+    self.Prop = prop
+    self.Idx = idx
+end
+
+function DBValueBoxed:__tostring(self, v)
+
+end
+
+function DBValueBoxed:__len(self, v)
+
+end
+
+function DBValueBoxed:__unm(self, v)
+
+end
+
+function DBValueBoxed:__add(self, v1, v2)
+
+end
+
+function DBValueBoxed:__sub(self, v1, v2)
+
+end
+
+function DBValueBoxed:__mul(self, v1, v2)
+
+end
+
+function DBValueBoxed:__div(self, v1, v2)
+
+end
+
+function DBValueBoxed:__mod(self, v1, v2)
+
+end
+
+function DBValueBoxed:__pow(self, v1, v2)
+
+end
+
+function DBValueBoxed:__concat(self, v1, v2)
+
+end
+
+function DBValueBoxed:__eq(self, v1, v2)
+
+end
+
+function DBValueBoxed:__lt(self, v1, v2)
+
+end
+
+function DBValueBoxed:__le(self, v1, v2)
+end
+
+
 -- constructor
 ---@param row DBValueCtorParams
 function DBValue:_init(row)
@@ -68,14 +135,14 @@ function DBValue:Boxed(DBProperty, propIndex)
         self.boxed = setmetatable({}, {
             __metatable = nil,
 
-        -- set value by index
+            -- set value by index
             ---@param idx number
             ---@param val any
             __newindex = function(idx, val)
 
             end,
 
-        -- get value by index
+            -- get value by index
             ---@param idx number
             ---@return any
             __index = function(idx)
@@ -121,55 +188,6 @@ function DBValue:afterSaveToDB(DBProperty, propIndex)
 
 end
 
-function DBValue:boxed_tostring(v)
-
-end
-
-function DBValue:boxed_len(v)
-
-end
-
-function DBValue:boxed_unm(v)
-
-end
-
-function DBValue:boxed_add(v1, v2)
-
-end
-
-function DBValue:boxed_sub(v1, v2)
-
-end
-
-function DBValue:boxed_mul(v1, v2)
-
-end
-
-function DBValue:boxed_div(v1, v2)
-
-end
-
-function DBValue:boxed_mod(v1, v2)
-
-end
-
-function DBValue:boxed_pow(v1, v2)
-
-end
-
-function DBValue:boxed_concat(v1, v2)
-
-end
-
-function DBValue:boxed_eq(v1, v2)
-
-end
-
-function DBValue:boxed_lt(v1, v2)
-
-end
-
-function DBValue:boxed_le(v1, v2)
-end
+DBValue.BoxedClass = DBValueBoxed
 
 return DBValue

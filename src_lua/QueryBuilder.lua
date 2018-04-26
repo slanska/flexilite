@@ -626,7 +626,7 @@ function DBQuery:Run()
         local boxed = dbobj:GetSandBoxed(Constants.DBOBJECT_SANDBOX_MODE.FILTER)
 
         -->>
-        print('-->> boxed: ', boxed.UnitPrice + 1)
+        print('-->> boxed: ', boxed.UnitPrice)
 
         local sandbox_options = { env = boxed }
         local ok = Sandbox.run(filterCallback, sandbox_options)
