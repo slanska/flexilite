@@ -17,25 +17,27 @@ local DBContext = test_util.openFlexiDatabaseInMem()
 test_util.createNorthwindSchema(DBContext)
 test_util.importNorthwindData(DBContext)
 
---local ProductClassDef = require 'test_class_def'
---local DBProperty = require 'DBProperty'
+local test_cases = {
+    --{ query = 'QuantityPerUnit + 10 ~=  20', expected_cnt = 68 },
+    --{ query = 'QuantityPerUnit * UnitPrice > 300 and QuantityPerUnit * UnitPrice <= 400', expected_cnt = 12 },
+    { query = [[UnitPrice > 11 and UnitPrice < 21.1]], expected_cnt = 29 },
+    { query = [[QuantityPerUnit >= '24 - 12 oz bottles' and QuantityPerUnit <= '24 - 12 oz bottles']], expected_cnt = 4 },
+    { query = [[tostring(QuantityPerUnit) == '24 - 12 oz bottles']], expected_cnt = 4 },
+}
 
 describe('Property Ops:', function()
     ---@type ClassDef
     local productsClassDef = assert(DBContext:getClassDef('Products'))
-    --pretty.dump(DBContext, './DBContext.dump')
 
-    it('QuantityPerUnit + 10', function()
+    local function run_test_case(n)
+        it(test_cases[n].query, function()
+            local qry = DBQuery(productsClassDef, test_cases[n].query)
+            qry:Run()
+            assert.are.equal(#qry.ObjectIDs, test_cases[n].expected_cnt)
+        end)
+    end
 
-    end)
-
-    it('QuantityPerUnit * UnitPrice', function()
-
-    end)
-
-    it('UnitPrice > 11 and UnitPrice < 21.1', function()
-        local qry = DBQuery(productsClassDef, 'UnitPrice > 11 and UnitPrice < 21.1')
-        local found = qry:Run()
-        print('#qry.ObjectIDs:', #qry.ObjectIDs)
-    end)
+    for i, _ in ipairs(test_cases) do
+        run_test_case(i)
+    end
 end)

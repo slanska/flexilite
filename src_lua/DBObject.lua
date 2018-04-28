@@ -749,6 +749,7 @@ end
 
 ---@param name string
 function DBObjectWrap:getBoxedAttr(name)
+
     -- If DBObject is assigned, check its properties first
     local prop = self:getDBObjectProp(name)
     if prop then
@@ -761,6 +762,12 @@ function DBObjectWrap:getBoxedAttr(name)
         -- TODO
     end
 
+    local result = rawget(self, name)
+
+    -->>
+    print('DBObjectWrap:getBoxedAttr')
+
+    return result
 end
 
 function DBObjectWrap:Boxed()
@@ -772,7 +779,9 @@ function DBObjectWrap:Boxed()
             __newindex = function(boxed, name, value)
                 local result = self:getDBObjectProp(name)
                 if result then
-
+                else
+                    -- TODO Temp
+                    rawset(self, name, value)
                 end
 
             end,

@@ -18,36 +18,6 @@ local tablex = require 'pl.tablex'
 local Constants = require 'Constants'
 local JSON = require 'cjson'
 
--- Singleton constant Null DBValue. All operations with Null value result in null
-local NullDBValue
-
-local function NullFunc()
-    return NullDBValue
-end
-
-NullDBValue = setmetatable({}, {
-    __index = NullFunc,
-    __newindex = function()
-        error('Not assignable null value')
-    end,
-    __metatable = nil,
-    __add = NullFunc,
-    __sub = NullFunc,
-    __mul = NullFunc,
-    __div = NullFunc,
-    __pow = NullFunc,
-    __concat = NullFunc,
-    __len = NullFunc,
-    __tostring = function()
-        return nil
-    end,
-    __unm = NullFunc,
-    __eq = NullFunc,
-    __lt = NullFunc,
-    __le = NullFunc,
-    __mod = NullFunc,
-})
-
 -------------------------------------------------------------------------------
 --[[
 DBProperty
@@ -59,14 +29,20 @@ Provides access to simple values (both scalar and vector)
 ---@field PropDef PropertyDef
 local DBProperty = class()
 
+---@class DBPropertyBoxed: DBValueBoxed
 local DBPropertyBoxed = class(DBValue.BoxedClass)
 
-function DBPropertyBoxed:getValue()
-
+function DBPropertyBoxed:getValue1()
+    local vv = self.Prop:GetValue(1)
+    if vv then
+        return vv.Value
+    end
+    return DBValue.Null
 end
 
-function DBPropertyBoxed:_init(prop, idx)
-    self:super(self.getValue, prop, idx)
+---@param prop DBProperty
+function DBPropertyBoxed:_init(prop)
+    self:super(DBPropertyBoxed.getValue1, prop, 1)
 end
 
 function DBPropertyBoxed:__index(self, key)
@@ -75,7 +51,7 @@ function DBPropertyBoxed:__index(self, key)
         if vv then
             return vv.Boxed(self, key)
         end
-        return NullDBValue
+        return DBValue.Null
     elseif type(key) == 'string' then
         -- todo
         -- ref object property
@@ -84,8 +60,11 @@ function DBPropertyBoxed:__index(self, key)
     end
 end
 
-function DBPropertyBoxed:__newindex(self, v1)
+function DBPropertyBoxed:__newindex(self, key, value)
     -- TODO
+    -->>
+    print('DBPropertyBoxed:__newindex', self, key)
+
     return self:SetValue(key, value)
 end
 
@@ -102,7 +81,7 @@ end
 
 function DBProperty:Boxed()
     if not self.boxed then
-        self.boxed = DBPropertyBoxed(self, 1)
+        self.boxed = DBPropertyBoxed(self)
     end
 
     return self.boxed
@@ -149,7 +128,7 @@ function DBProperty:GetValue(idx)
     end
 
     if not self.values[idx] then
-        return NullDBValue
+        return DBValue.Null
     end
 
     return self.values[idx]
@@ -299,7 +278,7 @@ function ChangedDBProperty:SaveToDB()
                 -->>
                 local id = string.format('%d.%d[%d]', self.DBOV.ID, self.PropDef.ID, propIndex)
                 if insertedProps[id] then
-                    print(string.format('-->> Already inserted %s = %s (%s)', id, vv, insertedProps[id]))
+                    --print(string.format('-->> Already inserted %s = %s (%s)', id, vv, insertedProps[id]))
                 end
                 insertedProps[id] = vv
 
@@ -391,5 +370,4 @@ end
 return {
     DBProperty = DBProperty,
     ChangedDBProperty = ChangedDBProperty,
-    NullDBValue = NullDBValue
 }

@@ -56,62 +56,99 @@ local DBValueBoxed = class()
 ---@param prop DBProperty
 ---@param idx number
 function DBValueBoxed:_init(valueGetter, prop, idx)
-    self.ValueGetter = valueGetter
-    self.Prop = prop
-    self.Idx = idx
+    rawset(self, 'ValueGetter', assert(valueGetter))
+    rawset(self, 'Prop', assert(prop))
+    rawset(self, 'Idx', assert(idx))
+    rawset(self, 'ValueGetter', valueGetter)
 end
 
-function DBValueBoxed:__tostring(self, v)
-
+function DBValueBoxed:__metatable()
+    return nil
 end
 
-function DBValueBoxed:__len(self, v)
-
+function DBValueBoxed:__tostring()
+    local result = self:ValueGetter()
+    return tostring(result)
 end
 
-function DBValueBoxed:__unm(self, v)
-
+function DBValueBoxed:__len(val)
+    return #self:ValueGetter()
 end
 
-function DBValueBoxed:__add(self, v1, v2)
-
+function DBValueBoxed:__unm()
+    return -self:ValueGetter()
 end
 
-function DBValueBoxed:__sub(self, v1, v2)
+function DBValueBoxed:__add(val)
+    if type(val) == 'table' then
+        self, val = val, self
+    end
 
+    -->>
+    print('DBValueBoxed:__add', val, type(val), self:ValueGetter(), type(self:ValueGetter()))
+
+    return tonumber(self:ValueGetter()) + val
 end
 
-function DBValueBoxed:__mul(self, v1, v2)
+function DBValueBoxed:__sub(val)
+    if type(val) == 'table' then
+        self, val = val, self
+        return val - self:ValueGetter()
+    end
 
+    return self:ValueGetter() - val
 end
 
-function DBValueBoxed:__div(self, v1, v2)
+function DBValueBoxed:__mul(val)
+    if type(val) == 'table' then
+        self, val = val, self
+    end
 
+    return tonumber(self:ValueGetter()) * val
 end
 
-function DBValueBoxed:__mod(self, v1, v2)
-
+function DBValueBoxed:__div(val)
+    return self:ValueGetter() / val
 end
 
-function DBValueBoxed:__pow(self, v1, v2)
-
+function DBValueBoxed:__mod(val)
+    return self:ValueGetter() % val
 end
 
-function DBValueBoxed:__concat(self, v1, v2)
-
+function DBValueBoxed:__pow(val)
+    return self:ValueGetter() ^ val
 end
 
-function DBValueBoxed:__eq(self, v1, v2)
-
+function DBValueBoxed:__concat(val)
+    return self:ValueGetter() .. val
 end
 
-function DBValueBoxed:__lt(self, v1, v2)
+function DBValueBoxed:__eq(val)
+    if type(val) == 'table' then
+        self, val = val, self
+    end
 
+    -->>
+    print('DBValueBoxed:__eq', self:ValueGetter(), val)
+
+    return self:ValueGetter() == val
 end
 
-function DBValueBoxed:__le(self, v1, v2)
+function DBValueBoxed:__lt(val)
+    if type(val) == 'table' then
+        self, val = val, self
+        return self:ValueGetter() > val
+    end
+    return self:ValueGetter() < val
 end
 
+function DBValueBoxed:__le(val)
+    if type(val) == 'table' then
+        self, val = val, self
+        return self:ValueGetter() >= val
+    end
+    return self:ValueGetter() <= val
+end
 
 -- constructor
 ---@param row DBValueCtorParams
@@ -132,40 +169,14 @@ end
 -- TODO return function to use DBProperty and propIndex
 function DBValue:Boxed(DBProperty, propIndex)
     if not self.boxed then
-        self.boxed = setmetatable({}, {
-            __metatable = nil,
-
-            -- set value by index
-            ---@param idx number
-            ---@param val any
-            __newindex = function(idx, val)
-
-            end,
-
-            -- get value by index
-            ---@param idx number
-            ---@return any
-            __index = function(idx)
-
-            end,
-
-            __add = self.boxed_add,
-            __sub = self.boxed_sub,
-            __mul = self.boxed_mul,
-            __div = self.boxed_div,
-            __pow = self.boxed_pow,
-            __concat = self.boxed_concat,
-            __len = self.boxed_len,
-            __tostring = self.boxed_tostring,
-            __unm = self.boxed_unm,
-            __eq = self.boxed_eq,
-            __lt = self.boxed_lt,
-            __le = self.boxed_le,
-            __mod = self.boxed_mod,
-        })
+        self.boxed = DBValueBoxed(DBValue.valueGetter, self, propIndex)
     end
 
     return self.boxed
+end
+
+function DBValue:valueGetter()
+    return self.Value
 end
 
 function DBValue:getVType()
@@ -188,6 +199,37 @@ function DBValue:afterSaveToDB(DBProperty, propIndex)
 
 end
 
+-- Singleton constant Null DBValue. All operations with Null value result in null
+local NullDBValue
+
+local function NullFunc()
+    return NullDBValue
+end
+
+NullDBValue = setmetatable({}, {
+    __index = NullFunc,
+    __newindex = function()
+        error('Not assignable null value')
+    end,
+    __metatable = nil,
+    __add = NullFunc,
+    __sub = NullFunc,
+    __mul = NullFunc,
+    __div = NullFunc,
+    __pow = NullFunc,
+    __concat = NullFunc,
+    __len = NullFunc,
+    __tostring = function()
+        return '<null>'
+    end,
+    __unm = NullFunc,
+    __eq = NullFunc,
+    __lt = NullFunc,
+    __le = NullFunc,
+    __mod = NullFunc,
+})
+
 DBValue.BoxedClass = DBValueBoxed
+DBValue.Null = NullDBValue
 
 return DBValue
