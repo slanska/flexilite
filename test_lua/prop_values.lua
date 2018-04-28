@@ -23,6 +23,7 @@ local test_cases = {
     { query = [[UnitPrice > 11 and UnitPrice < 21.1]], expected_cnt = 29 },
     { query = [[QuantityPerUnit >= '24 - 12 oz bottles' and QuantityPerUnit <= '24 - 12 oz bottles']], expected_cnt = 4 },
     { query = [[tostring(QuantityPerUnit) == '24 - 12 oz bottles']], expected_cnt = 4 },
+    { query = [[UnitPrice / 2.0 > 11 and UnitPrice % 5 == 4]], expected_cnt = 3 },
 }
 
 describe('Property Ops:', function()
@@ -33,7 +34,7 @@ describe('Property Ops:', function()
         it(test_cases[n].query, function()
             local qry = DBQuery(productsClassDef, test_cases[n].query)
             qry:Run()
-            assert.are.equal(#qry.ObjectIDs, test_cases[n].expected_cnt)
+            assert.are.equal(test_cases[n].expected_cnt, #qry.ObjectIDs)
         end)
     end
 

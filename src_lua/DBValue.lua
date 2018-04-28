@@ -100,19 +100,36 @@ function DBValueBoxed:__sub(val)
 end
 
 function DBValueBoxed:__mul(val)
-    if type(val) == 'table' then
-        self, val = val, self
-    end
-
     return tonumber(self:ValueGetter()) * val
 end
 
 function DBValueBoxed:__div(val)
-    return self:ValueGetter() / val
+    --if type(val) == 'table' then
+    --    self, val = val, self
+    --end
+
+    local result = self:ValueGetter() / val
+
+    -->>
+    --print('DBValueBoxed:__div', self, val, result)
+
+    return result
 end
 
 function DBValueBoxed:__mod(val)
-    return self:ValueGetter() % val
+    --if type(val) == 'table' then
+    --    self, val = val, self
+    --end
+
+    -->>
+    --print('DBValueBoxed:__mul', self, val)
+
+    local result = tonumber(self:ValueGetter()) % val
+
+    -->>
+    --print('DBValueBoxed:__mod', self, val, result)
+
+    return result
 end
 
 function DBValueBoxed:__pow(val)

@@ -762,12 +762,7 @@ function DBObjectWrap:getBoxedAttr(name)
         -- TODO
     end
 
-    local result = rawget(self, name)
-
-    -->>
-    print('DBObjectWrap:getBoxedAttr')
-
-    return result
+    return rawget(self, name)
 end
 
 function DBObjectWrap:Boxed()
