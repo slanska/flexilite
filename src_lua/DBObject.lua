@@ -83,6 +83,7 @@ local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 local DBProperty = require('DBProperty').DBProperty
 local ChangedDBProperty = require('DBProperty').ChangedDBProperty
 local NullDBValue = require('DBProperty').NullDBValue
+local DictCI = require('Util').DictCI
 
 -------------------------------------------------------------------------------
 --[[
@@ -123,7 +124,7 @@ local CreatedVoidDBObject = VoidDBOV('Old object is not available in this contex
 ---@field ClassDef ClassDef
 ---@field MetaData ObjectMetadata
 ---@field DBObject DBObject
----@field props table <string, DBProperty>
+---@field props table <string, DBProperty> @comment DictCI
 ---@field ctlo number @comment [.objects].ctlo
 ---@field vtypes number @comment [.objects].vtypes
 local ReadOnlyDBOV = class()
@@ -133,7 +134,7 @@ local ReadOnlyDBOV = class()
 function ReadOnlyDBOV:_init(DBObject, ID)
     self.ID = assert(ID)
     self.DBObject = assert(DBObject)
-    self.props = {}
+    self.props = DictCI()
 end
 
 -- Create pure readonly dbobject version and load .objects data
@@ -1001,7 +1002,7 @@ function DBObject:saveToDB()
         self:fireBeforeTrigger()
 
         if op == Constants.OPERATION.CREATE then
-            self:setDefaultData()
+            self:setMissingDefaultData()
             self:ValidateData()
             self.curVer:saveCreate()
         elseif op == Constants.OPERATION.UPDATE then
@@ -1027,22 +1028,25 @@ function DBObject:saveToDB()
     if err then
         error(err)
     end
-
 end
 
+-- Sets default data to those properties that have not been assigned
 ---@param data table
-function DBObject:setDefaultData()
+function DBObject:setMissingDefaultData()
     if self.state == Constants.OPERATION.CREATE then
         for propName, propDef in pairs(self.curVer.ClassDef.Properties) do
-            local dd = propDef.D.defaultValue
-            if dd ~= nil then
-                -- TODO assign all property values
-                local pp = self.curVer:setPropValue(propName, 1, tablex.deepcopy(dd))
-                --local vv = pp:GetValue()
+            local prop = self.curVer.props[propName]
+            if prop == nil or prop.values == nil or #prop.values == 0 then
+                local dd = propDef.D.defaultValue
+                if dd ~= nil then
+                    -- TODO assign all property values
+                    local pp = self.curVer:setPropValue(propName, 1, tablex.deepcopy(dd))
+                    --local vv = pp:GetValue()
 
-                --                if vv == nil then
-                --                  pp:SetValue(1, tablex.deepcopy(dd))
-                --            end
+                    --                if vv == nil then
+                    --                  pp:SetValue(1, tablex.deepcopy(dd))
+                    --            end
+                end
             end
         end
     end
