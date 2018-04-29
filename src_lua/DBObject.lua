@@ -83,7 +83,6 @@ local CreateAnyProperty = require('flexi_CreateProperty').CreateAnyProperty
 local DBProperty = require('DBProperty').DBProperty
 local ChangedDBProperty = require('DBProperty').ChangedDBProperty
 local NullDBValue = require('DBProperty').NullDBValue
-local pretty = require 'pl.pretty'
 
 -------------------------------------------------------------------------------
 --[[
@@ -753,7 +752,23 @@ function DBObjectWrap:getBoxedAttr(name)
     -- If DBObject is assigned, check its properties first
     local prop = self:getDBObjectProp(name)
     if prop then
-        return prop:Boxed()
+        local result = prop:Boxed()
+
+        --[[
+        FIXME
+        This is temporary implementation caused by the fact that Lua does not call __eq handler if metatables of operands are not
+        the same. To allow == and ~= comparison to work we check if property has maximum occurrence equal to 1 and in that
+        case return actual value for item 1.
+        This peculiar implementation somewhat contradicts philosophy of Flexilite to allow reasonable flexibility, i.e. treat
+        Prop and Prop[1] as the same, regardless if maxOccurrences is 1 or more.
+        Due to specific implementation of __eq in Lua, to handle this properly we would need to change original Lua/LuaJIT C code
+        (lj_record.c) to handle __eq similarly to __le and __lt metamethods.
+        ]]
+        if result and (prop.PropDef.D.rules.maxOccurrences or 1) == 1 then
+            return result:ValueGetter()
+        end
+
+        return result
     end
 
     -- Check registered user functions
@@ -918,8 +933,9 @@ function DBObject:SetData(data)
 end
 
 -- Builds table with all non null property values
--- Includes detail objects. Does not include links
----@param excludeDefault boolean
+-- Includes nested objects. Does not include links
+---@param excludeDefault boolean @comment if true, default data will not be included into result
+---@return table @comment JSON-compatible payload with property names
 function DBObject:GetData(excludeDefault)
     if self.state == Constants.OPERATION.DELETE then
         error(string.format('Cannot get data of deleted object %d', self.origVer.ID))
@@ -930,8 +946,18 @@ function DBObject:GetData(excludeDefault)
     for propName, propDef in pairs(curVer.ClassDef.Properties) do
         -- TODO get all indexes 1..N
         local pv = curVer:getPropValues(propName)
-        if pv then
-            result[propName] = tablex.deepcopy(pv.Value())
+
+        -->>
+        print('DBObject:GetData ', propName, type(pv), pv)
+
+        if pv and type(pv) == 'table' then
+            require('pl.pretty').dump(pv)
+            local vv = pv.Value
+            if vv then
+                result[propName] = tablex.deepcopy(pv.Value)
+            end
+        else
+            result[propName] = pv
         end
     end
 

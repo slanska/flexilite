@@ -45,7 +45,7 @@ function DBPropertyBoxed:_init(prop)
     self:super(DBPropertyBoxed.getValue1, prop, 1)
 end
 
-function DBPropertyBoxed:__index(self, key)
+function DBPropertyBoxed:__index(key)
     if type(key) == 'number' then
         local vv = self:GetValue(key)
         if vv then
@@ -60,11 +60,7 @@ function DBPropertyBoxed:__index(self, key)
     end
 end
 
-function DBPropertyBoxed:__newindex(self, key, value)
-    -- TODO
-    -->>
-    print('DBPropertyBoxed:__newindex', self, key)
-
+function DBPropertyBoxed:__newindex(key, value)
     return self:SetValue(key, value)
 end
 
@@ -227,7 +223,14 @@ function ChangedDBProperty:GetValue(idx)
     idx = idx or 1
 
     if not self.values or not self.values[idx] then
-        return self:getOriginalProperty():GetValue(idx)
+        local orig = self:getOriginalProperty()
+        if orig then
+            local vv = orig.GetValue
+            if vv then
+                return vv(self, idx)
+            end
+        end
+        return DBValue.Null
     end
 
     return self.values[idx]
@@ -256,6 +259,8 @@ local refValSQL = {
 
 -->>
 local insertedProps = {}
+local insertedProps_cnt = 0
+--<<
 
 -- Saves values to the database
 function ChangedDBProperty:SaveToDB()
@@ -263,6 +268,7 @@ function ChangedDBProperty:SaveToDB()
 
     ---@param values table<number, DBValue>
     local function insertRefValues(values)
+        assert(values)
         for propIndex, dbv in pairs(values) do
 
             local status, err = xpcall(function()
@@ -278,9 +284,19 @@ function ChangedDBProperty:SaveToDB()
                 -->>
                 local id = string.format('%d.%d[%d]', self.DBOV.ID, self.PropDef.ID, propIndex)
                 if insertedProps[id] then
-                    --print(string.format('-->> Already inserted %s = %s (%s)', id, vv, insertedProps[id]))
+                    --print(string.format('-->> Already inserted %s = %s (%s), %s=%s',
+                    --                    id, insertedProps_cnt, insertedProps[id], self.PropDef.Name.text, vv))
                 end
-                insertedProps[id] = vv
+                insertedProps_cnt = insertedProps_cnt + 1
+                insertedProps[id] = insertedProps_cnt
+
+                if self.DBOV.ID == 3993 and self.PropDef.ID == 95 then
+                    print('-- insertRefValues', vv, insertedProps_cnt)
+                    --local dd = self.DBOV.DBObject:GetData()
+                    --require('pl.pretty').dump(dd)
+                end
+
+                --<<
 
                 DBContext:execStatement(refValSQL[Constants.OPERATION.CREATE], params)
             end,

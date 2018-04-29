@@ -18,12 +18,13 @@ test_util.createNorthwindSchema(DBContext)
 test_util.importNorthwindData(DBContext)
 
 local test_cases = {
-    --{ query = 'QuantityPerUnit + 10 ~=  20', expected_cnt = 68 },
-    --{ query = 'QuantityPerUnit * UnitPrice > 300 and QuantityPerUnit * UnitPrice <= 400', expected_cnt = 12 },
     { query = [[UnitPrice > 11 and UnitPrice < 21.1]], expected_cnt = 29 },
     { query = [[QuantityPerUnit >= '24 - 12 oz bottles' and QuantityPerUnit <= '24 - 12 oz bottles']], expected_cnt = 4 },
     { query = [[tostring(QuantityPerUnit) == '24 - 12 oz bottles']], expected_cnt = 4 },
     { query = [[UnitPrice / 2.0 > 11 and UnitPrice % 5 == 4]], expected_cnt = 3 },
+    { query = [[QuantityPerUnit == '24 - 12 oz bottles']], expected_cnt = 4 },
+    { query = [[ProductName == 'Camembert Pierrot']], expected_cnt = 1 },
+    { query = [[1 == 1]], expected_cnt = 77 },
 }
 
 describe('Property Ops:', function()

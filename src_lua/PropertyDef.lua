@@ -65,9 +65,7 @@ local Constants = require 'Constants'
 local AccessControl = require 'AccessControl'
 local dbprops = require 'DBProperty'
 local parseDatTimeToJulian = require('Util').parseDatTimeToJulian
---local stringifyJulianToDateTime = require('Util').stringifyJulianToDateTime
 local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
---local pretty = require 'pl.pretty'
 local base64 = require 'base64'
 
 --[[
@@ -149,7 +147,8 @@ function PropertyDef:_init(params)
     else
         assert(params.dbrow)
         assert(params.jsonData)
-        self.Name = NameRef(params.dbrow.Name, params.dbrow.NameID)
+
+        self.Name = NameRef(params.dbrow.Property, params.dbrow.NameID)
 
         -- Copy property attributes
         ---@type number
