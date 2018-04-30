@@ -464,7 +464,7 @@ function WritableDBOV:saveCreate()
     end
 
     -- Save multi-key index if applicable
-    self:saveMultiKeyIndexes(Constants.OPERATION.CREATE)
+    self.DBObject:saveMultiKeyIndexes(Constants.OPERATION.CREATE)
 
     -- Save full text index, if applicable
     local fts = {}
@@ -522,7 +522,7 @@ function WritableDBOV:saveUpdate()
     end
 
     -- Save multi-key index if applicable
-    self:saveMultiKeyIndexes(Constants.OPERATION.UPDATE)
+    self.DBObject:saveMultiKeyIndexes(Constants.OPERATION.UPDATE)
 
     -- Save full text index, if applicable
     local fts = {}
@@ -589,6 +589,7 @@ end
 
 -- SQL for updating multi-key indexes
 local multiKeyIndexSQL = {
+    -- Create
     C = {
         [2] = [[insert into [.multi_key2] (ObjectID, ClassID, Z1, Z2)
         values (:ObjectID, :ClassID, :1, :2);]],
@@ -597,21 +598,35 @@ local multiKeyIndexSQL = {
         [4] = [[insert into [.multi_key4] (ObjectID, ClassID, Z1, Z2, Z3, Z4)
         values (:ObjectID, :ClassID, :1, :2, :3, :4);]],
     },
+    -- Update
     U = {
-        [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2 where ObjectID = :ObjectID;]],
-        [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3 where ObjectID = :ObjectID;]],
-        [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4 where ObjectID = :ObjectID;]],
+        [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2
+        where ClassID = :old_ClassID and Z1 = :11 and Z2 = :12;]],
+        [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3
+        where ClassID = :old_ClassID and Z1 = :11 and Z2 = :12 and Z3 = :13;]],
+        [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4
+        where ClassID = :old_ClassID and Z1 = :11 and Z2 = :12 and Z3 = :13 and Z4 = :14;]],
     },
-    -- Extended version of update when ObjectID also gets changed
+    -- Extended version of update when ObjectID and/or ClassID changed
     UX = {
-        [2] = [[update [.multi_key2] set ClassID = :ClassID, Z1 = :1, Z2 = :2, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
-        [3] = [[update [.multi_key3] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
-        [4] = [[update [.multi_key4] set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4, ObjectID = :NewObjectID where ObjectID = :ObjectID;]],
+        [2] = [[update [.multi_key2]
+        set ClassID = :ClassID, Z1 = :1, Z2 = :2, ObjectID = :ObjectID
+        where ClassID = :old_ClassID and Z1 = :11 and Z2 = :12;]],
+        [3] = [[update [.multi_key3]
+        set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, ObjectID = :ObjectID
+        where ClassID = :old_ClassID and Z1 = :11 and Z2 = :12 and Z3 = :13;]],
+        [4] = [[update [.multi_key4]
+        set ClassID = :ClassID, Z1 = :1, Z2 = :2, Z3 = :3, Z4 = :4, ObjectID = :ObjectID
+        where ClassID = :old_ClassID and Z1 = :11 and Z2 = :12 and Z3 = :13 and Z4 = :14;]],
     },
+    -- Delete
     D = {
-        [2] = [[delete from [.multi_key2] where ObjectID = :ObjectID;]],
-        [3] = [[delete from [.multi_key3] where ObjectID = :ObjectID;]],
-        [4] = [[delete from [.multi_key4] where ObjectID = :ObjectID;]]
+        [2] = [[delete from [.multi_key2]
+        where ClassID = :old_ClassID and Z1 = :11 and Z2 = :12;]],
+        [3] = [[delete from [.multi_key3]
+        where ClassID = :old_ClassID and Z1 = :11 and Z2 = :12 and Z3 = :13;]],
+        [4] = [[delete from [.multi_key4]
+        where ClassID = :old_ClassID and Z1 = :11 and Z2 = :12 and Z3 = :13 and Z4 = :14;]]
     }
 }
 
@@ -643,64 +658,6 @@ function WritableDBOV:setObjectMetaData()
         end
     end
     self.ctlo = ctlo
-end
-
----@param op string @comment 'C', 'U', or 'D
--- TODO op?
-function WritableDBOV:saveMultiKeyIndexes(op)
-
-    local function save()
-        if op == Constants.OPERATION.DELETE then
-            local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
-            self.ClassDef.DBContext:execStatement(sql, { ObjectID = self.old.ID })
-        else
-            -- TODO
-            for idxName, idxDef in pairs(self.ClassDef.indexes.multiKeyIndexing) do
-                --[[
-
-                  local keyCnt = #idxDef.properties
-                  if idxDef.type == 'unique' and keyCnt > 1 then
-                      -- Multi key unique index detected
-
-                      local p = { ObjectID = self.ID, ClassID = self.ClassDef.ClassID }
-                      for i, propRef in ipairs(idxDef.properties) do
-                          local vv = self:getProp(propRef.Name.text, 1)
-                          if vv and vv.Value then
-                              p[i] = vv.Value
-                          end
-                      end
-
-                      if op == Constants.OPERATION.UPDATE and (self.curVer.ID ~= self.origVer.ID
-                              or self.curVer.ClassDef.ClassID ~= self.origVer.ClassDef.ClassID) then
-                          op = 'UX'
-                          p.NewObjectID = self.ID
-                          p.ObjectID = self.old.ID
-                      end
-
-                      local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][keyCnt]
-                      if not sql then
-                          error('Invalid multi-key index update specification')
-                      end
-
-                      self.ClassDef.DBContext:execStatement(sql, p)
-
-                  end
-                  ]]
-            end
-        end
-    end
-
-    save()
-
-    -- TODO multi key - use pcall to catch error
-    --local ok = xpcall(save,
-    --                  function(error)
-    --                      local errorMsg = tostring(error)
-    --                      -- TODO debug only
-    --                      print(debug.traceback(tostring(error)))
-    --
-    --                      error(string.format('Error updating multikey unique index: %d', errorMsg))
-    --                  end)
 end
 
 -- Returns data of all changed properties
@@ -1021,7 +978,6 @@ function DBObject:saveToDB()
     end,
                            function(err)
                                print(string.format('>>> saveToDB error %s:%d', self.curVer.ClassDef.Name.text, self.curVer.ID))
-                               --error( err)
                                return err
                            end)
 
@@ -1084,16 +1040,74 @@ end
 ---@param mode string @comment DBOBJECT_SANDBOX_MODE 'F', 'O', 'C', 'E'
 function DBObject:GetSandBoxed(mode)
     mode = mode or Constants.DBOBJECT_SANDBOX_MODE.FILTER
-    if mode == Constants.DBOBJECT_SANDBOX_MODE.FILTER then
+    if mode == Constants.DBOBJECT_SANDBOX_MODE.FILTER
+            or mode == Constants.DBOBJECT_SANDBOX_MODE.EXPRESSION then
         return DBObjectWrap(self.origVer):Boxed()
     elseif mode == Constants.DBOBJECT_SANDBOX_MODE.ORIGINAL then
         return self.original()
     elseif mode == Constants.DBOBJECT_SANDBOX_MODE.CURRENT then
         return self.current()
-    elseif mode == Constants.DBOBJECT_SANDBOX_MODE.EXPRESSION then
-
     else
         error(string.format('Unknown sandboxed mode %s', tostring(mode)))
+    end
+end
+
+---@param op string @comment 'C', 'U', or 'D
+function DBObject:saveMultiKeyIndexes(op)
+
+    -- Local function to be called in protected mode to handle unique constraint violation in
+    -- a user friendly way
+    local function save()
+        local dbov = op == Constants.OPERATION.DELETE and self.origVer or self.curVer
+
+        local multiKeyPropIDs = dbov.ClassDef.indexes.multiKeyIndexing
+        if not multiKeyPropIDs or #multiKeyPropIDs == 0 then
+            return
+        end
+
+        local set_old_values = op == Constants.OPERATION.DELETE or op == Constants.OPERATION.UPDATE
+        local set_new_values = op == Constants.OPERATION.CREATE or op == Constants.OPERATION.UPDATE
+
+        local params = {}
+        for i, propId in ipairs(multiKeyPropIDs) do
+            local propDef = self.ClassDef.DBContext.ClassProps[propId]
+            assert(propDef.ClassDef.ClassID == self.ClassDef.ClassID) -- TODO Detailed error message
+
+            local propVal = dbov:getPropValue(propDef.Name.text, 1)
+            if propVal then
+                params[tostring(i)] = propVal.Value
+            end
+
+            if set_old_values then
+                propVal = self.origVer:getPropValue(propDef.Name.text, 1)
+                if propVal then
+                    params[tostring(i + 10)] = propVal.Value
+                end
+            end
+        end
+
+        if set_old_values then
+            params.old_ClassID = self.origVer.ClassDef.ClassID
+            params.old_ObjectID = self.origVer.ID
+        end
+
+        if set_new_values then
+            params.ObjectID = self.ID
+        end
+
+        local sql = multiKeyIndexSQL[op] and multiKeyIndexSQL[op][#multiKeyPropIDs]
+        self.ClassDef.DBContext:execStatement(sql, params)
+    end
+
+    local ok, errMsg = xpcall(save,
+                              function(error)
+                                  local errorMsg = tostring(error)
+
+                                  return string.format('Error updating multi-key unique index: %d', errorMsg)
+                              end)
+
+    if errMsg then
+        error(errMsg)
     end
 end
 

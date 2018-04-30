@@ -250,6 +250,12 @@ local refValSQL = {
       and PropIndex=:old_PropIndex;]],
 }
 
+-- Updates ctlv value of DBValue, in according to PropDef definition and current Value
+---@param dbv DBValue
+function ChangedDBProperty:updateCTLV(dbv)
+
+end
+
 -- Saves values to the database
 function ChangedDBProperty:SaveToDB()
     local DBContext = self.DBOV.ClassDef.DBContext
@@ -263,15 +269,22 @@ function ChangedDBProperty:SaveToDB()
             local status, err = xpcall(function()
                 local vv = self.PropDef:GetRawValue(dbv)
 
-                local params = {
-                    ObjectID = self.DBOV.ID,
-                    PropertyID = self.PropDef.ID,
-                    PropIndex = propIndex,
-                    Value = vv,
-                    ctlv = dbv.ctlv or 0,
-                    MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil }
+                local save, deferredAction = self.PropDef:BeforeDBValueSave(dbv)
+                if save then
+                    local params = {
+                        ObjectID = self.DBOV.ID,
+                        PropertyID = self.PropDef.ID,
+                        PropIndex = propIndex,
+                        Value = vv,
+                        ctlv = dbv.ctlv or 0,
+                        MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil }
 
-                DBContext:execStatement(refValSQL[Constants.OPERATION.CREATE], params)
+                    DBContext:execStatement(refValSQL[Constants.OPERATION.CREATE], params)
+                end
+
+                if deferredAction then
+                    -- TODO
+                end
             end,
                                        function(err)
                                            return err
@@ -321,26 +334,35 @@ function ChangedDBProperty:SaveToDB()
 
             for propIndex, dbv in pairs(updated_values) do
                 local vv = self.PropDef:GetRawValue(dbv)
-                if self.DBOV.ID ~= orig_prop.DBOV.ID then
-                    DBContext:execStatement(refValSQL['UX'],
-                                            { old_ObjectID = orig_prop.DBOV.ID,
-                                              old_PropertyID = orig_prop.PropDef.ID,
-                                              old_PropIndex = propIndex,
-                                              ObjectID = self.DBOV.ID,
-                                              PropertyID = self.PropDef.ID,
-                                              PropIndex = propIndex,
-                                              Value = vv,
-                                              ctlv = dbv.ctlv or 0,
-                                              MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
-                else
-                    DBContext:execStatement(refValSQL[Constants.OPERATION.UPDATE],
-                                            {
-                                                ObjectID = self.DBOV.ID,
-                                                PropertyID = self.PropDef.ID,
-                                                PropIndex = propIndex,
-                                                Value = vv,
-                                                ctlv = dbv.ctlv or 0,
-                                                MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
+
+                local save, deferredAction = self.PropDef:BeforeDBValueSave(dbv)
+
+                if save then
+                    if self.DBOV.ID ~= orig_prop.DBOV.ID then
+                        DBContext:execStatement(refValSQL['UX'],
+                                                { old_ObjectID = orig_prop.DBOV.ID,
+                                                  old_PropertyID = orig_prop.PropDef.ID,
+                                                  old_PropIndex = propIndex,
+                                                  ObjectID = self.DBOV.ID,
+                                                  PropertyID = self.PropDef.ID,
+                                                  PropIndex = propIndex,
+                                                  Value = vv,
+                                                  ctlv = dbv.ctlv or 0,
+                                                  MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
+                    else
+                        DBContext:execStatement(refValSQL[Constants.OPERATION.UPDATE],
+                                                {
+                                                    ObjectID = self.DBOV.ID,
+                                                    PropertyID = self.PropDef.ID,
+                                                    PropIndex = propIndex,
+                                                    Value = vv,
+                                                    ctlv = dbv.ctlv or 0,
+                                                    MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
+                    end
+                end
+
+                if deferredAction then
+                    -- TODO
                 end
             end
 

@@ -354,7 +354,9 @@ function PropertyDef:CreateDBProperty(object)
     return result
 end
 
+-- Converts value from user format to internally used storage format
 ---@param dbv DBValue
+---@return any
 function PropertyDef:GetRawValue(dbv)
     return dbv.Value
 end
@@ -389,7 +391,7 @@ end
 
 --[[ Called before .ref-value row is inserted/updated
 Returns tuple of 2 values: boolean and function
-If boolean part is true, .ref-values row gets inserted/updated immediately.
+If boolean is true, .ref-values row gets inserted/updated immediately.
 Otherwise, update operation is skipped at this time
 If function part is not nil, it gets added to deferredActions list to be called when all objects in batch are inserted/updated
 

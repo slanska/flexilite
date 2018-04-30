@@ -35,13 +35,14 @@ local JSON = require 'cjson'
 local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local Constants = require 'Constants'
 
+-- Direct mapping to [.ref-values] row
 ---@class DBValueCtorParams
 ---@field Value any
 ---@field ctlv number
 ---@field MetaData table | string
 
 ---@class DBValue
----@field Value any
+---@field Value any @comment Raw cell value (from [.ref-values])
 ---@field ctlv number
 ---@field MetaData table|nil
 local DBValue = class()
@@ -84,9 +85,6 @@ function DBValueBoxed:__add(val)
         self, val = val, self
     end
 
-    -->>
-    print('DBValueBoxed:__add', val, type(val), self:ValueGetter(), type(self:ValueGetter()))
-
     return tonumber(self:ValueGetter()) + val
 end
 
@@ -110,9 +108,6 @@ function DBValueBoxed:__div(val)
 
     local result = self:ValueGetter() / val
 
-    -->>
-    --print('DBValueBoxed:__div', self, val, result)
-
     return result
 end
 
@@ -121,13 +116,7 @@ function DBValueBoxed:__mod(val)
     --    self, val = val, self
     --end
 
-    -->>
-    --print('DBValueBoxed:__mul', self, val)
-
     local result = tonumber(self:ValueGetter()) % val
-
-    -->>
-    --print('DBValueBoxed:__mod', self, val, result)
 
     return result
 end
@@ -144,9 +133,6 @@ function DBValueBoxed:__eq(val)
     if type(val) == 'table' then
         self, val = val, self
     end
-
-    -->>
-    print('DBValueBoxed:__eq', self:ValueGetter(), val)
 
     return self:ValueGetter() == val
 end
@@ -172,7 +158,7 @@ end
 function DBValue:_init(row)
     if row then
         self.Value = row.Value
-        self.ctlv = row.ctlv
+        self.ctlv = row.ctlv or 0
         if type(row.MetaData) == 'string' then
             self.MetaData = JSON.decode(row.MetaData)
         else

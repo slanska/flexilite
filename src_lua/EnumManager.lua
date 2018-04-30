@@ -5,13 +5,13 @@
 
 --[[
 Enums in Flexilite is pretty much the same as references. When property is declared as enum,
-new enum class may be automatically created, or existing enum class will
-be used if classRef has valid class name.
+new enum class will be automatically created (or existing enum class will
+be used if classRef has valid enum class name defined).
 
 Auto created enum class will have 2 special properties: uid (type will be based on type of id values in items list
 - so it will be either integer or string), and name, type of 'symbol'
 
-Optional item list will be used to populate data in the enum class. Existing items may be replaced, if their IDs match.
+Optional item list will be used to populate data in the enum class. Existing items will be replaced, if their IDs match.
 
 Enums are very similar to foreign key relation in standard RDBMS in sense that they store user defined ID,
 not internal object ID, and do not support many-to-many relationship.
@@ -35,15 +35,16 @@ For enumDef: classRef can be omitted, if not set, className_propertyName will be
 If class is not set, items are mandatory. If class set and already exists, items will be appended to existing
 (if any) enum's items. If class set and does not yet exist, it will be created immediately.
 
-For refDef: class is required. If it does not exist, it will be resolved at the end of request processing
-(so that multiple classes, referencing each other can be created). Class will NOT be created automatically.
+For refDef: class is required. If it does not exist yet, its resolving will be deferred till the end of request processing
+(so that multiple classes, referencing each other can be created). Note: class will NOT be created automatically,
+it must exist or be created by user, as a normal class.
 ]]
 
 local ClassCreate = require('flexi_CreateClass').CreateClass
 local json = require 'cjson'
 local NameRef = require 'NameRef'
 local class = require 'pl.class'
-local DBObject = require 'DBObject'
+--local DBObject = require 'DBObject'
 
 -- Implements enum storage
 ---@class EnumManager

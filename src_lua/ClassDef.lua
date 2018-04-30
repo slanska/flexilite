@@ -39,11 +39,11 @@ d) storing and loading index definitions (in [.classes].Data.indexes)
 ---@class IndexDefinitions
 ---@field fullTextIndexing number[] @comment array of property IDs
 ---@field rangeIndexing number[] @comment array of property IDs
----@field multiKeyIndexing table<number, number[]> @comment len 2, 3 or 4, array of property IDs
+---@field multiKeyIndexing number[] @comment Array of 0, 2, 3 or 4 property IDs
 ---@field propIndexing table<number, boolean> @comment map of property IDs to boolean (unique or not)
 local IndexDefinitions = class()
 
--- Internal static variables
+-- Internal static variables for column names
 IndexDefinitions.ftsCols = { 'X1', 'X2', 'X3', 'X4', 'X5' }
 IndexDefinitions.rngCols = { 'A0', 'A1', 'B0', 'B1', 'C0', 'C1', 'D0', 'D1', 'E0', 'E1' }
 
@@ -55,8 +55,8 @@ function IndexDefinitions:_init()
     -- Range index. Array 1 .. 10 to property ID (1 = A0, 2 = A1, 3 = B0...)
     self.rangeIndexing = {}
 
-    -- Multi property unique indexes. Map of 2, 3, 4 to array of property IDs
-    self.multiKeyIndexing = { [2] = {}, [3] = {}, [4] = {} }
+    -- Multi property unique indexes. Array of 2, 3 or 4 items (property IDs)
+    self.multiKeyIndexing = {  }
 
     -- Indexes for single properties. Map by property ID to boolean
     -- (false - non-unique index, true - unique index)
@@ -167,7 +167,7 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
         end
     end
 
-    self.multiKeyIndexing[len] = tablex.imap(function(propDef)
+    self.multiKeyIndexing = tablex.imap(function(propDef)
         return propDef.ID
     end, propDefs)
 
@@ -197,10 +197,8 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
                                        propDef.ClassDef.Name.text, propDef.Name.text)
         end
 
-        idx = tablex.find_if(self.multiKeyIndexing, function(propIDs)
-            return propIDs[1] == propDef.ID
-        end)
-        if idx then
+        if self.multiKeyIndexing and #self.multiKeyIndexing > 0
+                and self.multiKeyIndexing[1] == propDef.ID then
             table.remove(self.propIndexing, propDef.ID)
             return true, string.format('Property [%s].[%s] already included in multi key index',
                                        propDef.ClassDef.Name.text, propDef.Name.text)
@@ -793,28 +791,30 @@ function ClassDef.ApplyIndexing(oldClassDef, newClassDef)
     end
 
     -- multi_key indexing
-    for idx = 2, 4 do
-        if not tablex.deepcompare(newIdxDef.multiKeyIndexing[idx], oldIdxDef.multiKeyIndexing[idx]) then
-            -- Delete from .multi_key_N
-            oldClassDef.DBContext:ExecAdhocSql(string.format('delete from [.multi_key%d] where ClassID = :ClassID', idx),
-                                               { ClassID = ClassID })
-
-            -- Insert into .multi_key_N
-            local colNameIdx = 1
-            local colValIdx = 2
-            local sqlLines = { string.format('insert into [.multi_key%d] (ClassID', idx, newClassDef.ClassID),
-                               ') select (:ClassID' }
-            for iCol, propID in ipairs(newIdxDef.multiKeyIndexing[idx]) do
-                local propDef = newClassDef.DBContext.ClassProps[propID]
-                colNameIdx = colNameIdx + 1
-                colValIdx = colValIdx + 2
-                table.insert(sqlLines, colNameIdx, string.format(', [Z%d]', iCol))
-                table.insert(sqlLines, colValIdx, propDef:GetColumnExpression(false))
-            end
-            table.insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
-            local sql = table.concat(sqlLines)
-            newClassDef.DBContext:ExecAdhocSql(sql, { ClassID = newClassDef.ClassID })
+    if not tablex.deepcompare(newIdxDef.multiKeyIndexing, oldIdxDef.multiKeyIndexing) then
+        -- Delete from .multi_key_N
+        if #oldIdxDef.multiKeyIndexing > 0 then
+            oldClassDef.DBContext:ExecAdhocSql(string.format('delete from [.multi_key%d] where ClassID = :ClassID',
+                                                             #oldIdxDef.multiKeyIndexing),
+                                               { ClassID = oldClassDef.ClassID })
         end
+
+        -- Insert into .multi_key_N
+        local colNameIdx = 1
+        local colValIdx = 2
+        local sqlLines = { string.format('insert into [.multi_key%d] (ClassID',
+                                         #newIdxDef.multiKeyIndexing, newClassDef.ClassID),
+                           ') select (:ClassID' }
+        for iCol, propID in ipairs(newIdxDef.multiKeyIndexing[#newIdxDef.multiKeyIndexing]) do
+            local propDef = newClassDef.DBContext.ClassProps[propID]
+            colNameIdx = colNameIdx + 1
+            colValIdx = colValIdx + 2
+            table.insert(sqlLines, colNameIdx, string.format(', [Z%d]', iCol))
+            table.insert(sqlLines, colValIdx, propDef:GetColumnExpression(false))
+        end
+        table.insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
+        local sql = table.concat(sqlLines)
+        newClassDef.DBContext:ExecAdhocSql(sql, { ClassID = newClassDef.ClassID })
     end
 end
 

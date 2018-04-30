@@ -116,7 +116,7 @@ data: Database, statements, user info, class definitions, cache of referenced va
 - &#10003; Saved JSON in .classes do not have property rules    
 - Saved JSON in .classes do not have special properties & indexing    
     
-- ensure that create classes is ok
+- &#10003; ensure that create classes is ok
 - &#10003; try insert data
 - enum property - generate enum class, save items
 - &#10003; try sandbox mode
@@ -124,10 +124,10 @@ data: Database, statements, user info, class definitions, cache of referenced va
 - ignore case for schema - property types
 - &#10003; ignore case for class and property names - custom Dictionary class?
 - &#10003; generate valid SQL for indexed properties
-- filter records using Lua sandbox
-    - Params
-    - Literal values
-- Boxed() for DBValue
+- &#10003; filter records using Lua sandbox
+    - &#10003; Params
+    - &#10003; Literal values
+- &#10003; Boxed() for DBValue
 - unit tests for insert and query
     - Datetime
 - update and delete objects
@@ -141,4 +141,16 @@ text|integer -> enum -> reference
 enum -> mixin
 properties -> mixin -> reference
 enum -> reference
+
+**2018-04-29**
+
+- DBObject.GetData - return valid JSON-like table
+- Enum/FKey processing:
+    - Validation
+    - Creating/finding enum class
+    - Update deferred references
+    - Use in search (including indexed)
+- Update/delete objects
+- Referenced properties access
+- Save object - ctlv & ctlo, multikey index
 

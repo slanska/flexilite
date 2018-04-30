@@ -15,7 +15,7 @@ local Constants = {
 
     -- Specific value type, stored in .ref-values.ctlv and .objects.vtypes fields
     vtype = {
-        default = 0, -- Use SQLite type, i.e. NULL, FLOAT, INTEGER, TEXT, BLOB
+        default = 0, -- Use original SQLite type, i.e. NULL, FLOAT, INTEGER, TEXT, BLOB
         datetime = 1, -- (for FLOAT),
         timespan = 2, -- (for FLOAT),
         symbol = 3, -- (for INT)

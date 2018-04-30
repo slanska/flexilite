@@ -320,19 +320,17 @@ function FilterDef:find_indexed_prop(propID, startIndex, ignoreProcessed)
 end
 
 -- Checks if there is multi-key index defined for this
----@param keyCount number @comment 2, 3, 4
 ---@param sql List
 ---@return string | nil
-function FilterDef:check_multi_key_index(keyCount, sql)
+function FilterDef:check_multi_key_index(sql)
     local indexes = self.ClassDef.indexes
     if not indexes then
         return nil
     end
 
-    local mkey = indexes.multiKeyIndexing[keyCount]
-    if mkey ~= nil then
+    if indexes.multiKeyIndexing ~= nil and #indexes.multiKeyIndexing > 0 then
         local itemsAdded = 0
-        for mkIndex, propID in ipairs(mkey) do
+        for mkIndex, propID in ipairs(indexes.multiKeyIndexing) do
             for i, tok in ipairs(self.indexedItems) do
                 if tok.propID == propID and tok.cond ~= 'MATCH' then
                     sql:append ' and '
@@ -512,15 +510,11 @@ end
 
 ---@param sql List
 function FilterDef:process_multi_key_index(sql)
-    local indexes = self.ClassDef.indexes
     ---@type string
-    local mkey_filter = self:check_multi_key_index(4, sql)
-            or self:check_multi_key_index(3, sql)
-            or self:check_multi_key_index(2, sql)
+    local mkey_filter = self:check_multi_key_index(sql)
 
     if mkey_filter ~= nil then
-        -- TODO Generate mkey-based filter
-        pretty.dump(mkey_filter)
+        -- TODO Add mkey-based filter
     end
 end
 
