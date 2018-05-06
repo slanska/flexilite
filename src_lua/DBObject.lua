@@ -892,9 +892,9 @@ end
 
 -- Builds table with all non null property values
 -- Includes nested objects. Does not include links
----@param excludeDefault boolean @comment if true, default data will not be included into result
+---@param noDefaultData boolean @comment if true, default data will not be included into result
 ---@return table @comment JSON-compatible payload with property names
-function DBObject:GetData(excludeDefault)
+function DBObject:GetData(noDefaultData)
     if self.state == Constants.OPERATION.DELETE then
         error(string.format('Cannot get data of deleted object %d', self.origVer.ID))
     end

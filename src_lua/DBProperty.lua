@@ -125,7 +125,8 @@ function DBProperty:GetValue(idx)
     return self.values[idx]
 end
 
--- Returns all values as table or scalar value, depending on property's maxOccurrences
+-- Returns all values as array or scalar value (depending on property's maxOccurrences)
+-- Values are returned in user-friendly format (e.g. blobs as base64 strings)
 function DBProperty:GetValues()
     local maxOccurr = (self.PropDef.D and self.PropDef.D.rules and self.PropDef.D.rules.maxOccurrences) or 1
     if maxOccurr > 1 then

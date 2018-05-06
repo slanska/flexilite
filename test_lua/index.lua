@@ -4,13 +4,15 @@
 ---
 
 --[[
-Tests to implement:04
+Tests to implement:
 - multi key index operations, index by 2, 3, 4 properties
 - column mapping ops - CRUD
 - unique and non-unique indexes
 - search. Ensure that indexes are used
 - range indexes: CRUD
 - full text indexes: CRUD
-- datetime and timespan properties. CRUD, indexing
-
+- datetime and timespan properties. CRUD, indexing. Datetime parsing
+- blob CRUD, ensure decoding/encoding from/to Base64
+- ChangeLog updates
+- data compare between original Northwind and Chinook databases and imported into Flexilite
 ]]

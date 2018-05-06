@@ -42,7 +42,7 @@ local Constants = require 'Constants'
 ---@field MetaData table | string
 
 ---@class DBValue
----@field Value any @comment Raw cell value (from [.ref-values])
+---@field Value any @comment Raw cell value (as it is stored in [.ref-values])
 ---@field ctlv number
 ---@field MetaData table|nil
 local DBValue = class()

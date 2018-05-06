@@ -222,13 +222,13 @@ function PropertyDef:saveToDB()
         self.ClassDef.DBContext:execStatement([[update [.class_props]
         set NameID = :nameID, ctlv = :ctlv, ctlvPlan = :ctlvPlan, ColMap = :ColMap
         where ID = :id]],
-                                              {
-                                                  nameID = self.Name.id,
-                                                  ctlv = self.ctlv,
-                                                  ctlvPlan = self.ctlvPlan,
-                                                  ColMap = self.ColMap,
-                                                  id = self.ID
-                                              })
+                {
+                    nameID = self.Name.id,
+                    ctlv = self.ctlv,
+                    ctlvPlan = self.ctlvPlan,
+                    ColMap = self.ColMap,
+                    id = self.ID
+                })
     else
         -- Insert new
         self.ClassDef.DBContext:execStatement(
@@ -375,9 +375,10 @@ function PropertyDef:ImportDBValue(dbv, v)
 end
 
 -- Converts dbv.Value to the format, appropriate for JSON serialization
+---@param dbo DBObject
 ---@param dbv DBValue
 ---@return any
-function PropertyDef:ExportDBValue(dbv)
+function PropertyDef:ExportDBValue(dbo, dbv)
     return dbv.Value
 end
 
@@ -471,7 +472,7 @@ end
 function NumberPropertyDef:GetValueSchema(op)
     local result = self:buildValueSchema(
             schema.NumberFrom(self.D.rules.minValue or Constants.MIN_NUMBER,
-                              self.D.rules.maxValue or Constants.MAX_NUMBER))
+                    self.D.rules.maxValue or Constants.MAX_NUMBER))
     return result
 end
 
@@ -544,7 +545,7 @@ end
 ---@param op string @comment 'C' or 'U'
 function IntegerPropertyDef:GetValueSchema(op)
     local result = self:buildValueSchema(schema.AllOf(schema.NumberFrom(self.D.rules.minValue or Constants.MIN_INTEGER,
-                                                                        self.D.rules.maxValue or Constants.MAX_INTEGER), schema.Integer))
+            self.D.rules.maxValue or Constants.MAX_INTEGER), schema.Integer))
     return result
 end
 
@@ -1045,9 +1046,10 @@ function BlobPropertyDef:ImportDBValue(dbv, v)
     dbv.Value = base64.decode(v)
 end
 
+---@param dbo DBObject
 ---@param dbv DBValue
 ---@return any
-function BlobPropertyDef:ExportDBValue(dbv)
+function BlobPropertyDef:ExportDBValue(dbo, dbv)
     local result = base64.encode(dbv.Value)
     return result
 end
@@ -1328,23 +1330,23 @@ local RefDefSchemaDef = {
     Referenced object(s) are details (dependents).
     They will be deleted when master is deleted. Equivalent of DELETE CASCADE
     ]]
-                        'master',
+            'master',
 
     --[[
     Loose association between 2 objects. When object gets deleted, references are deleted too.
     Equivalent of DELETE SET NULL
     ]]
-                        'link',
+            'link',
 
     --[[
     Similar to master but referenced objects are treated as part of master object
     ]]
-                        'nested',
+            'nested',
 
     --[[
     Object cannot be deleted if there are references. Equivalent of DELETE RESTRICT
     ]]
-                        'dependent'
+            'dependent'
     ),
 }
 
@@ -1376,32 +1378,32 @@ PropertyDef.Schema = schema.AllOf(schema.Record {
     noTrackChanges = schema.Optional(schema.Boolean),
 
     enumDef = schema.Case('rules.type',
-                          { schema.OneOf('enum', 'fkey', 'foreignkey'),
-                            schema.Optional(schema.Record(EnumDefSchemaDef)) },
-                          { schema.Any, schema.Any }),
+            { schema.OneOf('enum', 'fkey', 'foreignkey'),
+              schema.Optional(schema.Record(EnumDefSchemaDef)) },
+            { schema.Any, schema.Any }),
 
     refDef = schema.Case('rules.type',
-                         { schema.OneOf('link', 'mixin', 'ref', 'reference'), schema.Record(RefDefSchemaDef) },
-                         { schema.OneOf('enum', 'fkey', 'foreignkey'), schema.Optional(schema.Record(EnumRefDefSchemaDef)) },
-                         { schema.Any, schema.Any }),
+            { schema.OneOf('link', 'mixin', 'ref', 'reference'), schema.Record(RefDefSchemaDef) },
+            { schema.OneOf('enum', 'fkey', 'foreignkey'), schema.Optional(schema.Record(EnumRefDefSchemaDef)) },
+            { schema.Any, schema.Any }),
 
     -- todo specific property value
     defaultValue = schema.Any,
     accessRules = schema.Optional(AccessControl.Schema),
 }
 ,
-                                  schema.Test(
-                                          function(propDef)
-                                              -- Test enum definition
-                                              local t = string.lower(propDef.rules.type)
-                                              if t == 'enum' or t == 'fkey' or t == 'foreignkey' then
-                                                  local def = propDef.enumDef and 1 or 0
-                                                  def = def + (propDef.refDef and 2 or 0)
-                                                  return def == 1 or def == 2
-                                              end
-                                              return true
-                                          end, 'Enum property requires either enumDef or refDef (but not both)'
-                                  )
+        schema.Test(
+                function(propDef)
+                    -- Test enum definition
+                    local t = string.lower(propDef.rules.type)
+                    if t == 'enum' or t == 'fkey' or t == 'foreignkey' then
+                        local def = propDef.enumDef and 1 or 0
+                        def = def + (propDef.refDef and 2 or 0)
+                        return def == 1 or def == 2
+                    end
+                    return true
+                end, 'Enum property requires either enumDef or refDef (but not both)'
+        )
 )
 
 return PropertyDef
