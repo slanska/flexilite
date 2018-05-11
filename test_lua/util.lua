@@ -15,7 +15,7 @@ local mobdebug = require('mobdebug')
 --mobdebug.start()
 
 sqlite3 = require 'lsqlite3complete'
-
+local class = require 'pl.class'
 local stringx = require 'pl.stringx'
 local path = require 'pl.path'
 
@@ -69,6 +69,7 @@ local function initFlexiDatabase(db)
     return result
 end
 
+-- Creates and initializes Flexilite database in memory
 ---@return DBContext
 local function openFlexiDatabaseInMem()
     local db, errMsg = sqlite3.open_memory()
@@ -78,6 +79,7 @@ local function openFlexiDatabaseInMem()
     return initFlexiDatabase(db)
 end
 
+-- Creates and initializes Flexilite database using given file name
 ---@param fileName string
 ---@return DBContext
 local function openFlexiDatabase(fileName)
@@ -113,10 +115,85 @@ end
 Flexi.DBSchemaSQL = readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
 Flexi.InitDefaultData = readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
 
+local function createChinookSchema(DBContext)
+
+end
+
+local function importChinookData(DBContext)
+
+end
+
+---@class TestContext
+---@field DBContexts table<string, DBContext[]> @comment Pool of DBContext for Northwind database
+local TestContext = class()
+
+function TestContext:_init()
+    self.DBContexts = {}
+end
+
+---@param name string
+---@return DBContext
+function TestContext:getDBContext(name)
+    local list = self.DBContexts[name]
+    if list == nil then
+        list = {}
+    end
+
+    ---@type DBContext
+    local result
+
+    if #list > 0 then
+        result = list[1]
+        table.remove(list, 1)
+    else
+        result = openFlexiDatabaseInMem()
+        if name == 'Northwind' then
+            createNorthwindSchema(result)
+            importNorthwindData(result)
+        elseif name == 'Chinook' then
+            createChinookSchema(result)
+            importChinookData(result)
+        else
+            error(string.format('Invalid DBContext name %s', name))
+        end
+    end
+
+    result:ExecAdhocSql('begin')
+    return result
+end
+
+-- Returns DBContext for Northwind database in memory
+-- Begins transaction
+function TestContext:GetNorthwind()
+    return self:getDBContext('Northwind')
+end
+
+---@param name string
+---@param DBContext DBContext
+---@param commit boolean
+function TestContext:Release(name, DBContext, commit)
+    assert(DBContext ~= nil)
+    if commit then
+        DBContext:ExecAdhocSql('commit')
+    else
+        DBContext:ExecAdhocSql('rollback')
+    end
+    table.insert(self.DBContexts[name] or {}, DBContext)
+end
+
+-- Returns DBContext for Chinook database in memory
+-- Begins transaction
+function TestContext:GetChinook()
+    return self:getDBContext('Chinook')
+end
+
 return {
     readAll = readAll,
     openFlexiDatabaseInMem = openFlexiDatabaseInMem,
     openFlexiDatabase = openFlexiDatabase,
     importNorthwindData = importNorthwindData,
     createNorthwindSchema = createNorthwindSchema,
+    createChinookSchema = createChinookSchema,
+    importChinookData = importChinookData
+    TestContext = TestContext
 }

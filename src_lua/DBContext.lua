@@ -121,9 +121,7 @@ local flexiMeta
 --- @param db sqlite3
 --- @return DBContext
 function DBContext:_init(db)
-    assert(db)
-
-    self.db = db
+    self.db = assert(db, 'Expected sqlite3 database but nil was passed')
 
     -- Cache of prepared statements, key is statement SQL
     self.Statements = {}

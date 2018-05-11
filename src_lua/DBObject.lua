@@ -152,23 +152,34 @@ end
 1) single property ID
 2) dictionary of property IDs
 3) dictionary of property IDs as keys and fetchCount as values
+4) nil - load all property values and all nested objects
 ]]
 ---@param propIDs table <number, number> | number[] | number @comment single property ID or array of property IDs
 -- or map of property IDs to fetch count
 function ReadOnlyDBOV:loadProps(propIDs)
-    if not propIDs then
-        -- Nothing to do
-        return
-    end
 
-    if type(propIDs) ~= 'table' then
-        propIDs = { propIDs }
-    end
-
-    for propID, fetchCnt in pairs(propIDs) do
+    ---@param propID number
+    ---@param fetchCnt number | nil
+    local function getPropValue(propID, fetchCnt)
         local propDef = assert(self.ClassDef.DBContext.ClassProps[propID])
         -- getProp will force loading data for up to specific property index
-        self:getPropValue(propDef.Name.text, fetchCnt)
+        self:getPropValue(propDef.Name.text, fetchCnt or Constants.MAX_INTEGER)
+    end
+
+    if propIDs == nil then
+        -- Load all values and nested objects
+        for propName, propDef in pairs(self.ClassDef.Properties) do
+            self:getPropValue(propDef.Name.text, Constants.MAX_INTEGER)
+        end
+        for propName, propDef in pairs(self.ClassDef.MixinProperties) do
+            self:getPropValue(propDef.Name.text, Constants.MAX_INTEGER)
+        end
+    elseif type(propIDs) ~= 'table' then
+        getPropValue(tonumber(propIDs), nil)
+    else
+        for propID, fetchCnt in pairs(propIDs) do
+            getPropValue(propID, fetchCnt)
+        end
     end
 end
 
@@ -453,7 +464,7 @@ function WritableDBOV:saveCreate()
     self.ClassDef.DBContext:execStatement([[insert into [.objects] (ClassID, ctlo, vtypes,
         A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, MetaData) values (
         :ClassID, :ctlo, :vtypes, :A, :B, :C, :D, :E, :F, :G, :H, :I, :J, :J, :K, :L, :M, :N, :O, :P);]],
-                                          params)
+            params)
     -- TODO process deferred links
     self.ClassDef.DBContext.Objects[self.ID] = nil
     self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
@@ -892,11 +903,26 @@ end
 
 -- Builds table with all non null property values
 -- Includes nested objects. Does not include links
----@param noDefaultData boolean @comment if true, default data will not be included into result
+--[[ Loads specific property values. propIDs can be:
+1) single property ID
+2) dictionary of property IDs
+3) dictionary of property IDs as keys and fetchCount as values
+]]
+---@param propIDs table <number, number> | number[] | number @comment single property ID or array of property IDs
+-- or map of property IDs to fetch count
 ---@return table @comment JSON-compatible payload with property names
-function DBObject:GetData(noDefaultData)
+function DBObject:GetData(propIDs)
     if self.state == Constants.OPERATION.DELETE then
         error(string.format('Cannot get data of deleted object %d', self.origVer.ID))
+    end
+
+    self.origVer:loadProps(propIDs)
+    if propIDs == nil then
+    elseif type(propIDs) == 'table' then
+    else
+        local propDef = self.curVer.ClassDef.DBContext.ClassProps[propIDs]
+        local pp = self.curVer:getProp(propDef.ID)
+        pp.PropDef:ExportDBValue(self, pp:GetValue(1))
     end
 
     local result = {}
@@ -904,9 +930,6 @@ function DBObject:GetData(noDefaultData)
     for propName, propDef in pairs(curVer.ClassDef.Properties) do
         -- TODO get all indexes 1..N
         local pv = curVer:getPropValues(propName)
-
-        -->>
-        print('DBObject:GetData ', propName, type(pv), pv)
 
         if pv and type(pv) == 'table' then
             require('pl.pretty').dump(pv)
@@ -976,10 +999,10 @@ function DBObject:saveToDB()
         self:fireAfterTrigger()
 
     end,
-                           function(err)
-                               print(string.format('>>> saveToDB error %s:%d', self.curVer.ClassDef.Name.text, self.curVer.ID))
-                               return err
-                           end)
+            function(err)
+                print(string.format('>>> saveToDB error %s:%d', self.curVer.ClassDef.Name.text, self.curVer.ID))
+                return err
+            end)
 
     if err then
         error(err)
@@ -1100,11 +1123,11 @@ function DBObject:saveMultiKeyIndexes(op)
     end
 
     local ok, errMsg = xpcall(save,
-                              function(error)
-                                  local errorMsg = tostring(error)
+            function(error)
+                local errorMsg = tostring(error)
 
-                                  return string.format('Error updating multi-key unique index: %d', errorMsg)
-                              end)
+                return string.format('Error updating multi-key unique index: %d', errorMsg)
+            end)
 
     if errMsg then
         error(errMsg)

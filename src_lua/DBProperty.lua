@@ -87,10 +87,11 @@ end
 ---@param val any
 function DBProperty:SetValue(idx, val)
     error(string.format('Cannot modify readonly version of %s.%s',
-                        self.PropDef.ClassDef.Name.text, self.PropDef.Name.text))
+            self.PropDef.ClassDef.Name.text, self.PropDef.Name.text))
 end
 
 ---@param idx number @comment 1 based
+---@return DBValue
 function DBProperty:GetValue(idx)
     self.PropDef.ClassDef.DBContext.AccessControl:ensureCurrentUserAccessForProperty(
             self.PropDef.ID, Constants.OPERATION.READ)
@@ -153,6 +154,23 @@ function DBProperty:cloneValue(idx)
     return tablex.deepcopy(assert(self.values[idx]))
 end
 
+--
+function DBProperty:ExportValues()
+    if self.values == nil then
+        return nil
+    end
+
+    if self.PropDef.D.rules.maxOccurrences then
+
+    end
+
+    local result = {}
+    for i, dbv in ipairs(self.values) do
+        table.insert(result, self.PropDef:ExportDBValue(self.DBOV.DBObject, dbv))
+    end
+    return result
+end
+
 -------------------------------------------------------------------------------
 --[[
 ChangedDBProperty
@@ -177,7 +195,7 @@ function ChangedDBProperty:getOriginalProperty()
     local result = self.DBOV.DBObject.origVer:getProp(self.PropDef.Name.text)
     if not result then
         error(string.format('DBProperty %s.%s not found',
-                            self.DBOV.ClassDef.Name.text, self.PropDef.Name.text))
+                self.DBOV.ClassDef.Name.text, self.PropDef.Name.text))
     end
     return result
 end
@@ -287,14 +305,14 @@ function ChangedDBProperty:SaveToDB()
                     -- TODO
                 end
             end,
-                                       function(err)
-                                           return err
-                                       end)
+                    function(err)
+                        return err
+                    end)
             if not status then
                 local errMsg = tostring(err)
                 error(string.format('%s.%s (%d)[%d]:%d %s',
-                                    self.PropDef.ClassDef.Name.text, self.PropDef.Name.text, self.PropDef.ID, propIndex,
-                                    self.DBOV.ID, errMsg))
+                        self.PropDef.ClassDef.Name.text, self.PropDef.Name.text, self.PropDef.ID, propIndex,
+                        self.DBOV.ID, errMsg))
             end
         end
     end
@@ -304,9 +322,9 @@ function ChangedDBProperty:SaveToDB()
     local function deleteRefValues(orig_prop, values)
         for propIndex, dbv in pairs(values) do
             DBContext:execStatement(refValSQL[Constants.OPERATION.DELETE],
-                                    { old_ObjectID = orig_prop.DBOV.ID,
-                                      old_PropertyID = orig_prop.PropDef.ID,
-                                      old_PropIndex = propIndex })
+                    { old_ObjectID = orig_prop.DBOV.ID,
+                      old_PropertyID = orig_prop.PropDef.ID,
+                      old_PropIndex = propIndex })
         end
     end
 
@@ -341,24 +359,24 @@ function ChangedDBProperty:SaveToDB()
                 if save then
                     if self.DBOV.ID ~= orig_prop.DBOV.ID then
                         DBContext:execStatement(refValSQL['UX'],
-                                                { old_ObjectID = orig_prop.DBOV.ID,
-                                                  old_PropertyID = orig_prop.PropDef.ID,
-                                                  old_PropIndex = propIndex,
-                                                  ObjectID = self.DBOV.ID,
-                                                  PropertyID = self.PropDef.ID,
-                                                  PropIndex = propIndex,
-                                                  Value = vv,
-                                                  ctlv = dbv.ctlv or 0,
-                                                  MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
+                                { old_ObjectID = orig_prop.DBOV.ID,
+                                  old_PropertyID = orig_prop.PropDef.ID,
+                                  old_PropIndex = propIndex,
+                                  ObjectID = self.DBOV.ID,
+                                  PropertyID = self.PropDef.ID,
+                                  PropIndex = propIndex,
+                                  Value = vv,
+                                  ctlv = dbv.ctlv or 0,
+                                  MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
                     else
                         DBContext:execStatement(refValSQL[Constants.OPERATION.UPDATE],
-                                                {
-                                                    ObjectID = self.DBOV.ID,
-                                                    PropertyID = self.PropDef.ID,
-                                                    PropIndex = propIndex,
-                                                    Value = vv,
-                                                    ctlv = dbv.ctlv or 0,
-                                                    MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
+                                {
+                                    ObjectID = self.DBOV.ID,
+                                    PropertyID = self.PropDef.ID,
+                                    PropIndex = propIndex,
+                                    Value = vv,
+                                    ctlv = dbv.ctlv or 0,
+                                    MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
                     end
                 end
 
