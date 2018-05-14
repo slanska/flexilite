@@ -6,16 +6,12 @@
 
 --[[ Busted tests for property value access and operations]]
 
-local pretty = require 'pl.pretty'
-
 local test_util = require 'util'
 local DBQuery = require('QueryBuilder').DBQuery
 
 -- In memory database
 ---@type DBContext
-local DBContext = test_util.openFlexiDatabaseInMem()
-test_util.createNorthwindSchema(DBContext)
-test_util.importNorthwindData(DBContext)
+local DBContext = test_util.TestContext():GetNorthwind()
 
 local test_cases = {
     { query = [[UnitPrice > 11 and UnitPrice < 21.1]], expected_cnt = 29 },

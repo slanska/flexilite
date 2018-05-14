@@ -6,7 +6,7 @@
 
 describe('alter property tests', function()
 
-    it('',
+    pending('dummy',
        function()
 
        end)

@@ -66,46 +66,46 @@ describe('Create class', function()
         end
     end)
 
-    it('should create Regions', function()
+    pending('should create Regions', function()
         --assert.truthy("Yup.")
     end)
 
-    it('should create all Northwind classes', function()
+    pending('should create all Northwind classes', function()
     end)
 
-    it('should create unresolved class', function()
-
-    end)
-
-    it('should create class with simple enum def', function()
+    pending('should create unresolved class', function()
 
     end)
 
-    it('should create class with named enum def', function()
+    pending('should create class with simple enum def', function()
 
     end)
 
-    it('should create class with existing class def', function()
+    pending('should create class with named enum def', function()
 
     end)
 
-    it('should create class with enum def with auto assigned ID ', function()
+    pending('should create class with existing class def', function()
 
     end)
 
-    it('should create class and resolve other class', function()
+    pending('should create class with enum def with auto assigned ID ', function()
 
     end)
 
-    it('should fail on class with invalid definition', function()
+    pending('should create class and resolve other class', function()
 
     end)
 
-    it('should create mixin class', function()
+    pending('should fail on class with invalid definition', function()
 
     end)
 
-    it('should fail on invalid property definition', function()
+    pending('should create mixin class', function()
+
+    end)
+
+    pending('should fail on invalid property definition', function()
 
     end)
 

@@ -48,19 +48,19 @@ describe('Class schema', function()
         end
     end)
 
-    it('should validate TextPropertyDef schema', function()
+    pending('should validate TextPropertyDef schema', function()
 
     end)
 
-    it('should validate ReferencePropertyDef schema', function()
+    pending('should validate ReferencePropertyDef schema', function()
 
     end)
 
-    it('should validate EnumPropertyDef schema', function()
+    pending('should validate EnumPropertyDef schema', function()
 
     end)
 
-    it('should validate ClassDef schema', function()
+    pending('should validate ClassDef schema', function()
 
     end)
 

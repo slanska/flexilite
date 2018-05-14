@@ -16,3 +16,17 @@ Tests to implement:
 - ChangeLog updates
 - data compare between original Northwind and Chinook databases and imported into Flexilite
 ]]
+
+local util = require 'util'
+local TestContext = util.TestContext()
+TestContext.GetNorthwind()
+
+-- Misc tests
+require 'bit52'
+require 'bad_class_schema'
+require 'alter_prop'
+require 'classSchema'
+require 'create_class'
+require 'misc'
+require 'object_schema'
+require 'prop_values'

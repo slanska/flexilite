@@ -798,7 +798,7 @@ function DBObject:_init(params, state)
         self.origVer = CreatedVoidDBObject
         self.curVer = WritableDBOV(self, assert(params.ClassDef), params.ID)
         if params.Data then
-            self:SetData(params.Data)
+            self:ImportData(params.Data)
         end
     else
         self.origVer = ReadOnlyDBOV.Create(self, params.ID, params.ObjRow)
@@ -808,7 +808,7 @@ function DBObject:_init(params, state)
         else
             self.curVer = WritableDBOV(self, self.origVer.ClassDef, params.ID)
             if params.Data then
-                self:SetData(params.Data)
+                self:ImportData(params.Data)
             end
         end
     end
@@ -891,7 +891,7 @@ end
 -- and links (using queries).
 -- Object must be in 'C' or 'U' state
 ---@param data table
-function DBObject:SetData(data)
+function DBObject:ImportData(data)
     if not data then
         return
     end
@@ -911,43 +911,42 @@ end
 ---@param propIDs table <number, number> | number[] | number @comment single property ID or array of property IDs
 -- or map of property IDs to fetch count
 ---@return table @comment JSON-compatible payload with property names
-function DBObject:GetData(propIDs)
+function DBObject:ExportData(propIDs)
     if self.state == Constants.OPERATION.DELETE then
         error(string.format('Cannot get data of deleted object %d', self.origVer.ID))
     end
 
+    local result = {}
+
+    local function export_prop_values(propID, fetchCount)
+        local propDef = self.curVer.ClassDef.DBContext.ClassProps[propID]
+        local pp = self.curVer:getProp(propDef.ID)
+        local vv = {}
+        result[propDef.Name.text] = vv
+        for idx = 1, fetchCount or Constants.MAX_INTEGER do
+            table.insert(vv, pp.PropDef:ExportDBValue(self, pp:GetValue(idx)))
+        end
+    end
+
     self.origVer:loadProps(propIDs)
     if propIDs == nil then
+        -- Entire object with all properties
+        for propName, propDef in pairs(self.curVer.ClassDef.Properties) do
+            export_prop_values(propDef.ID, nil)
+        end
+        -- TODO Use smart logic for mixin properties: if no conflicts, use directl short name
+        -- otherwise use full name (with class)
+        for propName, propDef in pairs(self.curVer.ClassDef.MixinProperties) do
+            export_prop_values(propDef.ID, nil)
+        end
     elseif type(propIDs) == 'table' then
+        -- Properties from the list
+        for propID, fetchCount in pairs(propIDs) do
+            export_prop_values(propID, fetchCount)
+        end
     else
-        local propDef = self.curVer.ClassDef.DBContext.ClassProps[propIDs]
-        local pp = self.curVer:getProp(propDef.ID)
-        pp.PropDef:ExportDBValue(self, pp:GetValue(1))
-    end
-
-    local result = {}
-    local curVer = self.curVer
-    for propName, propDef in pairs(curVer.ClassDef.Properties) do
-        -- TODO get all indexes 1..N
-        local pv = curVer:getPropValues(propName)
-
-        if pv and type(pv) == 'table' then
-            require('pl.pretty').dump(pv)
-            local vv = pv.Value
-            if vv then
-                result[propName] = tablex.deepcopy(pv.Value)
-            end
-        else
-            result[propName] = pv
-        end
-    end
-
-    for propName, propList in pairs(curVer.ClassDef.MixinProperties) do
-        if #propList == 1 and not curVer.ClassDef.Properties[propName] then
-            -- Process properties in mixin classes only if there is no prop name conflict
-        else
-            -- Other mixin properties are processed as 'nested' objects
-        end
+        -- Single property
+        export_prop_values(propIDs, nil)
     end
 
     return result
