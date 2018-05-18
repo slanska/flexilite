@@ -203,6 +203,12 @@ end
 ---@param idx number @comment 1 based index
 ---@param val any
 function ChangedDBProperty:SetValue(idx, val)
+    local maxOccurr = self.PropDef.D.rules.maxOccurrences or Constants.MAX_INTEGER
+    if idx > maxOccurr then
+        error(string.format('%s.%s: maxOccurrences rule violation (%d > %d)',
+                self.PropDef.ClassDef.Name.text, self.PropDef.Name.text, idx, maxOccurr))
+    end
+
     if not self.values then
         self.values = {}
     end
@@ -221,7 +227,7 @@ function ChangedDBProperty:SetValue(idx, val)
     end
 
     if result then
-        result.Value = val
+        self.PropDef:ImportDBValue(result, val)
     else
         self.PropDef.ClassDef.DBContext.AccessControl:ensureCurrentUserAccessForProperty(
                 self.PropDef.ID, idx == 1 and Constants.OPERATION.UPDATE or Constants.OPERATION.CREATE)

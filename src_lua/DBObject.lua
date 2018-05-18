@@ -124,7 +124,8 @@ local CreatedVoidDBObject = VoidDBOV('Old object is not available in this contex
 ---@field ClassDef ClassDef
 ---@field MetaData ObjectMetadata
 ---@field DBObject DBObject
----@field props table <string, DBProperty> @comment DictCI
+---@field props table <string, DBProperty> @comment DictCI. Properties are added on demand,
+---so if property is not yet loaded, it will not be in the dictionary
 ---@field ctlo number @comment [.objects].ctlo
 ---@field vtypes number @comment [.objects].vtypes
 local ReadOnlyDBOV = class()
@@ -137,14 +138,17 @@ function ReadOnlyDBOV:_init(DBObject, ID)
     self.props = DictCI()
 end
 
--- Create pure readonly dbobject version and load .objects data
+-- Create pure readonly dbobject version and load data from .objects row
 ---@param DBObject DBObject
 ---@param ID number
 ---@param objRow table | nil @comment row of [.objects]
 ---@return ReadOnlyDBOV
 function ReadOnlyDBOV.Create(DBObject, ID, objRow)
     local result = ReadOnlyDBOV(DBObject, ID)
-    result:loadObjectRow(objRow)
+    if not objRow then
+        objRow = self.DBObject.DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
+    end
+    result:initFromObjectRow(objRow)
     return result
 end
 
@@ -225,17 +229,6 @@ function ReadOnlyDBOV:initFromObjectRow(obj)
             dbProp.values[1] = cell
         end
     end
-end
-
--- Loads row from .objects table. Updates ClassDef if previous ClassDef is null
--- or does not match actual definition
----@param obj table @comment row of [.objects]
-function ReadOnlyDBOV:loadObjectRow(obj)
-    -- Load from .objects
-    if not obj then
-        obj = self.DBObject.DBContext:loadOneRow([[select * from [.objects] where ObjectID=:ObjectID;]], { ObjectID = self.ID })
-    end
-    self:initFromObjectRow(obj)
 end
 
 ---@param propName string
@@ -1008,8 +1001,22 @@ function DBObject:saveToDB()
     end
 end
 
+-- Imports property value(s) from user payload data
+---@param prop DBProperty
+---@param dd any @comment can be scalar value, array or dictionary
+function DBObject:importPropValue(prop, dd)
+    if #dd > 0 then
+        -- Array of values
+        for i, v in ipairs(dd) do
+            prop:SetValue(i, v)
+        end
+    else
+        -- Single value: scalar or table
+        prop:SetValue(1, dd)
+    end
+end
+
 -- Sets default data to those properties that have not been assigned
----@param data table
 function DBObject:setMissingDefaultData()
     if self.state == Constants.OPERATION.CREATE then
         for propName, propDef in pairs(self.curVer.ClassDef.Properties) do
@@ -1017,13 +1024,7 @@ function DBObject:setMissingDefaultData()
             if prop == nil or prop.values == nil or #prop.values == 0 then
                 local dd = propDef.D.defaultValue
                 if dd ~= nil then
-                    -- TODO assign all property values
-                    local pp = self.curVer:setPropValue(propName, 1, tablex.deepcopy(dd))
-                    --local vv = pp:GetValue()
-
-                    --                if vv == nil then
-                    --                  pp:SetValue(1, tablex.deepcopy(dd))
-                    --            end
+                    self:importPropValue(prop, dd)
                 end
             end
         end
