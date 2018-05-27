@@ -18,6 +18,10 @@ local tablex = require 'pl.tablex'
 local Constants = require 'Constants'
 local JSON = require 'cjson'
 
+---@class PropertySaveContext
+---@field PropDef PropertyDef
+---@field PropIdx number
+
 -------------------------------------------------------------------------------
 --[[
 DBProperty
@@ -180,6 +184,8 @@ Used by WritableDBOV (DBObject.curVer)
 ---@class ChangedDBProperty
 ---@field DBOV WritableDBOV
 ---@field PropDef PropertyDef
+---@field values table<number, DBValue>
+---@field appendIndex number @comment auto-decrement value used for appended values
 local ChangedDBProperty = class(DBProperty)
 
 function ChangedDBProperty:_init(DBOV, propDef)
@@ -200,7 +206,7 @@ function ChangedDBProperty:getOriginalProperty()
     return result
 end
 
----@param idx number @comment 1 based index
+---@param idx number @comment > 1 (1-based index) or 0 or < 0 or nil -> append mode
 ---@param val any
 function ChangedDBProperty:SetValue(idx, val)
     local maxOccurr = self.PropDef.D.rules.maxOccurrences or Constants.MAX_INTEGER
@@ -213,8 +219,14 @@ function ChangedDBProperty:SetValue(idx, val)
         self.values = {}
     end
 
+    if idx <= 0 or idx == nil then
+        idx = (self.appendIndex or 0) - 1
+        self.appendIndex = idx
+    end
+
     local result = self.values[idx]
     if not result then
+
         self.PropDef.ClassDef.DBContext.AccessControl:ensureCurrentUserAccessForProperty(
                 self.PropDef.ID, self.DBOV.DBObject.state)
         local prop = self:getOriginalProperty()
@@ -256,24 +268,23 @@ function ChangedDBProperty:GetValue(idx)
     return self.values[idx]
 end
 
-local refValSQL = {
-    [Constants.OPERATION.CREATE] = [[insert into [.ref-values]
-    (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
-    (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv, :MetaData);]],
-
-    [Constants.OPERATION.UPDATE] = [[update [.ref-value] set Value=:Value, ctlv=:ctlv, PropIndex=:PropIndex
-      MetaData=:MetaData where ObjectID=:old_ObjectID and PropertyID=:old_PropertyID
-      and PropIndex=:old_PropIndex;]],
-
-    ['UX'] = [[update [.ref-value] set Value=:Value, ctlv=:ctlv, PropIndex=:PropIndex
-      MetaData=:MetaData, ObjectID=:ObjectID, PropertyID=:PropertyID, PropIndex=:PropIndex
-      where ObjectID=:old_ObjectID and PropertyID=:old_PropertyID
-      and PropIndex=:old_PropIndex;]],
-
-    [Constants.OPERATION.DELETE] = [[delete from [.ref-values]
-    where ObjectID=:old_ObjectID and PropertyID=:old_PropertyID
-      and PropIndex=:old_PropIndex;]],
-}
+--local refValSQL = {
+--    -- Insert and update
+--    [Constants.OPERATION.CREATE] = [[insert or replace into [.ref-values]
+--    (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
+--    (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv, :MetaData);]],
+--
+--    -- Extended update only. Normal update is handled by INSERT OR REPLACE statement above
+--    [Constants.OPERATION.UPDATE] = [[update [.ref-value] set Value=:Value, ctlv=:ctlv, PropIndex=:PropIndex
+--      MetaData=:MetaData, ObjectID=:ObjectID, PropertyID=:PropertyID, PropIndex=:PropIndex
+--      where ObjectID=:old_ObjectID and PropertyID=:old_PropertyID
+--      and PropIndex=:old_PropIndex;]],
+--
+--    -- Delete
+--    [Constants.OPERATION.DELETE] = [[delete from [.ref-values]
+--    where ObjectID=:old_ObjectID and PropertyID=:old_PropertyID
+--      and PropIndex=:old_PropIndex;]],
+--}
 
 -- Updates ctlv value of DBValue, in according to PropDef definition and current Value
 ---@param dbv DBValue
@@ -281,126 +292,205 @@ function ChangedDBProperty:updateCTLV(dbv)
 
 end
 
+-- Sorts property values by index
+local function sort_values(values)
+    tablex.sort(tablex.keys(values), function(a, b)
+        if a > 0 and b > 0 then
+            return a < b
+        elseif a < 0 and b < 0 then
+            return a > b
+        elseif a > 0 and b < 0 then
+            return true
+        else
+            return false
+        end
+    end)
+end
+
 -- Saves values to the database
-function ChangedDBProperty:SaveToDB()
+---@param ctx PropertySaveContext
+function ChangedDBProperty:SaveToDB(ctx)
     local DBContext = self.DBOV.ClassDef.DBContext
 
     ---@param values table<number, DBValue>
-    local function insertRefValues(values)
-        assert(values)
-
-        for propIndex, dbv in pairs(values) do
-
-            local status, err = xpcall(function()
-                local vv = self.PropDef:GetRawValue(dbv)
-
-                local save, deferredAction = self.PropDef:BeforeDBValueSave(dbv)
-                if save then
-                    local params = {
-                        ObjectID = self.DBOV.ID,
-                        PropertyID = self.PropDef.ID,
-                        PropIndex = propIndex,
-                        Value = vv,
-                        ctlv = dbv.ctlv or 0,
-                        MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil }
-
-                    DBContext:execStatement(refValSQL[Constants.OPERATION.CREATE], params)
-                end
-
-                if deferredAction then
-                    -- TODO
-                end
-            end,
-                    function(err)
-                        return err
-                    end)
-            if not status then
-                local errMsg = tostring(err)
-                error(string.format('%s.%s (%d)[%d]:%d %s',
-                        self.PropDef.ClassDef.Name.text, self.PropDef.Name.text, self.PropDef.ID, propIndex,
-                        self.DBOV.ID, errMsg))
-            end
-        end
-    end
+    --local function insertRefValues(values)
+    --    assert(values)
+    --
+    --    for propIndex, dbv in pairs(values) do
+    --
+    --        local status, err = xpcall(function()
+    --            local vv = self.PropDef:GetRawValue(dbv)
+    --
+    --            local save, deferredAction = self.PropDef:BeforeDBValueSave(dbv)
+    --            if save then
+    --                local params = {
+    --                    ObjectID = self.DBOV.ID,
+    --                    PropertyID = self.PropDef.ID,
+    --                    PropIndex = propIndex,
+    --                    Value = vv,
+    --                    ctlv = dbv.ctlv or 0,
+    --                    MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil }
+    --
+    --                DBContext:execStatement(refValSQL[Constants.OPERATION.CREATE], params)
+    --            end
+    --
+    --            if deferredAction then
+    --                -- TODO
+    --            end
+    --        end,
+    --                function(err)
+    --                    return err
+    --                end)
+    --        if not status then
+    --            local errMsg = tostring(err)
+    --            error(string.format('%s.%s (%d)[%d]:%d %s',
+    --                    self.PropDef.ClassDef.Name.text, self.PropDef.Name.text, self.PropDef.ID, propIndex,
+    --                    self.DBOV.ID, errMsg))
+    --        end
+    --    end
+    --end
 
     ---@param orig_prop DBProperty
     ---@param values table<number, DBValue>
-    local function deleteRefValues(orig_prop, values)
-        for propIndex, dbv in pairs(values) do
-            DBContext:execStatement(refValSQL[Constants.OPERATION.DELETE],
-                    { old_ObjectID = orig_prop.DBOV.ID,
-                      old_PropertyID = orig_prop.PropDef.ID,
-                      old_PropIndex = propIndex })
-        end
+    --local function deleteRefValues(orig_prop, values)
+    --    for propIndex, dbv in pairs(values) do
+    --        DBContext:execStatement(refValSQL[Constants.OPERATION.DELETE],
+    --                { old_ObjectID = orig_prop.DBOV.ID,
+    --                  old_PropertyID = orig_prop.PropDef.ID,
+    --                  old_PropIndex = propIndex })
+    --    end
+    --end
+
+    if not self.values then
+        return
     end
+
+    ctx.PropDef = self.PropDef
 
     local op = self.DBOV.DBObject.state
-    if op == Constants.OPERATION.UPDATE then
-        local old_values = {}
-        local orig_prop = self.DBOV.DBObject.origVer:getProp(self.PropDef.Name.text)
-        if orig_prop then
-            old_values = orig_prop.values
-
-            ---@type table<number, DBValue>
-            local added_values = tablex.difference(self.values, old_values)
-
-            ---@type table<number, DBValue>
-            local updated_values = tablex.intersection(self.values, old_values)
-
-            ---@type table<number, DBValue>
-            local deleted_values = tablex.difference(old_values, self.values)
-            for propIndex, dbv in pairs(self.values) do
-                if dbv.Value == nil and deleted_values[propIndex] == nil then
-                    deleted_values[propIndex] = dbv
-                end
-            end
-
-            deleteRefValues(orig_prop, deleted_values)
-
-            for propIndex, dbv in pairs(updated_values) do
-                local vv = self.PropDef:GetRawValue(dbv)
-
-                local save, deferredAction = self.PropDef:BeforeDBValueSave(dbv)
-
-                if save then
-                    if self.DBOV.ID ~= orig_prop.DBOV.ID then
-                        DBContext:execStatement(refValSQL['UX'],
-                                { old_ObjectID = orig_prop.DBOV.ID,
-                                  old_PropertyID = orig_prop.PropDef.ID,
-                                  old_PropIndex = propIndex,
-                                  ObjectID = self.DBOV.ID,
-                                  PropertyID = self.PropDef.ID,
-                                  PropIndex = propIndex,
-                                  Value = vv,
-                                  ctlv = dbv.ctlv or 0,
-                                  MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
-                    else
-                        DBContext:execStatement(refValSQL[Constants.OPERATION.UPDATE],
-                                {
-                                    ObjectID = self.DBOV.ID,
-                                    PropertyID = self.PropDef.ID,
-                                    PropIndex = propIndex,
-                                    Value = vv,
-                                    ctlv = dbv.ctlv or 0,
-                                    MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
-                    end
-                end
-
-                if deferredAction then
-                    -- TODO
-                end
-            end
-
-            insertRefValues(added_values)
-        else
-            -- no old property, therefore all values are new
-            insertRefValues(self.values)
-        end
-    elseif op == Constants.OPERATION.CREATE then
-        insertRefValues(self.values)
-    elseif op == Constants.OPERATION.DELETE then
-        deleteRefValues(self, self.values)
+    ---@type DBProperty
+    local orig_prop
+    if op == Constants.OPERATION.CREATE then
+        orig_prop = self
+    else
+        orig_prop = self.DBOV.DBObject.origVer:getProp(self.PropDef.Name.text) or self
     end
+
+    for idx, dbv in pairs(self.values) do
+        ctx.PropIdx = idx
+        if idx == 1 then
+            -- Check if there is column mapping
+            -- TODO
+        end
+
+        if dbv.Value == nil then
+            -- Delete
+            DBContext:execStatement([[delete from [.ref-values]
+                where ObjectID=:old_ObjectID and PropertyID=:old_PropertyID
+                and PropIndex=:old_PropIndex;]],
+                    { old_ObjectID = orig_prop.DBOV.ID,
+                      old_PropertyID = orig_prop.PropDef.ID,
+                      old_PropIndex = idx })
+        else
+            if self ~= orig_prop and (self.DBOV.ID ~= orig_prop.DBOV.ImportDBValue or self.PropDef.ID ~= orig_prop.PropDef.ID) then
+                -- Extended update - object ID and/or property ID have changed
+                -- TODO
+            else
+                -- Regular insert/update
+                local params = {
+                    ObjectID = self.DBOV.ID,
+                    PropertyID = self.PropDef.ID,
+                    PropIndex = idx,
+                    Value = dbv.Value,
+                    ctlv = dbv.ctlv or 0,
+                    MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil }
+
+                if idx < 0 then
+                    -- Append new value
+                    DBContext:execStatement([[insert or replace into [.ref-values]
+                    (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
+                    (:ObjectID, :PropertyID,
+                    coalesce((select max(PropIndex) from [.ref-values] where ObjectID = :ObjectID and PropertyID = :PropertyID limit 1), 0) + 1,
+                    :Value, :ctlv, :MetaData);]]
+                    , params)
+                else
+                    -- Add or update value with known index
+                    DBContext:execStatement([[insert or replace into [.ref-values]
+                    (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
+                    (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv, :MetaData);]]
+                    , params)
+                end
+            end
+        end
+    end
+
+    --local op = self.DBOV.DBObject.state
+    --if op == Constants.OPERATION.UPDATE then
+    --    local old_values = {}
+    --    local orig_prop = self.DBOV.DBObject.origVer:getProp(self.PropDef.Name.text)
+    --    if orig_prop then
+    --        old_values = orig_prop.values
+    --
+    --        ---@type table<number, DBValue>
+    --        local added_values = tablex.difference(self.values, old_values)
+    --
+    --        ---@type table<number, DBValue>
+    --        local updated_values = tablex.intersection(self.values, old_values)
+    --
+    --        ---@type table<number, DBValue>
+    --        local deleted_values = tablex.difference(old_values, self.values)
+    --        for propIndex, dbv in pairs(self.values) do
+    --            if dbv.Value == nil and deleted_values[propIndex] == nil then
+    --                deleted_values[propIndex] = dbv
+    --            end
+    --        end
+    --
+    --        deleteRefValues(orig_prop, deleted_values)
+    --
+    --        for propIndex, dbv in pairs(updated_values) do
+    --            local vv = self.PropDef:GetRawValue(dbv)
+    --
+    --            local save, deferredAction = self.PropDef:BeforeDBValueSave(dbv)
+    --
+    --            if save then
+    --                if self.DBOV.ID ~= orig_prop.DBOV.ID then
+    --                    DBContext:execStatement(refValSQL['UX'],
+    --                            { old_ObjectID = orig_prop.DBOV.ID,
+    --                              old_PropertyID = orig_prop.PropDef.ID,
+    --                              old_PropIndex = propIndex,
+    --                              ObjectID = self.DBOV.ID,
+    --                              PropertyID = self.PropDef.ID,
+    --                              PropIndex = propIndex,
+    --                              Value = vv,
+    --                              ctlv = dbv.ctlv or 0,
+    --                              MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
+    --                else
+    --                    DBContext:execStatement(refValSQL[Constants.OPERATION.UPDATE],
+    --                            {
+    --                                ObjectID = self.DBOV.ID,
+    --                                PropertyID = self.PropDef.ID,
+    --                                PropIndex = propIndex,
+    --                                Value = vv,
+    --                                ctlv = dbv.ctlv or 0,
+    --                                MetaData = dbv.MetaData and JSON.encode(dbv.MetaData) or nil })
+    --                end
+    --            end
+    --
+    --            if deferredAction then
+    --                -- TODO
+    --            end
+    --        end
+    --
+    --        insertRefValues(added_values)
+    --    else
+    --        -- no old property, therefore all values are new
+    --        insertRefValues(self.values)
+    --    end
+    --elseif op == Constants.OPERATION.CREATE then
+    --    insertRefValues(self.values)
+    --elseif op == Constants.OPERATION.DELETE then
+    --    deleteRefValues(self, self.values)
+    --end
 end
 
 return {

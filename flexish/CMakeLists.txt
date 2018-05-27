@@ -1,3 +1,5 @@
+# Include .lua and .C sources
+
 set(SOURCE
         main.c
 

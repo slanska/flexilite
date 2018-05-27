@@ -11,7 +11,7 @@ Flexilite library will bundle all dependencies via luajit bytecode and module
 name registration
 ]]
 
-local mobdebug = require('mobdebug')
+--local mobdebug = require('mobdebug')
 --mobdebug.start()
 
 sqlite3 = require 'lsqlite3complete'
@@ -40,8 +40,6 @@ end
 
 -- For Lua 5.2 compatibility
 unpack = table.unpack
-
-local DBContext = require 'DBContext'
 
 local __dirname = path.abspath('..')
 
@@ -91,23 +89,37 @@ local function openFlexiDatabase(fileName)
 end
 
 ---@param DBContext DBContext
-local function importNorthwindData(DBContext)
+---@param fileName string
+local function importData(DBContext, fileName)
     -- Insert data
     local started = os.clock()
-    local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.data.json'))
+    local dataDump = readAll(path.join(__dirname, fileName))
     local sql = "select flexi('import data', '" .. stringx.replace(dataDump, "'", "''") .. "');"
     DBContext:ExecAdhocSql(sql)
     -- TODO temp
     print(string.format('flexi_data - Elapsed %s sec', os.clock() - started))
+end
 
+---@param DBContext DBContext
+local function importNorthwindData(DBContext)
+    importData(DBContext, 'test/json/Northwind.db3.data.json')
+end
+
+---@param DBContext DBContext
+---@param fileName string
+local function createSchema(DBContext, fileName)
+    local fullPath = path.join(__dirname, 'test', 'json', fileName)
+    local content = readAll(fullPath)
+    -- TODO
+    print('createSchema: #content ' .. #content)
+    local sql = "select flexi('create schema', '" .. content .. "');"
+    DBContext:ExecAdhocSql(sql)
+    print('createSchema: ' .. fileName .. ' done')
 end
 
 ---@param DBContext DBContext
 local function createNorthwindSchema(DBContext)
-    local content = readAll(path.join(__dirname, 'test', 'json', 'Northwind.db3.schema.json'))
-    local sql = "select flexi('create schema', '" .. content .. "');"
-    DBContext:ExecAdhocSql(sql)
-    print('createNorthwindSchema: done')
+    createSchema(DBContext, 'Northwind.db3.schema.json')
 end
 
 -- load sql scripts into Flexi variables
@@ -116,7 +128,7 @@ Flexi.DBSchemaSQL = readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
 Flexi.InitDefaultData = readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
 
 local function createChinookSchema(DBContext)
-
+    createSchema(DBContext, 'Chinook.db.schema.json')
 end
 
 local function importChinookData(DBContext)
@@ -194,6 +206,6 @@ return {
     importNorthwindData = importNorthwindData,
     createNorthwindSchema = createNorthwindSchema,
     createChinookSchema = createChinookSchema,
-    importChinookData = importChinookData
-    TestContext = TestContext
+    importChinookData = importChinookData,
+    TestContext = TestContext,
 }

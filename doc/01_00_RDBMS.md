@@ -28,20 +28,20 @@ huge time and effort spending (in no specific order):
 #### 1. Enums
  
 RDBMS does not provide natively support for enumerated values, i.e. application domain specific
-lists of predefined constants. This is normally resolved with:
+lists of predefined constants. This is typically resolved with:
 
 - define enumerations on application level only, and simply store values in database. Enumerations
 just do not exist in scope of database
 
-- create separate tables for every enumeration type. In serious applications number of such tiny tables
+- create separate (normally tiny) tables for every enumeration type. In serious applications number of such tiny tables
 may reach hundreds, with all respective maintenance burden including but not limited
 to referential integrity, UI forms etc.
  
 - create few (or just one) tables to keep all enum items, with special field - EnumType, and custom implementation
 of referential integrity  
     
-At some point, sooner or later, as application needs to support multiple languages, 
-it would require to have those enum items translated too. Resulting table structure, in such advanced version,
+At some point, sooner or later, growing application needs to support multiple languages. 
+It would require to have those enum items translated too. Resulting table structure, in such advanced version,
  would like this:
 
 |EnumType|ID|Culture|Text|OrdinalPosition  
@@ -55,56 +55,55 @@ For any real application just enum support means hundred of development and test
 #### 2. Lists (aka Arrays aka Vectors)
 
 Standard RDBMS do not support value list (aka arrays aka vectors). So, if requirement is to have, say,
-multiple tags per record (kind of extended enums) or few email addresses, additional table needs to created. Which brings us to
-the next section.
+multiple tags per record (kind of extended enums) or few email addresses or few phone number, 
+additional table needs to created. Which brings us to the next section.
 
 #### Many-to-many relation
 
-Standard RDBMS were designed to support one-to-many or one-to-one relations (and even this area is really half baked, as 
-we will cover in the next section). Many-to-many relation needs one more table to create and maintain,
-
+Standard RDBMS were designed to support one-to-many or one-to-one relations (and even this area is really half cooked, as 
+we will cover in the next section). Many-to-many relation needs one more table to create and maintain, thus 
+cluttering database schema with redundant tables.
 
 #### Half defined relations
 
-Despite of "R" _relations_ are actually half baked in RDBMS. Even though relations are defined via foreign key,
+Despite of "R" _relations_ are actually half cooked in RDBMS. Even though relations are defined via foreign key,
 so they are generally known to the database, this knowledge adds very little to real usage - one needs
-to apply the definition every time when 2 tables have to be joined together. This is unnecessary complication.
-
+to apply knowledge of the definition every time when 2 tables have to be joined together. This is unnecessary complication.
 
 #### User defined fields
 
-In many systems there is requirement to allow end users (or their admins) to extend tables with custom fields 
-without alteration table's column list. This requirement normally leads to developing some in-house Entity-Attribute-Value
+In many systems there is requirement to allow end users (or end-user admins) to extend tables with custom fields 
+without alteration database schema. This requirement normally leads to developing some in-house Entity-Attribute-Value
 design (often even without realizing name of concept). Integrating those _extra_ fields into CRUD flow involves
 a lot of development and testing effort.
-
 
 #### Sparse columns
 
 Medical, scientific, manufacturing and other types of databases often deal with sparse columns, where 
-in any given record only small percentage of column definitions has not null values. Table may need thousands fields to be defined
+any given record has only small percentage of column with not null values. Table may need thousands fields to be defined
 and only dozens of them would be actually used for any given record. Even though 
 to accomplish this requirement many databases offer special features (like sparse columns MS SQL), it is not part 
-of SQL ANSI standard.
+of SQL ANSI standard and implementation is often sub-optimal or limited.
 
 #### Polymorphic collections
 
 Records in RDBMS must follow the same structure, standard approach does not support having different types of records in the same collection,
-which is typical requirement in real life scenarios. To accomplish this, developers invent custom structures, like 1:1 tables.
-Some databases have support for table inheritance (PostgreSQL, as a example)
+which is typical requirement in real life scenarios. To accomplish this, developers invent custom schema, like 1:1 tables.
+Though, some databases have support for table inheritance (PostgreSQL, as a example).
  
-
 #### Ordinal position in collection
 
 Sometimes records in collection should be presented in certain order. To accomplish this, special measures
-should be done, with adding a new column, and have application logic to allow re-ordering. Normally it gets
-implemented in non generic way, per case basis.
+should be done, with adding a new column ("OrdinalPosition"), and have application logic to allow re-ordering. Normally it gets
+implemented in non generic way, per individual case basis.
 
 #### Documents or nested records
 
 In real life cases object are naturally formed in hierarchy. RDBMS deal with plain records only. 
 Custom application logic would be needed to transform plain lists of records into hierarchical structure,
-which is better suited for real business cases. Every case turns to be overcomplicated, custom, error prone implementation. 
+which is better suited for real business cases. Every case turns to be overcomplicated, custom, error prone implementation.
+Implementing even simple case with one master and few nested objects leads to having at least 3 additional tables in database - one 
+for master, one for nested data, and one for many-to-many relation.   
 
 #### Multi-tenancy or "Databases within databases"
 

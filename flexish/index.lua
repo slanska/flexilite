@@ -67,22 +67,22 @@ local function configDatabase()
 
 end
 
+lapp.slack = true
 local cli_args
-if not arg[1] then
-    local default_args = require 'flexish_cfg'
-    cli_args = default_args
-else
+--if not arg[1] then
     cli_args = lapp [[
-    Flexilite Shell Utility
-    <command> (string) 'schema' | 'load' | 'query' | 'help' | 'config' | 'dump'
-    <database> (string) Path to SQLite database file
-    -t, --table (string) Name of specific SQLite table to process
-    -o, --output (file-out default '') Output file path
-    -c, --config (file-in default '') Path to config file
-    -q, --query (file-in default '') Path to query file
-    -cj, --compactJson (boolean default false) If set, output JSON will be in compact (minified) form
-     ]]
-end
+Flexilite Shell Utility
+<command> (string)  'schema' | 'load' | 'query' | 'help' | 'config' | 'dump'
+<database> (string)  Path to SQLite database file
+    -t, --table (string default '')  Name of specific SQLite table to process
+    -o, --output (string default '')  Output file path
+    -c, --config (file-in default '')  Path to config file
+    -q, --query (string default '')  Path to query file
+    -cj, --compactJson (boolean default false)  If set, output JSON will be in compact (minified) form
+]]
+--end
+
+require 'pl.pretty'.dump(cli_args)
 
 -- Dumps entire native SQLite database into single JSON file, ready for INSERT INTO flexi_data (Data) values (:DataInJSON)
 -- or select flexi('load', null, :DataInJSON)
@@ -91,8 +91,6 @@ local function doDumpDatabase(cli_args)
     EnsureAbsPathArg(cli_args, 'output')
     DumpDatabase(cli_args.database, cli_args.output, cli_args.table, cli_args.compactJson)
 end
-
-require 'pl.pretty'.dump(cli_args)
 
 local commandMap = {
     ['schema'] = generateSchema,
@@ -109,3 +107,5 @@ if not ff then
 end
 
 local result = ff(cli_args)
+
+-- TODO treat result?

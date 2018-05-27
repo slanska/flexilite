@@ -232,7 +232,7 @@ function ReadOnlyDBOV:initFromObjectRow(obj)
 end
 
 ---@param propName string
----@return DBProperty
+---@return DBProperty | nil
 function ReadOnlyDBOV:getProp(propName)
     local propDef = self.ClassDef:hasProperty(propName)
     if not propDef then
@@ -243,6 +243,7 @@ function ReadOnlyDBOV:getProp(propName)
     self:checkPropertyAccess(propDef, self.DBObject.state)
     local result = self.props[propName]
     if not result then
+        -- Create property on demand
         result = DBProperty(self, propDef)
         self.props[propName] = result
     end
@@ -252,14 +253,18 @@ end
 
 ---@param propName string
 ---@param propIndex number @comment optional, if not set, 1 is assumed
----@return DBValue | nil
-function ReadOnlyDBOV:getPropValue(propName, propIndex)
+---@param returnNil boolean @comment determines behavior if no property found: true - return nil, false - error
+---@return DBValue | NullDBValue
+function ReadOnlyDBOV:getPropValue(propName, propIndex, returnNil)
     ---@type DBProperty
     local result = self:getProp(propName)
     if result then
         return result:GetValue(propIndex)
     end
 
+    if not result and not returnNil then
+        error(string.format('%s.%s not found', self.ClassDef.Name.text, propName))
+    end
     return NullDBValue
 end
 
@@ -280,25 +285,17 @@ end
 ---@param propIndex number @comment optional, if not set, 1 is assumed
 ---@param propValue any
 function ReadOnlyDBOV:setPropValue(propName, propIndex, propValue)
-    error('Cannot modify read-only object')
+    error(string.format('Cannot modify property [%s][%d] of read-only object', propName, propIndex))
 end
 
--- Returns full object payload, based on propIDs
----@param propIDs nil | number | table<number, number>
----@return table
-function ReadOnlyDBOV:getCompleteDataPayload(propIDs)
-    local result = {}
-    self:loadProps(propIDs)
-    for propName, dbp in pairs(self.props) do
-        result[propName] = dbp:GetValues()
-    end
-
-    return result
-end
-
+--[[
 -------------------------------------------------------------------------------
--- WritableDBOV
+WritableDBOV
+Keeps only modified and deleted property values
+For deleted value Value is set to null.
+Uses ChangedDBProperty class (instead of DBProperty for ReadOnlyDBOV)
 -------------------------------------------------------------------------------
+]]
 
 ---@class WritableDBOV : ReadOnlyDBOV
 local WritableDBOV = class(ReadOnlyDBOV)
@@ -311,25 +308,8 @@ function WritableDBOV:_init(DBObject, ClassDef, ID)
     self.ClassDef = assert(ClassDef)
 end
 
---[[
-Processes deferred unresolved references
-]]
-function WritableDBOV:resolveReferences()
-    -- TODO Needed?
-    for _, item in ipairs(self.unresolvedReferences) do
-        -- item: {propDef, object}
-
-        -- run query
-        -- TODO Use iterator
-        local refIDs = self.QueryBuilder:GetReferencedObjects(item.propDef, item.object[item.propDef.Name.text])
-        for idx, refID in ipairs(refIDs) do
-            -- PropIndex =  idx - 1
-        end
-    end
-end
-
 -- Ensures that PropertyDef exists if ClassDef allows ad-hoc properties
--- Throws error if property does not exist and cannot be created
+-- Throws error if property does not exist nor cannot be created
 ---@param propName string
 ---@return PropertyDef
 function WritableDBOV:ensurePropertyDef(propName)
@@ -359,12 +339,10 @@ function WritableDBOV:getProp(propName, op, returnNil)
             if self.DBObject.state ~= Constants.OPERATION.CREATE then
                 result = self.DBObject.origVer:getProp(propName)
             end
-        else
-            if op == Constants.OPERATION.CREATE or op == Constants.OPERATION.UPDATE then
-                local propDef = self:ensurePropertyDef(propName)
-                result = ChangedDBProperty(self, propDef)
-                self.props[propName] = result
-            end
+        elseif op == Constants.OPERATION.CREATE or op == Constants.OPERATION.UPDATE then
+            local propDef = self:ensurePropertyDef(propName)
+            result = ChangedDBProperty(self, propDef)
+            self.props[propName] = result
         end
     end
 
@@ -434,8 +412,13 @@ function WritableDBOV:applyMappedColumnValues(params)
 end
 
 -- Inserts new object
-function WritableDBOV:saveCreate()
+---@param ctx PropertySaveContext
+function WritableDBOV:saveCreate(ctx)
     -- set ctlo & vtypes
+
+    ---@type PropertySaveContext
+    local ctx = {}
+
     self:setObjectMetaData()
     local params = { ClassID = self.ClassDef.ClassID, ctlo = self.ctlo, vtypes = self.ClassDef.vtypes,
                      MetaData = self.MetaData and JSON.encode(self.MetaData) or nil }
@@ -464,7 +447,7 @@ function WritableDBOV:saveCreate()
     self.ClassDef.DBContext.Objects[self.ID] = self.DBObject
 
     for propName, prop in pairs(self.props) do
-        prop:SaveToDB()
+        prop:SaveToDB(ctx)
     end
 
     -- Save multi-key index if applicable
@@ -499,7 +482,8 @@ function WritableDBOV:saveCreate()
 end
 
 -- Updates existing object
-function WritableDBOV:saveUpdate()
+---@param ctx PropertySaveContext
+function WritableDBOV:saveUpdate(ctx)
     self:setObjectMetaData()
     local params = { ClassID = self.ClassDef.ClassID, ctlo = self.ctlo, vtypes = self.ClassDef.vtypes,
                      MetaData = JSON.encode(self.MetaData) }
@@ -522,7 +506,7 @@ function WritableDBOV:saveUpdate()
          M=:M, N=:N, O=:O, P=:P, MetaData=:MetaData where ObjectID = :ID]], params)
 
     for propName, prop in pairs(self.props) do
-        prop:SaveToDB()
+        prop:SaveToDB(ctx)
     end
 
     -- Save multi-key index if applicable
@@ -968,29 +952,34 @@ end
 function DBObject:saveToDB()
     local op = self.state
 
+    ---@type PropertySaveContext
+    local ctx = {}
+
     -- TODO safe call
-    local ok, err = xpcall(function()
-        -- before trigger
-        self:fireBeforeTrigger()
+    local ok, err = xpcall(
+            function()
+                -- before trigger
+                self:fireBeforeTrigger()
 
-        if op == Constants.OPERATION.CREATE then
-            self:setMissingDefaultData()
-            self:ValidateData()
-            self.curVer:saveCreate()
-        elseif op == Constants.OPERATION.UPDATE then
-            self:ValidateData()
-            self.curVer:saveUpdate()
-        elseif op == Constants.OPERATION.DELETE then
-            --self:Delete()
-        else
-            -- no-op
-            return
-        end
+                if op == Constants.OPERATION.CREATE then
+                    self:setMissingDefaultData()
+                    self:ValidateData()
+                    self.curVer:saveCreate(ctx)
+                elseif op == Constants.OPERATION.UPDATE then
+                    self:ValidateData()
+                    self.curVer:saveUpdate(ctx)
+                elseif op == Constants.OPERATION.DELETE then
+                    --self:Delete()
+                else
+                    -- no-op
+                    return
+                end
 
-        -- After trigger
-        self:fireAfterTrigger()
+                -- After trigger
+                self:fireAfterTrigger()
 
-    end,
+            end,
+
             function(err)
                 print(string.format('>>> saveToDB error %s:%d', self.curVer.ClassDef.Name.text, self.curVer.ID))
                 return err

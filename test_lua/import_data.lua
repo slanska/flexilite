@@ -4,4 +4,25 @@
 --- DateTime: 2018-01-21 12:37 PM
 ---
 
--- todo
+local util = require('util')
+
+describe('Loading entire database from JSON and verifies accuracy of imported data', function()
+
+    setup(function()
+        local dbChinook = util.openFlexiDatabaseInMem()
+        util.createChinookSchema(dbChinook)
+        util.importChinookData(dbChinook)
+
+        local dbNorthwind = util.openFlexiDatabaseInMem()
+        util.createNorthwindSchema(dbNorthwind)
+        util.importNorthwindData(dbNorthwind)
+    end)
+
+    it('verify Northwind', function()
+
+    end)
+
+    it('verify Chinook', function()
+
+    end)
+end)

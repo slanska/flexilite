@@ -152,5 +152,13 @@ enum -> reference
     - Use in search (including indexed)
 - Update/delete objects
 - Referenced properties access
-- Save object - ctlv & ctlo, multikey index
+- Save object - ctlv & ctlo, multi-key index
+
+**2018-05-26**
+
+- Load Chinook and Northwind to memory
+- DBProperty: allow nil/0/negative indexes for appending values
+- Change xpcall - use context 
+- Export to JSON
+- tests to check data after load
 
