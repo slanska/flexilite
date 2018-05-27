@@ -87,7 +87,7 @@ function IndexDefinitions:AddFullTextIndexedProperty(propDef)
     local supportedIndexTypes = propDef:GetSupportedIndexTypes()
     if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.FTS) ~= Constants.INDEX_TYPES.FTS then
         return false, string.format('Property [%s].[%s] does not support full text indexing',
-                                    propDef.ClassDef.Name.text, propDef.Name.text)
+                propDef.ClassDef.Name.text, propDef.Name.text)
     end
 
     -- Already set?
@@ -115,7 +115,7 @@ function IndexDefinitions:AddRangeIndexedProperties(propDef0, propDef1)
         local supportedIndexTypes = propDef:GetSupportedIndexTypes()
         if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.RNG) ~= Constants.INDEX_TYPES.RNG then
             return false, string.format('Property [%s].[%s] does not support range indexing',
-                                        propDef.ClassDef.Name.text, propDef.Name.text)
+                    propDef.ClassDef.Name.text, propDef.Name.text)
         end
     end
 
@@ -153,7 +153,7 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
         local supportedIndexTypes = propDef:GetSupportedIndexTypes()
         if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.MUL) ~= Constants.INDEX_TYPES.MUL then
             return false, string.format('Property [%s].[%s] does not support multi key indexing',
-                                        propDef.ClassDef.Name.text, propDef.Name.text)
+                    propDef.ClassDef.Name.text, propDef.Name.text)
         end
 
         -- Check for accidental duplicates
@@ -163,7 +163,7 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
 
         if #all > 1 then
             return false, string.format('Property [%s].[%s] is repeated more than once in multi key index',
-                                        propDef.ClassDef.Name.text, propDef.Name.text)
+                    propDef.ClassDef.Name.text, propDef.Name.text)
         end
     end
 
@@ -185,7 +185,7 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
     local expectedIndexType = unique and Constants.INDEX_TYPES.UNQ or Constants.INDEX_TYPES.STD
     if bit52.band(supportedIndexTypes, expectedIndexType) ~= expectedIndexType then
         return false, string.format('Property [%s].[%s] does not support indexing',
-                                    propDef.ClassDef.Name.text, propDef.Name.text)
+                propDef.ClassDef.Name.text, propDef.Name.text)
     end
 
     if not unique then
@@ -194,14 +194,14 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
         if idx then
             table.remove(self.propIndexing, propDef.ID)
             return true, string.format('Property [%s].[%s] already included in range index',
-                                       propDef.ClassDef.Name.text, propDef.Name.text)
+                    propDef.ClassDef.Name.text, propDef.Name.text)
         end
 
         if self.multiKeyIndexing and #self.multiKeyIndexing > 0
                 and self.multiKeyIndexing[1] == propDef.ID then
             table.remove(self.propIndexing, propDef.ID)
             return true, string.format('Property [%s].[%s] already included in multi key index',
-                                       propDef.ClassDef.Name.text, propDef.Name.text)
+                    propDef.ClassDef.Name.text, propDef.Name.text)
         end
     end
 
@@ -360,6 +360,7 @@ function ClassDef:_init(params)
         self.ColMapActive = params.data.ColMapActive
         self.vtypes = params.data.vtypes
 
+        assert(type(params.data.Data) == 'string', string.format('%s: params.data.Data must be valid JSON', params.data.Name))
         self.D = json.decode(params.data.Data)
         data = self.D
 
@@ -367,7 +368,7 @@ function ClassDef:_init(params)
         for propRow in self.DBContext:loadRows([[
         select PropertyID, ClassID, NameID, Property, ctlv, ctlvPlan,
             Deleted, SearchHitCount, NonNullCount from [flexi_prop] cp where cp.ClassID = :ClassID;]],
-                                               { ClassID = self.ClassID }) do
+                { ClassID = self.ClassID }) do
             self:loadPropertyFromDB(propRow, assert(self.D.properties[tostring(propRow.PropertyID)], 'Null property definition'))
         end
 
@@ -596,13 +597,13 @@ function ClassDef:saveToDB()
 
     self.DBContext:execStatement([[update [.classes] set NameID = :NameID, Data = :Data,
         ctloMask = :ctloMask, vtypes = :vtypes where ClassID = :ClassID;]],
-                                 {
-                                     NameID = self.Name.id,
-                                     Data = internalJson,
-                                     ctloMask = self.ctloMask,
-                                     vtypes = self.vtypes,
-                                     ClassID = self.ClassID
-                                 })
+            {
+                NameID = self.Name.id,
+                Data = internalJson,
+                ctloMask = self.ctloMask,
+                vtypes = self.vtypes,
+                ClassID = self.ClassID
+            })
     print('Saved ' .. self.Name.text)
 
 end
@@ -795,15 +796,15 @@ function ClassDef.ApplyIndexing(oldClassDef, newClassDef)
         -- Delete from .multi_key_N
         if #oldIdxDef.multiKeyIndexing > 0 then
             oldClassDef.DBContext:ExecAdhocSql(string.format('delete from [.multi_key%d] where ClassID = :ClassID',
-                                                             #oldIdxDef.multiKeyIndexing),
-                                               { ClassID = oldClassDef.ClassID })
+                    #oldIdxDef.multiKeyIndexing),
+                    { ClassID = oldClassDef.ClassID })
         end
 
         -- Insert into .multi_key_N
         local colNameIdx = 1
         local colValIdx = 2
         local sqlLines = { string.format('insert into [.multi_key%d] (ClassID',
-                                         #newIdxDef.multiKeyIndexing, newClassDef.ClassID),
+                #newIdxDef.multiKeyIndexing, newClassDef.ClassID),
                            ') select (:ClassID' }
         for iCol, propID in ipairs(newIdxDef.multiKeyIndexing[#newIdxDef.multiKeyIndexing]) do
             local propDef = newClassDef.DBContext.ClassProps[propID]

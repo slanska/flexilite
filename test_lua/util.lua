@@ -110,8 +110,6 @@ end
 local function createSchema(DBContext, fileName)
     local fullPath = path.join(__dirname, 'test', 'json', fileName)
     local content = readAll(fullPath)
-    -- TODO
-    print('createSchema: #content ' .. #content)
     local sql = "select flexi('create schema', '" .. content .. "');"
     DBContext:ExecAdhocSql(sql)
     print('createSchema: ' .. fileName .. ' done')

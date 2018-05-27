@@ -565,6 +565,7 @@ function DBContext:getClassDef(classIdOrName, mustExist)
         end
         return nil
     end
+
     result = ClassDef { data = classRow, DBContext = self }
     self:addClassToList(result)
 

@@ -94,6 +94,7 @@ end
 function EnumManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
 
+    -- TODO
     if propDef.D.enumDef then
         -- Process as pure enum
         local refClsName
@@ -112,7 +113,16 @@ function EnumManager:ApplyEnumPropertyDef(propDef)
         end
     elseif propDef.D.refDef then
         -- Process as foreign key
-        local refCls = self.DBContext:getClassDef(propDef.D.refDef.classRef.text)
+
+        -- Check if this is self-reference (like Employee.ReportsTo -> Employee)
+        ---@type ClassDef
+        local refCls
+        if string.lower(propDef.D.refDef.classRef.text) == string.lower(propDef.ClassDef.Name.text) then
+            refCls = propDef.ClassDef
+        else
+            refCls = self.DBContext:getClassDef(propDef.D.refDef.classRef.text)
+        end
+
         if refCls then
             -- TODO
         else
