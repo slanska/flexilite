@@ -130,7 +130,7 @@ local function createChinookSchema(DBContext)
 end
 
 local function importChinookData(DBContext)
-
+    importData(DBContext, 'test/json/Chinook.db.data.json')
 end
 
 ---@class TestContext

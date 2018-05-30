@@ -44,7 +44,6 @@ local ClassCreate = require('flexi_CreateClass').CreateClass
 local json = require 'cjson'
 local NameRef = require 'NameRef'
 local class = require 'pl.class'
---local DBObject = require 'DBObject'
 
 -- Implements enum storage
 ---@class EnumManager

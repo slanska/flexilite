@@ -413,24 +413,35 @@ CREATE UNIQUE INDEX IF NOT EXISTS [idxClassPropertiesByMap]
 ------------------------------------------------------------------------------------------
 CREATE VIEW IF NOT EXISTS [flexi_prop] AS
   SELECT
-    cp.[ID]                                                          AS PropertyID,
-    cp.ClassID                                                       AS ClassID,
-    c.Class                                                          AS Class,
-    cp.[NameID]                                                      AS NameID,
+    cp.[ID]                                                            AS PropertyID,
+    cp.ClassID                                                         AS ClassID,
+    cp.Class                                                           AS Class,
+    cp.[NameID]                                                        AS NameID,
     (SELECT n.[Value]
      FROM [.sym_names] n
      WHERE n.ID = cp.NameID
-     LIMIT 1)                                                        AS Property,
-    cp.ctlv                                                          AS ctlv,
-    cp.ctlvPlan                                                      AS ctlvPlan,
-    (json_extract(c.Definition, printf('$.properties.%d', cp.[ID]))) AS Definition,
-    cp.Deleted                                                       AS Deleted,
-    cp.SearchHitCount                                                AS SearchHitCount,
-    cp.NonNullCount                                                  AS NonNullCount
-
-  FROM [.class_props] cp
-    JOIN [flexi_class] c ON cp.ClassID = c.ClassID
-  WHERE cp.Deleted = 0;
+     LIMIT 1)                                                          AS Property,
+    cp.ctlv                                                            AS ctlv,
+    cp.ctlvPlan                                                        AS ctlvPlan,
+    cp.Definition                                                      AS Definition,
+    cp.Deleted                                                         AS Deleted,
+    cp.SearchHitCount                                                  AS SearchHitCount,
+    cp.NonNullCount                                                    AS NonNullCount,
+    (json_extract(cp.Definition, '$.rules.type'))                      as Type,
+    coalesce(json_extract(cp.Definition, '$.rules.minOccurrences'), 0) as minOccurrences,
+    coalesce(json_extract(cp.Definition, '$.rules.maxOccurrences'), 1) as maxOccurrences,
+    (json_extract(cp.Definition, '$.rules.maxLength'))                 as maxLength,
+    (json_extract(cp.Definition, '$.index'))                           as IndexType
+  FROM
+    (select
+       cp.*,
+       c.Class,
+       c.ClassID,
+       (json_extract(Definition, printf('$.properties.%d', cp.[ID]))) AS Definition
+     from [.class_props] cp
+       JOIN
+       [flexi_class] c ON cp.ClassID = c.ClassID
+     WHERE cp.Deleted = 0) cp;
 
 CREATE TRIGGER IF NOT EXISTS trigFlexi_Prop_Insert
   INSTEAD OF INSERT
@@ -869,7 +880,7 @@ CREATE TABLE IF NOT EXISTS [.ref-values] (
   [ObjectID]   INTEGER NOT NULL,
   [PropertyID] INTEGER NOT NULL,
   [PropIndex]  INTEGER NOT NULL DEFAULT 0,
-  [Value]      INTEGER     NOT NULL,
+  [Value]      INTEGER NOT NULL,
 
   /*
   ctlv - value bit flags (indexing etc). Possible values:

@@ -214,8 +214,7 @@ function PropertyDef:saveToDB()
     assert(self.Name and self.Name:isResolved())
 
     -- Set ctlv
-    self.ctlv = 0
-    local vt = self:GetVType()
+    self.ctlv = self:GetCTLV()
 
     if self.ID and tonumber(self.ID) > 0 then
         -- Update existing
@@ -265,26 +264,35 @@ function PropertyDef:getNativeType()
     return ''
 end
 
+-- Builds bit flag value for [.ref-value].ctlv field
+---@return number
+function PropertyDef:GetCTLV()
+    local result = 0
+    local idxType = string.lower(self.D.index or '')
+    if idxType == 'index' then
+        result = bit.bor(result, Constants.CTLV_FLAGS.INDEX)
+    elseif idxType == 'unique' then
+        result = bit.bor(result, Constants.CTLV_FLAGS.UNIQUE)
+    else
+        result = bit.band(result, bit.bnot(bit.bor(Constants.CTLV_FLAGS.INDEX, Constants.CTLV_FLAGS.UNIQUE)))
+    end
+
+    if self.D.noTrackChanges then
+        result = bit.bor(result, Constants.CTLV_FLAGS.NO_TRACK_CHANGES)
+    end
+
+    -- VType
+    local vt = self:GetVType()
+    bit.bor(result, vt)
+
+    return result
+end
+
 --Applies property definition to the database. Called on property save
 function PropertyDef:applyDef()
     -- resolve property name
     self.Name:resolve(self.ClassDef)
-
-    -- set ctlv
-    self.ctlv = 0
-    local idx = string.lower(self.D.index or '')
-    if idx == 'index' then
-        self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.INDEX)
-    elseif idx == 'unique' then
-        self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.UNIQUE)
-    else
-        self.ctlv = bit.band(self.ctlv, bit.bnot(bit.bor(Constants.CTLV_FLAGS.INDEX, Constants.CTLV_FLAGS.UNIQUE)))
-    end
-
-    if self.D.noTrackChanges then
-        self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.NO_TRACK_CHANGES)
-    end
-
+    self.ctlv = self:GetCTLV()
     self.ctlvPlan = self.ctlv
 end
 
@@ -299,6 +307,7 @@ function PropertyDef:isReference()
     return false
 end
 
+---@return number
 function PropertyDef:GetVType()
     return Constants.vtype.default
 end

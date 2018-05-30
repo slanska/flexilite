@@ -131,6 +131,7 @@ set(LUA_FILES
         src_lua/ApiGlobalObject.lua
         src_lua/ApiGlobalScope.lua
         src_lua/DBProperty.lua
+        src_lua/ColMapping.lua
 
         #lib
         lib/lua-prettycjson/lib/resty/prettycjson.lua
