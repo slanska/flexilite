@@ -67,6 +67,7 @@ local dbprops = require 'DBProperty'
 local parseDatTimeToJulian = require('Util').parseDatTimeToJulian
 local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
 local base64 = require 'base64'
+--local mathx = require 'pl.math'
 
 --[[
 ===============================================================================
@@ -267,7 +268,7 @@ end
 -- Builds bit flag value for [.ref-value].ctlv field
 ---@return number
 function PropertyDef:GetCTLV()
-    local result = 0
+    local result = self:GetVType()
     local idxType = string.lower(self.D.index or '')
     if idxType == 'index' then
         result = bit.bor(result, Constants.CTLV_FLAGS.INDEX)
@@ -280,10 +281,6 @@ function PropertyDef:GetCTLV()
     if self.D.noTrackChanges then
         result = bit.bor(result, Constants.CTLV_FLAGS.NO_TRACK_CHANGES)
     end
-
-    -- VType
-    local vt = self:GetVType()
-    bit.bor(result, vt)
 
     return result
 end
@@ -503,6 +500,7 @@ MoneyPropertyDef
 --- @class MoneyPropertyDef
 local MoneyPropertyDef = class(NumberPropertyDef)
 
+-- Ctor is required
 function MoneyPropertyDef:_init(params)
     self:super(params)
 end
@@ -513,6 +511,19 @@ end
 
 function MoneyPropertyDef:getNativeType()
     return 'integer'
+end
+
+---@param dbv DBValue
+---@param v any
+function MoneyPropertyDef:ImportDBValue(dbv, v)
+    local vv = tonumber(v) * 10000
+    local s = string.format('%.1f', vv)
+    if s:byte(#s) ~= 48 then
+        -- Last character must be '0' (ASCII 48)
+        error(string.format('%s.%s: %s is not valid value for money',
+                self.ClassDef.Name.text, self.Name.text, v))
+    end
+    dbv.Value = vv
 end
 
 -- TODO GetValueSchema - check  if value is number with up to 4 decimal places

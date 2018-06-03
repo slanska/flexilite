@@ -112,7 +112,11 @@ local Constants = {
         ORIGINAL = 'O',
         CURRENT = 'C',
         EXPRESSION = 'E',
-    }
+    },
+
+    -- Epsilon value for float equality comparison
+    EPSILON = 1E-5,
+    --EPSILON = 1E-12,
 
 }
 
