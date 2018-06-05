@@ -330,6 +330,12 @@ function ChangedDBProperty:SaveToDB(ctx)
 
     local propCtlv = self.PropDef:GetCTLV()
 
+    local valWrapper = ':Value'
+    local nativeType = self.PropDef:getNativeType()
+    if nativeType ~= nil and nativeType ~= '' then
+        valWrapper = string.format('cast(:Value as %s)', nativeType)
+    end
+
     for idx, dbv in pairs(self.values) do
         ctx.PropIdx = idx
         if idx == 1 then
@@ -350,17 +356,17 @@ function ChangedDBProperty:SaveToDB(ctx)
 
                 if idx < 0 then
                     -- Append new value
-                    DBContext:execStatement([[insert into [.ref-values]
+                    DBContext:execStatement(string.format([[insert into [.ref-values]
                     (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
                     (:ObjectID, :PropertyID,
                     coalesce((select max(PropIndex) from [.ref-values] where ObjectID = :ObjectID and PropertyID = :PropertyID limit 1), 0) + 1,
-                    :Value, :ctlv, :MetaData);]]
+                    %d, :ctlv, :MetaData);]], valWrapper)
                     , params)
                 else
                     -- Add or update value with known index
-                    DBContext:execStatement([[insert into [.ref-values]
+                    DBContext:execStatement(string.format([[insert into [.ref-values]
                     (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
-                    (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv, :MetaData);]]
+                    (:ObjectID, :PropertyID, :PropIndex, %s, :ctlv, :MetaData);]], valWrapper)
                     , params)
                 end
 
@@ -391,17 +397,17 @@ function ChangedDBProperty:SaveToDB(ctx)
 
                     if idx < 0 then
                         -- Append new value
-                        DBContext:execStatement([[insert or replace into [.ref-values]
+                        DBContext:execStatement(string.format([[insert or replace into [.ref-values]
                     (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
                     (:ObjectID, :PropertyID,
                     coalesce((select max(PropIndex) from [.ref-values] where ObjectID = :ObjectID and PropertyID = :PropertyID limit 1), 0) + 1,
-                    :Value, :ctlv, :MetaData);]]
+                    %s, :ctlv, :MetaData);]], valWrapper)
                         , params)
                     else
                         -- Add or update value with known index
-                        DBContext:execStatement([[insert or replace into [.ref-values]
+                        DBContext:execStatement(string.format([[insert or replace into [.ref-values]
                     (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
-                    (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv, :MetaData);]]
+                    (:ObjectID, :PropertyID, :PropIndex, %s, :ctlv, :MetaData);]], valWrapper)
                         , params)
                     end
                 end

@@ -523,7 +523,7 @@ function MoneyPropertyDef:ImportDBValue(dbv, v)
         error(string.format('%s.%s: %s is not valid value for money',
                 self.ClassDef.Name.text, self.Name.text, v))
     end
-    dbv.Value = vv
+    dbv.Value = tonumber(s:sub(1, #s-2))
 end
 
 -- TODO GetValueSchema - check  if value is number with up to 4 decimal places
@@ -897,10 +897,6 @@ end
 --
 --    return true
 --end
-
-function EnumPropertyDef:getNativeType()
-    return 'text'
-end
 
 --- @overload
 function EnumPropertyDef:hasUnresolvedReferences()
