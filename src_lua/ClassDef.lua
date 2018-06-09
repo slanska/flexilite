@@ -296,6 +296,8 @@ end
 ---@field Deleted boolean
 ---@field ColMapActive boolean
 ---@field vtypes number
+---@field insertObjectsStmt sqlite3.stmt @comment 'insert into [.objects]' prepared statement
+---@field updateObjectsStmt sqlite3.stmt @comment 'update [.objects]' prepared statement
 local ClassDef = class()
 
 ---@class ClassDefCtorParamsData

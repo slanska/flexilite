@@ -523,7 +523,7 @@ function MoneyPropertyDef:ImportDBValue(dbv, v)
         error(string.format('%s.%s: %s is not valid value for money',
                 self.ClassDef.Name.text, self.Name.text, v))
     end
-    dbv.Value = tonumber(s:sub(1, #s-2))
+    dbv.Value = tonumber(s:sub(1, #s - 2))
 end
 
 -- TODO GetValueSchema - check  if value is number with up to 4 decimal places
@@ -1059,7 +1059,13 @@ end
 ---@param dbv DBValue
 ---@param v any
 function BlobPropertyDef:ImportDBValue(dbv, v)
-    dbv.Value = base64.decode(v)
+    local vv = base64.decode(v)
+
+    if vv == nil and v ~= nil then
+        dbv.Value = v
+    else
+        dbv.Value = vv
+    end
 end
 
 ---@param dbo DBObject
@@ -1197,7 +1203,8 @@ function DateTimePropertyDef:ImportDBValue(dbv, v)
     elseif type(v) == 'number' then
         dbv.Value = tonumber(v)
     else
-        -- TODO error()
+        error(string.format('Invalid value type of date property %s.%s: %s (%s)',
+                self.PropDef.ClassDef.Name.text, self.PropDef.Name.text, v, type(v)))
     end
 end
 
