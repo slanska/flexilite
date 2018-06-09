@@ -67,7 +67,6 @@ local dbprops = require 'DBProperty'
 local parseDatTimeToJulian = require('Util').parseDatTimeToJulian
 local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
 local base64 = require 'base64'
---local mathx = require 'pl.math'
 
 --[[
 ===============================================================================
@@ -996,6 +995,18 @@ function EnumPropertyDef:BeforeDBValueSave(dbv)
     end
 
     return true, validateEnumRef
+end
+
+--[[ Applies enum value to the property
+Postpones operation till all scalar data for all objects in the transaction are done.
+This ensures that all inter-references are resolved properly
+]]
+---@param dbv DBValue
+---@param v string | number | boolean
+function EnumPropertyDef:ImportDBValue(dbv, v)
+    return nil, function()
+        -- re-apply value
+    end
 end
 
 --[[

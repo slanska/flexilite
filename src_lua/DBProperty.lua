@@ -268,24 +268,6 @@ function ChangedDBProperty:GetValue(idx)
     return self.values[idx]
 end
 
---local refValSQL = {
---    -- Insert and update
---    [Constants.OPERATION.CREATE] = [[insert or replace into [.ref-values]
---    (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
---    (:ObjectID, :PropertyID, :PropIndex, :Value, :ctlv, :MetaData);]],
---
---    -- Extended update only. Normal update is handled by INSERT OR REPLACE statement above
---    [Constants.OPERATION.UPDATE] = [[update [.ref-value] set Value=:Value, ctlv=:ctlv, PropIndex=:PropIndex
---      MetaData=:MetaData, ObjectID=:ObjectID, PropertyID=:PropertyID, PropIndex=:PropIndex
---      where ObjectID=:old_ObjectID and PropertyID=:old_PropertyID
---      and PropIndex=:old_PropIndex;]],
---
---    -- Delete
---    [Constants.OPERATION.DELETE] = [[delete from [.ref-values]
---    where ObjectID=:old_ObjectID and PropertyID=:old_PropertyID
---      and PropIndex=:old_PropIndex;]],
---}
-
 -- Updates ctlv value of DBValue, in according to PropDef definition and current Value
 ---@param dbv DBValue
 function ChangedDBProperty:updateCTLV(dbv)
@@ -382,7 +364,7 @@ function ChangedDBProperty:SaveToDB(ctx)
                           old_PropIndex = idx })
             else
 
-                if self ~= orig_prop and (self.DBOV.ID ~= orig_prop.DBOV.ImportDBValue or self.PropDef.ID ~= orig_prop.PropDef.ID) then
+                if self ~= orig_prop and (self.DBOV.ID ~= orig_prop.DBOV.ID or self.PropDef.ID ~= orig_prop.PropDef.ID) then
                     -- Extended update - object ID and/or property ID have changed
                     -- TODO
                 else

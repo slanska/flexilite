@@ -16,8 +16,8 @@ local Constants = {
     -- Specific value type, stored in .ref-values.ctlv and .objects.vtypes fields
     vtype = {
         default = 0, -- Use original SQLite type, i.e. NULL, FLOAT, INTEGER, TEXT, BLOB
-        datetime = 1, -- (for FLOAT),
-        timespan = 2, -- (for FLOAT),
+        datetime = 1, -- (for REAL),
+        timespan = 2, -- (for REAL),
         symbol = 3, -- (for INT)
         money = 4, --(for INT) - as integer value with fixed 4 decimal points (exact value for +-1844 trillions)
         json = 5, --(for TEXT)

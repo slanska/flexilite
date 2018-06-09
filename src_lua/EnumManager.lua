@@ -20,14 +20,14 @@ Any existing class can be used as enum class, if it has id and text special prop
 Also, auto created enum classes can be extended/modified like regular classes
 
 Differences between enum and regular classes:
-1) Enum property will be scalar or array of ID values from referenced enum item (not object ID). It will not be
-defined as reference value, but as field value. So, JSON output will have values like "Status": "A"
+1) Enum property will be defined as computed property which returns $uid value for tha associated class
+It may be scalar or array of values. During load, current $uid value will be retrieved based on
+referenced object ID. So, JSON output will have values like "Status": "A"
 or "Status": ["A", "B"], not like "Status": 123456
-2) Implicit property 'text' will be supplied. So for enum property Order.Status there will be also
-implicit property Order.Status.text. Value of this property will be taken from name and possibly
-translated based on current user culture.
+2) Internally enum will be stored and processed as a regular reference. All reference related
+constraints (like cascade update or delete) will be applied too.
 
-Enum can be defined in enumDef or refDef. Only one of those is allowed, supplying both will throw an error.
+Enum can be defined in enumDef or refDef. Only one of those is allowed, and supplying both will throw an error.
 There are few differences in how enumDef and refDef are handled.
 enumDef's purpose is for pure enum, i.e. enum value based on item list. refDef is for foreign keys.
 
