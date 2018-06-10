@@ -26,6 +26,8 @@ referenced object ID. So, JSON output will have values like "Status": "A"
 or "Status": ["A", "B"], not like "Status": 123456
 2) Internally enum will be stored and processed as a regular reference. All reference related
 constraints (like cascade update or delete) will be applied too.
+3) Enum property will be treated as a computed property with formula.get 'self[NNN]['$uid']', where NNN is ID of corresponding
+implicit reference property. formula.set will change reference to another object on enum value change
 
 Enum can be defined in enumDef or refDef. Only one of those is allowed, and supplying both will throw an error.
 There are few differences in how enumDef and refDef are handled.
@@ -89,6 +91,9 @@ function EnumManager:upsertEnumItem(propDef, item)
     end
 end
 
+--[[ Applies enum property definition
+Ensures that corresponding
+]]
 ---@param propDef EnumPropertyDef
 function EnumManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))

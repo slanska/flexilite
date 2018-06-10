@@ -5,3 +5,29 @@
 ---
 
 -- todo
+
+describe('query tests', function()
+
+    --[[
+    explain query plan select * from [.ref-values] where (Value = 2450269.5) and PropertyID = 80 and (ctlv & 0xF0) ;
+
+    should return:
+    detail: SEARCH TABLE .ref-values USING INDEX idxValuesByPropValue (PropertyID=? AND Value=?)
+    ]]
+
+    pending('should use non unique index on [.ref-values]', function()
+
+    end)
+
+    pending('should use unique index on [.ref-values]', function()
+
+    end)
+
+    pending('should use multi key unique index', function()
+
+    end)
+
+    pending('should use range index', function()
+
+    end)
+end)

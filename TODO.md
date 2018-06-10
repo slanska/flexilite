@@ -156,9 +156,28 @@ enum -> reference
 
 **2018-05-26**
 
-- Load Chinook and Northwind to memory
+- &#10003; Load Chinook and Northwind to memory
 - DBProperty: allow nil/0/negative indexes for appending values
 - Change xpcall - use context 
 - Export to JSON
 - tests to check data after load
+
+**2018-06-09**
+
+- deferred actions in DBContext
+- enum property - as pseudo-computed property 
+- multi key primary index support
+- full text and range index - complete
+- upgrade SQLite to 3.24.0 (2018-06-04) 
+
+duplicate symbol _luaJIT_BC_lexer in:
+    lua/lib/lua-penlight/lua/pl/lexer.lua.o
+    lua/lib/lua-metalua/metalua/grammar/lexer.lua.o
+duplicate symbol _luaJIT_BC_generator in:
+    lua/lib/lua-metalua/metalua/grammar/generator.lua.o
+    lua/lib/lua-metalua/metalua/compiler/parser/annot/generator.lua.o
+duplicate symbol _luaJIT_BC_lexer in:
+    lua/lib/lua-penlight/lua/pl/lexer.lua.o
+    lua/lib/lua-metalua/metalua/compiler/parser/lexer.lua.o
+ld: 3 duplicate symbols for architecture x86_64
 

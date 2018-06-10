@@ -876,27 +876,6 @@ function EnumPropertyDef:_init(params)
     self:super(params)
 end
 
----
---- Checks if enumeration is defined correctly
---function EnumPropertyDef:isValidDef()
---    local ok, errorMsg = PropertyDef.isValidDef(self)
---    if not ok then
---        return ok, errorMsg
---    end
---
---    local enumDef = self.D.enumDef or self.D.refDef
---    if type(enumDef) ~= 'table' then
---        return false, 'enumDef nor refDef is not defined or invalid'
---    end
---
---    -- either classRef or items have to be defined
---    if not enumDef.classRef and not enumDef.items then
---        return false, 'enumDef must have either classRef or items or both'
---    end
---
---    return true
---end
-
 --- @overload
 function EnumPropertyDef:hasUnresolvedReferences()
     local result = PropertyDef.hasUnresolvedReferences(self)
@@ -1007,6 +986,17 @@ function EnumPropertyDef:ImportDBValue(dbv, v)
     return nil, function()
         -- re-apply value
     end
+end
+
+-- Retrieves $uid value from referenced object
+---@param dbo DBObject
+---@param dbv DBValue
+function EnumPropertyDef:ExportDBValue(dbo, dbv)
+
+end
+
+function EnumPropertyDef:SetValue()
+
 end
 
 --[[
@@ -1323,6 +1313,7 @@ EnumDefSchemaDef.items = schema.Optional(schema.Collection(schema.Record {
     icon = schema.Optional(schema.String),
     imageUrl = schema.Optional(schema.String),
 }))
+EnumDefSchemaDef.refProperty = schema.Optional(name_ref.IdentifierSchema)
 
 local EnumRefDefSchemaDef = {
     classRef = schema.OneOf(schema.Nil, name_ref.IdentifierSchema, schema.Collection(name_ref.IdentifierSchema))

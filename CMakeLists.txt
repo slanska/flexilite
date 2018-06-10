@@ -28,8 +28,8 @@ project(sqlite_shell)
 
 message("Building on: ${CMAKE_SYSTEM_NAME}")
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_STANDARD 11)
+#set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     find_package(zlib REQUIRED)
@@ -66,6 +66,8 @@ include_directories(
         src/util
 )
 
+add_subdirectory(lib/luajit-2.1)
+
 add_custom_target(Generate_Resources
         ALL
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -75,24 +77,11 @@ add_custom_target(Generate_Resources
 
 set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TRUE)
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 add_definitions(-DRESOURCES_GENERATED
         )
 
-# TODO Use custom module names
-
-# https://cmake.org/Wiki/CMake:VariablesListsStrings
-#you can do the following in CMake:
-#MACRO(INSERT_INTO_MAP _KEY _VALUE)
-#SET("MyMap_${_KEY}" "${_VALUE}")
-#ENDMACRO(INSERT_INTO_MAP)
-#
-#SET(MyKey "foo")
-#SET(MyValue "bar")
-#INSERT_INTO_MAP("${MyKey}" "${MyValue}")
-#You can test for the existence of a key using IF(DEFINED ...)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(LUA_FILES
         # src_lua/
@@ -112,7 +101,7 @@ set(LUA_FILES
         src_lua/flexi_DataBestIndex.lua
         src_lua/flexi_MergeProperty.lua
         src_lua/flexi_StructuralSplit.lua
-        src_lua/EnumDef.lua
+        src_lua/EnumManager.lua
         src_lua/QueryBuilder.lua
         src_lua/flexi_Configure.lua
         src_lua/flexi_DataFilter.lua
@@ -199,6 +188,7 @@ set(LUA_FILES
         lib/lua-metalua/metalua/pprint.lua
         )
 
+# Adding paths
 execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/src_lua")
 execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-prettycjson/lib/resty")
 execute_process(COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug/lua/lib/lua-schema")
@@ -216,23 +206,80 @@ set(oLuaFiles)
 
 # Generate commands to compile and embed Lua files
 foreach (lua_file ${LUA_FILES})
-    MESSAGE(STATUS "Generating Lua compile for ${lua_file}")
     SET(oLuaFile "cmake-build-debug/lua/${lua_file}.o")
-    execute_process(COMMAND /torch/luajit/bin/luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
-#    execute_process(COMMAND luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
+
+    # Compile .lua file to .obj
+    if (${lua_file} STREQUAL "lib/lua-penlight/lua/pl/lexer.lua")
+        #        execute_process(COMMAND luajit -bn "pl.lexer" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
+        ADD_CUSTOM_COMMAND(
+                OUTPUT "${oLuaFile}"
+                ALL
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                COMMAND /torch/luajit/bin/luajit -bn "pl.lexer" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+#                COMMAND luajit -bn "pl.lexer" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+                COMMENT "Compiling ${lua_file} to ${oLuaFile}"
+                DEPENDS ${lua_file}
+        )
+    elseif (${lua_file} STREQUAL "lib/lua-metalua/metalua/grammar/lexer.lua")
+        #        execute_process(COMMAND luajit -bn "metalua.grammar.lexer" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
+        ADD_CUSTOM_COMMAND(
+                OUTPUT "${oLuaFile}"
+                ALL
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                COMMAND /torch/luajit/bin/luajit -bn "metalua.grammar.lexer" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+#                COMMAND luajit -bn "metalua.grammar.lexer" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+                COMMENT "Compiling ${lua_file} to ${oLuaFile}"
+                DEPENDS ${lua_file}
+        )
+    elseif (${lua_file} STREQUAL "lib/lua-metalua/metalua/compiler/parser/lexer.lua")
+        #        execute_process(COMMAND luajit -bn "metalua.compiler.parser.lexer" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
+        ADD_CUSTOM_COMMAND(
+                OUTPUT "${oLuaFile}"
+                ALL
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                COMMAND /torch/luajit/bin/luajit -bn "metalua.compiler.parser.lexer" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+#                COMMAND luajit -bn "metalua.compiler.parser.lexer" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+                COMMENT "Compiling ${lua_file} to ${oLuaFile}"
+                DEPENDS ${lua_file}
+        )
+    elseif (${lua_file} STREQUAL "lib/lua-metalua/metalua/grammar/generator.lua")
+        #        execute_process(COMMAND luajit -bn "metalua.grammar.generator" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
+        ADD_CUSTOM_COMMAND(
+                OUTPUT "${oLuaFile}"
+                ALL
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                COMMAND /torch/luajit/bin/luajit -bn "metalua.grammar.generator" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+#                COMMAND luajit -bn "metalua.grammar.generator" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+                COMMENT "Compiling ${lua_file} to ${oLuaFile}"
+                DEPENDS ${lua_file}
+        )
+    elseif (${lua_file} STREQUAL "lib/lua-metalua/metalua/compiler/parser/annot/generator.lua")
+        #        execute_process(COMMAND luajit -bn "metalua.compiler.parser.annot.generator" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
+        ADD_CUSTOM_COMMAND(
+                OUTPUT "${oLuaFile}"
+                ALL
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                COMMAND /torch/luajit/bin/luajit -bn "metalua.compiler.parser.annot.generator" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+#                COMMAND luajit -bn "metalua.compiler.parser.annot.generator" "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+                COMMENT "Compiling ${lua_file} to ${oLuaFile}"
+                DEPENDS ${lua_file}
+        )
+    else ()
+        #        execute_process(COMMAND luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}")
+        ADD_CUSTOM_COMMAND(
+                OUTPUT "${oLuaFile}"
+                ALL
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                COMMAND /torch/luajit/bin/luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+#                COMMAND luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
+                COMMENT "Compiling ${lua_file} to ${oLuaFile}"
+                DEPENDS ${lua_file}
+        )
+    endif ()
 
     SET(luaTarget)
     STRING(MAKE_C_IDENTIFIER ${lua_file} luaTarget)
 
-    ADD_CUSTOM_COMMAND(
-            OUTPUT "${oLuaFile}"
-            ALL
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            COMMAND /torch/luajit/bin/luajit -b "${lua_file}" "${oLuaFile}"
-#            COMMAND luajit -b "${lua_file}" "${oLuaFile}"
-            COMMENT "Compiling ${lua_file}.lua to .o"
-            DEPENDS ${lua_file}
-    )
     set(oLuaFiles ${oLuaFiles} ${oLuaFile})
     set_source_files_properties(${oLuaFile} PROPERTIES GENERATED TRUE)
 endforeach (lua_file)
@@ -300,7 +347,7 @@ set(CMAKE_FIND_LIBRARY_PREFIXES "")
 # Register Flexilite DLL/SO/DYLIB
 # Link to luajit statically
 
-add_subdirectory(lib/luajit-2.1)
+set(CMAKE_MACOSX_RPATH 1)
 
 add_library(Flexilite SHARED ${EXT_FILES})
 
@@ -312,3 +359,5 @@ add_custom_target(install_${PROJECT_NAME}
         COMMENT "Installing ${PROJECT_NAME}")
 
 add_subdirectory(test)
+
+#add_subdirectory(flexish)

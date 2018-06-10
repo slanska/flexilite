@@ -1005,4 +1005,32 @@ BEGIN
           p.ColumnAssigned IS NULL;
 END;
 
+-- Added: 2018-06-10
+/* Dependencies for computed properties
+
+Used for tracking affected properties
+
+Property IDs can be:
+> 0 - regular properties. ChangedClassID/CalcClassID = 0
+0 - all properties. ChangedClassID/CalcClassID > 0
+< 0 special property ($uid, $text etc.). ChangedClassID/CalcClassID > 0
+
+ChangedPropID -
+CalcPropID -
+ */
+create table if not exists [.prop-deps]
+(
+  -- When MasterPropID, changed
+  ChangedClassID INT NOT NULL,
+  ChangedPropID INT NOT NULL,
+  CalcClassID INT NOT NULL,
+  CalcPropID  INT NOT NULL,
+  CONSTRAINT [] PRIMARY KEY (ChangedPropID, CalcPropID)
+);
+
+create index if not exists idxCalcDepsByCalcProp on [.prop-deps] (CalcPropID, ChangedPropID);
+
+-- TODO triggers
+-- TODO Finalize design and implementation
+
 -- END --

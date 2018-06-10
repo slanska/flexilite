@@ -3,7 +3,6 @@
 --- DateTime: 2017-11-18 12:06 PM
 ---
 
---local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 
