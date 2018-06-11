@@ -56,10 +56,17 @@ extern "C" {
 #endif
 #endif
 
+#ifdef SQLITE_EXTENSION
 
 #include "sqlite3ext.h"
 
 SQLITE_EXTENSION_INIT3
+
+#else
+
+#include "sqlite3.h"
+
+#endif
 
 /* compile time features */
 #if !defined(SQLITE_OMIT_PROGRESS_CALLBACK)
