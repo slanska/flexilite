@@ -25,7 +25,9 @@ local file_list = path.abspath(path.relpath(cli_args.filelist))
 --local files = require(cli_args.filelist)
 local files = loadfile(file_list)()
 
-local out_path = path.abspath(path.relpath(cli_args.output))
+local libName = path.splitext(path.basename(cli_args.name))
+
+local out_path = path.join(path.abspath(path.relpath(cli_args.output)), libName)
 os.execute(string.format('mkdir -p "%s"', out_path))
 
 for file_name, module_name in pairs(files) do
@@ -47,12 +49,11 @@ for file_name, module_name in pairs(files) do
     local cmd = string.format('luajit -b%s "%s" "%s"',
             nn, file_path, path.join(out_path, o_file .. '.o'))
 
-    local exec_result, code = os.execute(cmd)
-    -- TODO Check result
+    print(os.execute(cmd))
 end
 
 -- Bundle library into single archive
 local cmd = string.format('ar rcus %s %s/*.o', path.join(out_path, cli_args.name), out_path)
 print(cmd)
-os.execute(cmd)
+print(os.execute(cmd))
 

@@ -12,6 +12,7 @@
  */
 int main()
 {
+    int exit_code = 0;
     lua_State *L = luaL_newstate();
     if (!L)
     {
@@ -24,21 +25,25 @@ int main()
 
     /* Load the file containing the script we are going to run */
     int status = luaL_loadstring(L, "require('index')");
-    if (status) {
+    if (status)
+    {
         /* If something went wrong, error message is at the top of */
         /* the stack */
         fprintf(stderr, "Couldn't load string: %s\n", lua_tostring(L, -1));
-        lua_close(L);
-        exit(1);
+        exit_code = 1;
+        goto __EXIT__;
     }
 
     status = lua_pcall(L, 0, LUA_MULTRET, 0);
-    if (status) {
+    if (status)
+    {
         fprintf(stderr, "Couldn't execute Lua: %s\n", lua_tostring(L, -1));
-        lua_close(L);
-        exit(1);
+        exit_code = 1;
+        goto __EXIT__;
     }
 
+    __EXIT__:
     lua_close(L);
+    exit(exit_code);
 }
 

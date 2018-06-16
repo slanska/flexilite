@@ -5,5 +5,56 @@
 ---
 
 return {
+    -- flexish
+    'flexish/classCreate.lua',
+    'flexish/dumpDatabase.lua',
+    'flexish/getStat.lua',
+    'flexish/index.lua',
+    'flexish/initDb.lua',
+    'flexish/runQuery.lua',
+    'flexish/sqliteSchemaParser.lua',
 
-}
+    -- misc libs
+    'lib/lua-prettycjson/lib/resty/prettycjson.lua',
+
+    -- penlight
+    'lib/lua-penlight/lua/pl/Date.lua',
+    'lib/lua-penlight/lua/pl/Set.lua',
+    'lib/lua-penlight/lua/pl/comprehension.lua',
+    'lib/lua-penlight/lua/pl/func.lua',
+    ['lib/lua-penlight/lua/pl/lexer.lua'] = 'pl.lexer',
+    'lib/lua-penlight/lua/pl/pretty.lua',
+    'lib/lua-penlight/lua/pl/stringx.lua',
+    'lib/lua-penlight/lua/pl/types.lua',
+    'lib/lua-penlight/lua/pl/List.lua',
+    'lib/lua-penlight/lua/pl/app.lua',
+    'lib/lua-penlight/lua/pl/config.lua',
+    'lib/lua-penlight/lua/pl/import_into.lua',
+    'lib/lua-penlight/lua/pl/luabalanced.lua',
+    'lib/lua-penlight/lua/pl/seq.lua',
+    'lib/lua-penlight/lua/pl/tablex.lua',
+    'lib/lua-penlight/lua/pl/url.lua',
+    'lib/lua-penlight/lua/pl/Map.lua',
+    'lib/lua-penlight/lua/pl/array2d.lua',
+    'lib/lua-penlight/lua/pl/data.lua',
+    'lib/lua-penlight/lua/pl/init.lua',
+    'lib/lua-penlight/lua/pl/operator.lua',
+    'lib/lua-penlight/lua/pl/sip.lua',
+    'lib/lua-penlight/lua/pl/template.lua',
+    'lib/lua-penlight/lua/pl/utils.lua',
+    'lib/lua-penlight/lua/pl/MultiMap.lua',
+    'lib/lua-penlight/lua/pl/class.lua',
+    'lib/lua-penlight/lua/pl/dir.lua',
+    'lib/lua-penlight/lua/pl/input.lua',
+    'lib/lua-penlight/lua/pl/path.lua',
+    'lib/lua-penlight/lua/pl/strict.lua',
+    'lib/lua-penlight/lua/pl/test.lua',
+    'lib/lua-penlight/lua/pl/xml.lua',
+    'lib/lua-penlight/lua/pl/OrderedMap.lua',
+    'lib/lua-penlight/lua/pl/compat.lua',
+    'lib/lua-penlight/lua/pl/file.lua',
+    'lib/lua-penlight/lua/pl/lapp.lua',
+    'lib/lua-penlight/lua/pl/permute.lua',
+    'lib/lua-penlight/lua/pl/stringio.lua',
+    'lib/lua-penlight/lua/pl/text.lua',
+ }

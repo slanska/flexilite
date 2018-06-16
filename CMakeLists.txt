@@ -304,8 +304,6 @@ include(CompileLuaSources.cmake)
 #)
 
 
-
-
 #set(LUA_FILES
 #        # src_lua/
 #        src_lua/NameRef.lua
@@ -565,7 +563,7 @@ set(EXT_FILES
         src/flexi/PropertyDef.h
         flexish/main.c
 
-#        ${oLuaFiles}
+        #        ${oLuaFiles}
         )
 
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
@@ -689,15 +687,11 @@ include_directories(
 #    SET(oLuaFile "cmake-build-debug/lua/${lua_file}.o")
 #
 #    # Compile .lua file to .obj
-#    ADD_CUSTOM_COMMAND(
-#            OUTPUT "${oLuaFile}"
-#            ALL
-#            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-#            COMMAND /torch/luajit/bin/luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
-#            #                COMMAND luajit -b "${CMAKE_CURRENT_SOURCE_DIR}/${lua_file}" "${CMAKE_CURRENT_SOURCE_DIR}/${oLuaFile}"
-#            COMMENT "Compiling ${lua_file} to ${oLuaFile}"
-#            DEPENDS ${lua_file}
-#    )
+ADD_CUSTOM_TARGET(
+        ALL
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMAND luajit ./util/lua2lib.lua ./flexish/filelist.lua  -n libFlexish.a
+)
 #
 #    SET(luaTarget)
 #    STRING(MAKE_C_IDENTIFIER ${lua_file} luaTarget)
@@ -721,12 +715,13 @@ set(SRC_FILES
         lib/lua-cjson/lua_cjson.c
         lib/lua-cjson/strbuf.c
         lib/lua-base64/lbase64.c
-
-        #        ${oLuaFiles}
         )
+
+#set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
 
 add_executable(flexish ${SRC_FILES})
 target_link_libraries(flexish PUBLIC luajit-static)
+target_link_libraries(flexish PUBLIC ./obj_lua/libFlexish/libFlexish.a)
 
 # Then link the libmyluafiles.a library into your main program using
 # -Wl,--whole-archive -lmyluafiles -Wl,--no-whole-archive -Wl,-E.
