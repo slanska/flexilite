@@ -12,13 +12,13 @@ local DumpDatabase = require('dumpDatabase')
 
 -- set lua path
 package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua'))
-.. ';' .. package.path
+        .. ';' .. package.path
 
 local prettyJson = require "prettycjson"
 
 -- Checks presence of database path argument and ensures it is stored as absolute path
 local function EnsureAbsPathArg(cli_args, argName)
-    if cli_args[argName] and not path.isabs( cli_args[argName]) then
+    if cli_args[argName] and not path.isabs(cli_args[argName]) then
         cli_args[argName] = path.abspath(path.relpath(cli_args[argName]))
     end
 end
@@ -68,9 +68,7 @@ local function configDatabase()
 end
 
 lapp.slack = true
-local cli_args
---if not arg[1] then
-    cli_args = lapp [[
+local cli_args = lapp [[
 Flexilite Shell Utility
 <command> (string)  'schema' | 'load' | 'query' | 'help' | 'config' | 'dump'
 <database> (string)  Path to SQLite database file
@@ -80,7 +78,6 @@ Flexilite Shell Utility
     -q, --query (string default '')  Path to query file
     -cj, --compactJson (boolean default false)  If set, output JSON will be in compact (minified) form
 ]]
---end
 
 require 'pl.pretty'.dump(cli_args)
 
