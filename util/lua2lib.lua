@@ -20,6 +20,14 @@ Compile lua-to-static-library
     -o, --output (string default 'obj_lua')  Output path
 ]]
 
+---@param cmd string
+local function os_execute(cmd)
+    local result, msg, code = os.execute(cmd)
+    if result == nil then
+        error(string.format('Error executing command [%s]: code %s', cmd, code))
+    end
+end
+
 local file_list = path.abspath(path.relpath(cli_args.filelist))
 
 --local files = require(cli_args.filelist)
@@ -27,7 +35,8 @@ local files = loadfile(file_list)()
 
 local libName = path.splitext(path.basename(cli_args.name))
 
-local out_path = path.join(path.abspath(path.relpath(cli_args.output)), libName)
+local out_path = path.join(path.abspath(cli_args.output), libName)
+
 os.execute(string.format('mkdir -p "%s"', out_path))
 
 for file_name, module_name in pairs(files) do
@@ -40,20 +49,21 @@ for file_name, module_name in pairs(files) do
         file_name = module_name
     end
 
-    print(string.format('Compiling %s...', file_name))
-
     -- Current directory is expected to be flexilite
     local file_path = path.abspath(path.relpath(file_name))
 
-    local o_file = string.gsub(file_name, '/', '.')
+    local o_file = path.abspath(path.join(out_path, path.relpath(
+            string.gsub(string.gsub(file_name, '/', '.'),
+                    '%.%.%.', '') .. '.o')))
     local cmd = string.format('luajit -b%s "%s" "%s"',
-            nn, file_path, path.join(out_path, o_file .. '.o'))
+            nn, file_path, o_file)
 
-    print(os.execute(cmd))
+    print(string.format('Compiling %s', file_name))
+
+    os_execute(cmd)
 end
 
 -- Bundle library into single archive
 local cmd = string.format('ar rcus %s %s/*.o', path.join(out_path, cli_args.name), out_path)
-print(cmd)
-print(os.execute(cmd))
+os_execute(cmd)
 

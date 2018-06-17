@@ -67,6 +67,8 @@ local function configDatabase()
 
 end
 
+require('pl.pretty').dump(arg)
+
 lapp.slack = true
 local cli_args = lapp [[
 Flexilite Shell Utility

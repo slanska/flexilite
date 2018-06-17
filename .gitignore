@@ -100,3 +100,4 @@ node_modules
 /bin/luajit
 /bin/flexish
 /obj_lua/
+/bin/flexish_cli

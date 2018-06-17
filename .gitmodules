@@ -32,3 +32,6 @@
 [submodule "lib/luadec"]
 	path = lib/luadec
 	url = https://github.com/viruscamp/luadec
+[submodule "lib/lua-sqlite"]
+	path = lib/lua-sqlite
+	url = https://github.com/slanska/lsqlite3.git
