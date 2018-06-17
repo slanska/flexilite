@@ -97,7 +97,7 @@ add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_LOAD_EXTENSION
         -DSQLITE_ENABLE_JSON1
         -DLUAJIT_ENABLE_LUA52COMPAT
-#        -DLSQLITE_EXTENSION
+        #        -DLSQLITE_EXTENSION
         )
 
 add_definitions(-DRESOURCES_GENERATED
@@ -223,12 +223,6 @@ include_directories(
 # penlight
 set(SRC_FILES
         flexish/main.c
-        #        lib/sqlite/sqlite3.c
-        #        src/lua-sqlite/lsqlite3.c
-        #        lib/lua-cjson/fpconv.c
-        #        lib/lua-cjson/lua_cjson.c
-        #        lib/lua-cjson/strbuf.c
-        #        lib/lua-base64/lbase64.c
         )
 
 #set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
@@ -240,12 +234,13 @@ add_executable(flexish_cli ${SRC_FILES})
 IF (WIN32)
     # TODO
 ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a )
+    SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
 ELSE ()
-    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexish_static.a -Wl,--no-whole-archive -Wl,-E)
+    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
 ENDIF ()
 
 target_link_libraries(flexish_cli PUBLIC luajit-static)
+target_link_libraries(flexish_cli PUBLIC FlexishStatic)
 target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
 
 # Then link the libmyluafiles.a library into your main program using

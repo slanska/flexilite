@@ -9,8 +9,6 @@ endif ()
 
 set(CMAKE_BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
-message('@@@@@ CMAKE_BINARY_DIR: ' ${CMAKE_BINARY_DIR})
-
 set(PLATFORM "${CMAKE_SYSTEM_NAME}")
 string(TOUPPER "${PLATFORM}" PLATFORM)
 
@@ -46,12 +44,13 @@ ADD_CUSTOM_TARGET(
 )
 
 set(SRC_FILES
-        ../lib/sqlite/sqlite3.c
-        ../src/lua-sqlite/lsqlite3.c
+        ../lib/lua-sqlite/sqlite3.c
+        ../lib/lua-sqlite/lsqlite3.c
         ../lib/lua-cjson/fpconv.c
         ../lib/lua-cjson/lua_cjson.c
         ../lib/lua-cjson/strbuf.c
-# TODO       ../lib/lua-base64/lbase64.c
+        ../lib/lua-base64/lbase64.c
+        run.c
         )
 
-add_library(Flexish_static STATIC ${SRC_FILES} )
+add_library(FlexishStatic STATIC ${SRC_FILES})
