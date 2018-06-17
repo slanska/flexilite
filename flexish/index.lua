@@ -3,6 +3,13 @@
 --- DateTime: 2017-11-18 4:56 PM
 ---
 
+-->>
+local lfs = lfs or require 'lfs'
+require('pl.pretty').dump(lfs)
+local cjson = cjson or require 'cjson'
+require('pl.pretty').dump(cjson)
+--<<
+
 local sqlite3 = require 'lsqlite3complete'
 local SQLiteSchemaParser = require 'sqliteSchemaParser'
 local os = require 'os'

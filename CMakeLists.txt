@@ -107,7 +107,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(EXT_FILES
-        src/lua-sqlite/lsqlite3.c
+        lib/lua-sqlite/lsqlite3.c
         lib/lua-cjson/fpconv.c
         lib/lua-cjson/lua_cjson.c
         lib/lua-cjson/strbuf.c

@@ -19,7 +19,6 @@ add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_RTREE
         -DSQLITE_ENABLE_LOAD_EXTENSION
         -DSQLITE_ENABLE_JSON1
-#        -Dluaopen_lsqlite3=luaopen_lsqlite3complete
         )
 
 remove_definitions(
@@ -32,6 +31,7 @@ message("Building on: ${CMAKE_SYSTEM_NAME}")
 include_directories(
         ../lib/sqlite
         ../lib/luajit-2.1/src
+        ../lib/luafilesystem/src
 )
 
 ADD_CUSTOM_TARGET(
@@ -50,6 +50,7 @@ set(SRC_FILES
         ../lib/lua-cjson/lua_cjson.c
         ../lib/lua-cjson/strbuf.c
         ../lib/lua-base64/lbase64.c
+        ../lib/luafilesystem/src/lfs.c
         run.c
         )
 

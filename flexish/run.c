@@ -30,20 +30,7 @@ int luaopen_lsqlite3(lua_State *L);
 
 int luaopen_cjson(lua_State *l);
 
-// Dummy
-static const luaL_Reg sqlitelib[] = {
-        { NULL,		NULL	}
-};
-
-static int luaopen_lsqlite3complete(lua_State *L)
-{
-    luaL_register(L, "lsqlite3complete", sqlitelib);
-    lua_pushliteral(L, "version");            /** version */
-    lua_pushliteral(L, "0.9.4");
-    lua_settable(L, -3);
-    return 1;
-}
-
+int luaopen_lfs (lua_State *L) ;
 
 /*
  * Init Lua context. Load index.lua
@@ -66,8 +53,8 @@ int RunFlexish(int argc, char *argv[])
     /*
      * Open other Lua modules implemented in C
      */
+    luaopen_lfs(L);
     luaopen_base64(L);
-    luaopen_lsqlite3complete(L);
     luaopen_lsqlite3(L);
     luaopen_cjson(L);
 
