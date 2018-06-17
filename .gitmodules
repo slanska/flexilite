@@ -25,13 +25,9 @@
 [submodule "lib/lua-date"]
 	path = lib/lua-date
 	url = https://github.com/Tieske/date.git
-
 [submodule "lib/lua-metalua"]
 	path = lib/lua-metalua
 	url = https://github.com/fab13n/metalua.git
 [submodule "lib/luadec"]
 	path = lib/luadec
 	url = https://github.com/viruscamp/luadec
-[submodule "lib/lua-sqlite"]
-	path = lib/lua-sqlite
-	url = https://github.com/slanska/lsqlite3.git

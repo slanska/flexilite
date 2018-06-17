@@ -19,7 +19,7 @@ add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_RTREE
         -DSQLITE_ENABLE_LOAD_EXTENSION
         -DSQLITE_ENABLE_JSON1
-        -Dluaopen_lsqlite3=luaopen_lsqlite3complete
+#        -Dluaopen_lsqlite3=luaopen_lsqlite3complete
         )
 
 remove_definitions(
