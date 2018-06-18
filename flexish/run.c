@@ -29,6 +29,7 @@ int luaopen_base64(lua_State *L);
 int luaopen_lsqlite3(lua_State *L);
 
 int luaopen_cjson(lua_State *l);
+int luaopen_cjson_safe(lua_State *l);
 
 int luaopen_lfs (lua_State *L) ;
 
@@ -57,6 +58,7 @@ int RunFlexish(int argc, char *argv[])
     luaopen_base64(L);
     luaopen_lsqlite3(L);
     luaopen_cjson(L);
+    luaopen_cjson_safe(L);
 
     // Pass app arguments to Lua
     createargtable(L, &argv[1], argc - 1, argc - 1);

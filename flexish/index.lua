@@ -3,12 +3,28 @@
 --- DateTime: 2017-11-18 4:56 PM
 ---
 
--->>
-local lfs = lfs or require 'lfs'
-require('pl.pretty').dump(lfs)
-local cjson = cjson or require 'cjson'
-require('pl.pretty').dump(cjson)
---<<
+--[[
+Purpose of this function is to handle bundled C libraries in 'require'-like manner
+]]
+---@param moduleName string
+local function _require()
+
+    local old_require = _G.require
+
+    local function r(moduleName)
+        if moduleName == 'lfs' then
+            return _G.lfs or old_require 'lfs'
+        elseif moduleName == 'cjson' then
+            return _G.cjson or old_require 'cjson'
+        else
+            return old_require(moduleName)
+        end
+    end
+
+    return r
+end
+
+_G.require = _require()
 
 local sqlite3 = require 'lsqlite3complete'
 local SQLiteSchemaParser = require 'sqliteSchemaParser'
@@ -86,8 +102,6 @@ Flexilite Shell Utility
     -cj, --compactJson (boolean default false)  If set, output JSON will be in compact (minified) form
 ]]
 
-require 'pl.pretty'.dump(cli_args)
-
 -- Dumps entire native SQLite database into single JSON file, ready for INSERT INTO flexi_data (Data) values (:DataInJSON)
 -- or select flexi('load', null, :DataInJSON)
 local function doDumpDatabase(cli_args)
@@ -110,6 +124,19 @@ if not ff then
     os.exit()
 end
 
-local result = ff(cli_args)
+local errorMsg = ''
+local ok = xpcall(
+        function()
+            local result = ff(cli_args)
+            return result
+        end,
+        function(error)
+            errorMsg = tostring(error)
+            print(debug.traceback(tostring(error)))
+        end)
 
--- TODO treat result?
+if not ok then
+    error(errorMsg)
+end
+
+-- TODO process result?
