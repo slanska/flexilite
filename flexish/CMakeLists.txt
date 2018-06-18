@@ -20,6 +20,7 @@ add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_LOAD_EXTENSION
         -DSQLITE_ENABLE_JSON1
         -DENABLE_CJSON_GLOBAL
+        -DLUAJIT_ENABLE_LUA52COMPAT
         )
 
 remove_definitions(
