@@ -12,7 +12,7 @@ local tablex = require 'pl.tablex'
 
 -- set lua path
 package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua'))
-.. ';' .. package.path
+        .. ';' .. package.path
 
 local prettyJson = require "prettycjson"
 -- Dumps given table to out table
@@ -26,13 +26,21 @@ local function outTable(out, db, classDef, tableName)
     print(string.format('Processing [%s]...', tableName))
 
     -- get binary properties
-    local blobProps = tablex.filter(classDef.properties, function(prop)
-        return prop.rules.type == 'binary'
-    end)
+
+    local blobProps = {}
+    for propName, propDef in pairs(classDef.properties) do
+        if propDef.rules.type == 'binary' then
+            blobProps[propName] = propDef
+        end
+    end
 
     for row in db:nrows(string.format('select * from [%s]', tableName)) do
         for propName, blobProp in pairs(blobProps) do
-            row[propName] = base64.encode(row[propName])
+            local v = row[propName]
+
+            if v ~= nil then
+                row[propName] = base64.encode(tostring(row[propName]))
+            end
         end
         table.insert(rows, row)
     end
@@ -60,8 +68,8 @@ local function dumpDatabase(dbPath, outFileName, tableName, compactJson)
     -- Iterate through all non-system tables
     local result = {}
 
-    if tableName then
-        local classDef = schema[tblInfo.table]
+    if type(tableName) == 'string' and tableName ~= '' then
+        local classDef = schema[tableName]
         if not classDef then
             error(string.format("Table [%s] is not found in database %s", tableName, dbPath))
         end

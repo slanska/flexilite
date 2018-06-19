@@ -6,7 +6,7 @@
 --[[
 This file is used as an entry point for testing Flexilite library
 ]]
-local mobdebug = require( "mobdebug" )
+local mobdebug = require("mobdebug")
 mobdebug.start()
 
 --ProFi = require 'ProFi'
@@ -92,10 +92,8 @@ local ok, error = xpcall(function()
     local sql = "select flexi('configure')"
     db:exec(sql)
 
-    local content = readAll(path.join(__dirname, 'test', 'json', 'Employees.schema.json'))
-
     -- Create Northwind schema
-    content = readAll(path.join(__dirname, 'test', 'json', 'Northwind.db3.schema.json'))
+    local content = readAll(path.join(__dirname, 'test', 'json', 'Northwind.db3.schema.json'))
     sql = "select flexi('create schema', '" .. content .. "');"
     for row in db:rows(sql) do
         print(row[1])
@@ -106,7 +104,7 @@ local ok, error = xpcall(function()
     -- Insert data
     local started = os.clock()
     --   local dataDump = readAll(path.join(__dirname, 'test/json/Northwind_Regions.db3.data.json' ))
-    local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.data.json' ))
+    local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.data.json'))
     --local dataDump = readAll(path.join(__dirname, 'test/json/Northwind.db3.trimmed.data.json' ))
     sql = "select flexi('import data', '" .. stringx.replace(dataDump, "'", "''") .. "');"
     for row in db:rows(sql) do
@@ -114,10 +112,10 @@ local ok, error = xpcall(function()
     end
     print(string.format('flexi_data - Elapsed %s sec', os.clock() - started))
 
-    local dbPath2 = path.abspath(path.relpath('./Flexilite2.db'))
+    --local dbPath2 = path.abspath(path.relpath('./Flexilite2.db'))
     local db2 = sqlite3.open_memory()
     --local db2 = sqlite3.open(dbPath2)
-    content = readAll(path.abspath(path.relpath( './flexilite.data.sql')))
+    content = readAll(path.abspath(path.relpath('./flexilite.data.sql')))
     started = os.clock()
     db2:exec(content)
     print(string.format('Direct load - Elapsed %s sec', os.clock() - started))
@@ -126,12 +124,11 @@ local ok, error = xpcall(function()
     db:close()
 end,
 
-                         function(error)
-                             print(string.format("%s, %s", ok, error))
-                             --print(debug.stacktrace())
-                             print(debug.traceback(tostring(error)))
-                         end)
-
+function(error)
+ print(string.format("%s, %s", ok, error))
+ --print(debug.stacktrace())
+ print(debug.traceback(tostring(error)))
+end)
 
 --ProFi:stop()
 --ProFi:writeReport(path.abspath(path.relpath( './ProfileReport.txt')))

@@ -15,9 +15,9 @@ local Constants = {
 
     -- Specific value type, stored in .ref-values.ctlv and .objects.vtypes fields
     vtype = {
-        default = 0, -- Use SQLite type, i.e. NULL, FLOAT, INTEGER, TEXT, BLOB
-        datetime = 1, -- (for FLOAT),
-        timespan = 2, -- (for FLOAT),
+        default = 0, -- Use original SQLite type, i.e. NULL, FLOAT, INTEGER, TEXT, BLOB
+        datetime = 1, -- (for REAL),
+        timespan = 2, -- (for REAL),
         symbol = 3, -- (for INT)
         money = 4, --(for INT) - as integer value with fixed 4 decimal points (exact value for +-1844 trillions)
         json = 5, --(for TEXT)
@@ -103,9 +103,20 @@ local Constants = {
         UNQ = 0x0004,
         STD = 0x0008,
         MUL = 0x0010,
-        -- Full text index supported, but for search only (used by SymNameProperty)
+        -- Full text index supported, but for search only (used by SymNameProperty and Enum text values)
         FTS_SEARCH = 0x0020,
-    }
+    },
+
+    DBOBJECT_SANDBOX_MODE = {
+        FILTER = 'F',
+        ORIGINAL = 'O',
+        CURRENT = 'C',
+        EXPRESSION = 'E',
+    },
+
+    -- Epsilon value for float equality comparison
+    EPSILON = 1E-5,
+    --EPSILON = 1E-12,
 
 }
 

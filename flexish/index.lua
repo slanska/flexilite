@@ -3,6 +3,29 @@
 --- DateTime: 2017-11-18 4:56 PM
 ---
 
+--[[
+Purpose of this function is to handle bundled C libraries in 'require'-like manner
+]]
+---@param moduleName string
+local function _require()
+
+    local old_require = _G.require
+
+    local function r(moduleName)
+        if moduleName == 'lfs' then
+            return _G.lfs or old_require 'lfs'
+        elseif moduleName == 'cjson' then
+            return _G.cjson or old_require 'cjson'
+        else
+            return old_require(moduleName)
+        end
+    end
+
+    return r
+end
+
+_G.require = _require()
+
 local sqlite3 = require 'lsqlite3complete'
 local SQLiteSchemaParser = require 'sqliteSchemaParser'
 local os = require 'os'
@@ -12,13 +35,13 @@ local DumpDatabase = require('dumpDatabase')
 
 -- set lua path
 package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua'))
-.. ';' .. package.path
+        .. ';' .. package.path
 
 local prettyJson = require "prettycjson"
 
 -- Checks presence of database path argument and ensures it is stored as absolute path
 local function EnsureAbsPathArg(cli_args, argName)
-    if cli_args[argName] and not path.isabs( cli_args[argName]) then
+    if cli_args[argName] and not path.isabs(cli_args[argName]) then
         cli_args[argName] = path.abspath(path.relpath(cli_args[argName]))
     end
 end
@@ -67,22 +90,17 @@ local function configDatabase()
 
 end
 
-local cli_args
-if not arg[1] then
-    local default_args = require 'flexish_cfg'
-    cli_args = default_args
-else
-    cli_args = lapp [[
-    Flexilite Shell Utility
-    <command> (string) 'schema' | 'load' | 'query' | 'help' | 'config' | 'dump'
-    <database> (string) Path to SQLite database file
-    -t, --table (string) Name of specific SQLite table to process
-    -o, --output (file-out default '') Output file path
-    -c, --config (file-in default '') Path to config file
-    -q, --query (file-in default '') Path to query file
-    -cj, --compactJson (boolean default false) If set, output JSON will be in compact (minified) form
-     ]]
-end
+lapp.slack = true
+local cli_args = lapp [[
+Flexilite Shell Utility
+<command> (string)  'schema' | 'load' | 'query' | 'help' | 'config' | 'dump'
+<database> (string)  Path to SQLite database file
+    -t, --table (string default '')  Name of specific SQLite table to process
+    -o, --output (string default '')  Output file path
+    -c, --config (file-in default '')  Path to config file
+    -q, --query (string default '')  Path to query file
+    -cj, --compactJson (boolean default false)  If set, output JSON will be in compact (minified) form
+]]
 
 -- Dumps entire native SQLite database into single JSON file, ready for INSERT INTO flexi_data (Data) values (:DataInJSON)
 -- or select flexi('load', null, :DataInJSON)
@@ -91,8 +109,6 @@ local function doDumpDatabase(cli_args)
     EnsureAbsPathArg(cli_args, 'output')
     DumpDatabase(cli_args.database, cli_args.output, cli_args.table, cli_args.compactJson)
 end
-
-require 'pl.pretty'.dump(cli_args)
 
 local commandMap = {
     ['schema'] = generateSchema,
@@ -108,4 +124,19 @@ if not ff then
     os.exit()
 end
 
-local result = ff(cli_args)
+local errorMsg = ''
+local ok = xpcall(
+        function()
+            local result = ff(cli_args)
+            return result
+        end,
+        function(error)
+            errorMsg = tostring(error)
+            print(debug.traceback(tostring(error)))
+        end)
+
+if not ok then
+    error(errorMsg)
+end
+
+-- TODO process result?

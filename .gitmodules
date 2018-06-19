@@ -22,16 +22,18 @@
 [submodule "lib/lua-base64"]
 	path = lib/lua-base64
 	url = https://github.com/LuaDist/lbase64.git
-[submodule "src_lua/lib/lua-date"]
-	path = src_lua/lib/lua-date
-	url = https://github.com/Tieske/date.git
 [submodule "lib/lua-date"]
 	path = lib/lua-date
 	url = https://github.com/Tieske/date.git
-
 [submodule "lib/lua-metalua"]
 	path = lib/lua-metalua
 	url = https://github.com/fab13n/metalua.git
 [submodule "lib/luadec"]
 	path = lib/luadec
 	url = https://github.com/viruscamp/luadec
+[submodule "lib/lua-sqlite"]
+	path = lib/lua-sqlite
+	url = https://github.com/slanska/lsqlite3.git
+[submodule "lib/luafilesystem"]
+	path = lib/luafilesystem
+	url = https://github.com/keplerproject/luafilesystem.git

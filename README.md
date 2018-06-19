@@ -374,4 +374,14 @@ and connection pooling. Optimal configuration will be
 covered in a separate article.
 
 ## Are other databases supported?
-Currently it is SQLite only. We also have plans and ideas about implementing Flexilite on PostgreSQL.
+Currently it is SQLite only. We also have plans and ideas about implementing Flexilite on BerkeleyDB (SQL API).
+
+## Running tests
+
+```shell
+cd  ./test_lua
+busted --lua=PATH_TO_LUJIT ./index.lua 
+```
+
+(**Note that busted needs to run using LuaJit interpreter. POC Lua will fail**)
+

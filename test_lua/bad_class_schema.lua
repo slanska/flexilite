@@ -16,43 +16,44 @@ local pretty = require 'pl.pretty'
 
 describe('Bad Class schema', function()
 
-    it('should fail: class name &782367', function()
+
+    pending('should fail: class name &782367', function()
 
     end)
 
-    it('should fail: property name &782367', function()
+    pending('should fail: property name &782367', function()
 
     end)
 
-    it('should fail: no properties in class', function()
+    pending('should fail: no properties in class', function()
 
     end)
 
-    it('should fail: property has no type', function()
+    pending('should fail: property has no type', function()
 
     end)
 
-    it('should fail: property maxValue < minValue', function()
+    pending('should fail: property maxValue < minValue', function()
 
     end)
 
-    it('should fail: property maxOccurrences < minOccurrences', function()
+    pending('should fail: property maxOccurrences < minOccurrences', function()
 
     end)
 
-    it('should fail: enum property does not have enumDef or refDef', function()
+    pending('should fail: enum property does not have enumDef or refDef', function()
 
     end)
 
-    it('should fail: invalid property type', function()
+    pending('should fail: invalid property type', function()
 
     end)
 
-    it('should fail: ref property does not have refDef', function()
+    pending('should fail: ref property does not have refDef', function()
 
     end)
 
-    it('should fail: type of defaultValue does not match', function()
+    pending('should fail: type of defaultValue does not match', function()
 
     end)
 

@@ -34,6 +34,10 @@ local EnumManager = require 'EnumManager'
 local Constants = require 'Constants'
 local DictCI = require('Util').DictCI
 
+-------------------------------------------------------------------------------
+-- ActionList
+-------------------------------------------------------------------------------
+
 --[[
 Maintains list of (normally deferred) actions to execute
 ]]
@@ -83,6 +87,10 @@ function ActionList:Clear()
     self.tags = {}
 end
 
+-------------------------------------------------------------------------------
+-- DBContext
+-------------------------------------------------------------------------------
+
 ---@class DBContextConfig
 ---@field createVirtualTable boolean
 
@@ -92,8 +100,8 @@ end
 ---@field MemDB table
 ---@field UserInfo UserInfo
 ---@field Classes table <string, ClassDef>
----@field Functions table
----@field ClassProps table
+---@field Functions table @comment TODO use Function class
+---@field ClassProps table<number, PropertyDef>
 ---@field Objects tables <number, DBObject>
 ---@field DirtyObjects table <number, DBObject>
 ---@field ClassDef ClassDef @comment constructor
@@ -113,9 +121,7 @@ local flexiMeta
 --- @param db sqlite3
 --- @return DBContext
 function DBContext:_init(db)
-    assert(db)
-
-    self.db = db
+    self.db = assert(db, 'Expected sqlite3 database but nil was passed')
 
     -- Cache of prepared statements, key is statement SQL
     self.Statements = {}
@@ -202,15 +208,16 @@ properties will be loaded on demand. Also, when object gets edited, its entire c
 ]]
 ---@param id number
 ---@param propIds table|nil @comment list of property IDs to load
----@param forUpdate boolean
+---@param forUpdate boolean | nil
+---@param objRow table | nil @comment row of [.objects]
 ---@return DBObject
-function DBContext:LoadObject(id, propIds, forUpdate)
+function DBContext:LoadObject(id, propIds, forUpdate, objRow)
     local result = self.Objects[id]
 
-    local op = forUpdate and Constants.OPERATION.UPDATE or Constants.OPERATION.READ
     if not result then
+        local op = forUpdate and Constants.OPERATION.UPDATE or Constants.OPERATION.READ
         -- TODO Check access rules for class and specific object
-        result = DBObject( { ID = id, PropIDs = propIds, DBContext = self }, op)
+        result = DBObject({ ID = id, PropIDs = propIds, DBContext = self, ObjRow = objRow }, op)
         self.Objects[id] = result
     end
     return result
@@ -221,7 +228,7 @@ end
 ---@return DBObject
 function DBContext:EditObject(id)
     -- TODO Check access rules for class and specific object
-    local result = assert(self:LoadObject(id), string.format('Object with ID %d not found', id))
+    local result = assert(self:LoadObject(id, nil, false, nil), string.format('Object with ID %d not found', id))
     result:LoadAllValues()
     result:Edit()
     return result
@@ -251,7 +258,7 @@ end
 ---@param data table|nil
 function DBContext:NewObject(classDef, data)
     local pp = { ClassDef = classDef, ID = self:GetNewObjectID(), Data = data }
-    local result = DBObject(pp , Constants.OPERATION.CREATE)
+    local result = DBObject(pp, Constants.OPERATION.CREATE)
     self.Objects[pp.ID] = result
     return result
 end
@@ -485,7 +492,7 @@ end
 function DBContext:loadOneRow(sql, params, errorIfNotFound)
     local stmt = self:getStatement(sql)
     if params then
-        self:checkSqlite( stmt:bind_names(params))
+        self:checkSqlite(stmt:bind_names(params))
     end
     for r in stmt:nrows() do
         return r
@@ -536,9 +543,9 @@ function DBContext:getClassDef(classIdOrName, mustExist)
     -- Check if class already loaded
     if result then
         if type(classIdOrName) == 'string' then
-            assert(result.Name.text == classIdOrName)
+            assert(result.Name.text == classIdOrName, 'result.Name.text == classIdOrName')
         else
-            assert(result.ID == classIdOrName)
+            assert(result.ClassID == classIdOrName, string.format('%s == %s', result.ClassID, classIdOrName))
         end
         return result
     end
@@ -558,6 +565,7 @@ function DBContext:getClassDef(classIdOrName, mustExist)
         end
         return nil
     end
+
     result = ClassDef { data = classRow, DBContext = self }
     self:addClassToList(result)
 
@@ -778,7 +786,7 @@ end
 --- @return iterator
 function DBContext:LoadAdhocRows(sql, params)
     local stmt = self:getAdhocStmt(sql, params)
-    return stmt:rows()
+    return stmt:nrows()
 end
 
 -- Internal method to initialize metadata reference (NameRef, PropRef...)
@@ -891,50 +899,50 @@ flexiFuncs = {
     ['load data'] = flexi_DataUpdate.flexi_ImportData,
     ['load'] = flexi_DataUpdate.flexi_ImportData,
 
---[[
+    --[[
 
-    /*
- Change class ID of given objects. Updates schemas and possibly columns A..J to match new class schema
- */
-move to another class
+        /*
+     Change class ID of given objects. Updates schemas and possibly columns A..J to match new class schema
+     */
+    move to another class
 
-    /*
- Removes duplicated objects. Updates references to point to a new object. When resolving conflict, selects object
- with larger number of references to it, or object that was updated more recently.
- */
-remove duplicates
+        /*
+     Removes duplicated objects. Updates references to point to a new object. When resolving conflict, selects object
+     with larger number of references to it, or object that was updated more recently.
+     */
+    remove duplicates
 
-    /*
- Splits objects vertically, i.e. one set of properties goes to class A, another - to class B.
- Resulting objects do not have any relation to each other
- */
-structural split
+        /*
+     Splits objects vertically, i.e. one set of properties goes to class A, another - to class B.
+     Resulting objects do not have any relation to each other
+     */
+    structural split
 
-    /*
- Joins 2 non related objects into single object, using optional property map. Corresponding objects will be found using sourceKeyPropIDs
- and targetKeyPropIDs
- */
-structural merge
+        /*
+     Joins 2 non related objects into single object, using optional property map. Corresponding objects will be found using sourceKeyPropIDs
+     and targetKeyPropIDs
+     */
+    structural merge
 
-reorderArrayItems
+    reorderArrayItems
 
-    /*
- Returns report on results of last refactoring action
- */
-getLastActionReport
+        /*
+     Returns report on results of last refactoring action
+     */
+    getLastActionReport
 
-    /*
- Retrieves list of invalid objects for the given class (objects which do not pass property rules)
- Returns list of object IDs.
- @className - class name to perform validation on
- @markAsnInvalid - if set to true, invalid objects will be marked with CTLO_HAS_INVALID_DATA
- Note that all objects will be affected and valid objects will get this flag cleared.
- */
- get invalid objects
+        /*
+     Retrieves list of invalid objects for the given class (objects which do not pass property rules)
+     Returns list of object IDs.
+     @className - class name to perform validation on
+     @markAsnInvalid - if set to true, invalid objects will be marked with CTLO_HAS_INVALID_DATA
+     Note that all objects will be affected and valid objects will get this flag cleared.
+     */
+     get invalid objects
 
-]]
+    ]]
 
--- TODO ['convert custom eav'] = ConvertCustomEAV,
+    -- TODO ['convert custom eav'] = ConvertCustomEAV,
 }
 
 -- Run once - find all synonyms for actions

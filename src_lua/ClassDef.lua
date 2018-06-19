@@ -25,7 +25,6 @@ local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 local AccessControl = require 'AccessControl'
 local DictCI = require('Util').DictCI
---local bit = type(jit) == 'table' and require('bit') or require('bit32')
 
 --[[
 Index definitions for class. Operate with property IDs only,
@@ -40,11 +39,11 @@ d) storing and loading index definitions (in [.classes].Data.indexes)
 ---@class IndexDefinitions
 ---@field fullTextIndexing number[] @comment array of property IDs
 ---@field rangeIndexing number[] @comment array of property IDs
----@field multiKeyIndexing table<number, number[]> @comment len 2, 3 or 4, array of property IDs
+---@field multiKeyIndexing number[] @comment Array of 0, 2, 3 or 4 property IDs
 ---@field propIndexing table<number, boolean> @comment map of property IDs to boolean (unique or not)
 local IndexDefinitions = class()
 
--- Internal static variables
+-- Internal static variables for column names
 IndexDefinitions.ftsCols = { 'X1', 'X2', 'X3', 'X4', 'X5' }
 IndexDefinitions.rngCols = { 'A0', 'A1', 'B0', 'B1', 'C0', 'C1', 'D0', 'D1', 'E0', 'E1' }
 
@@ -56,17 +55,18 @@ function IndexDefinitions:_init()
     -- Range index. Array 1 .. 10 to property ID (1 = A0, 2 = A1, 3 = B0...)
     self.rangeIndexing = {}
 
-    -- Multi property unique indexes. Map of 2, 3, 4 to array of property IDs
-    self.multiKeyIndexing = { [2] = {}, [3] = {}, [4] = {} }
+    -- Multi property unique indexes. Array of 2, 3 or 4 items (property IDs)
+    self.multiKeyIndexing = {  }
 
     -- Indexes for single properties. Map by property ID to boolean
     -- (false - non-unique index, true - unique index)
     self.propIndexing = {}
 end
 
--- Internal method to convert array of property IDs to dictionary of number and index
+-- Converts array of property IDs to dictionary of number and index
 ---@param arr number[]
-function IndexDefinitions:indexArrayToMap(arr)
+---@return table<number, number> @comment key - property ID, value - index in arr
+function IndexDefinitions:IndexArrayToMap(arr)
     local result = {}
     for i, v in ipairs(arr) do
         result[v] = i
@@ -76,12 +76,7 @@ end
 
 -- Converts full text index definition from array to dictionary
 function IndexDefinitions:FullTextIndexAsMap()
-    return self:indexArrayToMap(self.fullTextIndexing)
-end
-
--- Converts range index definition from array to dictionary
-function IndexDefinitions:RangeIndexAsMap()
-    return self:indexArrayToMap(self.rangeIndexing)
+    return self:IndexArrayToMap(self.fullTextIndexing)
 end
 
 ---@param propDef PropertyDef
@@ -91,7 +86,8 @@ function IndexDefinitions:AddFullTextIndexedProperty(propDef)
 
     local supportedIndexTypes = propDef:GetSupportedIndexTypes()
     if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.FTS) ~= Constants.INDEX_TYPES.FTS then
-        return false, string.format('Property [%s] does not support full text indexing', propDef.Name.text)
+        return false, string.format('Property [%s].[%s] does not support full text indexing',
+                propDef.ClassDef.Name.text, propDef.Name.text)
     end
 
     -- Already set?
@@ -118,7 +114,8 @@ function IndexDefinitions:AddRangeIndexedProperties(propDef0, propDef1)
     for _, propDef in ipairs({ propDef0, propDef1 }) do
         local supportedIndexTypes = propDef:GetSupportedIndexTypes()
         if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.RNG) ~= Constants.INDEX_TYPES.RNG then
-            return false, string.format('Property [%s] does not support range indexing', propDef.Name.text)
+            return false, string.format('Property [%s].[%s] does not support range indexing',
+                    propDef.ClassDef.Name.text, propDef.Name.text)
         end
     end
 
@@ -129,7 +126,7 @@ function IndexDefinitions:AddRangeIndexedProperties(propDef0, propDef1)
     end
 
     if idx0 or idx1 then
-        return false, 'Existing range index specification onflict'
+        return false, 'Existing range index specification conflict'
     end
 
     if #self.rangeIndexing == 10 then
@@ -155,7 +152,8 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
     for _, propDef in ipairs(propDefs) do
         local supportedIndexTypes = propDef:GetSupportedIndexTypes()
         if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.MUL) ~= Constants.INDEX_TYPES.MUL then
-            return false, string.format('Property [%s] does not support multi key indexing', propDef.Name.text)
+            return false, string.format('Property [%s].[%s] does not support multi key indexing',
+                    propDef.ClassDef.Name.text, propDef.Name.text)
         end
 
         -- Check for accidental duplicates
@@ -164,11 +162,12 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
         end, propDefs)
 
         if #all > 1 then
-            return false, string.format('Property [%s] is repeated more than once in multi key index', propDef.Name.text)
+            return false, string.format('Property [%s].[%s] is repeated more than once in multi key index',
+                    propDef.ClassDef.Name.text, propDef.Name.text)
         end
     end
 
-    self.multiKeyIndexing[len] = tablex.imap(function(propDef)
+    self.multiKeyIndexing = tablex.imap(function(propDef)
         return propDef.ID
     end, propDefs)
 
@@ -185,7 +184,8 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
     local supportedIndexTypes = propDef:GetSupportedIndexTypes()
     local expectedIndexType = unique and Constants.INDEX_TYPES.UNQ or Constants.INDEX_TYPES.STD
     if bit52.band(supportedIndexTypes, expectedIndexType) ~= expectedIndexType then
-        return false, string.format('Property [%s] does not support indexing', propDef.Name.text)
+        return false, string.format('Property [%s].[%s] does not support indexing',
+                propDef.ClassDef.Name.text, propDef.Name.text)
     end
 
     if not unique then
@@ -193,15 +193,15 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
         local idx = tablex.find(self.rangeIndexing, propDef.ID)
         if idx then
             table.remove(self.propIndexing, propDef.ID)
-            return true, string.format('Property %s already included in range index', propDef.Name.text)
+            return true, string.format('Property [%s].[%s] already included in range index',
+                    propDef.ClassDef.Name.text, propDef.Name.text)
         end
 
-        idx = tablex.find_if(self.multiKeyIndexing, function(propIDs)
-            return propIDs[1] == propDef.ID
-        end)
-        if idx then
+        if self.multiKeyIndexing and #self.multiKeyIndexing > 0
+                and self.multiKeyIndexing[1] == propDef.ID then
             table.remove(self.propIndexing, propDef.ID)
-            return true, string.format('Property %s already included in multi key index', propDef.Name.text)
+            return true, string.format('Property [%s].[%s] already included in multi key index',
+                    propDef.ClassDef.Name.text, propDef.Name.text)
         end
     end
 
@@ -296,6 +296,8 @@ end
 ---@field Deleted boolean
 ---@field ColMapActive boolean
 ---@field vtypes number
+---@field insertObjectsStmt sqlite3.stmt @comment 'insert into [.objects]' prepared statement
+---@field updateObjectsStmt sqlite3.stmt @comment 'update [.objects]' prepared statement
 local ClassDef = class()
 
 ---@class ClassDefCtorParamsData
@@ -360,6 +362,7 @@ function ClassDef:_init(params)
         self.ColMapActive = params.data.ColMapActive
         self.vtypes = params.data.vtypes
 
+        assert(type(params.data.Data) == 'string', string.format('%s: params.data.Data must be valid JSON', params.data.Name))
         self.D = json.decode(params.data.Data)
         data = self.D
 
@@ -367,7 +370,7 @@ function ClassDef:_init(params)
         for propRow in self.DBContext:loadRows([[
         select PropertyID, ClassID, NameID, Property, ctlv, ctlvPlan,
             Deleted, SearchHitCount, NonNullCount from [flexi_prop] cp where cp.ClassID = :ClassID;]],
-                                               { ClassID = self.ClassID }) do
+                { ClassID = self.ClassID }) do
             self:loadPropertyFromDB(propRow, assert(self.D.properties[tostring(propRow.PropertyID)], 'Null property definition'))
         end
 
@@ -565,16 +568,20 @@ end
 function ClassDef:saveToDB()
     assert(self.ClassID > 0)
 
-    --ClassDef.ApplyIndexing(nil, self)
-
-    local internalJson = json.encode(self:internalToJSON())
+    local internalJson = ''
+    print('saving ' .. self.Name.text)
+    local internal = self:internalToJSON()
+    local sparse = json.encode_sparse_array()
+    json.encode_sparse_array(true)
+    internalJson = json.encode(internal)
+    json.encode_sparse_array(sparse)
 
     -- Calculate ctloMask and vtypes
     self.vtypes = 0
     self.ctloMask = 0
     for _, propDef in pairs(self.propColMap) do
         assert(propDef)
-        local colIdx = string.lower(propDef.ColMap):byte() - string.byte('a')
+        local colIdx = propDef:ColMapIndex()
         local vtmask = bit52.bnot(bit52.lshift(7, colIdx * 3))
         local vtype = bit52.lshift(propDef:GetVType(), colIdx * 3)
 
@@ -592,13 +599,14 @@ function ClassDef:saveToDB()
 
     self.DBContext:execStatement([[update [.classes] set NameID = :NameID, Data = :Data,
         ctloMask = :ctloMask, vtypes = :vtypes where ClassID = :ClassID;]],
-                                 {
-                                     NameID = self.Name.id,
-                                     Data = internalJson,
-                                     ctloMask = self.ctloMask,
-                                     vtypes = self.vtypes,
-                                     ClassID = self.ClassID
-                                 })
+            {
+                NameID = self.Name.id,
+                Data = internalJson,
+                ctloMask = self.ctloMask,
+                vtypes = self.vtypes,
+                ClassID = self.ClassID
+            })
+    print('Saved ' .. self.Name.text)
 
 end
 
@@ -786,28 +794,30 @@ function ClassDef.ApplyIndexing(oldClassDef, newClassDef)
     end
 
     -- multi_key indexing
-    for idx = 2, 4 do
-        if not tablex.deepcompare(newIdxDef.multiKeyIndexing[idx], oldIdxDef.multiKeyIndexing[idx]) then
-            -- Delete from .multi_key_N
-            oldClassDef.DBContext:ExecAdhocSql(string.format('delete from [.multi_key%d] where ClassID = :ClassID', idx),
-                                               { ClassID = ClassID })
-
-            -- Insert into .multi_key_N
-            local colNameIdx = 1
-            local colValIdx = 2
-            local sqlLines = { string.format('insert into [.multi_key%d] (ClassID', idx, newClassDef.ClassID),
-                               ') select (:ClassID' }
-            for iCol, propID in ipairs(newIdxDef.multiKeyIndexing[idx]) do
-                local propDef = newClassDef.DBContext.ClassProps[propID]
-                colNameIdx = colNameIdx + 1
-                colValIdx = colValIdx + 2
-                table.insert(sqlLines, colNameIdx, string.format(', [Z%d]', iCol))
-                table.insert(sqlLines, colValIdx, propDef:GetColumnExpression(false))
-            end
-            table.insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
-            local sql = table.concat(sqlLines)
-            newClassDef.DBContext:ExecAdhocSql(sql, { ClassID = newClassDef.ClassID })
+    if not tablex.deepcompare(newIdxDef.multiKeyIndexing, oldIdxDef.multiKeyIndexing) then
+        -- Delete from .multi_key_N
+        if #oldIdxDef.multiKeyIndexing > 0 then
+            oldClassDef.DBContext:ExecAdhocSql(string.format('delete from [.multi_key%d] where ClassID = :ClassID',
+                    #oldIdxDef.multiKeyIndexing),
+                    { ClassID = oldClassDef.ClassID })
         end
+
+        -- Insert into .multi_key_N
+        local colNameIdx = 1
+        local colValIdx = 2
+        local sqlLines = { string.format('insert into [.multi_key%d] (ClassID',
+                #newIdxDef.multiKeyIndexing, newClassDef.ClassID),
+                           ') select (:ClassID' }
+        for iCol, propID in ipairs(newIdxDef.multiKeyIndexing[#newIdxDef.multiKeyIndexing]) do
+            local propDef = newClassDef.DBContext.ClassProps[propID]
+            colNameIdx = colNameIdx + 1
+            colValIdx = colValIdx + 2
+            table.insert(sqlLines, colNameIdx, string.format(', [Z%d]', iCol))
+            table.insert(sqlLines, colValIdx, propDef:GetColumnExpression(false))
+        end
+        table.insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
+        local sql = table.concat(sqlLines)
+        newClassDef.DBContext:ExecAdhocSql(sql, { ClassID = newClassDef.ClassID })
     end
 end
 
@@ -827,9 +837,9 @@ function ClassDef:getObjectSchema(op)
     for propName, propDef in pairs(self.Properties) do
         local propSchema = propDef:GetValueSchema(op)
         if op == 'U' then
-            objSchema[propName] = schema.Optional(propSchema)
+            objSchema[string.lower(propName)] = schema.Optional(propSchema)
         else
-            objSchema[propName] = propSchema
+            objSchema[string.lower(propName)] = propSchema
         end
     end
 

@@ -65,9 +65,7 @@ local Constants = require 'Constants'
 local AccessControl = require 'AccessControl'
 local dbprops = require 'DBProperty'
 local parseDatTimeToJulian = require('Util').parseDatTimeToJulian
---local stringifyJulianToDateTime = require('Util').stringifyJulianToDateTime
 local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
---local pretty = require 'pl.pretty'
 local base64 = require 'base64'
 
 --[[
@@ -149,7 +147,8 @@ function PropertyDef:_init(params)
     else
         assert(params.dbrow)
         assert(params.jsonData)
-        self.Name = NameRef(params.dbrow.Name, params.dbrow.NameID)
+
+        self.Name = NameRef(params.dbrow.Property, params.dbrow.NameID)
 
         -- Copy property attributes
         ---@type number
@@ -215,21 +214,20 @@ function PropertyDef:saveToDB()
     assert(self.Name and self.Name:isResolved())
 
     -- Set ctlv
-    self.ctlv = 0
-    local vt = self:GetVType()
+    self.ctlv = self:GetCTLV()
 
     if self.ID and tonumber(self.ID) > 0 then
         -- Update existing
         self.ClassDef.DBContext:execStatement([[update [.class_props]
         set NameID = :nameID, ctlv = :ctlv, ctlvPlan = :ctlvPlan, ColMap = :ColMap
         where ID = :id]],
-                                              {
-                                                  nameID = self.Name.id,
-                                                  ctlv = self.ctlv,
-                                                  ctlvPlan = self.ctlvPlan,
-                                                  ColMap = self.ColMap,
-                                                  id = self.ID
-                                              })
+                {
+                    nameID = self.Name.id,
+                    ctlv = self.ctlv,
+                    ctlvPlan = self.ctlvPlan,
+                    ColMap = self.ColMap,
+                    id = self.ID
+                })
     else
         -- Insert new
         self.ClassDef.DBContext:execStatement(
@@ -266,26 +264,31 @@ function PropertyDef:getNativeType()
     return ''
 end
 
+-- Builds bit flag value for [.ref-value].ctlv field
+---@return number
+function PropertyDef:GetCTLV()
+    local result = self:GetVType()
+    local idxType = string.lower(self.D.index or '')
+    if idxType == 'index' then
+        result = bit.bor(result, Constants.CTLV_FLAGS.INDEX)
+    elseif idxType == 'unique' then
+        result = bit.bor(result, Constants.CTLV_FLAGS.UNIQUE)
+    else
+        result = bit.band(result, bit.bnot(bit.bor(Constants.CTLV_FLAGS.INDEX, Constants.CTLV_FLAGS.UNIQUE)))
+    end
+
+    if self.D.noTrackChanges then
+        result = bit.bor(result, Constants.CTLV_FLAGS.NO_TRACK_CHANGES)
+    end
+
+    return result
+end
+
 --Applies property definition to the database. Called on property save
 function PropertyDef:applyDef()
     -- resolve property name
     self.Name:resolve(self.ClassDef)
-
-    -- set ctlv
-    self.ctlv = 0
-    local idx = string.lower(self.D.index or '')
-    if idx == 'index' then
-        self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.INDEX)
-    elseif idx == 'unique' then
-        self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.UNIQUE)
-    else
-        self.ctlv = bit.band(self.ctlv, bit.bnot(bit.bor(Constants.CTLV_FLAGS.INDEX, Constants.CTLV_FLAGS.UNIQUE)) )
-    end
-
-    if self.D.noTrackChanges then
-        self.ctlv = bit.bor(self.ctlv, Constants.CTLV_FLAGS.NO_TRACK_CHANGES)
-    end
-
+    self.ctlv = self:GetCTLV()
     self.ctlvPlan = self.ctlv
 end
 
@@ -300,6 +303,7 @@ function PropertyDef:isReference()
     return false
 end
 
+---@return number
 function PropertyDef:GetVType()
     return Constants.vtype.default
 end
@@ -340,7 +344,7 @@ function PropertyDef:GetColumnExpression(first)
     if self.ColMap then
         return string.format(
                 '%s coalesce([%s], (select [Value] from [.ref-values] where ClassID=%d and PropertyID=%d and PropIndex=0 limit 1)) as [%s]',
-                first and ' ' or ',', self.ColMap, self.ClassDef.ClassID, self.ID, self.Name.text )
+                first and ' ' or ',', self.ColMap, self.ClassDef.ClassID, self.ID, self.Name.text)
     else
         return string.format(
                 '%s (select [Value] from [.ref-values] where ClassID=%d and PropertyID=%d and PropIndex=0 limit 1) as [%s]',
@@ -355,7 +359,9 @@ function PropertyDef:CreateDBProperty(object)
     return result
 end
 
+-- Converts value from user format to internally used storage format
 ---@param dbv DBValue
+---@return any
 function PropertyDef:GetRawValue(dbv)
     return dbv.Value
 end
@@ -374,9 +380,10 @@ function PropertyDef:ImportDBValue(dbv, v)
 end
 
 -- Converts dbv.Value to the format, appropriate for JSON serialization
+---@param dbo DBObject
 ---@param dbv DBValue
 ---@return any
-function PropertyDef:ExportDBValue(dbv)
+function PropertyDef:ExportDBValue(dbo, dbv)
     return dbv.Value
 end
 
@@ -390,7 +397,7 @@ end
 
 --[[ Called before .ref-value row is inserted/updated
 Returns tuple of 2 values: boolean and function
-If boolean part is true, .ref-values row gets inserted/updated immediately.
+If boolean is true, .ref-values row gets inserted/updated immediately.
 Otherwise, update operation is skipped at this time
 If function part is not nil, it gets added to deferredActions list to be called when all objects in batch are inserted/updated
 
@@ -403,6 +410,12 @@ false, function - typically, reference. No .ref-values row is inserted/updated a
 ---@return boolean, function
 function PropertyDef:BeforeDBValueSave(dbv)
     return true, nil
+end
+
+-- Returns index of column mapped
+---@return number | nil
+function PropertyDef:ColMapIndex()
+    return self.ColMap ~= nil and string.lower(self.ColMap):byte() - string.byte('a') or nil
 end
 
 --[[
@@ -464,12 +477,18 @@ end
 function NumberPropertyDef:GetValueSchema(op)
     local result = self:buildValueSchema(
             schema.NumberFrom(self.D.rules.minValue or Constants.MIN_NUMBER,
-                              self.D.rules.maxValue or Constants.MAX_NUMBER))
+                    self.D.rules.maxValue or Constants.MAX_NUMBER))
     return result
 end
 
 function NumberPropertyDef:GetSupportedIndexTypes()
     return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.RNG + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ
+end
+
+---@param dbv DBValue
+---@param v any
+function NumberPropertyDef:ImportDBValue(dbv, v)
+    dbv.Value = tonumber(v)
 end
 
 --[[
@@ -480,6 +499,7 @@ MoneyPropertyDef
 --- @class MoneyPropertyDef
 local MoneyPropertyDef = class(NumberPropertyDef)
 
+-- Ctor is required
 function MoneyPropertyDef:_init(params)
     self:super(params)
 end
@@ -490,6 +510,19 @@ end
 
 function MoneyPropertyDef:getNativeType()
     return 'integer'
+end
+
+---@param dbv DBValue
+---@param v any
+function MoneyPropertyDef:ImportDBValue(dbv, v)
+    local vv = tonumber(v) * 10000
+    local s = string.format('%.1f', vv)
+    if s:byte(#s) ~= 48 then
+        -- Last character must be '0' (ASCII 48)
+        error(string.format('%s.%s: %s is not valid value for money',
+                self.ClassDef.Name.text, self.Name.text, v))
+    end
+    dbv.Value = tonumber(s:sub(1, #s - 2))
 end
 
 -- TODO GetValueSchema - check  if value is number with up to 4 decimal places
@@ -531,7 +564,7 @@ end
 ---@param op string @comment 'C' or 'U'
 function IntegerPropertyDef:GetValueSchema(op)
     local result = self:buildValueSchema(schema.AllOf(schema.NumberFrom(self.D.rules.minValue or Constants.MIN_INTEGER,
-                                                                        self.D.rules.maxValue or Constants.MAX_INTEGER), schema.Integer))
+            self.D.rules.maxValue or Constants.MAX_INTEGER), schema.Integer))
     return result
 end
 
@@ -843,31 +876,6 @@ function EnumPropertyDef:_init(params)
     self:super(params)
 end
 
----
---- Checks if enumeration is defined correctly
---function EnumPropertyDef:isValidDef()
---    local ok, errorMsg = PropertyDef.isValidDef(self)
---    if not ok then
---        return ok, errorMsg
---    end
---
---    local enumDef = self.D.enumDef or self.D.refDef
---    if type(enumDef) ~= 'table' then
---        return false, 'enumDef nor refDef is not defined or invalid'
---    end
---
---    -- either classRef or items have to be defined
---    if not enumDef.classRef and not enumDef.items then
---        return false, 'enumDef must have either classRef or items or both'
---    end
---
---    return true
---end
-
-function EnumPropertyDef:getNativeType()
-    return 'text'
-end
-
 --- @overload
 function EnumPropertyDef:hasUnresolvedReferences()
     local result = PropertyDef.hasUnresolvedReferences(self)
@@ -947,7 +955,8 @@ function EnumPropertyDef:GetVType()
 end
 
 function EnumPropertyDef:GetSupportedIndexTypes()
-    return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.STD
+    return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ
+            + Constants.INDEX_TYPES.FTS_SEARCH
 end
 
 ---@return boolean, function
@@ -965,6 +974,29 @@ function EnumPropertyDef:BeforeDBValueSave(dbv)
     end
 
     return true, validateEnumRef
+end
+
+--[[ Applies enum value to the property
+Postpones operation till all scalar data for all objects in the transaction are done.
+This ensures that all inter-references are resolved properly
+]]
+---@param dbv DBValue
+---@param v string | number | boolean
+function EnumPropertyDef:ImportDBValue(dbv, v)
+    return nil, function()
+        -- re-apply value
+    end
+end
+
+-- Retrieves $uid value from referenced object
+---@param dbo DBObject
+---@param dbv DBValue
+function EnumPropertyDef:ExportDBValue(dbo, dbv)
+
+end
+
+function EnumPropertyDef:SetValue()
+
 end
 
 --[[
@@ -1028,12 +1060,19 @@ end
 ---@param dbv DBValue
 ---@param v any
 function BlobPropertyDef:ImportDBValue(dbv, v)
-    dbv.Value = base64.decode(v)
+    local vv = base64.decode(v)
+
+    if vv == nil and v ~= nil then
+        dbv.Value = v
+    else
+        dbv.Value = vv
+    end
 end
 
+---@param dbo DBObject
 ---@param dbv DBValue
 ---@return any
-function BlobPropertyDef:ExportDBValue(dbv)
+function BlobPropertyDef:ExportDBValue(dbo, dbv)
     local result = base64.encode(dbv.Value)
     return result
 end
@@ -1157,6 +1196,19 @@ function DateTimePropertyDef:GetRawValue(dbv)
     return self:toJulian(dbv.Value)
 end
 
+---@param dbv DBValue
+---@param v any
+function DateTimePropertyDef:ImportDBValue(dbv, v)
+    if type(v) == 'string' then
+        dbv.Value = parseDatTimeToJulian(v)
+    elseif type(v) == 'number' then
+        dbv.Value = tonumber(v)
+    else
+        error(string.format('Invalid value type of date property %s.%s: %s (%s)',
+                self.PropDef.ClassDef.Name.text, self.PropDef.Name.text, v, type(v)))
+    end
+end
+
 --[[
 ===============================================================================
 TimeSpanPropertyDef
@@ -1261,6 +1313,7 @@ EnumDefSchemaDef.items = schema.Optional(schema.Collection(schema.Record {
     icon = schema.Optional(schema.String),
     imageUrl = schema.Optional(schema.String),
 }))
+EnumDefSchemaDef.refProperty = schema.Optional(name_ref.IdentifierSchema)
 
 local EnumRefDefSchemaDef = {
     classRef = schema.OneOf(schema.Nil, name_ref.IdentifierSchema, schema.Collection(name_ref.IdentifierSchema))
@@ -1276,71 +1329,71 @@ local RefDefSchemaDef = {
         })
     }),
 
---[[
-Property name ID (in `classRef` class) used as reversed reference property for this one. Optional. If set,
-Flexilite will ensure that referenced class does have this property (by creating if needed).
-'reversed property' is treated as slave of master definition. It means the following:
-1) reversed object ID is stored in [Value] field (master's object ID in [ObjectID] field)
-     2) when master property gets modified (switches to different class or reverse property) or deleted,
-     reverse property definition also gets deleted
-     ]]
+    --[[
+    Property name ID (in `classRef` class) used as reversed reference property for this one. Optional. If set,
+    Flexilite will ensure that referenced class does have this property (by creating if needed).
+    'reversed property' is treated as slave of master definition. It means the following:
+    1) reversed object ID is stored in [Value] field (master's object ID in [ObjectID] field)
+         2) when master property gets modified (switches to different class or reverse property) or deleted,
+         reverse property definition also gets deleted
+         ]]
     reverseProperty = schema.Optional(name_ref.IdentifierSchema),
 
---[[
-Defines number of items fetched as a part of master object load. Applicable only > 0
-]]
+    --[[
+    Defines number of items fetched as a part of master object load. Applicable only > 0
+    ]]
     autoFetchLimit = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
 
-    autoFetchDepth = schema.Optional(schema.AllOf( schema.Integer, schema.PositiveNumber)),
+    autoFetchDepth = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
 
---[[
-Optional relation rule when object gets deleted. If not specified, 'link' is assumed
-]]
+    --[[
+    Optional relation rule when object gets deleted. If not specified, 'link' is assumed
+    ]]
     rule = schema.OneOf(schema.Nil,
 
     --[[
     Referenced object(s) are details (dependents).
     They will be deleted when master is deleted. Equivalent of DELETE CASCADE
     ]]
-                        'master',
+            'master',
 
     --[[
     Loose association between 2 objects. When object gets deleted, references are deleted too.
     Equivalent of DELETE SET NULL
     ]]
-                        'link',
+            'link',
 
     --[[
     Similar to master but referenced objects are treated as part of master object
     ]]
-                        'nested',
+            'nested',
 
     --[[
     Object cannot be deleted if there are references. Equivalent of DELETE RESTRICT
     ]]
-                        'dependent'
+            'dependent'
     ),
 }
 
-PropertyDef.Schema = schema.AllOf( schema.Record {
+PropertyDef.Schema = schema.AllOf(schema.Record {
     rules = schema.AllOf(
             schema.Record {
                 type = schema.OneOf(unpack(tablex.keys(PropertyDef.PropertyTypes))),
-                subType = schema.OneOf(schema.Nil, 'text', 'email', 'ip', 'password', 'ip6v', 'url', 'image', 'html' ), -- TODO list to be extended
+                subType = schema.OneOf(schema.Nil, 'text', 'email', 'ip', 'password', 'ip6v', 'url', 'image', 'html'), -- TODO list to be extended
                 minOccurrences = schema.Optional(schema.AllOf(schema.NonNegativeNumber, schema.Integer)),
                 maxOccurrences = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
                 maxLength = schema.Optional(schema.AllOf(schema.Integer, schema.NumberFrom(-1, Constants.MAX_INTEGER))),
-            -- TODO integer, float or date/time, depending on property type
+                -- TODO integer, float or date/time, depending on property type
                 minValue = schema.Optional(schema.Number),
                 maxValue = schema.Optional(schema.Number),
                 regex = schema.Optional(schema.String),
             },
-            schema.Test( function(rules)
+            schema.Test(function(rules)
                 return (rules.maxOccurrences or 1) >= (rules.minOccurrences or 0)
             end, 'maxOccurrences must be greater or equal than minOccurrences')
     ,
 
-            schema.Test( function(rules)
+            schema.Test(function(rules)
                 -- TODO Check property type
                 return (rules.maxValue or Constants.MAX_NUMBER) >= (rules.minValue or Constants.MIN_NUMBER)
             end, 'maxValue must be greater or equal than minValue')
@@ -1350,32 +1403,32 @@ PropertyDef.Schema = schema.AllOf( schema.Record {
     noTrackChanges = schema.Optional(schema.Boolean),
 
     enumDef = schema.Case('rules.type',
-                          { schema.OneOf( 'enum', 'fkey', 'foreignkey'),
-                            schema.Optional(schema.Record(EnumDefSchemaDef)) },
-                          { schema.Any, schema.Any }),
+            { schema.OneOf('enum', 'fkey', 'foreignkey'),
+              schema.Optional(schema.Record(EnumDefSchemaDef)) },
+            { schema.Any, schema.Any }),
 
     refDef = schema.Case('rules.type',
-                         { schema.OneOf('link', 'mixin', 'ref', 'reference'), schema.Record( RefDefSchemaDef) },
-                         { schema.OneOf( 'enum', 'fkey', 'foreignkey'), schema.Optional(schema.Record( EnumRefDefSchemaDef)) },
-                         { schema.Any, schema.Any }),
+            { schema.OneOf('link', 'mixin', 'ref', 'reference'), schema.Record(RefDefSchemaDef) },
+            { schema.OneOf('enum', 'fkey', 'foreignkey'), schema.Optional(schema.Record(EnumRefDefSchemaDef)) },
+            { schema.Any, schema.Any }),
 
--- todo specific property value
+    -- todo specific property value
     defaultValue = schema.Any,
     accessRules = schema.Optional(AccessControl.Schema),
 }
 ,
-                                   schema.Test(
-                                           function(propDef)
-                                               -- Test enum definition
-                                               local t = string.lower(propDef.rules.type)
-                                               if t == 'enum' or t == 'fkey' or t == 'foreignkey' then
-                                                   local def = propDef.enumDef and 1 or 0
-                                                   def = def + (propDef.refDef and 2 or 0)
-                                                   return def == 1 or def == 2
-                                               end
-                                               return true
-                                           end, 'Enum property requires either enumDef or refDef (but not both)'
-                                   )
+        schema.Test(
+                function(propDef)
+                    -- Test enum definition
+                    local t = string.lower(propDef.rules.type)
+                    if t == 'enum' or t == 'fkey' or t == 'foreignkey' then
+                        local def = propDef.enumDef and 1 or 0
+                        def = def + (propDef.refDef and 2 or 0)
+                        return def == 1 or def == 2
+                    end
+                    return true
+                end, 'Enum property requires either enumDef or refDef (but not both)'
+        )
 )
 
 return PropertyDef

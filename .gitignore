@@ -98,3 +98,6 @@ node_modules
 /bin/sqlite_shell
 /bin/libluajit.dylib
 /bin/luajit
+/bin/flexish
+/obj_lua/
+/bin/flexish_cli

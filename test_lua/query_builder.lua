@@ -4,28 +4,30 @@
 --- DateTime: 2018-02-25 1:59 PM
 ---
 
-local util = require 'util'
+--local util = require 'util'
 
-local pretty = require 'pl.pretty'
+--TODO local pretty = require 'pl.pretty'
 local FilterDef = require('QueryBuilder').FilterDef
 
-local path = require 'pl.path'
-local CreateClass = require('flexi_CreateClass').CreateClass
+--local path = require 'pl.path'
+--local CreateClass = require('flexi_CreateClass').CreateClass
+--
+-----@param DBContext DBContext
+-----@return ClassDef
+--local function createProductsClass(DBContext)
+--    local __dirname = path.abspath('..')
+--    local schemaFile = path.join(__dirname, 'test', 'json', 'Northwind.Products.schema.json')
+--    local schema = util.readAll(schemaFile)
+--
+--    CreateClass(DBContext, 'Product', schema, false)
+--    local classDef = DBContext:getClassDef('Product')
+--    return classDef
+--end
+--
+--local DBContext = util.openFlexiDatabaseInMem()
+--local ProductClassDef = createProductsClass(DBContext)
 
----@param DBContext DBContext
----@return ClassDef
-local function createProductsClass(DBContext)
-    local __dirname = path.abspath('..')
-    local schemaFile = path.join(__dirname, 'test', 'json', 'Northwind.Products.schema.json')
-    local schema = util.readAll(schemaFile)
-
-    CreateClass(DBContext, 'Product', schema, false)
-    local classDef = DBContext:getClassDef('Product')
-    return classDef
-end
-
-local DBContext = util.openFlexiDatabaseInMem()
-local ProductClassDef = createProductsClass(DBContext)
+local ProductClassDef = require 'test_class_def'
 
 -- Tests for using indexes for query
 
@@ -88,13 +90,14 @@ local expr_cases = {
     { expr = [[((QuantityPerUnit == 12 and (ReorderLevel == 12 and not UnitPrice > 3)))]], indexedProps = {} },
     { expr = [[((12 <= QuantityPerUnit and (12 >= ReorderLevel and 3 < UnitPrice)))]], indexedProps = {} },
     { expr = [[(11 < QuantityPerUnit and 12 > ReorderLevel and 13 <= UnitPrice and 14 >= QuantityPerUnit)]], indexedProps = {} },
+    { expr = [[CategoryID == 6 and ProductName >= 'B' and ProductName < 'C']], indexedProps = {} },
 }
 
 ---@param case IndexCase
 local function generate_indexed_items(case)
+    print('#Expression: '..case.expr)
     local filterDef = FilterDef(ProductClassDef, case.expr, case.params)
-    print(case.expr)
-    pretty.dump(filterDef.indexedItems)
+    --pretty.dump(filterDef.indexedItems)
 end
 
 local function process_expr_cases()

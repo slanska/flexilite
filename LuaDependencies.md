@@ -11,3 +11,12 @@
 * luarocks install schema
 * luarocks install prettycjson
 * luarocks install ansicolors
+
+
+
+Update all submodules:
+```
+cd ./lib
+git submodule init
+git submodule update --force --merge
+``'

@@ -5,13 +5,13 @@
 
 --[[
 Enums in Flexilite is pretty much the same as references. When property is declared as enum,
-new enum class may be automatically created, or existing enum class will
-be used if classRef has valid class name.
+new enum class will be automatically created (or existing enum class will
+be used if classRef has valid enum class name defined).
 
 Auto created enum class will have 2 special properties: uid (type will be based on type of id values in items list
 - so it will be either integer or string), and name, type of 'symbol'
 
-Optional item list will be used to populate data in the enum class. Existing items may be replaced, if their IDs match.
+Optional item list will be used to populate data in the enum class. Existing items will be replaced, if their IDs match.
 
 Enums are very similar to foreign key relation in standard RDBMS in sense that they store user defined ID,
 not internal object ID, and do not support many-to-many relationship.
@@ -20,14 +20,16 @@ Any existing class can be used as enum class, if it has id and text special prop
 Also, auto created enum classes can be extended/modified like regular classes
 
 Differences between enum and regular classes:
-1) Enum property will be scalar or array of ID values from referenced enum item (not object ID). It will not be
-defined as reference value, but as field value. So, JSON output will have values like "Status": "A"
+1) Enum property will be defined as computed property which returns $uid value for tha associated class
+It may be scalar or array of values. During load, current $uid value will be retrieved based on
+referenced object ID. So, JSON output will have values like "Status": "A"
 or "Status": ["A", "B"], not like "Status": 123456
-2) Implicit property 'text' will be supplied. So for enum property Order.Status there will be also
-implicit property Order.Status.text. Value of this property will be taken from name and possibly
-translated based on current user culture.
+2) Internally enum will be stored and processed as a regular reference. All reference related
+constraints (like cascade update or delete) will be applied too.
+3) Enum property will be treated as a computed property with formula.get 'self[NNN]['$uid']', where NNN is ID of corresponding
+implicit reference property. formula.set will change reference to another object on enum value change
 
-Enum can be defined in enumDef or refDef. Only one of those is allowed, supplying both will throw an error.
+Enum can be defined in enumDef or refDef. Only one of those is allowed, and supplying both will throw an error.
 There are few differences in how enumDef and refDef are handled.
 enumDef's purpose is for pure enum, i.e. enum value based on item list. refDef is for foreign keys.
 
@@ -35,15 +37,15 @@ For enumDef: classRef can be omitted, if not set, className_propertyName will be
 If class is not set, items are mandatory. If class set and already exists, items will be appended to existing
 (if any) enum's items. If class set and does not yet exist, it will be created immediately.
 
-For refDef: class is required. If it does not exist, it will be resolved at the end of request processing
-(so that multiple classes, referencing each other can be created). Class will NOT be created automatically.
+For refDef: class is required. If it does not exist yet, its resolving will be deferred till the end of request processing
+(so that multiple classes, referencing each other can be created). Note: class will NOT be created automatically,
+it must exist or be created by user, as a normal class.
 ]]
 
 local ClassCreate = require('flexi_CreateClass').CreateClass
 local json = require 'cjson'
 local NameRef = require 'NameRef'
 local class = require 'pl.class'
-local DBObject = require 'DBObject'
 
 -- Implements enum storage
 ---@class EnumManager
@@ -89,10 +91,14 @@ function EnumManager:upsertEnumItem(propDef, item)
     end
 end
 
+--[[ Applies enum property definition
+Ensures that corresponding
+]]
 ---@param propDef EnumPropertyDef
 function EnumManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
 
+    -- TODO
     if propDef.D.enumDef then
         -- Process as pure enum
         local refClsName
@@ -111,7 +117,16 @@ function EnumManager:ApplyEnumPropertyDef(propDef)
         end
     elseif propDef.D.refDef then
         -- Process as foreign key
-        local refCls = self.DBContext:getClassDef(propDef.D.refDef.classRef.text)
+
+        -- Check if this is self-reference (like Employee.ReportsTo -> Employee)
+        ---@type ClassDef
+        local refCls
+        if string.lower(propDef.D.refDef.classRef.text) == string.lower(propDef.ClassDef.Name.text) then
+            refCls = propDef.ClassDef
+        else
+            refCls = self.DBContext:getClassDef(propDef.D.refDef.classRef.text)
+        end
+
         if refCls then
             -- TODO
         else

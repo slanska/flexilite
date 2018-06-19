@@ -29,19 +29,19 @@ SELECT julianday([value]) from json_each('["2017-12-01T11:30",' ||
 
 describe('PropertyDef utility tests', function()
 
-    it('should use correct subclasses', function()
+    pending('should use correct subclasses', function()
 
     end)
 
-    it('should convert from JulianDate', function()
+    pending('should convert from JulianDate', function()
 
     end)
 
-    it('should convert to JulianDate', function()
+    pending('should convert to JulianDate', function()
 
     end)
 
-    it('should match identifier name', function()
+    pending('should match identifier name', function()
 
     end)
 

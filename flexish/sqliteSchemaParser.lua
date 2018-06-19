@@ -3,10 +3,22 @@
 --- DateTime: 2017-11-18 12:06 PM
 ---
 
---local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local class = require 'pl.class'
-local SQLiteSchemaParser = class()
 local tablex = require 'pl.tablex'
+
+---@class ITableInfo
+
+---@class FlexishResults
+
+---@class IClassDefinition
+
+---@class SQLiteSchemaParser
+---@field outSchema table<string, IClassDefinition>
+---@field tableInfo table<string, ITableInfo>
+---@field results FlexishResults
+---@field referencedTableNames string[]
+
+local SQLiteSchemaParser = class()
 
 table.find = function(tbl, func)
     for k, v in pairs(tbl) do
@@ -873,6 +885,8 @@ function SQLiteSchemaParser:parseSchema()
 
     local stmt, errMsg = self.db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
     for item in stmt:nrows() do
+        -- TODO
+        print('SQLiteSchemaParser:parseSchema: ' .. item.name)
         self:loadTableInfo(item)
     end
 
