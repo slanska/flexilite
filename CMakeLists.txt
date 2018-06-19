@@ -310,4 +310,4 @@ add_custom_target(install_${PROJECT_NAME}
         DEPENDS ${PROJECT_NAME}
         COMMENT "Installing ${PROJECT_NAME}")
 
-add_subdirectory(test)
+#add_subdirectory(test)
