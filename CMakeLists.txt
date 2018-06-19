@@ -82,13 +82,13 @@ include_directories(
 
 IF (WIN32)
     # TODO
-    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
+#    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
     SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/mingw64/luajit.a)
 ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
+#    SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
     SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/osx64/libluajit.a)
 ELSE ()
-    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
+#    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
     SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/linux64/libluajit.a)
 ENDIF ()
 
@@ -204,18 +204,30 @@ set(SRC_FILES
         flexish/main.c
         )
 
+
 #set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
 #set(CMAKE_STATIC_LINKER_FLAGS "-Wl,--whole-archive -llibFlexish_static -Wl,--no-whole-archive -Wl,-E -pagezero_size 10000 -image_base 100000000")
 
 #SET(${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexish/libFlexish.a -Wl,--whole-archive MY_LIB -Wl,--no-whole-archive)
 add_executable(flexish_cli ${SRC_FILES})
 
-# TODO Conditionally: only on OSX 64 bit
-set ( CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 ${CMAKE_EXE_LINKER_FLAGS}" )
+IF (WIN32)
+    # TODO
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/mingw64/luajit.a)
+    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
+ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    # TODO Conditionally: only on OSX 64 bit
+    set ( CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 ${CMAKE_EXE_LINKER_FLAGS}" )
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/osx64/libluajit.a)
+    SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
+ELSE ()
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/linux64/libluajit.a)
+    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
+ENDIF ()
 
+target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
 target_link_libraries(flexish_cli PUBLIC FlexishStatic)
 target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
-target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
 
 ###############################################################################
 # test
