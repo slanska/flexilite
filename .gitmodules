@@ -3,7 +3,7 @@
 	url = git://git.cryptomilk.org/projects/cmocka.git
 [submodule "lib/luajit"]
 	path = lib/luajit
-	url = http://luajit.org/git/luajit-2.0.git
+	url = https://github.com/luapower/luajit.git
 [submodule "lib/lua-cjson"]
 	path = lib/lua-cjson
 	url = https://github.com/mpx/lua-cjson.git
