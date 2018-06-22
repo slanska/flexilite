@@ -76,7 +76,7 @@ project(Flexilite)
 
 include_directories(
         lib/sqlite
-        lib/luajit/csrc/luajit/src/src
+        lib/torch-lua/luajit-2.1/src
         src/util
 )
 
@@ -212,20 +212,28 @@ set(SRC_FILES
 add_executable(flexish_cli ${SRC_FILES})
 
 IF (WIN32)
+    message('Windows: Flexish')
     # TODO
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/mingw64/luajit.a)
+#    SET(LuaJit_static -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
+#    target_link_libraries(flexish_cli STATIC PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
     SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
-ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+ELSEIF (APPLE)
     # TODO Conditionally: only on OSX 64 bit
-    set ( CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 ${CMAKE_EXE_LINKER_FLAGS}" )
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/osx64/libluajit.a)
+    message('OSX: Flexish')
+#    set ( CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 ${CMAKE_EXE_LINKER_FLAGS}" )
+#    SET(LuaJit_static -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
+#    target_link_libraries(flexish_cli STATIC PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
     SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
 ELSE ()
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/linux64/libluajit.a)
+    message('Linux: Flexish')
+
+#    SET(LuaJit_static -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
+#    target_link_libraries(flexish_cli STATIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
     SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
 ENDIF ()
 
-target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
+#target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
+target_link_libraries(flexish_cli PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
 target_link_libraries(flexish_cli PUBLIC FlexishStatic)
 target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
 

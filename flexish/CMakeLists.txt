@@ -46,7 +46,7 @@ message("Building on: ${CMAKE_SYSTEM_NAME}")
 
 include_directories(
         ../lib/sqlite
-        ../lib/luajit/csrc/luajit/src/src
+        ../lib/torch-lua/luajit-2.1/src
         ../lib/luafilesystem/src
 )
 

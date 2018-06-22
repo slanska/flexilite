@@ -1,9 +1,9 @@
+[submodule "lib/torch-lua"]
+	path = lib/torch-lua
+	url = https://github.com/torch/luajit-rocks.git
 [submodule "lib/cmocka"]
 	path = lib/cmocka
 	url = git://git.cryptomilk.org/projects/cmocka.git
-[submodule "lib/luajit"]
-	path = lib/luajit
-	url = https://github.com/luapower/luajit.git
 [submodule "lib/lua-cjson"]
 	path = lib/lua-cjson
 	url = https://github.com/mpx/lua-cjson.git
