@@ -77,6 +77,7 @@ project(Flexilite)
 include_directories(
         lib/sqlite
         lib/torch-lua/luajit-2.1/src
+
         src/util
 )
 
@@ -198,6 +199,7 @@ message("Building on: ${CMAKE_SYSTEM_NAME}")
 
 include_directories(
         lib/sqlite
+        lib/torch-lua/luajit-2.1/src
 )
 
 set(SRC_FILES
@@ -216,7 +218,7 @@ IF (WIN32)
     # TODO
 #    SET(LuaJit_static -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
 #    target_link_libraries(flexish_cli STATIC PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
-    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
+    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
 ELSEIF (APPLE)
     # TODO Conditionally: only on OSX 64 bit
     message('OSX: Flexish')
@@ -229,7 +231,7 @@ ELSE ()
 
 #    SET(LuaJit_static -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
 #    target_link_libraries(flexish_cli STATIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
-    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
+    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua//libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
 ENDIF ()
 
 #target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
