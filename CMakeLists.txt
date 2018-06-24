@@ -84,13 +84,13 @@ include_directories(
 IF (WIN32)
     # TODO
 #    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/mingw64/luajit.a)
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
 ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #    SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/osx64/libluajit.a)
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
 ELSE ()
 #    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/luajit/bin/linux64/libluajit.a)
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
 ENDIF ()
 
 add_custom_target(
