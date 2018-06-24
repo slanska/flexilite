@@ -101,3 +101,8 @@ node_modules
 /bin/flexish
 /obj_lua/
 /bin/flexish_cli
+/flexish/libFlexishStatic.a
+/flexish/CMakeCache.txt
+/flexish/Makefile
+/flexish/CTestTestfile.cmake
+/flexish/cmake_install.cmake

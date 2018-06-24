@@ -51,7 +51,7 @@ include_directories(
 )
 
 ADD_CUSTOM_TARGET(
-        Compile_Lua
+        Compile_Flexish_LuaFiles
         ALL
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMAND luajit ../util/lua2lib.lua ./filelist.lua -n libFlexishLua.a --output ../obj_lua

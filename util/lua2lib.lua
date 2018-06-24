@@ -58,7 +58,7 @@ for file_name, module_name in pairs(files) do
     local cmd = string.format('luajit -b%s "%s" "%s"',
             nn, file_path, o_file)
 
-    print(string.format('Compiling %s', file_name))
+    print(string.format('%s: compiling %s', libName, file_name))
 
     os_execute(cmd)
 end

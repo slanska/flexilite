@@ -54,7 +54,8 @@ set(SHELL_FILES
         lib/sqlite/sqlite3.c
         )
 
-add_definitions(-DSQLITE_ENABLE_FTS4
+add_definitions(
+        -DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_RTREE
         -DSQLITE_ENABLE_LOAD_EXTENSION
         -DSQLITE_ENABLE_JSON1
@@ -77,21 +78,16 @@ project(Flexilite)
 include_directories(
         lib/sqlite
         lib/torch-lua/luajit-2.1/src
-
         src/util
 )
 
-IF (WIN32)
-    # TODO
-#    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
-ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-#    SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
-ELSE ()
-#    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/flexish/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
-ENDIF ()
+ADD_CUSTOM_TARGET(
+        Compile_Flexilite_LuaFiles
+        ALL
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMAND luajit ./util/lua2lib.lua ./src_lua/filelist.lua -n libFlexiliteLua.a --output ./obj_lua
+        COMMENT "Compiling Flexilite Lua files"
+)
 
 add_custom_target(
         Generate_Resources
@@ -103,6 +99,20 @@ add_custom_target(
 )
 
 set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TRUE)
+
+IF (WIN32)
+    message('Windows: Flexilite')
+    SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,-E)
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
+ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    message('OSX: Flexilite')
+    SET(Flexilite_LuaFiles -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a)
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
+ELSE ()
+    message('Linux: Flexilite')
+    SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,-E)
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
+ENDIF ()
 
 add_definitions(
         -DSQLITE_ENABLE_FTS4
@@ -166,7 +176,7 @@ set(EXT_FILES
 #set(CMAKE_FIND_LIBRARY_SUFFIXES ".dll")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
 
-# Register Flexilite DLL/SO/DYLIB
+# TODO Register Flexilite DLL/SO/DYLIB
 # Link to luajit statically
 
 set(CMAKE_MACOSX_RPATH 1)
@@ -174,6 +184,7 @@ set(CMAKE_MACOSX_RPATH 1)
 add_library(Flexilite SHARED ${EXT_FILES})
 
 target_link_libraries(Flexilite PUBLIC ${LuaJit_static})
+target_link_libraries(Flexilite PUBLIC ${Flexilite_LuaFiles})
 
 # Then link the libmyluafiles.a library into your main program using
 # -Wl,--whole-archive -lmyluafiles -Wl,--no-whole-archive -Wl,-E.

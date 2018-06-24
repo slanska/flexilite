@@ -20,3 +20,8 @@ cd ./lib
 git submodule init
 git submodule update --force --merge
 ``'
+
+**Update git submodules**
+```
+git submodule update --remote --merge --init 
+```
