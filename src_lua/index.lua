@@ -9,13 +9,7 @@ Creates new DBContexts
 Disposes DBContext on db connection closing
 ]]
 
-local path = require 'pl.path'
-local bits = type(jit) == 'table' and require('bit') or require('bit32')
-
--- Configure Lua path for libraries
-package.path = string.format('%s;%s;%s',
-                             path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua')),
-                             path.abspath(path.relpath('../lib/lua-schema/?.lua')), package.path)
+--local bits = type(jit) == 'table' and require('bit') or require('bit32')
 
 local DBContext = require('DBContext')
 
@@ -33,6 +27,9 @@ Gateway to handle all 'select flexi()' requests.
 - Processing is done within protected call (pcall)
 - All errors are converted to ctx errors and reported back to caller
 ]]
+
+---@param db sqlite3
+---@return DBContext
 function Flexi:newDBContext(db)
     local result = DBContext(db)
     self.Contexts[db] = result
@@ -60,6 +57,8 @@ function Flexi:newDBContext(db)
     return result
 end
 
+---@param db sqlite3
+---@return DBContext
 function Flexi:getDBContext(db)
     local result = self.Contexts[db]
     if not result then

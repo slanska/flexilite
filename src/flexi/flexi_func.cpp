@@ -21,10 +21,20 @@ extern "C"
 #include "flexi_class.h"
 #include "../util/Path.h"
 
+// External declarations
 extern "C"
 {
 LUALIB_API int luaopen_lsqlite3(lua_State *L);
 int luaopen_cjson(lua_State *l);
+int luaopen_base64(lua_State *L);
+
+int luaopen_lsqlite3(lua_State *L);
+
+int luaopen_cjson(lua_State *l);
+
+int luaopen_cjson_safe(lua_State *l);
+
+int luaopen_lfs(lua_State *L);
 }
 
 static int flexi_help_func(sqlite3_context *context,
@@ -35,17 +45,17 @@ static int flexi_help_func(sqlite3_context *context,
     (void) argv;
 
     const char *zHelp = "Usage:"
-            "   select flexi(<command>, <arguments>...)"
-            "Commands: Arguments:"
-            "   create class: class_name TEXT, class_definition JSON1, as_table BOOL"
-            "   alter class: class_name TEXT, class_definition JSON1, as_table BOOL"
-            "   drop class: class_name TEXT"
-            "   rename class: old_class_name TEXT, new_class_name TEXT"
-            "   create property: class_name TEXT, property_name TEXT, definition JSON1"
-            "   alter property: class_name TEXT, property_name TEXT, definition JSON1"
-            "   drop property: class_name TEXT, property_name TEXT"
-            "   rename property: old_property_name TEXT, new_property_name TEXT"
-            "   init";
+                        "   select flexi(<command>, <arguments>...)"
+                        "Commands: Arguments:"
+                        "   create class: class_name TEXT, class_definition JSON1, as_table BOOL"
+                        "   alter class: class_name TEXT, class_definition JSON1, as_table BOOL"
+                        "   drop class: class_name TEXT"
+                        "   rename class: old_class_name TEXT, new_class_name TEXT"
+                        "   create property: class_name TEXT, property_name TEXT, definition JSON1"
+                        "   alter property: class_name TEXT, property_name TEXT, definition JSON1"
+                        "   drop property: class_name TEXT, property_name TEXT"
+                        "   rename property: old_property_name TEXT, new_property_name TEXT"
+                        "   init";
 
     sqlite3_result_text(context, zHelp, -1, NULL);
     return SQLITE_OK;
@@ -82,152 +92,6 @@ static int flexi_init_func(sqlite3_context *context,
 
 }
 
-//thread_local auto pDukCtx = std::unique_ptr<DukContext>(new DukContext());
-
-
-/*
- * Central gateway to all Flexilite API
- */
-static void flexi_func(sqlite3_context *context,
-                       int argc,
-                       sqlite3_value **argv)
-{
-
-    if (argc == 0)
-    {
-        flexi_help_func(context, 0, NULL);
-        return;
-    }
-
-    /*
-     * TODO description
-     */
-    struct
-    {
-        const char *zMethod;
-
-        void (DBContext::*func)(sqlite3_context *, int, sqlite3_value **);
-
-        bool noTrn;
-
-        const char *zDescription;
-
-        const char *zHelp;
-    } methods[] = {
-            //            {"create class",          &DBContext::CreateClassFunc},
-            //            {"alter class",           &DBContext::AlterClassFunc},
-            //            {"drop class",            &DBContext::DropClassFunc},
-            //            {"rename class",          &DBContext::RenameClassFunc},
-            //            {"create property",       &DBContext::CreatePropFunc},
-            //            {"alter property",        &DBContext::AlterPropFunc},
-            //            {"drop property",         &DBContext::DropPropFunc},
-            //            {"rename property",       &DBContext::RenamePropFunc},
-            //            {"merge property",        &DBContext::MergePropFunc},
-            //            {"split property",        &DBContext::SplitPropFunc},
-            //
-            //            {"properties to object",  &DBContext::PropsToObjectFunc},
-            //            {"object to properties",  &DBContext::ObjectToPropsFunc},
-            //            {"property to reference", &DBContext::PropToRefFunc},
-            //            {"reference to property", &DBContext::RefToPropFunc},
-            //            {"change object class",   &DBContext::ChangeObjectClassFunc},
-            //
-            //            {"schema",                &DBContext::SchemaFunc},
-            //            {"config",                &DBContext::ConfigFunc},
-            //            {"structural merge",      &DBContext::StructuralMergeFunc},
-            //            {"structural split",      &DBContext::StructuralSplitFunc},
-            //            {"remove duplicates",     &DBContext::RemoveDuplicatesFunc},
-
-            /* TODO
-             * "structural merge" -- join 2+ objects to 1 object
-             * "structural split" -- reverse operation to structural split
-             * "remove duplicates" -- finds and merges duplicates by uid, code or name
-             *
-             */
-
-            //            {"init",                  &DBContext::InitDatabaseFunc},
-            //            {"help",                  &DBContext::UsageFunc, false},
-
-            // TODO
-            {"validate data", nullptr},
-    };
-
-
-    char *zMethodName = (char *) sqlite3_value_text(argv[0]);
-    char *zError = nullptr;
-    int result = SQLITE_OK;
-    return;
-
-    for (int ii = 0; ii < sizeof(methods) / sizeof(methods[0]); ii++)
-    {
-        if (sqlite3_stricmp(methods[ii].zMethod, zMethodName) == 0)
-        {
-            sqlite3 *db = nullptr;
-
-            if (!methods[ii].noTrn)
-            {
-                db = sqlite3_context_db_handle(context);
-
-                result = sqlite3_exec(db, "savepoint flexi1;", NULL, NULL, &zError);
-                if (result != SQLITE_OK)
-                {
-                    sqlite3_result_error(context, zError, -1);
-                    return;
-                }
-            }
-
-            // Check user_version
-            std::shared_ptr<DBContext> pCtx;
-            void *pData = sqlite3_user_data(context);
-            memmove(&pCtx, pData, sizeof(pCtx));
-            //            result = flexi_Context_checkMetaDataCache(pCtx);
-            if (result == SQLITE_OK)
-            {
-                auto method = methods[ii].func;
-                (*pCtx.*method)(context, argc - 1, &argv[1]);
-            }
-
-            if (!methods[ii].noTrn)
-            {
-                // Check if call finished with error
-                // TODO
-                if (result != SQLITE_OK)
-                {
-                    // Dump database
-                    result = sqlite3_exec(db, "rollback to savepoint flexi1;", NULL, NULL, &zError);
-                }
-                else
-                {
-                    result = sqlite3_exec(db, "release flexi1;", NULL, NULL, &zError);
-                }
-
-                if (result != SQLITE_OK)
-                {
-                    sqlite3_result_error(context, zError, -1);
-                }
-            }
-
-            if (result != SQLITE_OK)
-            {
-                sqlite3 *db = sqlite3_context_db_handle(context);
-                zError = (char *) sqlite3_errmsg(db);
-                sqlite3_result_error(context, zError, -1);
-            }
-
-            return;
-        }
-    }
-
-    zError = sqlite3_mprintf("Invalid method name: %s", zMethodName);
-    sqlite3_result_error(context, zError, -1);
-}
-
-int flexi_data_init(
-        sqlite3 *db,
-        char **pzErrMsg,
-        const sqlite3_api_routines *pApi,
-        DBContext *pCtx
-);
-
 extern "C" int flexi_init(sqlite3 *db,
                           char **pzErrMsg,
                           const sqlite3_api_routines *pApi)
@@ -238,65 +102,40 @@ extern "C" int flexi_init(sqlite3 *db,
         sqlite3_stmt *pDummy = nullptr;
 
         lua_State *L = luaL_newstate();
+
+        lua_gc(L, LUA_GCSTOP, 0);
         luaL_openlibs(L);
-        luaopen_lsqlite3(L);
-        luaopen_cjson(L);
-
-        char zCurrentDir[PATH_MAX + 1];
-        char *zLuaSrc = nullptr;
-        getcwd(zCurrentDir, PATH_MAX);
-        //        Path_join(&zLuaSrc, zCurrentDir, "../../src_lua/index.lua");
-        if (luaL_dofile(L, "/Users/ruslanskorynin/Documents/Github/slanska/flexilite/src_lua/index.lua"))
-        {
-            printf("doFile: %s\n", lua_tostring(L, -1));
-        }
-        printf("\nLua file\n");
-        lua_pop(L, 1);
-        lua_close(L);
-
+        lua_gc(L, LUA_GCRESTART, -1);
 
         /*
-         * TODO temp load from external file
-         */
-        //        loadJsScript("./duk-deps.js");
-        //        loadJsScript("./flexi-duk.js");
+         * Open other Lua modules implemented in C
+        */
+        luaopen_lfs(L);
+        luaopen_base64(L);
+        luaopen_lsqlite3(L);
+        luaopen_cjson(L);
+        luaopen_cjson_safe(L);
 
-        // Create new database instance in JavaScript
-        //        auto dbAsInt = (uint64_t) db;
-        //        std::ostringstream str;
-        //        str << "var db = new Database(" << dbAsInt << "); "
-        //                "Statement.prototype._all = function() { /*var r = [].slice.call(arguments);*/  return 'abc';}; "
-        //                "var st = new Statement(db, 'select julianday();');"
-        //                "st.getNextRow([1, '2', true, null]);";
-        //        str << "var db = new Database(" << dbAsInt << ");"
-        //                "var stmt = db.prepare('select julianday();');"
-        //                "var row = stmt.get([]);";
-        //        auto ss = str.str();
+        // loadString ("local Flexi = require 'index'; return Flexi")
+        // loadString ("local DBContext = require 'DBContext'; return DBContext")
+        // Result - function
+        // Push db
+        // xpcall
 
-        //        auto database = new Database(dbAsInt);
-
-        //        pDukCtx->test_eval(ss.c_str());
-        //        dukglue_peval(pDukCtx->getCtx(), str.str().c_str());
-        //        DukValue dbVal = DukValue::take_from_stack(pDukCtx->getCtx());
-
-        CHECK_CALL(sqlite3_create_function_v2(db, "flexi", -1, SQLITE_UTF8,
-                                              nullptr, // Use db context id
-                                              flexi_func, nullptr, nullptr, nullptr));
-
-        // Execute 'flexi_data' with dummy call to enable finalization
-        //        CHECK_STMT_PREPARE(db, "select * from flexi_data();", &pDummy);
-        //        result = sqlite3_step(pDummy);
-        //        if (result != SQLITE_ROW && result != SQLITE_DONE)
-        //            goto ONERROR;
+        // Create context, by passing SQLite db connection
+        if (luaL_dostring(L, "local DBContext = require ('DBContext')"))
+        {
+            printf("Flexilite initialization: %s\n", lua_tostring(L, -1));
+        }
+        lua_pop(L, 1);
 
         result = SQLITE_OK;
         goto EXIT;
 
         ONERROR:
-        //        free(pDBCtx);
+        // TODO Needed?
 
         EXIT:
-        //        pCtx->nRefCount--;
         sqlite3_finalize(pDummy);
         return result;
     }

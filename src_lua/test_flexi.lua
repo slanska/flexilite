@@ -47,11 +47,13 @@ end
 require 'cjson'
 local path = require 'pl.path'
 
-package.path = path.abspath(path.relpath('../lib/lua-date/?.lua'))
-        .. ';' .. package.path
-
---local date = require 'date'
---local pretty = require 'pl.pretty'
+-- Configure Lua path for libraries
+package.path = table.concat({
+    path.abspath(path.relpath('../lib/lua-date/?.lua')),
+    path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua')),
+    path.abspath(path.relpath('../lib/lua-schema/?.lua')),
+    package.path },
+        ';')
 
 local __dirname = path.abspath('..')
 
@@ -124,11 +126,11 @@ local ok, error = xpcall(function()
     db:close()
 end,
 
-function(error)
- print(string.format("%s, %s", ok, error))
- --print(debug.stacktrace())
- print(debug.traceback(tostring(error)))
-end)
+        function(error)
+            print(string.format("%s, %s", ok, error))
+            --print(debug.stacktrace())
+            print(debug.traceback(tostring(error)))
+        end)
 
 --ProFi:stop()
 --ProFi:writeReport(path.abspath(path.relpath( './ProfileReport.txt')))

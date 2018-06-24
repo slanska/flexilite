@@ -12,9 +12,9 @@ to .obj, to avoid name clash
 
 return {
     --src_lua/
-    'src_lua/NameRef.lua',
-    'src_lua/UserInfo.lua',
-    'src_lua/flexi_CreateClass.lua',
+    ['src_lua/NameRef.lua'] = 'NameRef',
+    ['src_lua/UserInfo.lua'] = 'UserInfo',
+    ['src_lua/flexi_CreateClass.lua'] = 'flexi_CreateClass',
     'src_lua/flexi_DropClass.lua',
     'src_lua/flexi_SplitProperty.lua',
     'src_lua/ClassDef.lua',
