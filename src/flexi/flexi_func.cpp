@@ -116,24 +116,37 @@ extern "C" int flexi_init(sqlite3 *db,
         luaopen_cjson(L);
         luaopen_cjson_safe(L);
 
-        lua_pushlightuserdata(L, db);
-        int db_reg_index = luaL_ref(L, LUA_REGISTRYINDEX);
+        // Create context, by passing SQLite db connection
+        if (luaL_dostring(L, "return require 'sqlite3'"))
+        {
+            printf("Flexilite require sqlite3: %s\n", lua_tostring(L, -1));
+        }
 
+        lua_getfield(L, -1, "open_ptr");
+        lua_pushlightuserdata(L, db);
+        if (lua_pcall(L, 1, 1, 0))
+        {
+            printf("Flexilite sqlite.open_ptr: %s\n", lua_tostring(L, -1));
+        }
+
+        int dbctx_refidx = luaL_ref(L, LUA_REGISTRYINDEX);
+
+        // Create context, by passing SQLite db connection
+        if (luaL_dostring(L, "return require ('DBContext')"))
+        {
+            printf("Flexilite require DBContext: %s\n", lua_tostring(L, -1));
+        }
+
+        lua_rawgeti(L, LUA_REGISTRYINDEX, dbctx_refidx);
+        if (lua_pcall(L, 1, 1, 0))
+        {
+            printf("Flexilite DBContext(db): %s\n", lua_tostring(L, -1));
+        }
+        int db_reg_index = luaL_ref(L, LUA_REGISTRYINDEX);
         // TODO temp
         printf("db_reg_index: %d\n", db_reg_index);
 
-        // loadString ("local Flexi = require 'index'; return Flexi")
-        // loadString ("local DBContext = require 'DBContext'; return DBContext")
-        // Result - function
-        // Push db
-        // xpcall
-
-        // Create context, by passing SQLite db connection
-        if (luaL_dostring(L, "local DBContext = require ('DBContext')"))
-        {
-            printf("Flexilite initialization: %s\n", lua_tostring(L, -1));
-        }
-        lua_pop(L, 1);
+        // Remember Lua state and DBContext reference
 
         result = SQLITE_OK;
         goto EXIT;

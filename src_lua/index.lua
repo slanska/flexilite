@@ -33,26 +33,26 @@ Gateway to handle all 'select flexi()' requests.
 function Flexi:newDBContext(db)
     local result = DBContext(db)
     self.Contexts[db] = result
-    result.Vars = {}
-
-    -- flexi
-    db:create_function('flexi', -1, function(ctx, action, ...)
-        local vv = DBContext.flexiAction(result, ctx, action, ...)
-
-        ctx:result(vv)
-    end)
-
-    -- var:get
-    db:create_function('var', 1, function(ctx, varName)
-        return result.Vars[varName]
-    end)
-
-    -- var:set
-    db:create_function('var', 2, function(ctx, varName, varValue)
-        local v = result.Vars[varName]
-        result.Vars[varName] = varValue
-        return v
-    end)
+    --result.Vars = {}
+    --
+    ---- flexi
+    --db:create_function('flexi', -1, function(ctx, action, ...)
+    --    local vv = DBContext.flexiAction(result, ctx, action, ...)
+    --
+    --    ctx:result(vv)
+    --end)
+    --
+    ---- var:get
+    --db:create_function('var', 1, function(ctx, varName)
+    --    return result.Vars[varName]
+    --end)
+    --
+    ---- var:set
+    --db:create_function('var', 2, function(ctx, varName, varValue)
+    --    local v = result.Vars[varName]
+    --    result.Vars[varName] = varValue
+    --    return v
+    --end)
 
     return result
 end

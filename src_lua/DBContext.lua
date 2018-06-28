@@ -121,7 +121,12 @@ local flexiMeta
 --- @param db sqlite3
 --- @return DBContext
 function DBContext:_init(db)
+
     self.db = assert(db, 'Expected sqlite3 database but nil was passed')
+
+    -->>
+    print('DBContext:_init ', type(db))
+    require('pl.pretty').dump(db)
 
     -- Cache of prepared statements, key is statement SQL
     self.Statements = {}
@@ -168,6 +173,28 @@ function DBContext:_init(db)
     self.config = {
         createVirtualTable = false
     }
+
+    self.Vars = {}
+
+    -- flexi
+    self.db:create_function('flexi', -1, function(ctx, action, ...)
+        self.flexiAction(self, ctx, action, ...)
+    end)
+
+    -- var:get
+    self.db:create_function('var', 1, function(ctx, varName)
+        ctx:result(self.Vars[varName])
+    end)
+
+    -- var:set
+    self.db:create_function('var', 2, function(ctx, varName, varValue)
+        local v = self.Vars[varName]
+        self.Vars[varName] = varValue
+        self:result(v)
+    end)
+
+    -->>
+    print('DBContext:_init: done')
 
     self:initMemoizeFunctions()
 end
@@ -284,7 +311,8 @@ function DBContext:flexiAction(ctx, action, ...)
     local result
     local ff = flexiFuncs[action]
     if ff == nil then
-        error('Flexi action ' .. action .. ' not found')
+        ctx:result_error('Flexi action ' .. action .. ' not found')
+        return
     end
 
     local meta = flexiMeta[ff]
@@ -320,22 +348,22 @@ function DBContext:flexiAction(ctx, action, ...)
         self.db:exec 'commit'
     end
     ,
-                      function(error)
-                          errorMsg = tostring(error)
-                          print(debug.traceback(tostring(error)))
-                      end)
+            function(error)
+                errorMsg = tostring(error)
+                print(debug.traceback(tostring(error)))
+            end)
 
     if not ok then
         self.db:exec 'rollback'
         ctx:result_error(errorMsg)
+    else
+        ctx:result(result)
     end
 
     self.DeferredActions:Clear()
     self.DeferredRefs = {}
     self:flushDataCache()
     self.AccessControl:flushCache()
-
-    return result
 end
 
 -- Utility method to obtain prepared sqlite statement
@@ -391,7 +419,7 @@ end
 --- @return string
 function DBContext:getNameValueByID(nameID)
     local row = self:loadOneRow([[select [Value] from [.sym_names] where ID = :v limit 1;]],
-                                { v = nameID })
+            { v = nameID })
     if row then
         return row.Value
     end
@@ -414,7 +442,7 @@ end
 --- @return number @collection property ID or -1 if property does not exist
 function DBContext:getPropIdByClassAndNameIds(classId, propName, errorIfNotFound)
     local row = self:loadOneRow([[select PropertyID from [flexi_prop] where ClassID = :c and NameID = :n;"]],
-                                { c = classId, n = propName }, errorIfNotFound)
+            { c = classId, n = propName }, errorIfNotFound)
     if row then
         return row.PropertyID
     end
@@ -468,7 +496,7 @@ end
 ---@return number @comment -1 if not found, valid ID otherwise
 function DBContext:getPropIdByClassIdAndPropNameId(classId, propNameId)
     local row = self:loadOneRow("select PropertyID from [flexi_prop] where ClassID = :c and NameID = :n;",
-                                { c = classId, n = propNameId })
+            { c = classId, n = propNameId })
     if not row then
         return -1
     end

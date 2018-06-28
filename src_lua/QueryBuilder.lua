@@ -100,7 +100,7 @@ local tablex = require 'pl.tablex'
 local List = require 'pl.List'
 local DBValue = require 'DBValue'
 local Constants = require 'Constants'
-local pretty = require 'pl.pretty'
+--local pretty = require 'pl.pretty'
 local bit52 = require('Util').bit52
 local Sandbox = require 'sandbox'
 
