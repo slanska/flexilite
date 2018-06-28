@@ -18,7 +18,7 @@ int main(int argc, char **argv)
     char *zDir = nullptr;
     Path_dirname(&zDir, *argv);
 
-    // TODO temp - getcwd is not supported by Universal Window Apps
+    // TODO temp - because getcwd is not supported by Universal Window Apps
     char zCurrentDir[PATH_MAX + 1];
     getcwd(zCurrentDir, PATH_MAX);
 
@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     CHECK_CALL(sqlite3_enable_load_extension(pDB, 1));
 
     // load extension library
-    CHECK_CALL(sqlite3_load_extension(pDB, "/Users/ruslanskorynin/Documents/Github/slanska/flexilite/bin/libFlexilite", nullptr, &zError));
+    CHECK_CALL(sqlite3_load_extension(pDB, "../../bin/libFlexilite", nullptr, &zError));
 //    CHECK_CALL(sqlite3_load_extension(pDB, "../../bin/libFlexilite", nullptr, &zError));
 
     // load and run db schema

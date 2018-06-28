@@ -253,4 +253,4 @@ target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
 
 ###############################################################################
 # test
-#add_subdirectory(test)
+add_subdirectory(test)

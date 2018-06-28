@@ -14,6 +14,7 @@
 // Sets global variable
 static void createargtable(lua_State *L, char **argv, int argc, int argf)
 {
+    // TODO check lua stack size
     int i;
     lua_createtable(L, argc - argf, argf);
     for (i = 0; i < argc; i++)

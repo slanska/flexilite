@@ -116,8 +116,12 @@ extern "C" int flexi_init(sqlite3 *db,
         luaopen_cjson(L);
         luaopen_cjson_safe(L);
 
-      
-      // luaL_ref(L, (intptr_t)db);
+        lua_pushlightuserdata(L, db);
+        int db_reg_index = luaL_ref(L, LUA_REGISTRYINDEX);
+
+        // TODO temp
+        printf("db_reg_index: %d\n", db_reg_index);
+
         // loadString ("local Flexi = require 'index'; return Flexi")
         // loadString ("local DBContext = require 'DBContext'; return DBContext")
         // Result - function
