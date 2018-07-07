@@ -33,7 +33,6 @@ return {
     ['src_lua/flexi_Configure.lua'] = 'flexi_Configure',
     ['src_lua/flexi_DataFilter.lua'] = 'flexi_DataFilter',
     ['src_lua/flexi_ObjectToProp.lua'] = 'flexi_ObjectToProp',
-    --['src_lua/index.lua'] = 'index',
     ['src_lua/JulianDate.lua'] = 'JulianDate',
     ['src_lua/Triggers.lua'] = 'Triggers',
     ['src_lua/flexi_ConvertCustomEAV.lua'] = 'flexi_ConvertCustomEAV',
@@ -48,6 +47,10 @@ return {
     ['src_lua/ApiGlobalScope.lua'] = 'ApiGlobalScope',
     ['src_lua/DBProperty.lua'] = 'DBProperty',
     ['src_lua/ColMapping.lua'] = 'ColMapping',
+
+    -- sql
+    ['sql/dbschema.sql'] = 'sql.dbschema',
+    ['sql/init_default_data.sql'] = 'sql.init_default_data',
 
     -- lib
     ['lib/lua-prettycjson/lib/resty/prettycjson.lua'] = 'prettycjson',

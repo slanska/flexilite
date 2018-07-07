@@ -12,6 +12,7 @@ and then bundle all files to a static library to be linked with C/C++ project
 local os = require 'os'
 local path = require 'pl.path'
 local lapp = require 'pl.lapp'
+local stringx = require 'pl.stringx'
 
 local cli_args = lapp [[
 Compile lua-to-static-library
@@ -51,12 +52,45 @@ for file_name, module_name in pairs(files) do
 
     -- Current directory is expected to be flexilite
     local file_path = path.abspath(path.relpath(file_name))
+    local _, ext = path.splitext(file_path)
+    if ext ~= '.lua' then
+        -- Non Lua files are treated as string resources (e.g. SQL files)
+        -- Read file content
+        local in_file = io.open(file_path, 'r')
+        local res_str = in_file:read("*all")
+        in_file:close()
 
-    local o_file = path.abspath(path.join(out_path, path.relpath(
-            string.gsub(string.gsub(file_name, '/', '.'),
-                    '%.%.%.', '') .. '.o')))
-    local cmd = string.format('luajit -b%s "%s" "%s"',
-            nn, file_path, o_file)
+        -- Encode it as string
+        local code = string.format('return %s', stringx.quote_string(res_str))
+
+        -- Save as temp file
+        local file_path = os.tmpname()
+        local tmp_file = io.open(file_path, 'w')
+
+        tmp_file:write(code)
+        tmp_file:close()
+
+        -- Compile to .o
+        local o_file = path.abspath(path.join(out_path, path.relpath(
+                string.gsub(string.gsub(file_name, '/', '.'),
+                        '%.%.%.', '') .. '.o')))
+
+        local cmd = string.format('luajit -b%s "%s" "%s"',
+                nn, file_path, o_file)
+
+        -->>
+        print('cmd: ', cmd)
+
+        --Delete temp file
+        os.remove(file_path)
+    else
+        -- Compile to .o
+        local o_file = path.abspath(path.join(out_path, path.relpath(
+                string.gsub(string.gsub(file_name, '/', '.'),
+                        '%.%.%.', '') .. '.o')))
+        local cmd = string.format('luajit -b%s "%s" "%s"',
+                nn, file_path, o_file)
+    end
 
     print(string.format('%s: compiling %s', libName, file_name))
 

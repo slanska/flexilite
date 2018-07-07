@@ -89,16 +89,16 @@ ADD_CUSTOM_TARGET(
         COMMENT "Compiling Flexilite Lua files"
 )
 
-add_custom_target(
-        Generate_Resources
-        ALL
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMAND xxd -i sql/dbschema.sql > src/resources/dbschema.res.h
-        COMMENT "Generating resource file for SQL schema."
-        DEPENDS sql/dbschema.sql
-)
+#add_custom_target(
+#        Generate_Resources
+#        ALL
+#        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#        COMMAND xxd -i sql/dbschema.sql > src/resources/dbschema.res.h
+#        COMMENT "Generating resource file for SQL schema."
+#        DEPENDS sql/dbschema.sql
+#)
 
-set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TRUE)
+#set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TRUE)
 
 IF (WIN32)
     message('Windows: Flexilite')

@@ -639,7 +639,9 @@ function DBContext:flexi_Help(action)
     local result = { 'Usage:' }
 
     local function addActionInfo(info)
-        table.insert(result, table.concat(info.actions, ', ') .. ':')
+        if info.actions ~= nil then
+            table.insert(result, table.concat(info.actions, ', ') .. ':')
+        end
         table.insert(result, info.shortInfo)
     end
 

@@ -35,116 +35,102 @@ int luaopen_cjson(lua_State *l);
 int luaopen_cjson_safe(lua_State *l);
 
 int luaopen_lfs(lua_State *L);
-}
 
-static int flexi_help_func(sqlite3_context *context,
-                           int argc,
-                           sqlite3_value **argv)
+typedef struct FlexiliteContext_t
 {
-    (void) argc;
-    (void) argv;
+    // sqlite3 database handler
+    sqlite3 *db;
 
-    const char *zHelp = "Usage:"
-                        "   select flexi(<command>, <arguments>...)"
-                        "Commands: Arguments:"
-                        "   create class: class_name TEXT, class_definition JSON1, as_table BOOL"
-                        "   alter class: class_name TEXT, class_definition JSON1, as_table BOOL"
-                        "   drop class: class_name TEXT"
-                        "   rename class: old_class_name TEXT, new_class_name TEXT"
-                        "   create property: class_name TEXT, property_name TEXT, definition JSON1"
-                        "   alter property: class_name TEXT, property_name TEXT, definition JSON1"
-                        "   drop property: class_name TEXT, property_name TEXT"
-                        "   rename property: old_property_name TEXT, new_property_name TEXT"
-                        "   init";
+    // Lua state associated with sqlite3 connection
+    lua_State *L;
 
-    sqlite3_result_text(context, zHelp, -1, NULL);
-    return SQLITE_OK;
+    // Lua registry index to access DBContext
+    int DBContext_Index;
+
+    // Lua registry index to access lua-sqlite connection
+    int SQLiteConn_Index;
+} FlexiliteContext_t;
 }
 
-static int flexi_init_func(sqlite3_context *context,
-                           int argc,
-                           sqlite3_value **argv)
+/*
+ * Custom memory allocator helper for Lua, based on SQLite memory management API
+ * ud - FlexiliteContext_t*
+ */
+static void *lua_alloc_handler(void *ud, void *ptr, size_t osize, size_t nsize)
 {
-    (void) argc;
-    (void) argv;
+    if (ptr == nullptr)
+    {
+        // Allocating new object. osize is a type of new object
+        return sqlite3_malloc((int)nsize);
+    }
 
-#ifdef RESOURCES_GENERATED
+    if (nsize == 0)
+    {
+        // Delete existing object
+        sqlite3_free(ptr);
+        return nullptr;
+    }
 
-#include "../resources/dbschema.res.h"
-
-    char *zSQL = static_cast<char *>( sqlite3_malloc(sql_dbschema_sql_len + 1));
-    memcpy(zSQL, sql_dbschema_sql, sql_dbschema_sql_len);
-    zSQL[sql_dbschema_sql_len] = 0;
-    sqlite3 *db = sqlite3_context_db_handle(context);
-    char *zError = NULL;
-    int result;
-    CHECK_SQLITE(db, sqlite3_exec(db, zSQL, NULL, NULL, &zError));
-    goto EXIT;
-
-    ONERROR:
-    sqlite3_result_error(context, zError, -1);
-
-    EXIT:
-    sqlite3_free(zSQL);
-    return result;
-
-#endif
-
+    // Reallocating existing object
+    return sqlite3_realloc(ptr, (int)nsize);
 }
 
-extern "C" int flexi_init(sqlite3 *db,
-                          char **pzErrMsg,
-                          const sqlite3_api_routines *pApi)
+
+extern "C"
+
+int flexi_init(sqlite3 *db,
+               char **pzErrMsg,
+               const sqlite3_api_routines *pApi)
 {
     try
     {
         int result;
-        sqlite3_stmt *pDummy = nullptr;
 
-        lua_State *L = luaL_newstate();
+        auto pCtx = (FlexiliteContext_t *) sqlite3_malloc(sizeof(FlexiliteContext_t));
 
-        lua_gc(L, LUA_GCSTOP, 0);
-        luaL_openlibs(L);
-        lua_gc(L, LUA_GCRESTART, -1);
+        pCtx->db = db;
+        pCtx->L = lua_newstate(lua_alloc_handler, pCtx);
+
+        lua_gc(pCtx->L, LUA_GCSTOP, 0);
+        luaL_openlibs(pCtx->L);
+        lua_gc(pCtx->L, LUA_GCRESTART, -1);
 
         /*
          * Open other Lua modules implemented in C
         */
-        luaopen_lfs(L);
-        luaopen_base64(L);
-        luaopen_lsqlite3(L);
-        luaopen_cjson(L);
-        luaopen_cjson_safe(L);
+        luaopen_lfs(pCtx->L);
+        luaopen_base64(pCtx->L);
+        luaopen_lsqlite3(pCtx->L);
+        luaopen_cjson(pCtx->L);
+        luaopen_cjson_safe(pCtx->L);
 
         // Create context, by passing SQLite db connection
-        if (luaL_dostring(L, "return require 'sqlite3'"))
+        if (luaL_dostring(pCtx->L, "return require 'sqlite3'"))
         {
-            printf("Flexilite require sqlite3: %s\n", lua_tostring(L, -1));
+            printf("Flexilite require sqlite3: %s\n", lua_tostring(pCtx->L, -1));
         }
 
-        lua_getfield(L, -1, "open_ptr");
-        lua_pushlightuserdata(L, db);
-        if (lua_pcall(L, 1, 1, 0))
+        lua_getfield(pCtx->L, -1, "open_ptr");
+        lua_pushlightuserdata(pCtx->L, db);
+        if (lua_pcall(pCtx->L, 1, 1, 0))
         {
-            printf("Flexilite sqlite.open_ptr: %s\n", lua_tostring(L, -1));
+            printf("Flexilite sqlite.open_ptr: %s\n", lua_tostring(pCtx->L, -1));
         }
 
-        int dbctx_refidx = luaL_ref(L, LUA_REGISTRYINDEX);
+        pCtx->SQLiteConn_Index = luaL_ref(pCtx->L, LUA_REGISTRYINDEX);
 
         // Create context, by passing SQLite db connection
-        if (luaL_dostring(L, "return require ('DBContext')"))
+        if (luaL_dostring(pCtx->L, "return require ('DBContext')"))
         {
-            printf("Flexilite require DBContext: %s\n", lua_tostring(L, -1));
+            printf("Flexilite require DBContext: %s\n", lua_tostring(pCtx->L, -1));
         }
 
-        lua_rawgeti(L, LUA_REGISTRYINDEX, dbctx_refidx);
-        if (lua_pcall(L, 1, 1, 0))
+        lua_rawgeti(pCtx->L, LUA_REGISTRYINDEX, pCtx->SQLiteConn_Index);
+        if (lua_pcall(pCtx->L, 1, 1, 0))
         {
-            printf("Flexilite DBContext(db): %s\n", lua_tostring(L, -1));
+            printf("Flexilite DBContext(db): %s\n", lua_tostring(pCtx->L, -1));
         }
-        int db_reg_index = luaL_ref(L, LUA_REGISTRYINDEX);
-        // TODO temp
-        printf("db_reg_index: %d\n", db_reg_index);
+        pCtx->DBContext_Index = luaL_ref(pCtx->L, LUA_REGISTRYINDEX);
 
         // Remember Lua state and DBContext reference
 
@@ -155,7 +141,6 @@ extern "C" int flexi_init(sqlite3 *db,
         // TODO Needed?
 
         EXIT:
-        sqlite3_finalize(pDummy);
         return result;
     }
     catch (...)

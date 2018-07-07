@@ -168,16 +168,13 @@ enum -> reference
 - enum property - as pseudo-computed property 
 - multi key primary index support
 - full text and range index - complete
-- upgrade SQLite to 3.24.0 (2018-06-04) 
+- &#10003; upgrade SQLite to 3.24.0 (2018-06-04) 
 
-duplicate symbol _luaJIT_BC_lexer in:
-    lua/lib/lua-penlight/lua/pl/lexer.lua.o
-    lua/lib/lua-metalua/metalua/grammar/lexer.lua.o
-duplicate symbol _luaJIT_BC_generator in:
-    lua/lib/lua-metalua/metalua/grammar/generator.lua.o
-    lua/lib/lua-metalua/metalua/compiler/parser/annot/generator.lua.o
-duplicate symbol _luaJIT_BC_lexer in:
-    lua/lib/lua-penlight/lua/pl/lexer.lua.o
-    lua/lib/lua-metalua/metalua/compiler/parser/lexer.lua.o
-ld: 3 duplicate symbols for architecture x86_64
+**2018-07-07**
 
+- &#10003; flexi_func.cpp: struct for context
+- use sqlite memory alloc
+- build on Windows
+- build on Linux
+- &#10003; lua2lib - non .lua files treat as string resources
+ (wrap into return encoded string)
