@@ -165,7 +165,7 @@ enum -> reference
 **2018-06-09**
 
 - deferred actions in DBContext
-- enum property - as pseudo-computed property 
+- enum property - as pseudo-computed property for reference property
 - multi key primary index support
 - full text and range index - complete
 - &#10003; upgrade SQLite to 3.24.0 (2018-06-04) 
@@ -173,8 +173,9 @@ enum -> reference
 **2018-07-07**
 
 - &#10003; flexi_func.cpp: struct for context
-- use sqlite memory alloc
+- &#10003; use sqlite memory alloc
 - build on Windows
 - build on Linux
 - &#10003; lua2lib - non .lua files treat as string resources
  (wrap into return encoded string)
+- flexi test: run 'flexi' tests

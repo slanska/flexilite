@@ -33,6 +33,7 @@ local DBObject = require 'DBObject'
 local EnumManager = require 'EnumManager'
 local Constants = require 'Constants'
 local DictCI = require('Util').DictCI
+local sqlite3 = require 'sqlite3'
 
 -------------------------------------------------------------------------------
 -- ActionList
@@ -124,10 +125,6 @@ function DBContext:_init(db)
 
     self.db = assert(db, 'Expected sqlite3 database but nil was passed')
 
-    -->>
-    print('DBContext:_init ', type(db))
-    require('pl.pretty').dump(db)
-
     -- Cache of prepared statements, key is statement SQL
     self.Statements = {}
     self.MemDB = nil
@@ -192,9 +189,6 @@ function DBContext:_init(db)
         self.Vars[varName] = varValue
         self:result(v)
     end)
-
-    -->>
-    print('DBContext:_init: done')
 
     self:initMemoizeFunctions()
 end
@@ -296,12 +290,13 @@ function DBContext:GetNewObjectID()
 end
 
 --- Utility function to check status returned by SQLite call
---- Throws SQLite error if result ~= SQLITE_OK
+--- Throws SQLite error if result ~= SQLITE_OK, SQLITE_DONE or SQLITE_ROW
 --- @param opResult number @comment SQLite integer result. 0 = OK
 function DBContext:checkSqlite(opResult)
     if opResult ~= sqlite3.OK and opResult ~= sqlite3.DONE
             and opResult ~= sqlite3.ROW then
-        local errMsg = string.format("SQLite error code %d: %s", self.db:error_code(), self.db:error_message())
+        local errMsg = string.format("SQLite error code %d: %s",
+                self.db:error_code(), self.db:error_message())
         error(errMsg)
     end
 end
@@ -330,7 +325,7 @@ function DBContext:flexiAction(ctx, action, ...)
         local uv = self:loadOneRow(
         ---@language SQL
                 [[pragma user_version;]])
-        if self.SchemaVersion ~= uv then
+        if self.SchemaVersion ~= uv.user_version then
             self:flushSchemaCache()
         end
 
@@ -340,7 +335,8 @@ function DBContext:flexiAction(ctx, action, ...)
         result = ff(self, unpack(args))
 
         if meta.schemaChange or self.SchemaChanged then
-            self:execStatement(string.format([[pragma user_version=%d;]], uv.user_version))
+            self.SchemaVersion = (self.SchemaVersion or 0) + 1
+            self.db:exec(string.format([[pragma user_version=%d;]], self.SchemaVersion))
         end
 
         self.DeferredActions:Run(true)
@@ -349,7 +345,8 @@ function DBContext:flexiAction(ctx, action, ...)
     end
     ,
             function(error)
-                errorMsg = tostring(error)
+                --errorMsg = tostring(error)
+                errorMsg = debug.traceback(tostring(error))
                 print(debug.traceback(tostring(error)))
             end)
 
@@ -703,6 +700,13 @@ function DBContext:flexi_vacuum(className, propName)
     -- TODO Hard delete data
 end
 
+--- Closes all opened statements, flushes cache
+function DBContext:flexi_close()
+    self:flushSchemaCache()
+    self:flushDataCache()
+    return 'Schema and data caches were flushed'
+end
+
 --- Apply translation for given symnames
 --- @param values table
 function DBContext:flexi_translate(values)
@@ -740,7 +744,7 @@ function DBContext:flushSchemaCache()
     self.Classes = {}
     self.ClassProps = {}
     self.Functions = {}
-    self.Objects = {}
+    self:flushDataCache()
     self:initMemoizeFunctions()
     self:flushCurrentUserCheckPermissions()
     self:finalizeStatements()
@@ -885,6 +889,7 @@ flexiMeta = {
     [TriggerAPI.Drop] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
     [TriggerAPI.Create] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
     [flexi_DataUpdate.flexi_ImportData] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
+    [DBContext.flexi_close] = { shortInfo = '', fullInfo = [[]], schemaChange = false },
 }
 
 -- Dictionary by action names
@@ -928,6 +933,9 @@ flexiFuncs = {
     ['data import'] = flexi_DataUpdate.flexi_ImportData,
     ['load data'] = flexi_DataUpdate.flexi_ImportData,
     ['load'] = flexi_DataUpdate.flexi_ImportData,
+    ['close'] = DBContext.flexi_close,
+    ['reset'] = DBContext.flexi_close,
+    ['flush'] = DBContext.flexi_close,
 
     --[[
 

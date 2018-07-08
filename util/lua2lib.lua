@@ -50,6 +50,8 @@ for file_name, module_name in pairs(files) do
         file_name = module_name
     end
 
+    local cmd
+
     -- Current directory is expected to be flexilite
     local file_path = path.abspath(path.relpath(file_name))
     local _, ext = path.splitext(file_path)
@@ -75,11 +77,12 @@ for file_name, module_name in pairs(files) do
                 string.gsub(string.gsub(file_name, '/', '.'),
                         '%.%.%.', '') .. '.o')))
 
-        local cmd = string.format('luajit -b%s "%s" "%s"',
+        cmd = string.format('luajit -b%s "%s" "%s"',
                 nn, file_path, o_file)
 
-        -->>
-        print('cmd: ', cmd)
+        print(string.format('%s: compiling %s', libName, file_name))
+
+        os_execute(cmd)
 
         --Delete temp file
         os.remove(file_path)
@@ -88,13 +91,13 @@ for file_name, module_name in pairs(files) do
         local o_file = path.abspath(path.join(out_path, path.relpath(
                 string.gsub(string.gsub(file_name, '/', '.'),
                         '%.%.%.', '') .. '.o')))
-        local cmd = string.format('luajit -b%s "%s" "%s"',
+        cmd = string.format('luajit -b%s "%s" "%s"',
                 nn, file_path, o_file)
+
+        print(string.format('%s: compiling %s', libName, file_name))
+
+        os_execute(cmd)
     end
-
-    print(string.format('%s: compiling %s', libName, file_name))
-
-    os_execute(cmd)
 end
 
 -- Bundle library into single archive

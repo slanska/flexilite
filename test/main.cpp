@@ -43,11 +43,6 @@ int main(int argc, char **argv)
 
     // load extension library
     CHECK_CALL(sqlite3_load_extension(pDB, "../../bin/libFlexilite", nullptr, &zError));
-//    CHECK_CALL(sqlite3_load_extension(pDB, "../../bin/libFlexilite", nullptr, &zError));
-
-    // load and run db schema
-//    CHECK_CALL(file_load_utf8("../../sql/dbschema.sql", &zSchemaSql));
-//    CHECK_CALL(sqlite3_exec(pDB, (const char *) zSchemaSql, nullptr, nullptr, &zError));
 
     ONERROR:
     EXIT:
