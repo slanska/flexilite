@@ -179,3 +179,4 @@ enum -> reference
 - &#10003; lua2lib - non .lua files treat as string resources
  (wrap into return encoded string)
 - flexi test: run 'flexi' tests
+- switch to OpenResty lua-cjson (fix for LuaJIT 2.1 compatibility)
