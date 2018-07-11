@@ -12,20 +12,6 @@ set(CMAKE_BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(PLATFORM "${CMAKE_SYSTEM_NAME}")
 string(TOUPPER "${PLATFORM}" PLATFORM)
 
-message("&&&&& Platform ${PLATFORM}")
-
-#math(EXPR platform_bits "${CMAKE_SIZEOF_VOID_P} * 8")
-#set(platform_dir ${CMAKE_SYSTEM_NAME}${platform_bits}-${CMAKE_CXX_COMPILER_ID}${CMAKE_CXX_COMPILER_VERSION})
-#
-#foreach(config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
-#
-#    foreach(var CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${config} CMAKE_LIBRARY_OUTPUT_DIRECTORY_${config} CMAKE_RUNTIME_OUTPUT_DIRECTORY_${config})
-#        set(${var} "${CMAKE_BINARY_DIR}/${platform_dir}-${config}")
-#        string(TOLOWER "${${var}}" ${var})
-#    endforeach()
-#
-#endforeach()
-
 project(Flexish_static)
 
 # SQLite and LSQLite compile flags
@@ -56,7 +42,6 @@ ADD_CUSTOM_TARGET(
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMAND luajit ../util/lua2lib.lua ./filelist.lua -n libFlexishLua.a --output ../obj_lua
         COMMENT "Compiling Flexish Lua files"
-        DEPENDS ./*.lua
 )
 
 set(SRC_FILES

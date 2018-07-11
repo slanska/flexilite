@@ -18,7 +18,7 @@ Update all submodules:
 ```
 cd ./lib
 git submodule init
-git submodule update --force --merge
+git submodule update --force --merge --remote
 ``'
 
 **Update git submodules**

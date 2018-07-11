@@ -6,7 +6,7 @@
 #define FLEXILITE_ARRAY_H
 
 #include <stddef.h>
-#include <ntsid.h>
+#include <stdint.h>
 #include "../common/common.h"
 
 #ifdef __cplusplus

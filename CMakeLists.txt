@@ -89,17 +89,6 @@ ADD_CUSTOM_TARGET(
         COMMENT "Compiling Flexilite Lua files"
 )
 
-#add_custom_target(
-#        Generate_Resources
-#        ALL
-#        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-#        COMMAND xxd -i sql/dbschema.sql > src/resources/dbschema.res.h
-#        COMMENT "Generating resource file for SQL schema."
-#        DEPENDS sql/dbschema.sql
-#)
-
-#set_source_files_properties(src/resources/dbschema.res.h PROPERTIES GENERATED TRUE)
-
 IF (WIN32)
     message('Windows: Flexilite')
     SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,-E)
@@ -157,8 +146,8 @@ set(EXT_FILES
         src/fts/fts3_hash.c
 
         src/common/common.h
-        src/util/Array.c
-        src/util/Array.h
+#        src/util/Array.c
+#        src/util/Array.h
         src/flexi/flexi_func.cpp
 
         src/util/Path.c
@@ -172,13 +161,7 @@ set(EXT_FILES
         src/flexi/PropertyDef.h
         )
 
-#set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
-#set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
-#set(CMAKE_FIND_LIBRARY_SUFFIXES ".dll")
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
-
-# TODO Register Flexilite DLL/SO/DYLIB
-# Link to luajit statically
 
 set(CMAKE_MACOSX_RPATH 1)
 
@@ -187,25 +170,10 @@ add_library(Flexilite SHARED ${EXT_FILES})
 target_link_libraries(Flexilite PUBLIC ${LuaJit_static})
 target_link_libraries(Flexilite PUBLIC ${Flexilite_LuaFiles})
 
-# Then link the libmyluafiles.a library into your main program using
-# -Wl,--whole-archive -lmyluafiles -Wl,--no-whole-archive -Wl,-E.
-#set(CMAKE_STATIC_LINKER_FLAGS "-Wl")
-#target_link_libraries(Flexilite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libLuaModules.a)
-
 ###############################################################################
 add_subdirectory(flexish)
 
 project(flexish_cli)
-
-# SQLite and LuaJIT compile flags
-#add_definitions(-DSQLITE_ENABLE_FTS4
-#        -DSQLITE_ENABLE_RTREE
-#        -DSQLITE_ENABLE_LOAD_EXTENSION
-#        -DSQLITE_ENABLE_JSON1
-#        -DLUAJIT_ENABLE_LUA52COMPAT)
-#
-#remove_definitions(-DLSQLITE_EXTENSION)
-#remove_definitions(-DSQLITE_EXTENSION)
 
 message("Building on: ${CMAKE_SYSTEM_NAME}")
 
@@ -218,11 +186,6 @@ set(SRC_FILES
         flexish/main.c
         )
 
-
-#set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
-#set(CMAKE_STATIC_LINKER_FLAGS "-Wl,--whole-archive -llibFlexish_static -Wl,--no-whole-archive -Wl,-E -pagezero_size 10000 -image_base 100000000")
-
-#SET(${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexish/libFlexish.a -Wl,--whole-archive MY_LIB -Wl,--no-whole-archive)
 add_executable(flexish_cli ${SRC_FILES})
 
 IF (WIN32)
@@ -243,10 +206,9 @@ ELSE ()
 
 #    SET(LuaJit_static -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
 #    target_link_libraries(flexish_cli STATIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
-    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua//libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
+    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
 ENDIF ()
 
-#target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
 target_link_libraries(flexish_cli PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
 target_link_libraries(flexish_cli PUBLIC FlexishStatic)
 target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
