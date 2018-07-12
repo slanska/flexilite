@@ -14,6 +14,11 @@
 
 
 
+```shell
+git rm --cached projectfolder
+```
+
+
 Update all submodules:
 ```
 cd ./lib

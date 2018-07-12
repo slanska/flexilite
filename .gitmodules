@@ -4,9 +4,6 @@
 [submodule "lib/cmocka"]
 	path = lib/cmocka
 	url = git://git.cryptomilk.org/projects/cmocka.git
-[submodule "lib/lua-cjson"]
-	path = lib/lua-cjson
-	url = https://github.com/openresty/lua-cjson.git
 [submodule "lib/lua-prettycjson"]
 	path = lib/lua-prettycjson
 	url = https://github.com/bungle/lua-resty-prettycjson.git
