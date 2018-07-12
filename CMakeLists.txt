@@ -146,8 +146,8 @@ set(EXT_FILES
         src/fts/fts3_hash.c
 
         src/common/common.h
-#        src/util/Array.c
-#        src/util/Array.h
+        src/util/Array.c
+        src/util/Array.h
         src/flexi/flexi_func.cpp
 
         src/util/Path.c
