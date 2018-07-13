@@ -15,7 +15,7 @@ extern "C"
 
 #include <iostream>
 #include <fstream>
-#include <zconf.h>
+// TODO #include <zconf.h>
 
 #include "../project_defs.h"
 #include "flexi_class.h"

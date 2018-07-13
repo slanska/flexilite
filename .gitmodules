@@ -34,3 +34,6 @@
 [submodule "lib/lua-sqlite"]
 	path = lib/lua-sqlite
 	url = https://github.com/slanska/lsqlite3.git
+[submodule "lib/lua-cjson"]
+	path = lib/lua-cjson
+	url = https://github.com/openresty/lua-cjson.git
