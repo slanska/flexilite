@@ -36,10 +36,20 @@ include_directories(
         ../lib/luafilesystem/src
 )
 
+###
+#ADD_CUSTOM_TARGET(
+#        Compile_Flexilite_LuaFiles
+#        ALL
+##        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#        COMMAND luajit ./util/lua2lib.lua ./src_lua/filelist.lua -n libFlexiliteLua.a --output ./obj_lua
+#        COMMENT "Compiling Flexilite Lua files"
+#)
+###
+
 ADD_CUSTOM_TARGET(
         Compile_Flexish_LuaFiles
         ALL
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMAND luajit ../util/lua2lib.lua ./filelist.lua -n libFlexishLua.a --output ../obj_lua
         COMMENT "Compiling Flexish Lua files"
 )

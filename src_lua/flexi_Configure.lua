@@ -3,7 +3,7 @@
 --- DateTime: 2017-11-02 9:07 PM
 ---
 
-local json = require('cjson')
+local json = cjson or require('cjson')
 
 ---@param self DBContext
 ---@param sOptions string | nil @comment

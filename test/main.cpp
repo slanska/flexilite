@@ -4,17 +4,23 @@
 
 // Using linked version of SQLite
 
-//#define SQLITE_CORE
+#ifdef _WIN32
+
+#include <direct.h>
+
+#define getcwd _getcwd // stupid MSFT "deprecation" warning
+#elif
+#include <unistd.h>
+#endif
 
 #include <cstdint>
 #include <cstring>
 #include <climits>
-#include <zconf.h>
+// TODO #include <zconf.h>
 
 #include "definitions.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     char *zDir = nullptr;
     Path_dirname(&zDir, *argv);
 
@@ -22,8 +28,7 @@ int main(int argc, char **argv)
     char zCurrentDir[PATH_MAX + 1];
     getcwd(zCurrentDir, PATH_MAX);
 
-    if (zDir == nullptr || strlen(zDir) == 0 || strcmp(zDir, ".") == 0)
-    {
+    if (zDir == nullptr || strlen(zDir) == 0 || strcmp(zDir, ".") == 0) {
         sqlite3_free(zDir);
         zDir = sqlite3_mprintf("%s", zCurrentDir);
     }

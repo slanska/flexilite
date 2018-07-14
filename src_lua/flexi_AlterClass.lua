@@ -3,7 +3,7 @@
 --- DateTime: 2017-11-02 9:00 PM
 ---
 
-local json = require 'cjson'
+local json = cjson or require 'cjson'
 local tablex = require 'pl.tablex'
 local ClassDef = require 'ClassDef'
 

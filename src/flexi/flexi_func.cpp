@@ -82,6 +82,8 @@ int flexi_init(sqlite3 *db,
                char **pzErrMsg,
                const sqlite3_api_routines *pApi)
 {
+//    void(pApi);
+
     try
     {
         int result;
@@ -107,14 +109,20 @@ int flexi_init(sqlite3 *db,
         // Create context, by passing SQLite db connection
         if (luaL_dostring(pCtx->L, "return require 'sqlite3'"))
         {
-            printf("Flexilite require sqlite3: %s\n", lua_tostring(pCtx->L, -1));
+            *pzErrMsg = sqlite3_mprintf("Flexilite require sqlite3: %s\n", lua_tostring(pCtx->L, -1));
+            printf(*pzErrMsg);
+            result = SQLITE_ERROR;
+            goto EXIT;
         }
 
         lua_getfield(pCtx->L, -1, "open_ptr");
         lua_pushlightuserdata(pCtx->L, db);
         if (lua_pcall(pCtx->L, 1, 1, 0))
         {
-            printf("Flexilite sqlite.open_ptr: %s\n", lua_tostring(pCtx->L, -1));
+            *pzErrMsg = sqlite3_mprintf("Flexilite sqlite.open_ptr: %s\n", lua_tostring(pCtx->L, -1));
+            printf(*pzErrMsg);
+            result = SQLITE_ERROR;
+            goto EXIT;
         }
 
         pCtx->SQLiteConn_Index = luaL_ref(pCtx->L, LUA_REGISTRYINDEX);
@@ -122,13 +130,19 @@ int flexi_init(sqlite3 *db,
         // Create context, by passing SQLite db connection
         if (luaL_dostring(pCtx->L, "return require ('DBContext')"))
         {
-            printf("Flexilite require DBContext: %s\n", lua_tostring(pCtx->L, -1));
+            *pzErrMsg = sqlite3_mprintf("Flexilite require DBContext: %s\n", lua_tostring(pCtx->L, -1));
+            printf(*pzErrMsg);
+            result = SQLITE_ERROR;
+            goto EXIT;
         }
 
         lua_rawgeti(pCtx->L, LUA_REGISTRYINDEX, pCtx->SQLiteConn_Index);
         if (lua_pcall(pCtx->L, 1, 1, 0))
         {
-            printf("Flexilite DBContext(db): %s\n", lua_tostring(pCtx->L, -1));
+            *pzErrMsg = sqlite3_mprintf("Flexilite DBContext(db): %s\n", lua_tostring(pCtx->L, -1));
+            printf(*pzErrMsg);
+            result = SQLITE_ERROR;
+            goto EXIT;
         }
         pCtx->DBContext_Index = luaL_ref(pCtx->L, LUA_REGISTRYINDEX);
 

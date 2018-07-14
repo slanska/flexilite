@@ -31,7 +31,7 @@ first 2 parameters. Thus DBObject is accessed from DBProperty.DBObject, Property
 ]]
 
 local class = require 'pl.class'
-local JSON = require 'cjson'
+local JSON = cjson or require 'cjson'
 local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local Constants = require 'Constants'
 

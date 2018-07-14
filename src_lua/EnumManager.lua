@@ -43,7 +43,7 @@ it must exist or be created by user, as a normal class.
 ]]
 
 local ClassCreate = require('flexi_CreateClass').CreateClass
-local json = require 'cjson'
+local json = cjson or require 'cjson'
 local NameRef = require 'NameRef'
 local class = require 'pl.class'
 

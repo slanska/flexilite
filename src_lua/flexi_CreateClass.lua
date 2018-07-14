@@ -5,7 +5,7 @@
 
 -- TODO deferred actions
 
-local json = require 'cjson'
+local json = cjson or require 'cjson'
 local schema = require 'schema'
 local tablex = require 'pl.tablex'
 local ClassDef = require 'ClassDef'

@@ -44,7 +44,7 @@ pcall = function(fn, ...)
 end
 --==== END =============== temporary debug code ============================]]--
 
-require 'cjson'
+require cjson or 'cjson'
 local path = require 'pl.path'
 
 -- Configure Lua path for libraries

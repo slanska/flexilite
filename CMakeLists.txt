@@ -62,7 +62,8 @@ add_definitions(
         -DLUAJIT_ENABLE_LUA52COMPAT
         -DSQLITE_EXTENSION
         -DLSQLITE_EXTENSION
-        )
+        -DENABLE_CJSON_GLOBAL
+)
 
 add_executable(sqlite_shell ${SHELL_FILES})
 
@@ -91,8 +92,8 @@ ADD_CUSTOM_TARGET(
 
 IF (WIN32)
     message('Windows: Flexilite')
-    SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,-E)
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/Debug/luajit-static.lib)
+    SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
 ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     message('OSX: Flexilite')
     SET(Flexilite_LuaFiles -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a)
@@ -110,7 +111,7 @@ add_definitions(
         -DSQLITE_ENABLE_JSON1
         -DLUAJIT_ENABLE_LUA52COMPAT
         -DLSQLITE_EXTENSION
-        -DRESOURCES_GENERATED
+        -DENABLE_CJSON_GLOBAL
         )
 
 set(CMAKE_CXX_STANDARD 11)
@@ -190,23 +191,20 @@ add_executable(flexish_cli ${SRC_FILES})
 
 IF (WIN32)
     message('Windows: Flexish')
-    # TODO
-#    target_link_libraries(flexish_cli STATIC PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
-    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
+    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
+    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
 ELSEIF (APPLE)
-    # TODO Conditionally: only on OSX 64 bit
     message('OSX: Flexish')
-#    set ( CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 ${CMAKE_EXE_LINKER_FLAGS}" )
-#    target_link_libraries(flexish_cli STATIC PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
     SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
+    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
 ELSE ()
     message('Linux: Flexish')
 
-#    target_link_libraries(flexish_cli STATIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
     SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
+    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
 ENDIF ()
 
-target_link_libraries(flexish_cli PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-lua/build/luajit-2.1/libluajit-static.a)
+target_link_libraries(flexish_cli PUBLIC ${FlexishLuaJit_static})
 target_link_libraries(flexish_cli PUBLIC FlexishStatic)
 target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
 

@@ -75,7 +75,7 @@ local class = require 'pl.class'
 local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local DBValue = require 'DBValue'
 local tablex = require 'pl.tablex'
-local JSON = require 'cjson'
+local JSON = cjson or require 'cjson'
 local bit52 = require('Util').bit52
 local Constants = require 'Constants'
 local schema = require 'schema'

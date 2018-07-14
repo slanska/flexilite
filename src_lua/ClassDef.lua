@@ -14,7 +14,7 @@ Loads class def from DB
 Validates existing data with new class definition
 ]]
 
-local json = require 'cjson'
+local json = cjson or require 'cjson'
 local schema = require 'schema'
 local bit52 = require('Util').bit52
 local Constants = require 'Constants'

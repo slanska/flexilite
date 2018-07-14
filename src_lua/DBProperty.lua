@@ -16,7 +16,7 @@ local class = require 'pl.class'
 local DBValue = require 'DBValue'
 local tablex = require 'pl.tablex'
 local Constants = require 'Constants'
-local JSON = require 'cjson'
+local JSON = cjson or require 'cjson'
 
 ---@class PropertySaveContext
 ---@field PropDef PropertyDef
