@@ -9,6 +9,10 @@ Command line utility to compile list of .lua files to .obj format (using luajit 
 and then bundle all files to a static library to be linked with C/C++ project
 ]]
 
+if not jit then
+    error 'Expected to run by LuaJIT'
+end
+
 local os = require 'os'
 local path = require 'pl.path'
 local lapp = require 'pl.lapp'
@@ -101,6 +105,11 @@ for file_name, module_name in pairs(files) do
 end
 
 -- Bundle library into single archive
-local cmd = string.format('ar rcus %s %s/*.o', path.join(out_path, cli_args.name), out_path)
+local ar_path = 'ar'
+if jit.os == 'Windows' then
+    -- Expect hard coded path for MinGW
+    ar_path = 'c:\\MinGW\\bin\\ar.exe'
+end
+local cmd = string.format('%s rcus %s %s/*.o', ar_path, path.join(out_path, cli_args.name), out_path)
 os_execute(cmd)
 
