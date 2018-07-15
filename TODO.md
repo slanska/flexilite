@@ -185,6 +185,14 @@ enum -> reference
 
 - use GC64 for luajit 2.1
 - switch to openresty luajit for all platforms
+- clean up JS tests and convert them to lua
+- move util/* to tools
+- move definitions.d.ts to metacix project
+- delete typings
+- merge flexish cmakefiles with main one
+- build flexish
+- put complied binaries to git
+- install.md
 
 
 
