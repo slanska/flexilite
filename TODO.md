@@ -174,12 +174,17 @@ enum -> reference
 
 - &#10003; flexi_func.cpp: struct for context
 - &#10003; use sqlite memory alloc
-- build on Windows
-- build on Linux
+- &#10003; build on Windows
+- &#10003; build on Linux
 - &#10003; lua2lib - non .lua files treat as string resources
  (wrap into return encoded string)
 - flexi test: run 'flexi' tests
-- switch to OpenResty lua-cjson (fix for LuaJIT 2.1 compatibility)
+- &#10003; switch to OpenResty lua-cjson (fix for LuaJIT 2.1 compatibility)
+
+**2018-07-14**
+
+- use GC64 for luajit 2.1
+- switch to openresty luajit for all platforms
 
 
 

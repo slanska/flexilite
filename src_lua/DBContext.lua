@@ -21,8 +21,7 @@ Handles 'flexi' function
 
 ]]
 
-local json = require 'cjson'
---local json = cjson or require 'cjson'
+local json = cjson or require 'cjson'
 local class = require 'pl.class'
 local util = require 'pl.utils'
 
