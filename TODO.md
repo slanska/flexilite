@@ -183,10 +183,10 @@ enum -> reference
 
 **2018-07-14**
 
-- use GC64 for luajit 2.1
-- switch to openresty luajit for all platforms
-- clean up JS tests and convert them to lua
-- move util/* to tools
+- &#10003; use GC64 for luajit 2.1
+- &#10003; switch to openresty luajit for all platforms
+- &#10003; lean up JS tests and convert them to lua
+- &#10003; move util/* to tools
 - move definitions.d.ts to metacix project
 - delete typings
 - merge flexish cmakefiles with main one
