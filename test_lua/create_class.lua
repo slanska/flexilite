@@ -7,7 +7,7 @@ local path = require 'pl.path'
 package.path = path.abspath(path.relpath('../src_lua')) .. '/?.lua;' .. package.path
 
 require 'socket'
-require cjson or 'cjson'
+local json = cjson or require 'cjson'
 
 local DBContext = require 'DBContext'
 

@@ -4,29 +4,96 @@
 --- DateTime: 2018-07-16 8:15 AM
 ---
 
+--[[
+/*
+Set of use case to test database integrity
+*/
+
+/*
+
+insertion of existing names is ignored
+
+full text data update after class ID change
+
+rtree data update after class ID change
+
+full text data updated after value updated
+
+rtree data updated after value updated
+
+fix unresolved class ID and property ID after creation
+
+test performance of search in full text data in class scope
+
+test performance of search in rtree data in class scope
+
+update rtree data when class def changes (rtree mapping changes)
+
+update full text data when class def changes (rtree mapping changes)
+
+different modes for relations: delete, cascade, restrict, weak
+
+change object' class ID
+
+ */
+ ]]
+
 describe('Advanced cases of data refactoring', function()
-    it('1. Merge objects', function()
+    it('01. Merge objects', function()
     end)
 
-    it('2. Split objects', function()
+    it('02. Split objects', function()
     end)
 
-    it('3. Change class type (assign objects to a different class)', function()
+    it('03. Change class type (assign objects to a different class)', function()
     end)
 
-    it('4. Rename class', function()
+    it('04. Rename class', function()
     end)
 
-    it('5. Rename property', function()
+    it('05. Rename property', function()
     end)
 
-    it('6. One-to-many -> many-to-many', function()
+    it('06. One-to-many -> many-to-many', function()
     end)
 
     --[[
     Country text column -> Extract to separate object, replace with country ID -> include into row
     by auto-generated link to Countries
     ]]
-    it('7. Scalar value(s) -> Extract to separate object -> Display value(s) from referenced object', function()
+    it('07. Scalar value(s) -> Extract to separate object -> Display value(s) from referenced object', function()
     end)
+
+    it('08. Move references in the list', function()
+
+    end)
+
+    it('09. Indexed properties', function()
+
+    end)
+
+    it('10. Delete property', function()
+
+    end)
+
+    it('11. Delete class', function()
+
+    end)
+
+    it('12. Embed referenced objects', function()
+
+    end)
+
+    it('13. Computed property', function()
+
+    end)
+
+    it('14. Create class from data', function()
+
+    end)
+
+    it('15. Find matching class and schema for data', function()
+
+    end)
+
 end)
