@@ -79,7 +79,7 @@ project(Flexilite)
 
 include_directories(
         lib/sqlite
-        lib/torch-lua/luajit-2.1/src
+        lib/openresty-luajit2/src
         src/util
 )
 
@@ -182,7 +182,7 @@ message("Building on: ${CMAKE_SYSTEM_NAME}")
 
 include_directories(
         lib/sqlite
-        lib/torch-lua/luajit-2.1/src
+        lib/openresty-luajit2/src
 )
 
 set(SRC_FILES
@@ -193,22 +193,22 @@ add_executable(flexish_cli ${SRC_FILES})
 
 IF (WIN32)
     message('Windows: Flexish')
-    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
+#    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
     SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
 ELSEIF (APPLE)
     message('OSX: Flexish')
-    SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
+#    SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
     SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
 ELSE ()
     message('Linux: Flexish')
 
-    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
+#    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
     SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
 ENDIF ()
 
 target_link_libraries(flexish_cli PUBLIC ${FlexishLuaJit_static})
 target_link_libraries(flexish_cli PUBLIC FlexishStatic)
-target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
+#target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
 
 ###############################################################################
 # test

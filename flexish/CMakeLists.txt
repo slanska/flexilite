@@ -15,12 +15,15 @@ string(TOUPPER "${PLATFORM}" PLATFORM)
 project(Flexish_static)
 
 # SQLite and LSQLite compile flags
-add_definitions(-DSQLITE_ENABLE_FTS4
+add_definitions(
+        -DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_RTREE
         -DSQLITE_ENABLE_LOAD_EXTENSION
         -DSQLITE_ENABLE_JSON1
         -DENABLE_CJSON_GLOBAL
         -DLUAJIT_ENABLE_LUA52COMPAT
+        -DENABLE_CJSON_GLOBAL
+        -DLUAJIT_ENABLE_GC64
         )
 
 remove_definitions(
@@ -32,7 +35,7 @@ message("Building on: ${CMAKE_SYSTEM_NAME}")
 
 include_directories(
         ../lib/sqlite
-        ../lib/torch-lua/luajit-2.1/src
+        ../lib/openresty-luajit2/src
         ../lib/luafilesystem/src
 )
 

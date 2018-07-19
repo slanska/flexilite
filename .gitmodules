@@ -1,6 +1,3 @@
-[submodule "lib/torch-lua"]
-	path = lib/torch-lua
-	url = https://github.com/torch/luajit-rocks.git
 [submodule "lib/cmocka"]
 	path = lib/cmocka
 	url = git://git.cryptomilk.org/projects/cmocka.git
@@ -34,12 +31,9 @@
 [submodule "lib/lua-sqlite"]
 	path = lib/lua-sqlite
 	url = https://github.com/slanska/lsqlite3.git
-[submodule "lib/lua-cjson"]
-	path = lib/lua-cjson
-	url = https://github.com/openresty/lua-cjson.git
-[submodule "lib/luajit-2.1b3"]
-	path = lib/luajit-2.1b3
-	url = https://github.com/LuaJIT/LuaJIT.git
 [submodule "lib/openresty-luajit2"]
 	path = lib/openresty-luajit2
 	url = https://github.com/openresty/luajit2.git
+[submodule "lib/lua-cjson"]
+	path = lib/lua-cjson
+	url = https://github.com/openresty/lua-cjson.git
