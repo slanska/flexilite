@@ -42,10 +42,12 @@ local libName = path.splitext(path.basename(cli_args.name))
 
 local out_path = path.join(path.abspath(cli_args.output), libName)
 
-if jit.os == 'Windows' then
-    os.execute(string.format('mkdir "%s"', out_path))
-else
-    os.execute(string.format('mkdir -p "%s"', out_path))
+if not path.exists(out_path) then
+    if jit.os == 'Windows' then
+        os.execute(string.format('mkdir "%s"', out_path))
+    else
+        os.execute(string.format('mkdir -p "%s"', out_path))
+    end
 end
 
 for file_name, module_name in pairs(files) do

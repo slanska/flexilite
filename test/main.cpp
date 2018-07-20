@@ -5,7 +5,9 @@
 // Using linked version of SQLite
 
 #ifdef _WIN32
+
 #include <direct.h>
+
 #define getcwd _getcwd // stupid MSFT "deprecation" warning
 #else
 #include <unistd.h>
@@ -47,7 +49,17 @@ int main(int argc, char **argv) {
     // load extension library
     CHECK_CALL(sqlite3_load_extension(pDB, "../../bin/libFlexilite", nullptr, &zError));
 
+    sqlite3_stmt *pStmt;
+    CHECK_CALL(sqlite3_prepare(pDB, "select flexi('ping');", -1, &pStmt, nullptr));
+    CHECK_STMT_STEP(pStmt, pDB);
+    const unsigned char *szText;
+    szText = sqlite3_column_text(pStmt, 0);
+    printf("Flexi ping %s", szText);
+    result = SQLITE_OK;
+    goto EXIT;
+
     ONERROR:
+    printf("Error %d, %s", sqlite3_errcode(pDB), sqlite3_errmsg(pDB));
     EXIT:
     sqlite3_free(zDir);
     sqlite3_close(pDB);
