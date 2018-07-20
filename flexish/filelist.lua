@@ -6,13 +6,13 @@
 
 return {
     -- flexish
-    'classCreate.lua',
-    'dumpDatabase.lua',
-    'getStat.lua',
-    'index.lua',
-    'initDb.lua',
-    'runQuery.lua',
-    'sqliteSchemaParser.lua',
+    ['classCreate.lua'] = 'classCreate',
+    ['dumpDatabase.lua'] = 'dumpDatabase',
+    ['getStat.lua'] = 'getStat',
+    ['index.lua'] = 'index',
+    ['initDb.lua'] = 'initDb',
+    ['runQuery.lua'] = 'runQuery',
+    ['sqliteSchemaParser.lua'] = 'sqliteSchemaParser',
 
     -- misc libs
     ['../lib/lua-prettycjson/lib/resty/prettycjson.lua'] = 'prettycjson',
