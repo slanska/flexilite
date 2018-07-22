@@ -1,9 +1,3 @@
-# libFlexish CMakeLists.txt - static library (lua, sqlite, lsqlite ...)
-# src (Flexilite) - libFlexilite-static ->
-# luajit - static and shared library
-# test - static lib libFlexiliteTest-static (sqlite, tests)
-
-# main CMakeLists.txt - b
 # EXE sqlite_shell
 # EXE flexish - flexish/main.c + libFlexish + luajit-static
 # LIB Flexilite - libFlexilite.dylib/so/dll : libFlexilite-static + luajit
@@ -14,7 +8,7 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 enable_testing()
 
 if (WIN32)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    #    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif ()
 
 #CMake provides three variables to describe the system:
@@ -25,21 +19,15 @@ endif ()
 
 set(CMAKE_BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
-#message(WARNING "Platform: ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
-#message(WARNING "Platform: ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}-${PLATFORM}")
 set(PLATFORM "${CMAKE_SYSTEM_NAME}")
 string(TOUPPER "${PLATFORM}" PLATFORM)
 
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR})
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 project(sqlite_shell)
 
 message("Building on: ${CMAKE_SYSTEM_NAME}")
-
-#set_property(TARGET tgt PROPERTY C_STANDARD 99)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     find_package(zlib REQUIRED)
@@ -182,26 +170,16 @@ target_link_libraries(Flexilite PUBLIC ${LuaJit_static})
 target_link_libraries(Flexilite PUBLIC ${Flexilite_LuaFiles})
 
 ###############################################################################
-project(Flexish_static)
+project(flexish_cli C)
+
+message("Building on: ${CMAKE_SYSTEM_NAME}")
 
 include_directories(
         lib/sqlite
         lib/openresty-luajit2/src
         lib/luafilesystem/src
+        lib/lua-cjson
 )
-
-set(SRC_FILES
-        lib/lua-sqlite/sqlite3.c
-        lib/lua-sqlite/lsqlite3.c
-        lib/lua-cjson/fpconv.c
-        lib/lua-cjson/lua_cjson.c
-        lib/lua-cjson/strbuf.c
-        lib/lua-base64/lbase64.c
-        lib/luafilesystem/src/lfs.c
-        flexish/run.c
-        )
-
-add_library(FlexishStatic STATIC ${SRC_FILES})
 
 ADD_CUSTOM_TARGET(
         Compile_Flexish_LuaFiles
@@ -211,7 +189,21 @@ ADD_CUSTOM_TARGET(
         COMMENT "Compiling Flexish Lua files"
 )
 
-target_compile_definitions(FlexishStatic
+set(FLEXISH_SRC_FILES
+        lib/lua-sqlite/sqlite3.c
+        lib/lua-sqlite/lsqlite3.c
+        lib/lua-cjson/fpconv.c
+        lib/lua-cjson/lua_cjson.cl
+        lib/lua-cjson/strbuf.c
+        lib/lua-base64/lbase64.c
+        lib/luafilesystem/src/lfs.c
+        flexish/run.c
+        flexish/main.c
+        )
+
+add_executable(flexish_cli ${FLEXISH_SRC_FILES})
+
+target_compile_definitions(flexish_cli
         PRIVATE
         -DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_RTREE
@@ -223,47 +215,24 @@ target_compile_definitions(FlexishStatic
         -DLUAJIT_ENABLE_GC64
         )
 
-###############################################################################
-
-project(flexish_cli)
-
-message("Building on: ${CMAKE_SYSTEM_NAME}")
-
-include_directories(
-        lib/sqlite
-        lib/openresty-luajit2/src
-        lib/luafilesystem/src
-)
-
-set(SRC_FILES
-        flexish/main.c
-        )
-
-add_executable(flexish_cli ${SRC_FILES})
-
-target_compile_definitions(flexish_cli
-        PRIVATE
-        -DLUAJIT_ENABLE_GC64
-        )
-
 IF (WIN32)
     message('Windows: Flexish')
     SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
-    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
+#    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
 ELSEIF (APPLE)
     message('OSX: Flexish')
     SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
     set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 ${CMAKE_EXE_LINKER_FLAGS}")
-    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
+#    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
 ELSE ()
     message('Linux: Flexish')
 
     SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
-    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
+#    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
 ENDIF ()
 
-target_link_libraries(flexish_cli PUBLIC ${FlexishLuaJit_static})
-target_link_libraries(flexish_cli PUBLIC FlexishStatic)
+target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
+#target_link_libraries(flexish_cli PUBLIC ${FlexishLuaJit_static})
 target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
 
 ###############################################################################

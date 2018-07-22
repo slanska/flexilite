@@ -24,7 +24,7 @@ local function _require()
     return r
 end
 
-_G.require = _require()
+--_G.require = _require()
 
 local sqlite3 = require 'lsqlite3complete'
 local SQLiteSchemaParser = require 'sqliteSchemaParser'
