@@ -93,6 +93,13 @@ int flexi_init(sqlite3 *db,
         pCtx->db = db;
         pCtx->L = lua_newstate(lua_alloc_handler, pCtx);
 
+        if (pCtx->L == nullptr)
+        {
+            *pzErrMsg = sqlite3_mprintf("Flexilite: cannot initialize LuaJIT");
+            result = SQLITE_ERROR;
+            goto EXIT;
+        }
+
         lua_gc(pCtx->L, LUA_GCSTOP, 0);
         luaL_openlibs(pCtx->L);
         lua_gc(pCtx->L, LUA_GCRESTART, -1);
