@@ -38,3 +38,6 @@
 	path = lib/lua-cjson
 	url = https://github.com/openresty/lua-cjson.git
 
+[submodule "lib/torch-luajit-rocks"]
+	path = lib/torch-luajit-rocks
+	url = https://github.com/torch/luajit-rocks.git

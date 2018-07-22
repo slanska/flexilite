@@ -88,9 +88,10 @@ IF (WIN32)
 ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     message('OSX: Flexilite')
     SET(Flexilite_LuaFiles -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a)
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
-    set(CMAKE_SHARED_LINKER_FLAGS "-image_base 7fff04c4a000" ${CMAKE_SHARED_LINKER_FLAGS})
-    set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 ${CMAKE_EXE_LINKER_FLAGS}")
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit-static.a)
+#    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
+#    set(CMAKE_SHARED_LINKER_FLAGS "-image_base 7fff04c4a000" ${CMAKE_SHARED_LINKER_FLAGS})
+#    set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 ${CMAKE_EXE_LINKER_FLAGS}")
 ELSE ()
     message('Linux: Flexilite')
     SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,-E)
@@ -193,7 +194,7 @@ set(FLEXISH_SRC_FILES
         lib/lua-sqlite/sqlite3.c
         lib/lua-sqlite/lsqlite3.c
         lib/lua-cjson/fpconv.c
-        lib/lua-cjson/lua_cjson.cl
+        lib/lua-cjson/lua_cjson.c
         lib/lua-cjson/strbuf.c
         lib/lua-base64/lbase64.c
         lib/luafilesystem/src/lfs.c
@@ -218,21 +219,17 @@ target_compile_definitions(flexish_cli
 IF (WIN32)
     message('Windows: Flexish')
     SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
-#    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
 ELSEIF (APPLE)
     message('OSX: Flexish')
     SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
-    set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 ${CMAKE_EXE_LINKER_FLAGS}")
-#    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
+#    set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 -Wl,-all_load ${CMAKE_EXE_LINKER_FLAGS}")
+    #    set(CMAKE_SHARED_LINKER_FLAGS "-image_base 7fff04c4a000" ${CMAKE_SHARED_LINKER_FLAGS})
 ELSE ()
     message('Linux: Flexish')
-
     SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
-#    SET(FlexishLuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
 ENDIF ()
 
 target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
-#target_link_libraries(flexish_cli PUBLIC ${FlexishLuaJit_static})
 target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
 
 ###############################################################################
