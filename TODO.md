@@ -194,5 +194,12 @@ enum -> reference
 - put complied binaries to git
 - install.md
 
+**2018-07-23**
+
+- Windows: flexish_cli - LuaFileSystem
+- Windows:debug sqlte_shell
+- Windows: try DB Tools and load flexilite
+- remove openresty/luajit
+
 
 

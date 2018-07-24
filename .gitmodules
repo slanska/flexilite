@@ -31,13 +31,9 @@
 [submodule "lib/lua-sqlite"]
 	path = lib/lua-sqlite
 	url = https://github.com/slanska/lsqlite3.git
-[submodule "lib/openresty-luajit2"]
-	path = lib/openresty-luajit2
-	url = https://github.com/openresty/luajit2.git
 [submodule "lib/lua-cjson"]
 	path = lib/lua-cjson
 	url = https://github.com/openresty/lua-cjson.git
-
 [submodule "lib/torch-luajit-rocks"]
 	path = lib/torch-luajit-rocks
 	url = https://github.com/torch/luajit-rocks.git
