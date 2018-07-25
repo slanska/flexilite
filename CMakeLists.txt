@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 enable_testing()
 
 if (WIN32)
-    #    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif ()
 
 #CMake provides three variables to describe the system:
@@ -92,7 +92,7 @@ ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 ELSE ()
     message('Linux: Flexilite')
     SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,-E)
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/openresty-luajit2/src/libluajit.a)
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit-static.a)
 ENDIF ()
 
 set(CMAKE_CXX_STANDARD 11)
