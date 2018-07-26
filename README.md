@@ -385,3 +385,4 @@ busted --lua=PATH_TO_LUJIT ./index.lua
 
 (**Note that busted needs to run using LuaJit interpreter. POC Lua will fail**)
 
+select load_extension('/Users/ruslanskorynin/Documents/slanska/flexilite/bin/libFlexilite.dylib');
