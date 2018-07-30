@@ -29,11 +29,11 @@ project(sqlite_shell)
 
 message("Building on: ${CMAKE_SYSTEM_NAME}")
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    find_package(zlib REQUIRED)
-else ()
-    find_package(ZLIB REQUIRED)
-endif ()
+#if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+#    find_package(zlib REQUIRED)
+#else ()
+#    find_package(ZLIB REQUIRED)
+#endif ()
 
 find_package(Threads REQUIRED)
 

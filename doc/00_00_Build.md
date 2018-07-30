@@ -37,8 +37,23 @@ make
 
 To install Torch LuaJIT and LuaRocks run this command:
 ```
-make install
+sudo make install
+sudo /usr/torch/bin/luarocks install penlight
 ```
+
+Add Torch binaries to PATH :
+
+```shell
+sudo nano ~/.profile
+```
+
+Append the following line to the end of file:
+
+```shell
+export PATH=$PATH:/usr/torch/bin 
+
+```
+ 
 
 ### Linux (Ubuntu, Debian)
 
