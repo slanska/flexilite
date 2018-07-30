@@ -27,8 +27,17 @@ mingw32-make BUILDMODE=static
 ### macOS
 
 ``` shell
-cd ./lib/openresty-luajit2/src
-make BUILDMODE=static
+cd <Flexilite_location>
+cd ./lib/torch-luajit-rocks
+mkdir ./build
+cd ./build
+cmake .. -DCMAKE_INSTALL_PREFIX=/usr/torch -DWITH_LUAJIT21=ON 
+make
+```
+
+To install Torch LuaJIT and LuaRocks run this command:
+```
+make install
 ```
 
 ### Linux (Ubuntu, Debian)
