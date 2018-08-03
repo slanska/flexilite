@@ -63,5 +63,5 @@ cd ./lib/torch-luajit-rocks
 mkdir ./build
 cd ./build
 cmake .. -DCMAKE_INSTALL_PREFIX=/usr/torch -DWITH_LUAJIT21=ON 
-make
+make 
 ```

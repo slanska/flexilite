@@ -107,7 +107,6 @@ set(EXT_FILES
         lib/luafilesystem/src/lfs.c
 
         src/misc/json1.c
-        src/typings/DBDefinitions.h
         src/project_defs.h
         src/main.cpp
 
