@@ -101,7 +101,7 @@ for file_name, module_name in pairs(files) do
         local o_file = path.abspath(path.join(out_path, path.relpath(
                 string.gsub(string.gsub(file_name, '/', '.'),
                         '%.%.%.', '') .. '.o')))
-        cmd = string.format('luajit -b%s "%s" "%s"',
+        cmd = string.format('luajit -bg%s  "%s" "%s"',
                 nn, file_path, o_file)
 
         print(string.format('%s: compiling %s', libName, file_name))
