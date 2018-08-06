@@ -169,7 +169,7 @@ function TestContext:getDBContext(name)
         end
     end
 
-    result:ExecAdhocSql('begin')
+    -- TODO result:ExecAdhocSql('begin')
     return result
 end
 

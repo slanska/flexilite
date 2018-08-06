@@ -205,10 +205,20 @@ enum -> reference
 
 - conditional package.cpath for Windows version
 - static linking of gcc libraries on Windows
-- install busted and mobdebug in Linux and Windows VMs
-- create image of SD200 on Adata
-- handle <require 'sql.dbschema'> in busted tests
+- install busted and mobdebug on &#10003; Linux and Windows VMs
+- &#10003; create image of SD200 on Adata
+- &#10003; handle <require 'sql.dbschema'> in busted tests
 - install MingW 64 bit on Windows VM. Build
 - update README.md: move most of text to ./doc
+- Flexish_cli: load data
+- Flexish_cli: use ansicolors
+- Flexish_cli: query
+- Flexish_cli: configure database
+- get rid of Lua date, use Penlight date instead
+- Flexish_cli: help - extended info
+- Flexish_cli: schema - check enum, multi key index and many-2-many
+- Flexish_cli: unit tests
+- cmake: copy lua51.dll to ./bin 
+- &#10003; check if lib/luadec is used.
 
 

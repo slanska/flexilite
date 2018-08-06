@@ -547,9 +547,6 @@ function FilterDef:build_index_query()
     -- and are column-mapped generate SQL 'where' clause to apply to .objects fields directly
     -- TODO
 
-    print('-> SQL:' .. result:join(' ') .. '\n')
-    --print('-> SQL:' .. result:join('\n'))
-
     return result:join('\n')
 end
 
