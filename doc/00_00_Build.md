@@ -64,3 +64,14 @@ cd ./build
 cmake .. -DCMAKE_INSTALL_PREFIX=/usr/torch -DWITH_LUAJIT21=ON 
 make 
 ```
+
+## Test
+
+[busted](https://github.com/Olivine-Labs/busted) is used to run Flexilite tests
+
+Since by default **busted** expects Lua 5.3, and Flexilite is based on LuaJIT 2.1,
+it needs to run with the following setting:
+
+```shell
+busted --lua=<PATH_TO_LUAJIT> test.lua
+```

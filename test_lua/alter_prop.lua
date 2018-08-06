@@ -6,8 +6,8 @@
 
 describe('alter property tests', function()
 
-    pending('dummy',
-       function()
+    pending('rename',
+            function()
 
-       end)
+            end)
 end)

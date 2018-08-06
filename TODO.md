@@ -189,17 +189,26 @@ enum -> reference
 - &#10003; move util/* to tools
 - move definitions.d.ts to metacix project
 - delete typings
-- merge flexish cmakefiles with main one
-- build flexish
-- put complied binaries to git
+- &#10003; merge flexish cmakefiles with main one
+- &#10003; build flexish_cli (except Linux)
+- put compiled binaries to git
 - install.md
 
 **2018-07-23**
 
-- Windows: flexish_cli - LuaFileSystem
-- Windows:debug sqlte_shell
-- Windows: try DB Tools and load flexilite
-- remove openresty/luajit
+- &#10003; Windows: flexish_cli - LuaFileSystem
+- &#10003; Windows:debug sqlte_shell
+- &#10003; Windows: try DB Tools and load flexilite
+- &#10003; remove openresty/luajit
 
+**2018-08-06**
+
+- conditional package.cpath for Windows version
+- static linking of gcc libraries on Windows
+- install busted and mobdebug in Linux and Windows VMs
+- create image of SD200 on Adata
+- handle <require 'sql.dbschema'> in busted tests
+- install MingW 64 bit on Windows VM. Build
+- update README.md: move most of text to ./doc
 
 
