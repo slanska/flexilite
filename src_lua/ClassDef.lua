@@ -569,7 +569,7 @@ function ClassDef:saveToDB()
     assert(self.ClassID > 0)
 
     local internalJson = ''
-    print('saving ' .. self.Name.text)
+
     local internal = self:internalToJSON()
     local sparse = json.encode_sparse_array()
     json.encode_sparse_array(true)
@@ -606,8 +606,6 @@ function ClassDef:saveToDB()
                 vtypes = self.vtypes,
                 ClassID = self.ClassID
             })
-    print('Saved ' .. self.Name.text)
-
 end
 
 -- Converts "free" index definition to a normalized format.

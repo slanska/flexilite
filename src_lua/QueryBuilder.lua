@@ -380,10 +380,10 @@ function FilterDef:process_range_index(sql)
                     else
                         firstCond = false
                         sql:append(string.format('ObjectID in (select ObjectID from [.range_data_%d] where ',
-                                                 self.ClassDef.ClassID))
+                                self.ClassDef.ClassID))
                     end
                     sql:append(string.format([[(%s %s %s)]],
-                                             indexes.rngCols[idx], v.cond, v.val))
+                            indexes.rngCols[idx], v.cond, v.val))
                     v.processed = (v.processed or 0) + 1
                 end
             end
@@ -408,7 +408,7 @@ function FilterDef:process_full_text_index(sql)
                     if firstFts then
                         sql:append(string.format([[and ObjectID in (select id from [.full_text_data] where ClassID=%d
                 ]],
-                                                 self.ClassDef.ClassID))
+                                self.ClassDef.ClassID))
                         firstFts = false
                     end
                     sql:append(string.format([[ and X%d match %s]], ftsMap[v.propID], v.val))
@@ -426,7 +426,7 @@ end
 -- Takes into account: indexed, unique indexed, non indexed, mapped and non mapped properties
 ---@param sql List
 function FilterDef:process_single_properties(sql)
-    local indexes = self.ClassDef.indexes
+    -- TODO local indexes = self.ClassDef.indexes
 
     -- List of already processed props
     local processedProps = {}
@@ -442,10 +442,10 @@ function FilterDef:process_single_properties(sql)
                 if propDef.ColMap == nil then
                     -- reg.values
                     propSql:append(string.format(' and ObjectID in (select ObjectID from [.ref-values] where PropertyID = %d ',
-                                                 propDef.ID))
+                            propDef.ID))
                     if propIndexed ~= nil then
                         propSql:append(' and ctlv & %d <> 0',
-                                       propIndexed == true and Constants.CTLV_FLAGS.UNIQUE or Constants.CTLV_FLAGS.INDEX)
+                                propIndexed == true and Constants.CTLV_FLAGS.UNIQUE or Constants.CTLV_FLAGS.INDEX)
                     end
                     appendAnd = true
                 else
@@ -458,6 +458,7 @@ function FilterDef:process_single_properties(sql)
                             or bit52.bnot(bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.INDEX_SHIFT))
 
                     propSql:append(string.format(' and (ctlo & %d <> 0', idxMask))
+                    appendAnd = true
                 end
                 processedProps[v.propID] = propSql
             else
@@ -528,7 +529,7 @@ function FilterDef:build_index_query()
     ---@type List @comment used as a string builder
     local result = List()
     result:append(string.format('select * from [.objects] where ClassID = %d',
-                                self.ClassDef.ClassID))
+            self.ClassDef.ClassID))
 
     -- 1) multi key unique indexes
     self:process_multi_key_index(result)
@@ -604,7 +605,6 @@ function DBQuery:Run()
     self.ObjectIDs = {}
 
     local sql = self._filterDef:build_index_query()
-    --local rows =
 
     -- TODO set env.quote?
 

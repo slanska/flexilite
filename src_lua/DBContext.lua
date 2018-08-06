@@ -297,6 +297,7 @@ function DBContext:checkSqlite(opResult)
             and opResult ~= sqlite3.ROW then
         local errMsg = string.format("SQLite error code %d: %s",
                 self.db:error_code(), self.db:error_message())
+
         error(errMsg)
     end
 end
