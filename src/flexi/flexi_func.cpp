@@ -144,7 +144,7 @@ int flexi_init(sqlite3 *db,
         pCtx->SQLiteConn_Index = luaL_ref(pCtx->L, LUA_REGISTRYINDEX);
 
         // Create context, by passing SQLite db connection
-        if (luaL_dostring(pCtx->L, "return require ('DBContext')"))
+        if (luaL_dostring(pCtx->L, "package.cpath = package.cpath .. ';./libFlexilite.dll'; print(package.cpath); return require ('DBContext')"))
         {
             *pzErrMsg = sqlite3_mprintf("Flexilite require DBContext: %s\n", lua_tostring(pCtx->L, -1));
             printf(*pzErrMsg);
