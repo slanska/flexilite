@@ -4,13 +4,12 @@
 
 **Requirements:**
 
-* LuaJIT 2.0+ and LuaRocks installed and added to system PATH
 * MinGW has to be used for compiling Flexilite on Windows.
 
 In Visual Studio Developer Command Prompt:
-```shell
+```shell    
 cd <Flexilite_location>
-cd .\lib\torch-luajit-rocks
+cd .\lib\torch-l                    uajit-rocks
 mkdir build
 cd .\build
 cmake .. -DCMAKE_INSTALL_PREFIX=c:\luajit21 -DWITH_LUAJIT21=ON -G "NMake Makefiles"  -DWIN32=1

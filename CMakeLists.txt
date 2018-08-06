@@ -85,14 +85,17 @@ IF (WIN32)
     message('Windows: Flexilite')
     SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
     SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit.lib)
+    SET(LuaJit_shared ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/luajit-2.1/src/lua51.dll)
 ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     message('OSX: Flexilite')
     SET(Flexilite_LuaFiles -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a)
     SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit-static.a)
+    SET(LuaJit_shared ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit.dll)
 ELSE ()
     message('Linux: Flexilite')
     SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,-E)
     SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit-static.a)
+    SET(LuaJit_shared ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit.dll)
 ENDIF ()
 
 set(CMAKE_CXX_STANDARD 11)
@@ -163,7 +166,13 @@ target_compile_definitions(
         -DSQLITE_EXTENSION
 )
 
-target_link_libraries(Flexilite PUBLIC ${LuaJit_static})
+if (WIN32)
+    target_link_libraries(Flexilite PRIVATE ${LuaJit_shared})
+    #    target_link_libraries(Flexilite PUBLIC ${Flexilite_LuaFiles})
+else ()
+    target_link_libraries(Flexilite PUBLIC ${LuaJit_static})
+    #    target_link_libraries(Flexilite PUBLIC ${Flexilite_LuaFiles})
+endif ()
 target_link_libraries(Flexilite PUBLIC ${Flexilite_LuaFiles})
 
 ###############################################################################
@@ -214,8 +223,7 @@ target_compile_definitions(flexish_cli
 
 IF (WIN32)
     message('Windows: Flexish')
-    SET(Flexish_static_link  ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--whole-archive, -E)
-#    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
+    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
 ELSEIF (APPLE)
     message('OSX: Flexish')
     SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
@@ -224,7 +232,12 @@ ELSE ()
     SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
 ENDIF ()
 
-target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
+if (WIN32)
+    target_link_libraries(flexish_cli PRIVATE ${LuaJit_shared})
+else ()
+    target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
+endif ()
+
 target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
 
 ###############################################################################
