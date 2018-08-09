@@ -67,6 +67,12 @@ target_link_libraries(sqlite_shell m)
 # libFlexilite library
 project(Flexilite)
 
+if (WIN32)
+    find_package(zlib REQUIRED)
+else ()
+    find_package(ZLIB REQUIRED)
+endif ()
+
 include_directories(
         lib/sqlite
         lib/torch-luajit-rocks/luajit-2.1/src
@@ -94,12 +100,15 @@ ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 ELSE ()
     message('Linux: Flexilite')
     SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,-E)
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit-static.a  -ldl -lm -lpthread)
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit-static.a -ldl -lm -lpthread)
     SET(LuaJit_shared ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit.dll)
 ENDIF ()
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if (MINGW)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
+endif ()
 
 set(EXT_FILES
         lib/lua-sqlite/lsqlite3.c
@@ -179,6 +188,13 @@ target_link_libraries(Flexilite PUBLIC ${Flexilite_LuaFiles})
 project(flexish_cli C)
 
 message("Building on: ${CMAKE_SYSTEM_NAME}")
+
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+if (MINGW)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-libgcc")
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
+endif ()
 
 include_directories(
         lib/sqlite
