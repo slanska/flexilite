@@ -22,8 +22,8 @@ local test_cases = {
     { query = [[ProductName == 'Camembert Pierrot']], expected_cnt = 1 },
     { query = [[1 == 1]], expected_cnt = 77 },
 }
+describe('Property Ops/', function()
 
-describe('Property Ops:', function()
     ---@type ClassDef
     local productsClassDef = assert(DBContext:getClassDef('Products'))
 
@@ -38,4 +38,5 @@ describe('Property Ops:', function()
     for i, _ in ipairs(test_cases) do
         run_test_case(i)
     end
+
 end)

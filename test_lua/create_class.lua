@@ -4,6 +4,7 @@
 ---
 
 local path = require 'pl.path'
+local test_util = require 'util'
 package.path = path.abspath(path.relpath('../src_lua')) .. '/?.lua;' .. package.path
 
 require 'socket'

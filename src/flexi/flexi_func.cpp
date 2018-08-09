@@ -82,8 +82,6 @@ int flexi_init(sqlite3 *db,
                char **pzErrMsg,
                const sqlite3_api_routines *pApi)
 {
-//    void(pApi);
-
     try
     {
         int result;
@@ -99,9 +97,6 @@ int flexi_init(sqlite3 *db,
             result = SQLITE_ERROR;
             goto EXIT;
         }
-
-        // >>
-        printf("Flexilite: LuaJIT initialized\n");
 
         lua_gc(pCtx->L, LUA_GCSTOP, 0);
         luaL_openlibs(pCtx->L);
@@ -125,9 +120,6 @@ int flexi_init(sqlite3 *db,
             goto EXIT;
         }
 
-        // >>
-        printf("Flexilite: require 'sqlite3'\n");
-
         lua_getfield(pCtx->L, -1, "open_ptr");
         lua_pushlightuserdata(pCtx->L, db);
         if (lua_pcall(pCtx->L, 1, 1, 0))
@@ -137,9 +129,6 @@ int flexi_init(sqlite3 *db,
             result = SQLITE_ERROR;
             goto EXIT;
         }
-
-        // >>
-        printf("Flexilite: sqlite.open_ptr\n");
 
         pCtx->SQLiteConn_Index = luaL_ref(pCtx->L, LUA_REGISTRYINDEX);
 
@@ -151,9 +140,6 @@ int flexi_init(sqlite3 *db,
             result = SQLITE_ERROR;
             goto EXIT;
         }
-
-        // >>
-        printf("Flexilite: require 'DBContext'\n");
 
         lua_rawgeti(pCtx->L, LUA_REGISTRYINDEX, pCtx->SQLiteConn_Index);
         if (lua_pcall(pCtx->L, 1, 1, 0))

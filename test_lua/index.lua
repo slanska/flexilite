@@ -19,14 +19,22 @@ Tests to implement:
 
 local util = require 'util'
 local TestContext = util.TestContext()
-TestContext.GetNorthwind()
+TestContext:GetNorthwind()
 
 -- Misc tests
-require 'bit52'
-require 'bad_class_schema'
-require 'alter_prop'
-require 'classSchema'
-require 'create_class'
-require 'misc'
-require 'object_schema'
-require 'prop_values'
+describe('/', function()
+    -- TODO Hacky approach to have busted API available in submodules
+    _G.describe = describe
+    _G.it = it
+    _G.pending = pending
+    _G.assert = assert
+
+    require('bit52')
+    require 'bad_class_schema'
+    require 'alter_prop'
+    require 'classSchema'
+    --TODO require 'create_class'
+    require 'misc'
+    require 'object_schema'
+    require 'prop_values'
+end)

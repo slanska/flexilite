@@ -33,6 +33,7 @@ local paths = {
     '../lib/lua-metalua/extension/?.lua',
     '../lib/lua-metalua/treequery/?.lua',
     '../lib/lua-sandbox/?.lua',
+    '../?.lua',
 }
 for _, pp in ipairs(paths) do
     package.path = path.abspath(path.relpath(pp)) .. ';' .. package.path
@@ -168,7 +169,7 @@ function TestContext:getDBContext(name)
         end
     end
 
-    result:ExecAdhocSql('begin')
+    -- TODO result:ExecAdhocSql('begin')
     return result
 end
 

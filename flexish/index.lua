@@ -39,7 +39,19 @@ package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua
 
 local prettyJson = require "prettycjson"
 
+---@class CLIArgs
+---@field database string
+---@field output string
+---@field data string
+---@field output string
+---@field compactJson boolean
+---@field config file
+---@field table string
+---@field query string
+
 -- Checks presence of database path argument and ensures it is stored as absolute path
+---@param cli_args CLIArgs
+---@param argName string
 local function EnsureAbsPathArg(cli_args, argName)
     if cli_args[argName] and not path.isabs(cli_args[argName]) then
         cli_args[argName] = path.abspath(path.relpath(cli_args[argName]))
@@ -82,10 +94,16 @@ local function queryDatabase(args, options)
 
 end
 
-local function loadData()
+--- Loads data from JSON file
+---@param cli_args CLIArgs
+local function loadData(cli_args)
+    EnsureAbsPathArg(cli_args, 'database')
+    --cli_args.database
+
 
 end
 
+--- Configures database to be Flexilite ready (equivalent of flexi('config'))
 local function configDatabase()
 
 end
@@ -99,6 +117,7 @@ Flexilite Shell Utility
     -o, --output (string default '')  Output file path
     -c, --config (file-in default '')  Path to config file
     -q, --query (string default '')  Path to query file
+    -d, --data (string default '') Path to JSON file with data to load
     -cj, --compactJson (boolean default false)  If set, output JSON will be in compact (minified) form
 ]]
 
