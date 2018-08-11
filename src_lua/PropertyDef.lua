@@ -64,7 +64,7 @@ local NameRef, ClassNameRef, PropNameRef = name_ref.NameRef, name_ref.ClassNameR
 local Constants = require 'Constants'
 local AccessControl = require 'AccessControl'
 local dbprops = require 'DBProperty'
-local parseDatTimeToJulian = require('Util').parseDatTimeToJulian
+local parseDateTimeToJulian = require('Util').parseDateTimeToJulian
 local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
 local base64 = require 'base64'
 
@@ -1159,7 +1159,7 @@ end
 ---@return number, string @comment date/time in Julian (the same as SQLite) and error message (nil if OK)
 function DateTimePropertyDef:toJulian(value)
     if type(value) == 'string' then
-        return parseDatTimeToJulian(value)
+        return parseDateTimeToJulian(value)
     elseif type(value) == 'number' then
         return value, nil
     elseif type(value) == 'table' then
@@ -1200,7 +1200,7 @@ end
 ---@param v any
 function DateTimePropertyDef:ImportDBValue(dbv, v)
     if type(v) == 'string' then
-        dbv.Value = parseDatTimeToJulian(v)
+        dbv.Value = parseDateTimeToJulian(v)
     elseif type(v) == 'number' then
         dbv.Value = tonumber(v)
     else

@@ -275,10 +275,11 @@ end
 
 ---@class ClassDefData
 ---@field properties table<string, PropertyDefData>
----@field indexes table
+---@field indexes table @comment IndexDefData
 ---@field specialProperties specialProperties
 ---@field meta any
 ---@field accessRules table @comment TODO access rules
+---@field storage string @comment nil | '' | 'R' - normal class or .ref-values
 
 ---@class ClassDef
 ---@field ClassID number
@@ -334,10 +335,10 @@ function ClassDef:_init(params)
     local data
 
     if params.newClassName then
-        self.indexes = IndexDefinitions()
-
         -- New class initialization. params.data is either string or JSON
         -- and it is JSON with class definition
+        self.indexes = IndexDefinitions()
+
         data = params.data
         if type(data) == 'string' then
             data = json.decode(data)
@@ -949,7 +950,13 @@ ClassDef.Schema = schema.Record {
      ]]
     meta = schema.Any,
 
-    accessRules = schema.Optional(AccessControl.Schema)
+    accessRules = schema.Optional(AccessControl.Schema),
+
+    -- if 'R' class is mapped to .ref-values and serves as relation for 2 other classes
+    -- 'R' classes must have only 2 properties, defined during creation.
+    -- Properties cannot be deleted or added or otherwise changed, except rename.
+    -- Both properties must be of 'fkey' type
+    storage = schema.OneOf(schema.Nil, 'R'),
 }
 
 -- Schema for multi class JSON

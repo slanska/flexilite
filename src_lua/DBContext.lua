@@ -33,7 +33,7 @@ local DBObject = require 'DBObject'
 local EnumManager = require 'EnumManager'
 local Constants = require 'Constants'
 local DictCI = require('Util').DictCI
-local sqlite3 = require 'sqlite3'
+local sqlite3 = sqlite3 or require 'sqlite3'
 
 -------------------------------------------------------------------------------
 -- ActionList

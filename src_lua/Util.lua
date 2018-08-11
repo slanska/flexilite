@@ -14,11 +14,7 @@ helper functions, which can operate on 53 bit values by 27 bit chunks
 local math = require 'math'
 local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local JulianDate = require 'JulianDate'
-local pretty = require 'pl.pretty'
-
--- TODO Use Penlight Date module
 local date = require 'date'
-
 local class = require 'pl.class'
 
 -- Max value for 26 bit integer
@@ -74,14 +70,15 @@ end
 ---@field daynum number @comment number of days since 0 AD
 ---@field dayfrc number @comment ticks (1 sec = 1 000 000 ticks)
 
+local ticksPerDay = 24 * 60 * 60 * 1000000
+
 -- Converts string in JavaScript datetime format to number in Julian calendar
 -- Source: https://forums.coronalabs.com/topic/29019-convert-string-to-date/
 ---@param str string
 ---@return number
-local function parseDatTimeToJulian(str)
+local function parseDateTimeToJulian(str)
     ---@type DateObject
     local dateObj = date(str)
-    local ticksPerDay = 24 * 60 * 60 * 1000000
     local result = dateObj.daynum + 1721425.5 + dateObj.dayfrc / ticksPerDay
     return result
 end
@@ -91,7 +88,7 @@ end
 local function stringifyDateTimeInfo(dt)
     -- TODO time zone
     local result = string.format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d',
-                                 dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+            dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
     return result
 end
 
@@ -141,7 +138,7 @@ return {
         rshift = BRShift64
     },
 
-    parseDatTimeToJulian = parseDatTimeToJulian,
+    parseDateTimeToJulian = parseDateTimeToJulian,
     stringifyJulianToDateTime = stringifyJulianToDateTime,
     stringifyDateTimeInfo = stringifyDateTimeInfo,
     DictCI = DictCI

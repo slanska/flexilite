@@ -6,7 +6,16 @@
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 
+---@class ISQLiteTableInfo
+
 ---@class ITableInfo
+---@field table string
+---@field columnCount number
+---@field columns table[] @comment SQLite column
+---@field inFKeys table[]
+---@field outFKeys table[]
+---@field manyToManyTable boolean
+---@field multiPKey boolean
 
 ---@class FlexishResults
 
@@ -14,7 +23,7 @@ local tablex = require 'pl.tablex'
 
 ---@class SQLiteSchemaParser
 ---@field outSchema table<string, IClassDefinition>
----@field tableInfo table<string, ITableInfo>
+---@field tableInfo ITableInfo[]
 ---@field results FlexishResults
 ---@field referencedTableNames string[]
 
@@ -73,7 +82,7 @@ function SQLiteSchemaParser:_init(db)
     -- ClassDefCollection
     self.outSchema = {}
 
-    -- ITableInfo[]
+    ---@type ITableInfo[]
     self.tableInfo = {}
 
     --FlexishResults
@@ -132,13 +141,13 @@ function SQLiteSchemaParser:sqliteColToFlexiProp(sqliteCol)
         local _, _, tt, ll = string.find(sqliteCol.type, '^%s*(%a+)%s*%(%s*(%d+)%s*%)%s*$')
         if tt and ll then
             tt = string.lower(tt)
-            local rr = tablex.deepcopy( sqliteTypesToFlexiTypes[tt])
+            local rr = tablex.deepcopy(sqliteTypesToFlexiTypes[tt])
             if rr then
                 p.rules = rr
                 p.rules.maxLength = tonumber(ll)
             end
         else
-            local rr = tablex.deepcopy( sqliteTypesToFlexiTypes[string.lower(sqliteCol.type)])
+            local rr = tablex.deepcopy(sqliteTypesToFlexiTypes[string.lower(sqliteCol.type)])
             if rr then
                 p.rules = rr
             end
@@ -154,7 +163,8 @@ end
 ---@param suggestedPropName string
 ---@return string
 function SQLiteSchemaParser:getUniqPropName(tblInfo, classDef, suggestedPropName)
-
+    -- TODO
+    return suggestedPropName
 end
 
 --[[
@@ -165,9 +175,25 @@ Canonical conditions:
 3) Both columns must be foreign keys to some tables
 4) there is an index on column B (this is optional, not required)
 
-If conditions 1-4 are met, this table is considered as a many-to-many list.
+If conditions 1-3 (or even 1-4) are met, this table is considered as a many-to-many list.
 Foreign key info in SQLite comes from detail/linked table, so it is either N:1 or 1:1
+
+For the sake of example let's take a look schema from Northwind database:
+Employees -> EmployeesTerritories <- Territories
+
+Once many-to-many table is detected, related tables get a new property each.
+Employees get a new property "Employees.EmployeesTerritories" (as name of referenced table)
+Territories get a new property "Employees".
+
+Based on structure of original table, 'Employees.EmployeesTerritories' will be a master property
+(mapped to PropertyID), 'Territories.Employees' - linked property (mapped to Value)
+
+As far as 'EmployeesTerritories' exists (and not renamed), external data can be loaded to the
+'EmployeesTerritories' virtual class. Note that actual class 'EmployeesTerritories' will not be created,
+so if such a class to be created later, it will prevent importing data from external source.
 ]]
+
+---@return number @comment Number of found many2many tables
 function SQLiteSchemaParser:processMany2ManyRelations()
     --[[
     // Find tables with 2 columns
@@ -179,12 +205,17 @@ function SQLiteSchemaParser:processMany2ManyRelations()
     As and Bs are pluralized form of table names
     Properties will be named: As, or As_a (if As already used) and Bs or Bs_b, respectively
     ]]
+    local result = 0
 
-    for i, it in ipairs(self.tableInfo) do
-        if it.columnCount == 2 then
-            -- TODO
+    for i, ti in ipairs(self.tableInfo) do
+        -- 1) table must have only 2 columns (A & B)
+        if ti.columnCount == 2 then
+            --ti.indexes
+            --            ti.columns[1]
         end
     end
+
+    return result
 end
 
 ---@param tableName string
@@ -237,7 +268,7 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
 
     self.outSchema[tblDef.name] = classDef
 
-    -- ITableInfo
+    ---@type ITableInfo
     local tblInfo = {
         -- Table name
         table = tblDef.name,
@@ -334,10 +365,10 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
                 origin = 'pk',
                 partial = 0,
                 columns = { {
-                    seq = 0,
-                    cid = pkCol.cid,
-                    name = pkCol.name
-                } }
+                                seq = 0,
+                                cid = pkCol.cid,
+                                name = pkCol.name
+                            } }
             })
         end
     end
@@ -412,7 +443,7 @@ end
 ---@param classDef IClassDef
 ---@param prop IPropertyDef
 ---@return string
-function SQLiteSchemaParser:findPropName( classDef, prop)
+function SQLiteSchemaParser:findPropName(classDef, prop)
     for name, p in pairs(classDef.properties) do
         if p == prop then
             return name
@@ -471,11 +502,11 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
     local notNullProps = tablex.values(notNullPropsMap)
 
     table.sort(notNullProps,
-    function(A, B)
-        local aw = getColumnWeight(A)
-        local bw = getColumnWeight(B)
-        return aw < bw
-    end)
+            function(A, B)
+                local aw = getColumnWeight(A)
+                local bw = getColumnWeight(B)
+                return aw < bw
+            end)
 
     if #notNullProps == 0 then
         return
@@ -498,7 +529,7 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
 
     -- autoUuid: binary(16), unique index, required or column 'guid', 'uuid'
     if notNullProps[1] and notNullProps[1].index == 'unique' and notNullProps[1].rules.type == 'binary'
-    and notNullProps[1].rules.maxLength == 16 then
+            and notNullProps[1].rules.maxLength == 16 then
         local propName = self:findPropName(classDef, notNullProps[1])
         classDef.specialProperties.name = { text = propName }
         table.remove(notNullProps, 1)
@@ -515,7 +546,7 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
 
     -- name - next (after Code) unique text index or shortest required indexed text column (or 'name')
     if notNullProps[1] and ((notNullProps[1].index == 'unique' or notNullProps[1].index == 'index') and notNullProps[1].rules.type == 'text')
-    or (#notNullProps == 1 and notNullProps[1].rules.type == 'text') then
+            or (#notNullProps == 1 and notNullProps[1].rules.type == 'text') then
         local propName = self:findPropName(classDef, notNullProps[1])
         classDef.specialProperties.name = { text = propName }
         table.remove(notNullProps, 1)
@@ -562,7 +593,7 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
             end
 
             return false
-        end )
+        end)
 
         return result
     end
@@ -600,7 +631,7 @@ function SQLiteSchemaParser:processReferences(tblInfo)
     -- get table primary key
     local pkCols = table.filter(tblInfo.columns, function(cc)
         return cc.pk > 0
-    end )
+    end)
 
     --[[ TODO uses logic below for creating suggestion comments for the class
          Process foreign keys. Defines reference properties.
@@ -749,7 +780,7 @@ end
 function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
     local nonUniqueIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
         return idx.unique ~= 1
-    end )
+    end)
 
     -- Pool of full text columns
     local ftsCols = { 'X1', 'X2', 'X3', 'X4' }
@@ -774,7 +805,7 @@ function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
                 end
             end
         elseif prop.rules.type == 'integer' or prop.rules.type == 'number'
-        or prop.rules.type == 'datetime' then
+                or prop.rules.type == 'datetime' then
             if not prop.index then
                 if #rtCols == 0 then
                     prop.index = 'index'
@@ -800,8 +831,8 @@ function SQLiteSchemaParser:processUniqueMultiColumnIndexes(tblInfo, classDef)
 
     for i, idx in ipairs(uniqMultiIndexes) do
         if #idx.columns > 4 then
-            local msg = string.format( "Index [%s] by %s is ignored as multi-column unique indexes with more than 4 columns are not supported by Flexilite",
-            idx.name, self:getIndexColumnNames(tblInfo, idx))
+            local msg = string.format("Index [%s] by %s is ignored as multi-column unique indexes with more than 4 columns are not supported by Flexilite",
+                    idx.name, self:getIndexColumnNames(tblInfo, idx))
             table.insert(self.results, {
                 type = 'warn',
                 message = msg,
@@ -825,33 +856,33 @@ function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
     local uniqOtherIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
         local tt = classDef.properties[tblInfo.columns[idx.columns[1].cid + 1].name].rules.type
         return #idx.columns == 1 and idx.unique == 1 and (tt == 'integer' or tt == 'number' or tt == 'datetime'
-        or tt == 'binary')
-    end )
+                or tt == 'binary')
+    end)
 
     table.sort(uniqOtherIndexes,
-    function(A, B)
-        if not A or not B then
-            return 0
-        end
+            function(A, B)
+                if not A or not B then
+                    return 0
+                end
 
-        local function getTypeWeight(item)
-            local result = classDef.properties[tblInfo.columns[item.columns[1].cid + 1].name].rules.type
-            if result == 'integer' then
-                return 0
-            end
-            if result == 'number' then
-                return 1
-            end
-            if result == 'binary' then
-                return 2
-            end
-            return 3
-        end
+                local function getTypeWeight(item)
+                    local result = classDef.properties[tblInfo.columns[item.columns[1].cid + 1].name].rules.type
+                    if result == 'integer' then
+                        return 0
+                    end
+                    if result == 'number' then
+                        return 1
+                    end
+                    if result == 'binary' then
+                        return 2
+                    end
+                    return 3
+                end
 
-        local v1 = getTypeWeight(A)
-        local v2 = getTypeWeight(B)
-        return v1 < v2
-    end )
+                local v1 = getTypeWeight(A)
+                local v2 = getTypeWeight(B)
+                return v1 < v2
+            end)
 end
 
 -- Check required fields. Candidates for name, description, nonUniqueId, createTime, updateTime,
@@ -871,7 +902,7 @@ function SQLiteSchemaParser:processUniqueTextIndexes(tblInfo, classDef)
     ]]
     local uniqTxtIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
         return #idx.columns == 1 and idx.unique == 1
-    end )
+    end)
 end
 
 --[[

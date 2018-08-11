@@ -37,7 +37,7 @@ data: Database, statements, user info, class definitions, cache of referenced va
 * save class def
 * validate property
 * ? port AccessRules to Lua
-* try tests using busted
+* &#10003; try tests using busted
 * flexi_DataUpdate
 * &#10003; configure luacheck
 * &#10003; how document Lua code
@@ -53,7 +53,7 @@ data: Database, statements, user info, class definitions, cache of referenced va
     - &#10003; Products.Categories - maxOccurrences should be 1, not maxint. 
     - &#10003; Products: prop Category (singular), not Categories (plural)
     - &#10003; Define reverse properties for FKEY (not needed)
-    - main.c - compile Flexish into standalone exe. (use CMakeLists.txt to list files and compile lua to .o files)
+    - &#10003; main.c - compile Flexish into standalone exe. (use CMakeLists.txt to list files and compile lua to .o files)
     - handle non existing database - report error
     
 * SQL schema:
@@ -178,7 +178,7 @@ enum -> reference
 - &#10003; build on Linux
 - &#10003; lua2lib - non .lua files treat as string resources
  (wrap into return encoded string)
-- flexi test: run 'flexi' tests
+- flexi_test: run 'flexi' tests
 - &#10003; switch to OpenResty lua-cjson (fix for LuaJIT 2.1 compatibility)
 
 **2018-07-14**
@@ -204,21 +204,25 @@ enum -> reference
 **2018-08-06**
 
 - conditional package.cpath for Windows version
-- static linking of gcc libraries on Windows
+- static linking of gcc libraries on Windows (libstdc++-6.dll and libgcc_s_dw2-1.dll)
 - install busted and mobdebug on &#10003; Linux and Windows VMs
-- &#10003; create image of SD200 on Adata
+- &#10003; create image of SD200 on Adata - better to copy contents directly
 - &#10003; handle <require 'sql.dbschema'> in busted tests
-- install MingW 64 bit on Windows VM. Build
+- install MingW 64 bit on Windows VM. Build. Check cross platform build - 32 or 64 bits.
 - update README.md: move most of text to ./doc
 - Flexish_cli: load data
 - Flexish_cli: use ansicolors
 - Flexish_cli: query
 - Flexish_cli: configure database
-- get rid of Lua date, use Penlight date instead
+- &#10003; get rid of Lua date, use Penlight date instead - Penlight Date does not provide feature to get 
+number of days starting from 0 AD
 - Flexish_cli: help - extended info
 - Flexish_cli: schema - check enum, multi key index and many-2-many
 - Flexish_cli: unit tests
 - cmake: copy lua51.dll to ./bin 
-- &#10003; check if lib/luadec is used.
+- &#10003; check if lib/luadec is used -> not needed.
+- try original make with LuaJIT 2.1 on Linux to get static lib for flexish_cli
 
-
+Employees: EmployeeID
+EmployeesTerritories: EmployeeID, TerritoryID
+Territories: TerritoryID
