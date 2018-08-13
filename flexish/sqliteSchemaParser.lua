@@ -5,13 +5,40 @@
 
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
+local ansicolors = require 'ansicolors'
 
 ---@class ISQLiteTableInfo
+---@field type string
+---@field name string
+---@field tbl_name string
+---@field rootpage number
+---@field sql string
+
+---@description Structure returned by SQLite's pragma table_info
+---@class ISQLiteColumnInfo
+---@field cid number
+---@field name string
+---@field type string @comment integer | nvarchar(NNN)...
+---@field notnull number @comment 0 | 1
+---@field dflt_value any
+---@field pk number @comment 0 | 1
+
+---@class ISQLiteIndexInfo
+---@field seq number
+---@field name string
+---@field unique number @comment 0 | 1
+---@field origin string
+---@field partial number
+
+---@class ISQLiteIndexColumnInfo
+---@field seqno number @comment Starts from 0
+---@field cid number @comment column ID
+---@field name string @comment column name
 
 ---@class ITableInfo
 ---@field table string
 ---@field columnCount number
----@field columns table[] @comment SQLite column
+---@field columns ISQLiteColumnInfo[]
 ---@field inFKeys table[]
 ---@field outFKeys table[]
 ---@field manyToManyTable boolean
@@ -21,13 +48,22 @@ local tablex = require 'pl.tablex'
 
 ---@class IClassDefinition
 
+---@class IPropertyExtData
+---@field indexes table @comment TODO
+
 ---@class SQLiteSchemaParser
----@field outSchema table<string, IClassDefinition>
+---@field outSchema table<string, ClassDefData>
 ---@field tableInfo ITableInfo[]
 ---@field results FlexishResults
 ---@field referencedTableNames string[]
+---@field propXDefs table<PropertyDefData, IPropertyExtData> @comment Additional data on properties, by property definition
 
 local SQLiteSchemaParser = class()
+
+---@class IFlexishResultItem
+---@field type string
+---@field message string
+---@field tableName string
 
 table.find = function(tbl, func)
     for k, v in pairs(tbl) do
@@ -93,6 +129,8 @@ function SQLiteSchemaParser:_init(db)
     -- List of table names that are references by other tables
     -- Needed to enforce id and name special properties
     self.referencedTableNames = {}
+
+    self.propXDefs = {}
 end
 
 -- Mapping between SQLite column types and Flexilite property types
@@ -158,12 +196,12 @@ function SQLiteSchemaParser:sqliteColToFlexiProp(sqliteCol)
 end
 
 -- Returns unique property name based on suggestedPropName. If possible, uses suggestedPropName as result
----@param tblInfo ISQLiteTableInfo
+---@param tblInfo ISQLiteColumnInfo
 ---@param classDef IClassDef
 ---@param suggestedPropName string
 ---@return string
 function SQLiteSchemaParser:getUniqPropName(tblInfo, classDef, suggestedPropName)
-    -- TODO
+    -- TODO Needed?
     return suggestedPropName
 end
 
@@ -260,7 +298,7 @@ end
 ---@return ITableInfo
 function SQLiteSchemaParser:loadTableInfo(tblDef)
     -- Init resulting dictionary
-    -- IClassDefinition
+    ---@type ClassDefData
     local classDef = {
         properties = {},
         specialProperties = {}
@@ -296,13 +334,14 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
     local tbl_info_st = self.db:prepare(string.format("pragma table_info ('%s');", tblDef.name))
     -- Load columns
     for col in tbl_info_st:nrows() do
-        if col.pk > 1 and not tblInfo.multiPKey then
+        -- Check if primary key has more 4 columns (Flexilite supports max 4 keys in unique index)
+        if col.pk > 4 and not tblInfo.multiPKey then
             tblInfo.multiPKey = true
 
-            -- IFlexishResultItem
+            -----@type IFlexishResultItem
             local msg = {
                 type = 'warn',
-                message = 'Multi-column primary key is not supported',
+                message = 'Unique index with more than 4 keys is not supported',
                 tableName = tblInfo.table
             }
             table.insert(self.results, msg)
@@ -311,8 +350,9 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
         tblInfo.columnCount = tblInfo.columnCount + 1
     end
 
-    -- Create properties
+    -- Create properties: first iteration
     for idx, col in ipairs(tblInfo.columns) do
+        ---@type PropertyDefData
         local prop = self:sqliteColToFlexiProp(col)
 
         prop.rules.maxOccurrences = 1
@@ -338,6 +378,10 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
         end
 
         classDef.properties[col.name] = prop
+
+        ---@type IPropertyExtData
+        local propXDef = {}
+        self.propXDefs[prop] = propXDef;
     end
 
     -- Process indexes
@@ -404,6 +448,7 @@ end
 ---@param tblInfo ITableInfo
 function SQLiteSchemaParser:processFKeys(tblInfo)
     -- Process foreign keys
+    -- @type Fo
     local fkInfo = {}
     for v in self.db:nrows(string.format("pragma foreign_key_list('%s');", tblInfo.table)) do
         table.insert(fkInfo, v)
@@ -915,6 +960,8 @@ function SQLiteSchemaParser:parseSchema()
     self.tableInfo = {}
 
     local stmt, errMsg = self.db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
+
+    ---@type ISQLiteTableInfo
     for item in stmt:nrows() do
         -- TODO
         print('SQLiteSchemaParser:parseSchema: ' .. item.name)
