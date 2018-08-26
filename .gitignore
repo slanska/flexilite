@@ -106,3 +106,5 @@ node_modules
 /flexish/Makefile
 /flexish/CTestTestfile.cmake
 /flexish/cmake_install.cmake
+/CMakeFiles/
+/cmake-build-debug/

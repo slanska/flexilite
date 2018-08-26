@@ -14,6 +14,13 @@ local ansicolors = require 'ansicolors'
 ---@field rootpage number
 ---@field sql string
 
+---@description Info on SQLite column indexing
+---@class IColIndexXInfo
+---@field indexName string
+---@field desc boolean
+---@field seqno number
+---@field key_count number
+
 ---@description Structure returned by SQLite's pragma table_info
 ---@class ISQLiteColumnInfo
 ---@field cid number
@@ -22,6 +29,7 @@ local ansicolors = require 'ansicolors'
 ---@field notnull number @comment 0 | 1
 ---@field dflt_value any
 ---@field pk number @comment 0 | 1
+---@field indexing IColIndexXInfo[]
 
 ---@class ISQLiteIndexInfo
 ---@field seq number
@@ -48,15 +56,11 @@ local ansicolors = require 'ansicolors'
 
 ---@class IClassDefinition
 
----@class IPropertyExtData
----@field indexes table @comment TODO
-
 ---@class SQLiteSchemaParser
 ---@field outSchema table<string, ClassDefData>
 ---@field tableInfo ITableInfo[]
 ---@field results FlexishResults
 ---@field referencedTableNames string[]
----@field propXDefs table<PropertyDefData, IPropertyExtData> @comment Additional data on properties, by property definition
 
 local SQLiteSchemaParser = class()
 
@@ -64,16 +68,6 @@ local SQLiteSchemaParser = class()
 ---@field type string
 ---@field message string
 ---@field tableName string
-
-table.find = function(tbl, func)
-    for k, v in pairs(tbl) do
-        if func(v, k) then
-            return v, k
-        end
-    end
-
-    return nil, nil
-end
 
 table.filter = function(tbl, func)
     local result = {}
@@ -88,7 +82,7 @@ end
 
 table.map = function(tbl, funcOrName)
     local result = {}
-    local isFunc = type(func) == 'function'
+    local isFunc = type(funcOrName) == 'function'
     for i, v in pairs(tbl) do
         if isFunc then
             table.insert(result, isFunc(v, tbl, i))
@@ -129,8 +123,6 @@ function SQLiteSchemaParser:_init(db)
     -- List of table names that are references by other tables
     -- Needed to enforce id and name special properties
     self.referencedTableNames = {}
-
-    self.propXDefs = {}
 end
 
 -- Mapping between SQLite column types and Flexilite property types
@@ -268,6 +260,137 @@ function SQLiteSchemaParser:findTableInfoByName(tableName)
     return nil
 end
 
+---@param indexName string
+---@return string
+function SQLiteSchemaParser:getIndexColumnName(indexName)
+    -- TODO
+    return ''
+end
+
+---@param tblInfo ITableInfo
+---@param tblDef ISQLiteTableInfo
+function SQLiteSchemaParser:loadTableColumns(tblInfo, tblDef)
+    local tbl_info_st = self.db:prepare(string.format("pragma table_info ('%s');", tblDef.name))
+    -- Load columns
+    ---@type ISQLiteColumnInfo
+    local col
+    for cc in tbl_info_st:nrows() do
+        col = cc
+        col.indexing = {}
+        -- Check if primary key has more 4 columns (Flexilite supports max 4 keys in unique index)
+        if col.pk > 4 and not tblInfo.multiPKey then
+            tblInfo.multiPKey = true
+
+            -----@type IFlexishResultItem
+            local msg = {
+                type = 'warn',
+                message = 'Unique index with more than 4 keys is not supported',
+                tableName = tblInfo.table
+            }
+            table.insert(self.results, msg)
+        end
+        -- use cid + 1 (i.e. 1..N), as cid starts from 0
+        tblInfo.columns[col.cid + 1] = col
+        tblInfo.columnCount = tblInfo.columnCount + 1
+    end
+end
+
+---@description Create properties: first iteration
+---@param tblInfo ITableInfo
+---@param classDef ClassDefData
+function SQLiteSchemaParser:initializeProperties(tblInfo, classDef)
+    for idx, col in ipairs(tblInfo.columns) do
+        ---@type PropertyDefData
+        local prop = self:sqliteColToFlexiProp(col)
+
+        prop.rules.maxOccurrences = 1
+        prop.rules.minOccurrences = tonumber(col.notnull)
+
+        -- clean default values for typical case
+        if prop.rules.minOccurrences == 0 and prop.rules.maxOccurrences == 1 then
+            prop.rules.minOccurrences = nil
+            prop.rules.maxOccurrences = nil
+        end
+
+        if col.pk == 1 and not tblInfo.multiPKey then
+            -- TODO Handle multiple column PKEY
+            prop.index = 'unique'
+        end
+
+        if col.dflt_value then
+            local defVal = col.dflt_value
+            if prop.rules.type == 'number' or prop.rules.type == 'integer' or prop.rules.type == 'money' then
+                defVal = tonumber(defVal)
+            end
+            prop.defaultValue = defVal
+        end
+
+        classDef.properties[col.name] = prop
+
+        ---@type IPropertyExtData
+        local propXDef = {}
+        if not self.propXDefs then
+            self.propXDefs = {}
+        end
+        self.propXDefs[prop] = propXDef;
+    end
+end
+
+---@description Load table's indexes
+---@param tblInfo ITableInfo
+---@param tblDef ISQLiteTableInfo
+function SQLiteSchemaParser:processIndexes(tblInfo, tblDef)
+    -- Process indexes
+    ---@type ISQLiteIndexInfo[]
+    local idx_list_st = self.db:prepare(string.format("pragma index_list('%s');", tblDef.name))
+    local indexes = {}
+    for v in idx_list_st:nrows() do
+        table.insert(indexes, v)
+    end
+    -- Check if primary key is included into list of indexes
+    -- It would be abnormal if it is not in the list
+    local pkIdx = tablex.find_if(indexes, function(ix)
+        return ix.origin == 'pk'
+    end)
+
+    if not pkIdx then
+        pkIdx = tablex.find_if(tblInfo.columns, function(cc)
+            return cc.pk == 1
+        end)
+        if pkIdx then
+            local pkCol = tblInfo.columns[pkIdx]
+            table.insert(indexes, {
+                seq = indexes.length,
+                name = 'pk',
+                unique = 1,
+                origin = 'pk',
+                partial = 0,
+                columns = { {
+                                seq = 0,
+                                cid = pkCol.cid,
+                                name = pkCol.name
+                            } }
+            })
+        end
+    end
+
+    tblInfo.indexes = indexes;
+    return indexes
+end
+
+function SQLiteSchemaParser:processAllSupportedIndexes(tblInfo, deferredIdxCols)
+    -- Process all supported indexes
+    for i, idx in pairs(tblInfo.supportedIndexes) do
+        idx.columns = idx.columns or {};
+        local idx_info_st = self.db:prepare(string.format("pragma index_info('%s');", idx.name))
+        local cc = {}
+        for v in idx_info_st:nrows() do
+            table.insert(cc, v)
+        end
+        table.insert(deferredIdxCols, cc)
+    end
+end
+
 --[[
      Processes indexes specification using following rules:
      1) primary and unique indexes on single columns are processed as is
@@ -331,108 +454,32 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
     }
     table.insert(self.tableInfo, tblInfo)
 
-    local tbl_info_st = self.db:prepare(string.format("pragma table_info ('%s');", tblDef.name))
-    -- Load columns
-    for col in tbl_info_st:nrows() do
-        -- Check if primary key has more 4 columns (Flexilite supports max 4 keys in unique index)
-        if col.pk > 4 and not tblInfo.multiPKey then
-            tblInfo.multiPKey = true
+    self:loadTableColumns(tblInfo, tblDef)
 
+    self:initializeProperties(tblInfo, classDef)
+
+    local indexes = self:processIndexes(tblInfo, tblDef)
+
+    tblInfo.supportedIndexes = {}
+    -- Checking if there non-supported indexes
+    for nn, idx in ipairs(indexes) do
+        if idx.partial == 0 and (string.lower(idx.origin) == 'c' or string.lower(idx.origin) == 'pk') then
+            table.insert(tblInfo.supportedIndexes, idx)
+        else
             -----@type IFlexishResultItem
             local msg = {
                 type = 'warn',
-                message = 'Unique index with more than 4 keys is not supported',
-                tableName = tblInfo.table
+                message = string.format('Index %s is not supported', idx.name),
+                tableName = tblInfo.table,
             }
             table.insert(self.results, msg)
         end
-        tblInfo.columns[col.cid + 1] = col
-        tblInfo.columnCount = tblInfo.columnCount + 1
     end
 
-    -- Create properties: first iteration
-    for idx, col in ipairs(tblInfo.columns) do
-        ---@type PropertyDefData
-        local prop = self:sqliteColToFlexiProp(col)
-
-        prop.rules.maxOccurrences = 1
-        prop.rules.minOccurrences = tonumber(col.notnull)
-
-        -- clean default values for typical case
-        if prop.rules.minOccurrences == 0 and prop.rules.maxOccurrences == 1 then
-            prop.rules.minOccurrences = nil
-            prop.rules.maxOccurrences = nil
-        end
-
-        if col.pk == 1 and not tblInfo.multiPKey then
-            -- TODO Handle multiple column PKEY
-            prop.index = 'unique'
-        end
-
-        if col.dflt_value then
-            local defVal = col.dflt_value
-            if prop.rules.type == 'number' or prop.rules.type == 'integer' or prop.rules.type == 'money' then
-                defVal = tonumber(defVal)
-            end
-            prop.defaultValue = defVal
-        end
-
-        classDef.properties[col.name] = prop
-
-        ---@type IPropertyExtData
-        local propXDef = {}
-        self.propXDefs[prop] = propXDef;
-    end
-
-    -- Process indexes
+    ---@type ISQLiteIndexColumnInfo[]
     local deferredIdxCols = {}
-    -- ISQLiteIndexInfo[]
-    local idx_list_st = self.db:prepare(string.format("pragma index_list('%s');", tblDef.name))
-    local indexes = {}
-    for v in idx_list_st:nrows() do
-        table.insert(indexes, v)
-    end
-    -- Check if primary key is included into list of indexes
-    local pkIdx = table.find(indexes, function(ix)
-        return ix.origin == 'pk'
-    end)
 
-    if not pkIdx then
-        local pkCol = table.find(tblInfo.columns, function(cc)
-            return cc.pk == 1
-        end)
-        if pkCol then
-            table.insert(indexes, {
-                seq = indexes.length,
-                name = 'pk',
-                unique = 1,
-                origin = 'pk',
-                partial = 0,
-                columns = { {
-                                seq = 0,
-                                cid = pkCol.cid,
-                                name = pkCol.name
-                            } }
-            })
-        end
-    end
-
-    tblInfo.indexes = indexes;
-
-    tblInfo.supportedIndexes = table.filter(indexes, function(idx)
-        return idx.partial == 0 and (string.lower(idx.origin) == 'c' or string.lower(idx.origin) == 'pk');
-    end)
-
-    -- Process all supported indexes
-    for i, idx in pairs(tblInfo.supportedIndexes) do
-        idx.columns = idx.columns or {};
-        local idx_info_st = self.db:prepare(string.format("pragma index_info('%s');", idx.name))
-        local cc = {}
-        for v in idx_info_st:nrows() do
-            table.insert(cc, v)
-        end
-        table.insert(deferredIdxCols, cc)
-    end
+    self:processAllSupportedIndexes(tblInfo, deferredIdxCols)
 
     -- Process index columns
     for ii, idxCols in ipairs(deferredIdxCols) do
@@ -620,13 +667,14 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
         return
     end
 
-    ---@param colNames table @of string
+    ---@param colNames string[]
     ---@param type string
+    ---@return boolean
     local function findReqCol(colNames, types)
         if type(types) ~= 'table' then
             types = { types }
         end
-        local result = table.find(classDef.properties, function(p, name)
+        for name, p in pairs(classDef.properties) do
             for i, colName in ipairs(colNames) do
                 if string.lower(name) == string.lower(colName) then
                     for _, tt in ipairs(types) do
@@ -636,11 +684,9 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
                     end
                 end
             end
+        end
 
-            return false
-        end)
-
-        return result
+        return false
     end
 
     -- description - next (after Name) required text column (or 'description')
@@ -963,8 +1009,8 @@ function SQLiteSchemaParser:parseSchema()
 
     ---@type ISQLiteTableInfo
     for item in stmt:nrows() do
-        -- TODO
-        print('SQLiteSchemaParser:parseSchema: ' .. item.name)
+
+        print(ansicolors('Processing: %{magenta}' .. item.name .. '%{reset}'))
         self:loadTableInfo(item)
     end
 

@@ -14,19 +14,28 @@
 				}
 			},
 			"EmployeeID": {
-				"rules": {
-					"minOccurrences": 1,
-					"type": "enum",
-					"maxOccurrences": 1
-				},
 				"refDef": {
 					"classRef": {
 						"text": "Employees"
 					}
+				},
+				"index": "unique",
+				"rules": {
+					"minOccurrences": 1,
+					"type": "enum",
+					"maxOccurrences": 1
 				}
 			}
 		},
-		"specialProperties": 		{},
+		"specialProperties": {
+			"owner": false,
+			"createTime": false,
+			"updateTime": false,
+			"uid": {
+				"text": "EmployeeID"
+			},
+			"description": false
+		},
 		"indexes": {
 			"sqlite_autoindex_EmployeesTerritories_1": {
 				"type": "unique",
@@ -73,9 +82,12 @@
 			}
 		},
 		"specialProperties": {
+			"owner": false,
+			"createTime": false,
 			"name": {
 				"text": "TerritoryDescription"
 			},
+			"updateTime": false,
 			"uid": {
 				"text": "TerritoryID"
 			},
@@ -297,6 +309,9 @@
 			}
 		},
 		"specialProperties": {
+			"owner": false,
+			"createTime": false,
+			"updateTime": false,
 			"uid": {
 				"text": "EmployeeID"
 			},
@@ -457,9 +472,12 @@
 			}
 		},
 		"specialProperties": {
+			"owner": false,
+			"createTime": false,
 			"name": {
 				"text": "LastName"
 			},
+			"updateTime": false,
 			"uid": {
 				"text": "EmployeeID"
 			},
@@ -647,12 +665,16 @@
 			}
 		},
 		"specialProperties": {
+			"owner": false,
+			"createTime": false,
 			"name": {
 				"text": "ProductName"
 			},
+			"updateTime": false,
 			"uid": {
 				"text": "ProductID"
-			}
+			},
+			"description": false
 		}
 	},
 	"OrderDetails": {
@@ -710,7 +732,12 @@
 				"defaultValue": 0
 			}
 		},
-		"specialProperties": 		{}
+		"specialProperties": {
+			"updateTime": false,
+			"owner": false,
+			"createTime": false,
+			"description": false
+		}
 	},
 	"Suppliers": {
 		"properties": {
@@ -862,9 +889,12 @@
 			}
 		},
 		"specialProperties": {
+			"owner": false,
+			"createTime": false,
 			"name": {
 				"text": "CustomsDescription"
 			},
+			"updateTime": false,
 			"description": {
 				"text": "CustomsDescription"
 			}
