@@ -67,11 +67,11 @@ target_link_libraries(sqlite_shell m)
 # libFlexilite library
 project(Flexilite)
 
-if (WIN32)
-    find_package(zlib REQUIRED)
-else ()
-    find_package(ZLIB REQUIRED)
-endif ()
+#if (WIN32)
+#    find_package(zlib REQUIRED)
+#else ()
+#    find_package(ZLIB REQUIRED)
+#endif ()
 
 include_directories(
         lib/sqlite
