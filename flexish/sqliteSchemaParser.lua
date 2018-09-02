@@ -16,7 +16,7 @@ local ansicolors = require 'ansicolors'
 
 ---@description Info on SQLite column indexing
 ---@class IColIndexXInfo
----@field indexName string
+---@field indexName string @description empty for primary key
 ---@field desc boolean
 ---@field seqno number
 ---@field key_count number
@@ -46,7 +46,8 @@ local ansicolors = require 'ansicolors'
 ---@class ITableInfo
 ---@field table string
 ---@field columnCount number
----@field columns ISQLiteColumnInfo[]
+---@field columns table<number, ISQLiteColumnInfo> @description map by SQLite column index
+---@field columnsByName table<string, ISQLiteColumnInfo> @description the same objects as in columns by accessed by column name
 ---@field inFKeys table[]
 ---@field outFKeys table[]
 ---@field manyToManyTable boolean
@@ -292,10 +293,11 @@ function SQLiteSchemaParser:loadTableColumns(tblInfo, tblDef)
         -- use cid + 1 (i.e. 1..N), as cid starts from 0
         tblInfo.columns[col.cid + 1] = col
         tblInfo.columnCount = tblInfo.columnCount + 1
+        tblInfo.columnsByName[col.name] = col
     end
 end
 
----@description Create properties: first iteration
+---@description Create properties based on SQLite columns: first iteration
 ---@param tblInfo ITableInfo
 ---@param classDef ClassDefData
 function SQLiteSchemaParser:initializeProperties(tblInfo, classDef)
@@ -336,15 +338,24 @@ function SQLiteSchemaParser:initializeProperties(tblInfo, classDef)
     end
 end
 
----@description Load table's indexes
+---@description Load and processes table's indexes
 ---@param tblInfo ITableInfo
 ---@param tblDef ISQLiteTableInfo
 function SQLiteSchemaParser:processIndexes(tblInfo, tblDef)
-    -- Process indexes
     ---@type ISQLiteIndexInfo[]
     local idx_list_st = self.db:prepare(string.format("pragma index_list('%s');", tblDef.name))
     local indexes = {}
+
     for v in idx_list_st:nrows() do
+        -- Check if index is supported by Flexilite
+        if v.partial ~= 0 then
+            print(ansicolors(string.format('%%{yellow}WARN: Partial index %s is not supported. Skipping.%%{reset}', v.name)))
+        elseif v.origin ~= 'pk' and v.origin ~= 'c' then
+            print(ansicolors(string.format('%%{yellow}WARN: Unknown origin "%s" of index %s. Skipping.%%{reset}', v.name)))
+        elseif v.origin == 'pk' then
+            -- Primary index
+        end
+
         table.insert(indexes, v)
     end
     -- Check if primary key is included into list of indexes
@@ -439,6 +450,8 @@ function SQLiteSchemaParser:loadTableInfo(tblDef)
 
         -- List of columns, by SQLite "cid" value
         columns = {},
+
+        columnsByName = {},
 
         -- List of incoming foreign keys (other tables refer to this one)
         inFKeys = {},
