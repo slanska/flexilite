@@ -18,11 +18,6 @@ rem install LuaJIT and LuaRocks
 cmake  -DCMAKE_INSTALL_PREFIX=c:\luajit21 -DWITH_LUAJIT21=ON -G "NMake Makefiles"  -DWIN32=1 -P cmake_install.cmake
 ```
 
-``` shell
-cd .\lib\openresty-luajit2.1\src
-mingw32-make BUILDMODE=static
-```
-
 ### macOS
 
 ``` shell
