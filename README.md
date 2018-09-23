@@ -13,7 +13,7 @@ Developed with JetBrains tools:
 > "Bad programmers worry about the code. Good programmers worry about data structures and their relationships."
 > Linus Torvalds
 
-#What is Flexilite?
+### What is Flexilite?
 Flexilite (**"F"**) is a SQLite extension library, written in C/C++ and LuaJIT, which converts ordinary SQLite database
 into repository of data classes, objects and their relations, with highly dynamic and flexible structure. 
 Flexilite intends to solve typical problems of evolutional design of relational databases. "F" covers most of known 
@@ -25,7 +25,7 @@ We will list them later in this document.
 select load_extension('libFlexilite');
 ```
 
-###Main idea in few sentences:
+### Main idea in few sentences:
 Traditional way to design db schema becomes noticeably outdated in the modern ever-changing world. What was good 
 30 years ago (RDBMS) does not match real life complexity nowadays. 
 When designing new system or maintaining existing one, 
@@ -41,7 +41,7 @@ to be able to import arbitrary XML file, without necessity to define classes and
 import. Then, be able to migrate data into a meaningful schema, using set of available data refactor patterns. At the end, to convert
 raw schemaless data into structured object graph, with strict (or not so strict) rules and schema. 
 
-###Install and Build
+### Install and Build
 [Build instructions](doc/HowToBuild.md)
 
 ### Feature Highlights
@@ -72,7 +72,7 @@ according to changing business requirements, or simply follow with the process o
 * Supports database-within-database concept (TODO - details in the separate document)
 * Optionally allows end-user to extend schema and define their own properties or even classes
 
-## Still not sure? Here is an example
+### Still not sure? Here is an example
 
 Let's take a look at this hypothetical flow of database schema migration:
 1) Create DB table Person, with columns: PersonID, Name, Email, Phone, AddressLine1, AddressLine2, City, 
@@ -152,7 +152,7 @@ efforts.
 (this task is somehow related tp #9). Examples:
 current rates, employee salary history, tracking fleet and other assets and so on.
    
-## (Incomplete )List of schema refactoring patterns
+### (Incomplete )List of schema refactoring patterns
 -Extract 1 or more fields from existing table to a new table (or merge to existing one) and convert it to reference (with name)
 -Change reference type from 1-to-1 to 1 -> many, or many -> many
 -Add property
@@ -166,20 +166,20 @@ current rates, employee salary history, tracking fleet and other assets and so o
 -Rename property
 -Change class and property settings
  
-## How does Flexilite work?
+### How does Flexilite work?
 In order to make schema refactoring smooth, flexible and fast, Flexilite utilizes special database design. 
 In fact, this design is based on Entity-Attribute-Value (EAV) concept, with some improvements to 
 avoid performance degradation associated with traditional EAV implementation.
 All actual data is stored in the fixed set of tables. 
 
-##Is it alternative to NoSQL?
+### Is it alternative to NoSQL?
 
 Short answer - yes and no. Long answer: Flexilite can definitely be used as a document oriented database (**"yes"**), 
 but its approach and underlying database engine serve different purpose. It is not designed to replace big guys like Mongo
 or PostgreSQL (**"no"**). It is good fit for small to medium size database. And unlike well known NoSQL databases,
 SQLite supports metadata natively. It means that it combines schema and schemaless types of storage.
  
-## Why SQLite?
+### Why SQLite?
 SQLite is widely used - from smartphones, to moderately used websites, from embedded devices, 
 to rich desktop applications. It is reliable, fast, cross-platform and fun to use. 
 And most importantly, SQLite has all features needed for achieving Flexilite goals. 
@@ -189,11 +189,13 @@ memory for temporary storage, WAL for journaling mode, use shared cache
 and connection pooling. Optimal configuration will be 
 covered in a separate article.
 
-## Are other databases supported?
+### Are other databases supported?
 We focus currently on SQLite and also have plans towards supporting BerkeleyDB, via SQLite API, for better writing
 concurrency, replication and high availability.
 
-## Running tests
+### Running tests
+
+"F" uses [busted](https://olivinelabs.com/busted/) for Lua code testing.
 
 ```shell
 cd  ./test_lua
