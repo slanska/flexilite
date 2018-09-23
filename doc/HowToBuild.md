@@ -52,6 +52,10 @@ export PATH=$PATH:/usr/torch/bin
 ### Linux (Ubuntu, Debian)
 
 ``` shell
+sudo apt-get install libc6-dbg gdb valgrind
+```
+
+``` shell
 cd <Flexilite_location>
 cd ./lib/torch-luajit-rocks
 mkdir ./build

@@ -6,5 +6,7 @@ The following indexing techniques are used:
  If the bit is set, corresponding record is indexed.
 
 * full text search index (FTS). This is enabled by another bit in **[.values].ctlv** field and handled by triggers.
+Flexilite support full text indexing and search ("fuzzy search"), using
+SQLite FTS4 module.
 
 * range index (using RTree). There is one RTree index per object. This index may include up to five pairs of Number, Integer or Date/Time properties.
