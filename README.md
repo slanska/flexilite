@@ -25,6 +25,8 @@ We will list them later in this document.
 select load_extension('libFlexilite');
 ```
 
+[Documentation Index](./doc/Index.md)
+
 ### Main idea in few sentences:
 Traditional way to design db schema becomes noticeably outdated in the modern ever-changing world. What was good 
 30 years ago (RDBMS) does not match real life complexity nowadays. 
