@@ -18,7 +18,8 @@ reference by pointer rather than by ID) and others.
 
 Modern RDBMS systems went far away from initial idea, but fundamentally record as collection of same type-same 
 size fields is still prevalent. For years of programming I witnessed many cases of raising and falling
-object-oriented frameworks, wrappers etc. All these frameworks were created with the intention to struggle
+various object-oriented frameworks, database wrappers etc. 
+All these frameworks were created with the intention to struggle
 with limitations of RDBMS concept and suggest better approach, which would be more adequate for
 real life cases.
 
@@ -27,7 +28,7 @@ huge time and effort spending (in no specific order):
 
 #### 1. Enums
  
-RDBMS does not provide natively support for enumerated values, i.e. application domain specific
+RDBMS does not provide native support for enumerated values, i.e. application domain specific
 lists of predefined constants. This is typically resolved with:
 
 - define enumerations on application level only, and simply store values in database. Enumerations
@@ -50,12 +51,12 @@ Also, some enumerations are subject to be extended by end-user. Which lead again
 custom implementation, usually, individually for evert enumeration type. 
 Finally, when doing search, it is often needed to include actual text values into search, within selected language.
 
-For any real application just enum support means hundred of development and testing hours.
+For any real application just enum support means hundreds of development and testing hours.
 
 #### 2. Lists (aka Arrays aka Vectors)
 
 Standard RDBMS do not support value list (aka arrays aka vectors). So, if requirement is to have, say,
-multiple tags per record (kind of extended enums) or few email addresses or few phone number, 
+multiple tags per record (kind of extended enums) or just few email addresses or few phone numbers, 
 additional table needs to created. Which brings us to the next section.
 
 #### Many-to-many relation
@@ -66,7 +67,7 @@ cluttering database schema with redundant tables.
 
 #### Half defined relations
 
-Despite of "R" _relations_ are actually half cooked in RDBMS. Even though relations are defined via foreign key,
+Despite of "R" char in **RDBMS**, _relations_ are actually half cooked in RDBMS. Even though relations are defined via foreign key,
 so they are generally known to the database, this knowledge adds very little to real usage - one needs
 to apply knowledge of the definition every time when 2 tables have to be joined together. This is unnecessary complication.
 
@@ -74,32 +75,35 @@ to apply knowledge of the definition every time when 2 tables have to be joined 
 
 In many systems there is requirement to allow end users (or end-user admins) to extend tables with custom fields 
 without alteration database schema. This requirement normally leads to developing some in-house Entity-Attribute-Value
-design (often even without realizing name of concept). Integrating those _extra_ fields into CRUD flow involves
+design (often even without realizing name of concept) or reserve additional fields or have additional 
+JSON/XML/memo column to keep these custom data. Integrating those _extra_ fields into CRUD flow involves
 a lot of development and testing effort.
 
 #### Sparse columns
 
 Medical, scientific, manufacturing and other types of databases often deal with sparse columns, where 
-any given record has only small percentage of column with not null values. Table may need thousands fields to be defined
+any given record has only small fraction of non-null values. Table may need thousands fields to be defined
 and only dozens of them would be actually used for any given record. Even though 
-to accomplish this requirement many databases offer special features (like sparse columns MS SQL), it is not part 
-of SQL ANSI standard and implementation is often sub-optimal or limited.
+to accomplish this requirement many databases offer special features (like sparse columns in MS SQL), it is not part 
+of SQL ANSI standard and implementation is often sub-optimal from performance standpoint or limited in features.
 
 #### Polymorphic collections
 
 Records in RDBMS must follow the same structure, standard approach does not support having different types of records in the same collection,
 which is typical requirement in real life scenarios. To accomplish this, developers invent custom schema, like 1:1 tables.
-Though, some databases have support for table inheritance (PostgreSQL, as a example).
+Though, some databases have support for table inheritance (PostgreSQL, as a example), this feature is not 
+standard.
  
 #### Ordinal position in collection
 
 Sometimes records in collection should be presented in certain order. To accomplish this, special measures
 should be done, with adding a new column ("OrdinalPosition"), and have application logic to allow re-ordering. Normally it gets
-implemented in non generic way, per individual case basis.
+implemented in non generic way, per individual table basis.
 
 #### Documents or nested records
 
-In real life cases object are naturally formed in hierarchy. RDBMS deal with plain records only. 
+In real life cases object are naturally formed in hierarchy (and this was one of major reason of 
+introducing NoSQL databases few years ago). RDBMS deal with plain records only. 
 Custom application logic would be needed to transform plain lists of records into hierarchical structure,
 which is better suited for real business cases. Every case turns to be overcomplicated, custom, error prone implementation.
 Implementing even simple case with one master and few nested objects leads to having at least 3 additional tables in database - one 

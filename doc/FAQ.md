@@ -1,5 +1,8 @@
 ##### Why Flexilite
 
+I had this idea in my mind for several years. Eventually this idea shaped into something practical,
+so I decided to devote some free personal time to implement it in real.
+
 ##### Why Lua?
 
 Initially this project started as pure C library. All ideas were formulated, so coding looked pretty 
@@ -26,10 +29,10 @@ but with primarily goal to be used in desktop and web apps.
 
 * reasonable performance
  
-I started considering alternatives. I looked at Modern C++, Nim, Go, Rust. 
+I started considering alternatives. I looked at Modern C++, Nim, Go, Rust, Kotlin Native. 
 I also checked JavaScript (TypeScript) and Python
-as dynamic scripting languages looked pretty promising. Performance is very important, of course.
-But for this library, it becomes almost irrelevant, as the library ads 2-3% overhead on top of database
+as dynamic scripting languages. They both looked pretty promising. Performance is very important, of course.
+But for this library, it becomes almost irrelevant, as the library ads little overhead on top of database
 activity, performed by SQLite, so having slow interpreter to handle that overhead should not be a roadblock.
 
 My ideal candidate would be JavaScript (TypeScript, to be exact), embedded into library. I have decent
@@ -62,20 +65,22 @@ My ideal candidate would be JavaScript (TypeScript, to be exact), embedded into 
  
  * reasonable size - could not be better. Overhead for LuaJIT is 1 MB.
  
- * developer convenience, like ability to debug and fun to code - Yes! I love Lua syntax.
+ * developer convenience, like ability to debug and fun to code - Yes! I love Lua syntax. Debugging is not so
+ good. But I can live with it.
  
  * portable - wherever Lua and SQLite can be used, Flexilite would be able run there, too.
 
-* reasonable performance - standard Lua is pretty fast (comparable to CPython). LuaJIT is really masterpiece, performing an par 
-with compiled languages. I did not check it myself yet, but from multiple benchmarks LuaJIT 
-is in average 3 times slower than C/C++, which is absolutely amazing.
+* reasonable performance - standard Lua is pretty fast (comparable to CPython, for instance). 
+LuaJIT is really masterpiece, performing an par with compiled languages. I did not check it myself yet, 
+but according to multiple benchmarks, LuaJIT 
+is in average just 3 times slower than C/C++, which is absolutely amazing for dynamic interpreted language.
 
 ##### Why SQLite?
 
 Because SQLite seemed to be ideal candidate for implementing Flexilite concept. It is widely used,
 small, fast, feature rich, portable. Flexilite utilizes many SQLite unique features to provide best user experience.
 Such features as virtual tables, full text search, clustered and conditional indexes, triggers, dynamic typing,
-common table expressions, custom functions, reversed indexes, updateable views and others helped a lot in bringing Flexilite
+common table expressions, custom functions, reversed indexes, updatable views and others helped a lot in bringing Flexilite
 ideas to practice. 
 
 ##### Where can it be used?
@@ -88,7 +93,8 @@ with few millions records, few gigabytes of file size, few dozens simultaneous u
 
 There are 3 possible directions that Flexilite can grow into.
 
-* Port to real server, with heavy traffic. PostgreSQL could be one of candidates to consider.
+* Port to a different DB engine, which can handle heavy traffic and provide the same features. 
+BerkeleyDB could be the first candidate to consider.
 
 * Implementing full fledged computational abilities. We can expect Flexilite to become alternative to 
 large Excel and/or Access databases, with ability to perform calculations and other user defined actions directly
