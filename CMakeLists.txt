@@ -29,12 +29,6 @@ project(sqlite_shell)
 
 message("Building on: ${CMAKE_SYSTEM_NAME}")
 
-#if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-#    find_package(zlib REQUIRED)
-#else ()
-#    find_package(ZLIB REQUIRED)
-#endif ()
-
 find_package(Threads REQUIRED)
 
 set(SHELL_FILES
@@ -67,6 +61,7 @@ target_link_libraries(sqlite_shell m)
 # libFlexilite library
 project(Flexilite)
 
+# TODO Needed?
 #if (WIN32)
 #    find_package(zlib REQUIRED)
 #else ()
@@ -107,7 +102,9 @@ ENDIF ()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if (MINGW)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -static-libgcc -static-libstdc++")
+    #    set(CMAKE_SHARED_LINKER_FLAGS  "${CMAKE_SHARED_LINKER_FLAGS} -static -static-libgcc -static-libstdc++")
+    set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS} -static -static-libgcc -static-libstdc++ -static")
+    #    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -static-libgcc -static-libstdc++")
 endif ()
 
 set(EXT_FILES
@@ -192,8 +189,9 @@ message("Building on: ${CMAKE_SYSTEM_NAME}")
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 if (MINGW)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static -static-libgcc")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
+    set(CMAKE_EXE_LINK_C_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS} -static -static-libgcc -static")
+#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static -static-libgcc")
+    #    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
 endif ()
 
 include_directories(
