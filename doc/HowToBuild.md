@@ -13,7 +13,7 @@ cd .\lib\torch-luajit-rocks
 mkdir build
 cd .\build
 cmake .. -DCMAKE_INSTALL_PREFIX=c:\luajit21 -DWITH_LUAJIT21=ON -G "NMake Makefiles"  -DWIN32=1
-nmake
+nmake 
 rem install LuaJIT and LuaRocks
 cmake  -DCMAKE_INSTALL_PREFIX=c:\luajit21 -DWITH_LUAJIT21=ON -G "NMake Makefiles"  -DWIN32=1 -P cmake_install.cmake
 ```

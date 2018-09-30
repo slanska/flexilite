@@ -85,7 +85,8 @@ ADD_CUSTOM_TARGET(
 IF (WIN32)
     message('Windows: Flexilite')
     SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
-    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit.lib)
+#    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit.lib)
+    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/luajit-static.lib)
     SET(LuaJit_shared ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/luajit-2.1/src/lua51.dll)
 ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     message('OSX: Flexilite')
@@ -101,11 +102,6 @@ ENDIF ()
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-if (MINGW)
-    message('Running MINGW compiler...')
-    #    set(CMAKE_SHARED_LINKER_FLAGS  "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static")
-    set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS} -static-libgcc -static-libstdc++ -static")
-endif ()
 
 set(EXT_FILES
         lib/lua-sqlite/lsqlite3.c
@@ -174,11 +170,12 @@ target_compile_definitions(
 
 if (WIN32)
     target_link_libraries(Flexilite PRIVATE ${LuaJit_shared})
-    #    target_link_libraries(Flexilite PUBLIC ${Flexilite_LuaFiles})
+    target_link_libraries(Flexilite PRIVATE  "-static -static-libgcc -static-libstdc++")
+    set (CMAKE_SHARED_LINKER_FLAGS "-Wl, -static -static-libgcc -static-libstdc++")
 else ()
     target_link_libraries(Flexilite PUBLIC ${LuaJit_static})
-    #    target_link_libraries(Flexilite PUBLIC ${Flexilite_LuaFiles})
 endif ()
+
 target_link_libraries(Flexilite PUBLIC ${Flexilite_LuaFiles})
 
 ###############################################################################
@@ -188,11 +185,6 @@ message("Building on: ${CMAKE_SYSTEM_NAME}")
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-if (MINGW)
-    set(CMAKE_EXE_LINK_C_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS} -static-libgcc -static")
-#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static -static-libgcc")
-    #    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
-endif ()
 
 include_directories(
         lib/sqlite
@@ -248,6 +240,12 @@ ENDIF ()
 
 if (WIN32)
     target_link_libraries(flexish_cli PRIVATE ${LuaJit_shared})
+    target_link_libraries(flexish_cli PRIVATE  "-static -static-libgcc")
+    set (CMAKE_EXE_LINKER_FLAGS "-Wl, -static -static-libgcc")
+    target_link_libraries(flexish_cli PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
+        # Math library
+    target_link_libraries(flexish_cli PRIVATE m)
+
 else ()
     target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
 endif ()
