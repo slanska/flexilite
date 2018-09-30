@@ -69,7 +69,7 @@ local function generateSchema(cli_args)
     end
 
     local sqliteParser = SQLiteSchemaParser(db)
-    local schema = sqliteParser:parseSchema()
+    local schema = sqliteParser:ParseSchema()
     local schemaJson = prettyJson(schema)
 
     -- Save JSON to file or print to console

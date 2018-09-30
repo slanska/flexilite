@@ -41,10 +41,10 @@
 				"type": "unique",
 				"properties": [
 					{
-						"text": "EmployeeID"
+						"name": "EmployeeID"
 					},
 					{
-						"text": "TerritoryID"
+						"name": "TerritoryID"
 					}
 				]
 			}
@@ -67,8 +67,9 @@
 			"TerritoryID": {
 				"rules": {
 					"minOccurrences": 1,
+					"maxOccurrences": 1,
 					"type": "integer",
-					"maxOccurrences": 1
+					"indexing": "unique"
 				},
 				"index": "unique"
 			},
@@ -101,9 +102,9 @@
 			"ShipPostalCode": {
 				"rules": {
 					"maxLength": 10,
-					"type": "text"
-				},
-				"index": "index"
+					"type": "text",
+					"indexing": "index"
+				}
 			},
 			"ShipRegion": {
 				"rules": {
@@ -126,19 +127,18 @@
 			"OrderDate": {
 				"rules": {
 					"type": "date"
-				},
-				"index": "index"
+				}
 			},
 			"CustomerID": {
+				"rules": {
+					"maxLength": 5,
+					"type": "enum",
+					"indexing": "index"
+				},
 				"refDef": {
 					"classRef": {
 						"text": "Customers"
 					}
-				},
-				"index": "index",
-				"rules": {
-					"maxLength": 5,
-					"type": "enum"
 				}
 			},
 			"ShipCountry": {
@@ -156,16 +156,16 @@
 			"OrderID": {
 				"rules": {
 					"minOccurrences": 1,
+					"maxOccurrences": 1,
 					"type": "integer",
-					"maxOccurrences": 1
+					"indexing": "unique"
 				},
 				"index": "unique"
 			},
 			"ShippedDate": {
 				"rules": {
 					"type": "date"
-				},
-				"index": "index"
+				}
 			},
 			"RequiredDate": {
 				"rules": {
@@ -181,8 +181,7 @@
 			"EmployeeID": {
 				"rules": {
 					"type": "integer"
-				},
-				"index": "range"
+				}
 			}
 		},
 		"specialProperties": {
@@ -190,12 +189,20 @@
 				"text": "OrderID"
 			}
 		},
-		"rangeIndexing": {
-			"E0": {
-				"text": "EmployeeID"
-			},
-			"E1": {
-				"text": "EmployeeID"
+		"indexes": {
+			"$range_index": {
+				"type": "range",
+				"properties": [
+					{
+						"name": "EmployeeID"
+					},
+					{
+						"name": "ShippedDate"
+					},
+					{
+						"name": "OrderDate"
+					}
+				]
 			}
 		}
 	},
@@ -259,8 +266,9 @@
 			"EmployeeID": {
 				"rules": {
 					"minOccurrences": 1,
+					"maxOccurrences": 1,
 					"type": "integer",
-					"maxOccurrences": 1
+					"indexing": "unique"
 				},
 				"index": "unique"
 			},
@@ -324,12 +332,12 @@
 		"properties": {
 			"CategoryName": {
 				"rules": {
+					"maxOccurrences": 1,
+					"indexing": "index",
 					"maxLength": 15,
-					"minOccurrences": 1,
 					"type": "text",
-					"maxOccurrences": 1
-				},
-				"index": "index"
+					"minOccurrences": 1
+				}
 			},
 			"Picture": {
 				"rules": {
@@ -340,8 +348,9 @@
 			"CategoryID": {
 				"rules": {
 					"minOccurrences": 1,
+					"maxOccurrences": 1,
 					"type": "integer",
-					"maxOccurrences": 1
+					"indexing": "unique"
 				},
 				"index": "unique"
 			},
@@ -384,9 +393,9 @@
 			"PostalCode": {
 				"rules": {
 					"maxLength": 10,
-					"type": "text"
-				},
-				"index": "index"
+					"type": "text",
+					"indexing": "index"
+				}
 			},
 			"Title": {
 				"rules": {
@@ -421,8 +430,9 @@
 			"EmployeeID": {
 				"rules": {
 					"minOccurrences": 1,
+					"maxOccurrences": 1,
 					"type": "integer",
-					"maxOccurrences": 1
+					"indexing": "unique"
 				},
 				"index": "unique"
 			},
@@ -440,12 +450,12 @@
 			},
 			"LastName": {
 				"rules": {
+					"maxOccurrences": 1,
+					"indexing": "index",
 					"maxLength": 20,
-					"minOccurrences": 1,
 					"type": "text",
-					"maxOccurrences": 1
-				},
-				"index": "index"
+					"minOccurrences": 1
+				}
 			},
 			"Country": {
 				"rules": {
@@ -474,9 +484,6 @@
 		"specialProperties": {
 			"owner": false,
 			"createTime": false,
-			"name": {
-				"text": "LastName"
-			},
 			"updateTime": false,
 			"uid": {
 				"text": "EmployeeID"
@@ -496,12 +503,12 @@
 			},
 			"CompanyName": {
 				"rules": {
+					"maxOccurrences": 1,
+					"indexing": "index",
 					"maxLength": 40,
-					"minOccurrences": 1,
 					"type": "text",
-					"maxOccurrences": 1
-				},
-				"index": "index"
+					"minOccurrences": 1
+				}
 			},
 			"Address": {
 				"rules": {
@@ -511,19 +518,20 @@
 			},
 			"CustomerID": {
 				"rules": {
+					"maxOccurrences": 1,
+					"indexing": "unique",
 					"maxLength": 5,
-					"minOccurrences": 1,
 					"type": "text",
-					"maxOccurrences": 1
+					"minOccurrences": 1
 				},
 				"index": "unique"
 			},
 			"City": {
 				"rules": {
 					"maxLength": 15,
-					"type": "text"
-				},
-				"index": "index"
+					"type": "text",
+					"indexing": "index"
+				}
 			},
 			"Fax": {
 				"rules": {
@@ -552,16 +560,16 @@
 			"PostalCode": {
 				"rules": {
 					"maxLength": 10,
-					"type": "text"
-				},
-				"index": "index"
+					"type": "text",
+					"indexing": "index"
+				}
 			},
 			"Region": {
 				"rules": {
 					"maxLength": 15,
-					"type": "text"
-				},
-				"index": "index"
+					"type": "text",
+					"indexing": "index"
+				}
 			}
 		},
 		"specialProperties": {
@@ -577,22 +585,21 @@
 		"properties": {
 			"ProductName": {
 				"rules": {
+					"maxOccurrences": 1,
+					"indexing": "index",
 					"maxLength": 40,
-					"minOccurrences": 1,
 					"type": "text",
-					"maxOccurrences": 1
-				},
-				"index": "index"
+					"minOccurrences": 1
+				}
 			},
 			"SupplierID": {
+				"rules": {
+					"type": "enum"
+				},
 				"refDef": {
 					"classRef": {
 						"text": "Suppliers"
 					}
-				},
-				"index": "index",
-				"rules": {
-					"type": "enum"
 				}
 			},
 			"Discontinued": {
@@ -633,8 +640,9 @@
 			"ProductID": {
 				"rules": {
 					"minOccurrences": 1,
+					"maxOccurrences": 1,
 					"type": "integer",
-					"maxOccurrences": 1
+					"indexing": "unique"
 				},
 				"index": "unique"
 			},
@@ -647,14 +655,13 @@
 				"defaultValue": 0
 			},
 			"CategoryID": {
+				"rules": {
+					"type": "enum"
+				},
 				"refDef": {
 					"classRef": {
 						"text": "Categories"
 					}
-				},
-				"index": "index",
-				"rules": {
-					"type": "enum"
 				}
 			},
 			"QuantityPerUnit": {
@@ -667,14 +674,26 @@
 		"specialProperties": {
 			"owner": false,
 			"createTime": false,
-			"name": {
-				"text": "ProductName"
-			},
 			"updateTime": false,
 			"uid": {
 				"text": "ProductID"
 			},
-			"description": false
+			"description": {
+				"text": "ProductName"
+			}
+		},
+		"indexes": {
+			"$range_index": {
+				"type": "range",
+				"properties": [
+					{
+						"name": "SupplierID"
+					},
+					{
+						"name": "CategoryID"
+					}
+				]
+			}
 		}
 	},
 	"OrderDetails": {
@@ -693,7 +712,7 @@
 						"text": "Orders"
 					}
 				},
-				"index": "index",
+				"index": "unique",
 				"rules": {
 					"minOccurrences": 1,
 					"type": "enum",
@@ -711,16 +730,15 @@
 				"defaultValue": 1
 			},
 			"ProductID": {
-				"refDef": {
-					"classRef": {
-						"text": "Products"
-					}
-				},
-				"index": "index",
 				"rules": {
 					"minOccurrences": 1,
 					"type": "enum",
 					"maxOccurrences": 1
+				},
+				"refDef": {
+					"classRef": {
+						"text": "Products"
+					}
 				}
 			},
 			"UnitPrice": {
@@ -737,6 +755,30 @@
 			"owner": false,
 			"createTime": false,
 			"description": false
+		},
+		"indexes": {
+			"$range_index": {
+				"type": "range",
+				"properties": [
+					{
+						"name": "ProductID"
+					},
+					{
+						"name": "OrderID"
+					}
+				]
+			},
+			"sqlite_autoindex_OrderDetails_1": {
+				"type": "unique",
+				"properties": [
+					{
+						"name": "OrderID"
+					},
+					{
+						"name": "ProductID"
+					}
+				]
+			}
 		}
 	},
 	"Suppliers": {
@@ -749,12 +791,12 @@
 			},
 			"CompanyName": {
 				"rules": {
+					"maxOccurrences": 1,
+					"indexing": "index",
 					"maxLength": 40,
-					"minOccurrences": 1,
 					"type": "text",
-					"maxOccurrences": 1
-				},
-				"index": "index"
+					"minOccurrences": 1
+				}
 			},
 			"Address": {
 				"rules": {
@@ -765,8 +807,9 @@
 			"SupplierID": {
 				"rules": {
 					"minOccurrences": 1,
+					"maxOccurrences": 1,
 					"type": "integer",
-					"maxOccurrences": 1
+					"indexing": "unique"
 				},
 				"index": "unique"
 			},
@@ -809,9 +852,9 @@
 			"PostalCode": {
 				"rules": {
 					"maxLength": 10,
-					"type": "text"
-				},
-				"index": "index"
+					"type": "text",
+					"indexing": "index"
+				}
 			},
 			"Country": {
 				"rules": {
@@ -834,8 +877,9 @@
 			"RegionID": {
 				"rules": {
 					"minOccurrences": 1,
+					"maxOccurrences": 1,
 					"type": "integer",
-					"maxOccurrences": 1
+					"indexing": "unique"
 				},
 				"index": "unique"
 			},
@@ -883,8 +927,9 @@
 				"index": "unique",
 				"rules": {
 					"minOccurrences": 1,
+					"maxOccurrences": 1,
 					"type": "enum",
-					"maxOccurrences": 1
+					"indexing": "unique"
 				}
 			}
 		},

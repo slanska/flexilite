@@ -250,7 +250,7 @@ end
 
 ----@class NameRef
 ---@field text string
----@field id number|nil
+---@field id number | nil
 
 ---@class propColMap
 ---@field A NameRef
@@ -273,9 +273,18 @@ end
 ---@class specialProperties
 ---@field uid NameRef
 
+---@class IndexPropertyDef
+---@field desc boolean | nil
+---@field id number | nil @comment Internal property ID
+---@field text string | nil @comment Property name (for user specification)
+
+---@class IndexDef
+---@field type string @comment 'index' | 'unique' | 'range' | 'fulltext'
+---@field properties string | IndexPropertyDef[] | NameRef
+
 ---@class ClassDefData
 ---@field properties table<string, PropertyDefData>
----@field indexes table @comment IndexDefData
+---@field indexes table<string, IndexDef> @comment Map by index name
 ---@field specialProperties specialProperties
 ---@field meta any
 ---@field accessRules table @comment TODO access rules

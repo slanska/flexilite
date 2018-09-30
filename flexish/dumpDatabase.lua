@@ -63,7 +63,7 @@ local function dumpDatabase(dbPath, outFileName, tableName, compactJson)
 
     -- Load schema
     local sqliteParser = SQLiteSchemaParser(db)
-    local schema = sqliteParser:parseSchema()
+    local schema = sqliteParser:ParseSchema()
 
     -- Iterate through all non-system tables
     local result = {}

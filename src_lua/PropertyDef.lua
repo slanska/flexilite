@@ -866,11 +866,14 @@ end
 --[[
 ===============================================================================
 EnumPropertyDef
+
+Inherited from reference property and overrides ImportDBValue and
+ExportDBValue
 ===============================================================================
 ]]
 
 --- @class EnumPropertyDef
-local EnumPropertyDef = class(PropertyDef)
+local EnumPropertyDef = class(ReferencePropertyDef)
 
 function EnumPropertyDef:_init(params)
     self:super(params)

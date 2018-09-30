@@ -338,7 +338,9 @@ function ChangedDBProperty:SaveToDB(ctx)
 
                 if idx < 0 then
                     -- Append new value
-                    DBContext:execStatement(string.format([[insert into [.ref-values]
+                    DBContext:execStatement(string.format(
+                            ---@language sqlite
+                            [[insert into [.ref-values]
                     (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
                     (:ObjectID, :PropertyID,
                     coalesce((select max(PropIndex) from [.ref-values] where ObjectID = :ObjectID and PropertyID = :PropertyID limit 1), 0) + 1,

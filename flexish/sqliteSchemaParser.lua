@@ -43,15 +43,26 @@ local ansicolors = require 'ansicolors'
 ---@field partial number
 ---@field cols ISQLiteIndexColumnInfo[]
 
+---@class ISQLiteForeignKeyInfo
+---@field id number
+---@field seq number
+---@field table string @comment table name
+---@field from string @comment column name
+---@field to string @comment column name
+---@field on_update string @comment NO_ACTION, CASCADE, NONE, SET_NULL...
+---@field on_delete string @comment NO_ACTION, CASCADE, NONE, SET_NULL...
+---@field match string @comment NONE...
+
 ---@class ITableInfo
 ---@field table string
 ---@field columnCount number
 ---@field columns table<number, ISQLiteColumnInfo> @description map by SQLite column index
 ---@field columnsByName table<string, ISQLiteColumnInfo> @description the same objects as in columns by accessed by column name
----@field inFKeys table[]
----@field outFKeys table[]
+---@field inFKeys ISQLiteForeignKeyInfo[]
+---@field outFKeys ISQLiteForeignKeyInfo[]
 ---@field manyToManyTable boolean
 ---@field multiPKey boolean
+---@field pkey ISQLiteIndexInfo
 
 ---@class IFlexishResultItem
 ---@field type string
@@ -59,6 +70,12 @@ local ansicolors = require 'ansicolors'
 ---@field tableName string
 
 ---@class IClassDefinition
+
+-- TODO move to a separate file?
+local CONSTANTS = {
+    -- determines threshold to distinct between short and long text values
+    TEXT_PROP_LEN_THRESHOLD = 255,
+}
 
 ---@class SQLiteSchemaParser
 ---@field outSchema table<string, ClassDefData> @comment list of Flexi classes to be exported to JSON
@@ -411,6 +428,29 @@ local function sortIndexDefsByUniquenessAndColCount(idx_a, idx_b)
     return uniq_a > uniq_b and #idx_a.cols > #idx_b.cols
 end
 
+--- Property indexing priority
+local PROP_INDEX_PRIORITY = {
+    INDEX = 0,
+    FTS = 1,
+    RTREE = 2,
+    UNIQ = 3,
+    MKEY1 = 4,
+}
+
+---@description Returns true if column type is a numeric one (INTEGER, FLOAT, DATETIME etc.)
+---@param col_type string @comment
+---@return boolean
+local function isColNumeric(col_type)
+    if col_type == 'integer' or col_type == 'int' or col_type == 'number'
+            or col_type == 'float' or col_type == 'decimal' or col_type == 'money'
+            or col_type == 'date' or col_type == 'datetime' or col_type == 'time'
+            or col_type == 'timespan' or col_type == 'duration' then
+        return true
+    end
+
+    return false
+end
+
 ---@description Applies SQLite index definitions to Flexi properties
 ---The following cases are handled:
 ---1) single column unique indexes - accepted as is
@@ -421,11 +461,28 @@ end
 ---5) for other unique
 ---@param tblInfo ITableInfo
 ---@param sqliteTblDef ISQLiteTableInfo
-function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef)
+---@param classDef ClassDefData
+function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
     -- First, sort by uniqueness and number of columns
     table.sort(tblInfo.indexes, sortIndexDefsByUniquenessAndColCount)
 
     local multi_key_idx_applied = false
+
+    --[[
+    Keeps list of all columns that are already indexed. Key is column name,
+    value corresponds to index type, based on priority
+    index = 0
+    rtree = 1
+    fts = 2
+    unique = 3
+    first_in_mkey = 4 -- first column in multi key unique index
+    ]]
+    ---@type table<string, number>
+    local indexed_cols = {}
+
+    -- RTREE index if applicable. By default it is nil
+    ---@type IndexDef
+    local rtree_def
 
     -- Second, process sorted indexes
     for nn, vv in pairs(tblInfo.indexes) do
@@ -442,12 +499,45 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef)
 
         -- Primary or secondary index -> process
         if #idx_def.cols == 1 then
+            local col_name = idx_def.cols[1].name
+            local propDef = classDef.properties[col_name]
+            assert(propDef)
             if idx_def.unique ~= 0 then
-                -- Unique index on single column? Apply as is
-
+                -- Unique index on single column? Apply as is unless it is defined as 1st column in
+                -- unique multi key index
+                if not indexed_cols[col_name] or indexed_cols[col_name] < PROP_INDEX_PRIORITY.UNIQ then
+                    indexed_cols[col_name] = PROP_INDEX_PRIORITY.UNIQ
+                    propDef.rules.indexing = 'unique'
+                end
             else
                 -- Check if this column was not yet included into other indexes. If not, check if column can be added to RTREE index
                 -- If no, create a regular non unique index
+                if indexed_cols[col_name] then
+                    goto end_of_loop
+                end
+
+                -- for long text columns consider using FTS
+                if (propDef.rules.type == 'text' or propDef.rules.type == 'string')
+                        and propDef.rules.maxLength > CONSTANTS.TEXT_PROP_LEN_THRESHOLD
+                        and (not indexed_cols[col_name] or indexed_cols[col_name] < PROP_INDEX_PRIORITY.FTS) then
+                    indexed_cols[col_name] = PROP_INDEX_PRIORITY.FTS
+                    propDef.rules.indexing = 'fulltext'
+                    goto end_of_loop
+                end
+
+                -- for numeric-based columns (float, integer, date/time) consider rtree
+                if isColNumeric(propDef.rules.type) and (not rtree_def or #rtree_def.properties < 5) and
+                        (not indexed_cols[col_name] or indexed_cols[col_name] < PROP_INDEX_PRIORITY.RTREE) then
+                    if not rtree_def then
+                        rtree_def = { type = 'range', properties = {}
+                        }
+                    end
+                    table.insert(rtree_def.properties, { name = col_name })
+                    indexed_cols[col_name] = PROP_INDEX_PRIORITY.RTREE;
+                else
+                    propDef.rules.indexing = 'index'
+                    indexed_cols[col_name] = PROP_INDEX_PRIORITY.INDEX
+                end
             end
         elseif idx_def.unique ~= 0 then
             if multi_key_idx_applied then
@@ -461,9 +551,33 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef)
                  Maximum 4 columns is supported by Flexilite%%{reset}]], idx_def.name, #idx_def.cols)))
                 goto end_of_loop
             end
+
+            -- Init multi key unique index
+            if not classDef.indexes then
+                classDef.indexes = {}
+            end
+            local mkey_idx = {
+                type = 'unique',
+                properties = {}
+            }
+            classDef.indexes[idx_def.name] = mkey_idx
+
+            for i, cc in ipairs(idx_def.cols) do
+                table.insert(mkey_idx.properties, { name = cc.name })
+            end
+            indexed_cols[idx_def.cols[1].name] = PROP_INDEX_PRIORITY.MKEY1;
+
+            multi_key_idx_applied = true
         end
 
         :: end_of_loop ::
+    end
+
+    if rtree_def then
+        if not classDef.indexes then
+            classDef.indexes = {}
+        end
+        classDef.indexes['$range_index'] = rtree_def
     end
 end
 
@@ -537,7 +651,7 @@ function SQLiteSchemaParser:loadTableInfo(sqliteTblDef)
     self:initializeProperties(tblInfo, classDef)
 
     local indexes = self:loadIndexDefs(tblInfo, sqliteTblDef)
-    self:applyIndexDefs(tblInfo, sqliteTblDef)
+    self:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
 
     tblInfo.supportedIndexes = {}
     -- Checking if there non-supported indexes
@@ -797,6 +911,8 @@ function SQLiteSchemaParser:processReferences(tblInfo)
          1) normal 1:N, (1 is defined in inFKeys, N - in outFKeys). Reverse property is created in counterpart class
          This property is created as enum, reversed property is also created as enum
          2) mixin 1:1, when outFKeys column is primary column
+         This case is reported but not processed, as complete implementation will impose many complications in the class definitions and further data import.
+
          3) many-to-many M:N, via special table with 2 columns which are foreign keys to other table(s)
          4) primary key is multiple, and first column in primary key is foreign
          key to another table. This will create a master reference property.
@@ -924,10 +1040,11 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     self:processReferences(tblInfo)
 
     -- Set indexing
-    self:processUniqueNonTextIndexes(tblInfo, classDef)
-    self:processUniqueTextIndexes(tblInfo, classDef)
-    self:processUniqueMultiColumnIndexes(tblInfo, classDef)
-    self:processNonUniqueIndexes(tblInfo, classDef)
+    --self:processUniqueNonTextIndexes(tblInfo, classDef)
+    --self:processUniqueTextIndexes(tblInfo, classDef)
+    --self:processUniqueMultiColumnIndexes(tblInfo, classDef)
+    --self:processNonUniqueIndexes(tblInfo, classDef)
+
     self:processSpecialProps(tblInfo, classDef)
 
     return classDef
@@ -1068,7 +1185,7 @@ end
      and parses it to Flexilite class definition
      Returns promise which resolves to dictionary of Flexilite classes
 ]]
-function SQLiteSchemaParser:parseSchema()
+function SQLiteSchemaParser:ParseSchema()
     self.outSchema = {}
     self.tableInfo = {}
 
@@ -1077,7 +1194,7 @@ function SQLiteSchemaParser:parseSchema()
     ---@type ISQLiteTableInfo
     for item in stmt:nrows() do
 
-        print(ansicolors('Processing: %{magenta}' .. item.name .. '%{reset}'))
+        print(ansicolors(string.format('Processing: %%{magenta}%s%%{reset}', item.name)))
         self:loadTableInfo(item)
     end
 
@@ -1094,6 +1211,37 @@ function SQLiteSchemaParser:parseSchema()
     end
 
     return self.outSchema
+end
+
+--[[ Detects if class is mixin, i.e. its primary key is the foreign key to another table.
+In that case references class is added as mixin property named 'base'.
+Definition of mixin property will also get name of udid (user defined ID) column to be used for future data import
+]]
+---@param tblInfo ITableInfo
+---@param sqLiteTableInfo ISQLiteTableInfo
+---@param classDef ClassDefData
+function SQLiteSchemaParser:detectMixin(tblInfo, sqLiteTableInfo, classDef)
+
+    ---@param idx ISQLiteIndexInfo
+    local function isPKey(idx)
+        return idx.origin == 'pkey'
+    end
+
+    -- Get primary key definition
+    ---@type ISQLiteIndexInfo
+    local pk = tablex.find_if(tblInfo.indexes, isPKey)
+
+    ---@param fkeyDef ISQLiteForeignKeyInfo
+    local function isOutFKeyMatchingPKey(fkeyDef)
+        return fkeyDef.from == pk.cols[1].name
+    end
+
+    -- Get out foreign key matching primary key definition
+    ---@type ISQLiteForeignKeyInfo
+    local fk = tablex.find_if(tblInfo.outFKeys, isOutFKeyMatchingPKey)
+    if fk and #fk.seq == 1 then
+        -- Definitely, mixin
+    end
 end
 
 return SQLiteSchemaParser
