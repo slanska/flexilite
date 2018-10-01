@@ -674,13 +674,21 @@ end
 
 -- Loads and processes foreign key definitions
 ---@param tblInfo ITableInfo
-function SQLiteSchemaParser:processFKeys(tblInfo)
+function SQLiteSchemaParser:processForeignKeys(tblInfo)
     -- Process foreign keys
-    -- @type Fo
+    ---@type ISQLiteForeignKeyInfo[]
     local fkInfo = {}
-    for v in self.db:nrows(string.format("pragma foreign_key_list('%s');", tblInfo.table)) do
+    for v in self.db:nrows(string.format(
+            "pragma foreign_key_list('%s');", tblInfo.table)) do
         table.insert(fkInfo, v)
     end
+
+    ---@param fkey ISQLiteForeignKeyInfo
+    local function isTheSameFKey(fkey, id)
+        return fkey.id == id
+    end
+
+    local sameFKeys = tablex.filter(fkInfo, isTheSameFKey)
 
     if #fkInfo > 0 then
         for i, fk in ipairs(fkInfo) do
@@ -1039,12 +1047,6 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
 
     self:processReferences(tblInfo)
 
-    -- Set indexing
-    --self:processUniqueNonTextIndexes(tblInfo, classDef)
-    --self:processUniqueTextIndexes(tblInfo, classDef)
-    --self:processUniqueMultiColumnIndexes(tblInfo, classDef)
-    --self:processNonUniqueIndexes(tblInfo, classDef)
-
     self:processSpecialProps(tblInfo, classDef)
 
     return classDef
@@ -1098,87 +1100,8 @@ function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
     end
 end
 
----@param tblInfo ITableInfo
-function SQLiteSchemaParser:processUniqueMultiColumnIndexes(tblInfo, classDef)
-    local uniqMultiIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
-        return #idx.columns > 1 and idx.unique == 1 and idx.partial == 0
-    end)
-
-    for i, idx in ipairs(uniqMultiIndexes) do
-        if #idx.columns > 4 then
-            local msg = string.format("Index [%s] by %s is ignored as multi-column unique indexes with more than 4 columns are not supported by Flexilite",
-                    idx.name, self:getIndexColumnNames(tblInfo, idx))
-            table.insert(self.results, {
-                type = 'warn',
-                message = msg,
-                tableName = tblInfo.table })
-        else
-            classDef.indexes = classDef.indexes or {}
-            classDef.indexes[idx.name] = {
-                type = 'unique',
-                properties = {}
-            }
-            for i, cc in ipairs(idx.columns) do
-                classDef.indexes[idx.name].properties[i] = { text = cc.name }
-            end
-        end
-    end
-end
-
----@param tblInfo ITableInfo
----@param classDef IClassDefinition
-function SQLiteSchemaParser:processUniqueNonTextIndexes(tblInfo, classDef)
-    local uniqOtherIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
-        local tt = classDef.properties[tblInfo.columns[idx.columns[1].cid + 1].name].rules.type
-        return #idx.columns == 1 and idx.unique == 1 and (tt == 'integer' or tt == 'number' or tt == 'datetime'
-                or tt == 'binary')
-    end)
-
-    table.sort(uniqOtherIndexes,
-            function(A, B)
-                if not A or not B then
-                    return 0
-                end
-
-                local function getTypeWeight(item)
-                    local result = classDef.properties[tblInfo.columns[item.columns[1].cid + 1].name].rules.type
-                    if result == 'integer' then
-                        return 0
-                    end
-                    if result == 'number' then
-                        return 1
-                    end
-                    if result == 'binary' then
-                        return 2
-                    end
-                    return 3
-                end
-
-                local v1 = getTypeWeight(A)
-                local v2 = getTypeWeight(B)
-                return v1 < v2
-            end)
-end
-
 -- Check required fields. Candidates for name, description, nonUniqueId, createTime, updateTime,
 -- owner
-
----@param tblInfo ITableInfo
----@param classDef IClassDefinition
-function SQLiteSchemaParser:processUniqueTextIndexes(tblInfo, classDef)
-    --[[
-             Split all indexes into the following categories:
-         1) Unique one column, by text column: special property and unique index, sorted by max length
-         2) Unique one column, date, number or integer: special property and unique index, sorted by type
-         - with integer on top
-         3) Unique multi-column indexes: currently not supported
-         4) Non-unique: only first column gets indexed. Text - full text search or index. Numeric types
-         - RTree or index
-    ]]
-    local uniqTxtIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
-        return #idx.columns == 1 and idx.unique == 1
-    end)
-end
 
 --[[
      Loads schema from SQLite database
@@ -1199,7 +1122,7 @@ function SQLiteSchemaParser:ParseSchema()
     end
 
     for tableName, tblInfo in pairs(self.tableInfo) do
-        self:processFKeys(tblInfo)
+        self:processForeignKeys(tblInfo)
     end
 
     for tableName, tblInfo in pairs(self.tableInfo) do
@@ -1220,7 +1143,7 @@ Definition of mixin property will also get name of udid (user defined ID) column
 ---@param tblInfo ITableInfo
 ---@param sqLiteTableInfo ISQLiteTableInfo
 ---@param classDef ClassDefData
-function SQLiteSchemaParser:detectMixin(tblInfo, sqLiteTableInfo, classDef)
+function SQLiteSchemaParser:detectMixinCandidate(tblInfo, sqLiteTableInfo, classDef)
 
     ---@param idx ISQLiteIndexInfo
     local function isPKey(idx)

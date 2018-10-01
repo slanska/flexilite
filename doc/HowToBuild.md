@@ -1,4 +1,4 @@
-## Build
+## Build LuaJIT
 
 ### Windows
 
@@ -9,6 +9,19 @@
 In Visual Studio Developer Command Prompt:
 ```shell    
 cd <Flexilite_location>
+copy .\luajit_msvcbuild.bat .\lib\torch-luajit-rocks\luajit-2.1\src\msvcbuild.bat
+.\lib\torch-luajit-rocks\luajit-2.1\src
+setenv /release /x86
+or
+setenv /release /x64
+msvcbuild 
+
+```
+
+**Older version, based on MinGW**
+```shell    
+cd <Flexilite_location>
+copy .\luajit_msvcbuild.bat .\lib/torch-luajit-rocks/luajit-2.1/src/msvcbuild.bat
 cd .\lib\torch-luajit-rocks
 mkdir build
 cd .\build
