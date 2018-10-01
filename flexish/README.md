@@ -1,4 +1,4 @@
-###Command line helper utility for Flexilite
+### Command line helper utility for Flexilite
 
 Standalone executable which bundles LuaJIT and related Lua 
 scripts into single binary.
@@ -10,9 +10,6 @@ to be imported via _flexi('load data', ...)_
 * Initializes database with Flexilite objects  
 
 ### Usage
-
-
-
 
 #### Parse Schema
 
