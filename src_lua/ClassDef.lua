@@ -4,7 +4,7 @@
 ---
 
 --[[
-Flexilite class (=table) definition
+Flexilite class (AKA "table") definition
 Has reference to DBContext
 Corresponds to [.classes] database table + D - decoded [data] field, with initialized PropertyRef's and NameRef's
 
@@ -26,6 +26,10 @@ local tablex = require 'pl.tablex'
 local AccessControl = require 'AccessControl'
 local DictCI = require('Util').DictCI
 
+local table_insert = table.insert
+local table_remove = table.remove
+local table_concat = table.concat
+
 --[[
 Index definitions for class. Operate with property IDs only,
 so properties of new class must be saved prior to using this class.
@@ -37,15 +41,29 @@ d) storing and loading index definitions (in [.classes].Data.indexes)
 ]]
 
 ---@class IndexDefinitions
----@field fullTextIndexing number[] @comment array of property IDs
----@field rangeIndexing number[] @comment array of property IDs
----@field multiKeyIndexing number[] @comment Array of 0, 2, 3 or 4 property IDs
----@field propIndexing table<number, boolean> @comment map of property IDs to boolean (unique or not)
+---@field fullTextIndexing number[]  @comment array of property IDs
+---@field rangeIndexing number[]  @comment array of property IDs
+---@field multiKeyIndexing number[]  @comment Array of 0, 2, 3 or 4 property IDs
+---@field propIndexing table<number, boolean>  @comment map of property IDs to boolean (unique or not)
 local IndexDefinitions = class()
 
 -- Internal static variables for column names
 IndexDefinitions.ftsCols = { 'X1', 'X2', 'X3', 'X4', 'X5' }
 IndexDefinitions.rngCols = { 'A0', 'A1', 'B0', 'B1', 'C0', 'C1', 'D0', 'D1', 'E0', 'E1' }
+
+---@description Returns true if column type is a numeric one (INTEGER, FLOAT, DATETIME etc.)
+---@param col_type string @comment
+---@return boolean
+local function isColNumeric(col_type)
+    if col_type == 'integer' or col_type == 'int' or col_type == 'number'
+            or col_type == 'float' or col_type == 'decimal' or col_type == 'money'
+            or col_type == 'date' or col_type == 'datetime' or col_type == 'time'
+            or col_type == 'timespan' or col_type == 'duration' then
+        return true
+    end
+
+    return false
+end
 
 -- Initializes empty index definition
 function IndexDefinitions:_init()
@@ -99,7 +117,7 @@ function IndexDefinitions:AddFullTextIndexedProperty(propDef)
     if #self.fullTextIndexing == 5 then
         return false, 'Maximum number of properties in full text index (5) exceeded'
     end
-    table.insert(self.fullTextIndexing, propDef.ID)
+    table_insert(self.fullTextIndexing, propDef.ID)
     return true, nil
 end
 
@@ -133,8 +151,8 @@ function IndexDefinitions:AddRangeIndexedProperties(propDef0, propDef1)
         return false, 'Maximum number of dimensions in range index (5) exceeded'
     end
 
-    table.insert(self.rangeIndexing, propDef0.ID)
-    table.insert(self.rangeIndexing, propDef1.ID)
+    table_insert(self.rangeIndexing, propDef0.ID)
+    table_insert(self.rangeIndexing, propDef1.ID)
     return true, nil
 end
 
@@ -192,14 +210,14 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
         -- Find possible usage of the same property in other types of indexes
         local idx = tablex.find(self.rangeIndexing, propDef.ID)
         if idx then
-            table.remove(self.propIndexing, propDef.ID)
+            table_remove(self.propIndexing, propDef.ID)
             return true, string.format('Property [%s].[%s] already included in range index',
                     propDef.ClassDef.Name.text, propDef.Name.text)
         end
 
         if self.multiKeyIndexing and #self.multiKeyIndexing > 0
                 and self.multiKeyIndexing[1] == propDef.ID then
-            table.remove(self.propIndexing, propDef.ID)
+            table_remove(self.propIndexing, propDef.ID)
             return true, string.format('Property [%s].[%s] already included in multi key index',
                     propDef.ClassDef.Name.text, propDef.Name.text)
         end
@@ -222,7 +240,7 @@ function IndexDefinitions:SetPropertyIndex(propDef)
     local idxType = string.lower(propDef.D.index or '')
     if idxType == '' then
         if self.propIndexing[propDef.ID] then
-            table.remove(self.propIndexing, propDef.ID)
+            table_remove(self.propIndexing, propDef.ID)
             return true, string.format('Index for property [%s] was removed', propDef.Name.text)
         end
         return true, nil
@@ -273,22 +291,17 @@ end
 ---@class specialProperties
 ---@field uid NameRef
 
----@class IndexPropertyDef
----@field desc boolean | nil
----@field id number | nil @comment Internal property ID
----@field text string | nil @comment Property name (for user specification)
-
----@class IndexDef
----@field type string @comment 'index' | 'unique' | 'range' | 'fulltext'
----@field properties string | IndexPropertyDef[] | NameRef
+---@class ClassDefIndexes
+---@field fullTextIndexing  NameRef[] @comment array of property ref
+---@field rangeIndexing  NameRef[] @comment array of property ref (even number: 2, 4, 6, 8, 10)
+---@field multiKeyIndexing  NameRef[] @comment Array of 0, 2, 3 or 4 property ref
 
 ---@class ClassDefData
 ---@field properties table<string, PropertyDefData>
----@description ['$rangeindex'], ['$fulltextindex']
----@field indexes table<string, IndexDef> @comment Map by index name
+---@field indexes ClassDefIndexes
 ---@field specialProperties specialProperties
----@field meta any @comment apply custom schema (database level defined)
----@field accessRules table @comment TODO access rules
+---@field meta any @comment Custom schema for meta data (defined by user on database level)
+---@field accessRules table @comment TODO define structure of access rules
 ---@field storage string @comment nil | '' | 'R' - normal class or .ref-values @comment TODO needed?
 
 ---@class ClassDef
@@ -441,7 +454,7 @@ function ClassDef:initMixinProperties()
                     d = {}
                     self.MixinProperties[mp.Name.text] = d
                 end
-                table.insert(d, mp)
+                table_insert(d, mp)
             end
         end
     end
@@ -765,12 +778,12 @@ function ClassDef.ApplyIndexing(oldClassDef, newClassDef)
             local propDef = newClassDef.DBContext.ClassProps[propID]
             colNameIdx = colNameIdx + 1
             colValIdx = colValIdx + 2
-            table.insert(sqlLines, colNameIdx, string.format(', %s', IndexDefinitions.rngCols[idx]))
-            table.insert(sqlLines, colValIdx, propDef:GetColumnExpression(false))
+            table_insert(sqlLines, colNameIdx, string.format(', %s', IndexDefinitions.rngCols[idx]))
+            table_insert(sqlLines, colValIdx, propDef:GetColumnExpression(false))
         end
 
-        table.insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
-        local sql = table.concat(sqlLines)
+        table_insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
+        local sql = table_concat(sqlLines)
         newClassDef.DBContext:ExecAdhocSql(sql, { ClassID = newClassDef.ClassID })
     end
 
@@ -794,11 +807,11 @@ function ClassDef.ApplyIndexing(oldClassDef, newClassDef)
             local propDef = newClassDef.DBContext.ClassProps[propID]
             colNamePos = colNamePos + 1
             colValPos = colValPos + 2
-            table.insert(sqlLines, colNamePos, string.format(', [X%d]', ii))
-            table.insert(sqlLines, colValPos, propDef:GetColumnExpression(false))
+            table_insert(sqlLines, colNamePos, string.format(', [X%d]', ii))
+            table_insert(sqlLines, colValPos, propDef:GetColumnExpression(false))
         end
-        table.insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
-        local sql = table.concat(sqlLines, '')
+        table_insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
+        local sql = table_concat(sqlLines, '')
         newClassDef.DBContext:ExecAdhocSql(sql, { ClassID = newClassDef.ClassID })
     end
 
@@ -821,11 +834,11 @@ function ClassDef.ApplyIndexing(oldClassDef, newClassDef)
             local propDef = newClassDef.DBContext.ClassProps[propID]
             colNameIdx = colNameIdx + 1
             colValIdx = colValIdx + 2
-            table.insert(sqlLines, colNameIdx, string.format(', [Z%d]', iCol))
-            table.insert(sqlLines, colValIdx, propDef:GetColumnExpression(false))
+            table_insert(sqlLines, colNameIdx, string.format(', [Z%d]', iCol))
+            table_insert(sqlLines, colValIdx, propDef:GetColumnExpression(false))
         end
-        table.insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
-        local sql = table.concat(sqlLines)
+        table_insert(sqlLines, ' from [.objects] where ClassID = :ClassID);')
+        local sql = table_concat(sqlLines)
         newClassDef.DBContext:ExecAdhocSql(sql, { ClassID = newClassDef.ClassID })
     end
 end
@@ -870,12 +883,6 @@ function ClassDef:getObjectSchema(op)
     return result
 end
 
-local IndexPropertySchema = schema.Record {
-    id = schema.Optional(schema.AllOf(schema.Integer, schema.PositiveNumber)),
-    text = name_ref.IdentifierSchema,
-    desc = schema.Optional(schema.Boolean)
-}
-
 -- define schema for class JSON definition
 ClassDef.Schema = schema.Record {
     properties = schema.Map(name_ref.IdentifierSchema, PropertyDef.Schema),
@@ -914,46 +921,18 @@ ClassDef.Schema = schema.Record {
         owner = schema.Optional(NameRef.Schema),
     }),
 
-    rangeIndexing = schema.Optional(schema.Record {
-        A0 = schema.Optional(NameRef.Schema),
-        A1 = schema.Optional(NameRef.Schema),
-        B0 = schema.Optional(NameRef.Schema),
-        B1 = schema.Optional(NameRef.Schema),
-        C0 = schema.Optional(NameRef.Schema),
-        C1 = schema.Optional(NameRef.Schema),
-        D0 = schema.Optional(NameRef.Schema),
-        D1 = schema.Optional(NameRef.Schema),
-        E0 = schema.Optional(NameRef.Schema),
-        E1 = schema.Optional(NameRef.Schema),
-    }),
-
     --[[
-    Optional full text indexing. Maximum 4 properties are allowed for full text index.
-    These properties are mapped to X1-X5 columns in [.full_text_data] table
-    ]]
-    fullTextIndexing = schema.Optional(schema.Record {
-        X1 = schema.Optional(NameRef.Schema),
-        X2 = schema.Optional(NameRef.Schema),
-        X3 = schema.Optional(NameRef.Schema),
-        X4 = schema.Optional(NameRef.Schema),
-        X5 = schema.Optional(NameRef.Schema),
-    }),
-
-    --[[
-    Alternative way to define indexes (in addition to property's indexing)
-        Also, this is the only way to define multi-column unique indexes
+        This is the only way to define multi-column unique indexes
         'range' and 'fulltext' indexes are merged and resulting number of columns must not
         exceed limits (5 full text columns and 5 dimensions for range index)
         'range' indexes must be defined in pairs (even number of properties, i.e. 2, 4, 6, 8 or 10)
         keys in this tables (aka 'index name') are ignored
         ]]
-    indexes = schema.Optional(schema.Map(schema.String, schema.Record {
-        type = schema.OneOf(schema.Nil, 'index', 'unique', 'range', 'fulltext'),
-        properties = schema.OneOf(
-                NameRef.Schema,
-                schema.String,
-                schema.Collection(IndexPropertySchema)),
-    })),
+    indexes = schema.Optional(schema.Record{
+        rangeIndexing = schema.Optional(schema.Collection(NameRef.Schema)),
+        fullTextIndexing = schema.Optional(schema.Collection(NameRef.Schema)),
+        multiKeyIndexing = schema.Optional(schema.Collection(NameRef.Schema)),
+    }),
 
     --[[
     User defined arbitrary data (UI generation rules etc)
@@ -961,12 +940,6 @@ ClassDef.Schema = schema.Record {
     meta = schema.Any,
 
     accessRules = schema.Optional(AccessControl.Schema),
-
-    -- if 'R' class is mapped to .ref-values and serves as relation for 2 other classes
-    -- 'R' classes must have only 2 properties, defined during creation.
-    -- Properties cannot be deleted or added or otherwise changed, except rename.
-    -- Both properties must be of 'fkey' type
-    storage = schema.OneOf(schema.Nil, 'R'),
 }
 
 -- Schema for multi class JSON

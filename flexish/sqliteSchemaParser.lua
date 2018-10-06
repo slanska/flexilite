@@ -96,33 +96,6 @@ table.filter = function(tbl, func)
     return result
 end
 
-table.map = function(tbl, funcOrName)
-    local result = {}
-    local isFunc = type(funcOrName) == 'function'
-    for i, v in pairs(tbl) do
-        if isFunc then
-            table.insert(result, isFunc(v, tbl, i))
-        else
-            table.insert(result, v[funcOrName])
-        end
-    end
-    return result
-end
-
-table.isEqual = function(A, B)
-    if #A ~= #B then
-        return false
-    end
-
-    for i, v in ipairs(A) do
-        if v ~= B[i] then
-            return false
-        end
-    end
-
-    return true
-end
-
 ---@param db sqlite3.Database
 function SQLiteSchemaParser:_init(db)
     -- ClassDefCollection
@@ -431,25 +404,9 @@ end
 --- Property indexing priority
 local PROP_INDEX_PRIORITY = {
     INDEX = 0,
-    FTS = 1,
-    RTREE = 2,
-    UNIQ = 3,
-    MKEY1 = 4,
+    UNIQ = 1,
+    MKEY1 = 2,
 }
-
----@description Returns true if column type is a numeric one (INTEGER, FLOAT, DATETIME etc.)
----@param col_type string @comment
----@return boolean
-local function isColNumeric(col_type)
-    if col_type == 'integer' or col_type == 'int' or col_type == 'number'
-            or col_type == 'float' or col_type == 'decimal' or col_type == 'money'
-            or col_type == 'date' or col_type == 'datetime' or col_type == 'time'
-            or col_type == 'timespan' or col_type == 'duration' then
-        return true
-    end
-
-    return false
-end
 
 ---@description Applies SQLite index definitions to Flexi properties
 ---The following cases are handled:
@@ -466,12 +423,6 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
     -- First, sort by uniqueness and number of columns
     table.sort(tblInfo.indexes, sortIndexDefsByUniquenessAndColCount)
 
-    -- Pool of full text columns
-    local ftsCols = { 'X1', 'X2', 'X3', 'X4' }
-
-    -- Pool of rtree columns
-    local rtCols = { 'A', 'B', 'C', 'D', 'E' }
-
     local multi_key_idx_applied = false
 
     --[[
@@ -486,10 +437,6 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
     ---@type table<string, number>
     local indexed_cols = {}
 
-    -- RTREE index if applicable. By default it is nil
-    ---@type IndexDef
-    local rtree_def
-
     -- Second, process sorted indexes
     for nn, vv in pairs(tblInfo.indexes) do
         ---@type ISQLiteIndexInfo
@@ -499,21 +446,26 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
             print(ansicolors(string.format('%%{yellow}WARN: Partial index %s is not supported. Skipping.%%{reset}', idx_def.name)))
             goto end_of_loop
         elseif idx_def.origin ~= 'pk' and idx_def.origin ~= 'c' then
-            print(ansicolors(string.format('%%{yellow}WARN: Unknown origin "%s" of index %s. Skipping.%%{reset}', idx_def.name)))
+            print(ansicolors(string.format('%%{yellow}WARN: Unknown origin "%s" of index %s. Skipping.%%{reset}', idx_def.origin, idx_def.name)))
+            goto end_of_loop
+        elseif #idx_def.cols == 0 then
+            print(ansicolors(string.format('%%{yellow}WARN: Index "%s" does not have any columns. Skipping.%%{reset}', idx_def.name)))
             goto end_of_loop
         end
 
         -- Primary or secondary index -> process
+        local col_name = idx_def.cols[1].name
+        local propDef = classDef.properties[col_name]
+        assert(propDef)
+
         if #idx_def.cols == 1 then
-            local col_name = idx_def.cols[1].name
-            local propDef = classDef.properties[col_name]
-            assert(propDef)
+
             if idx_def.unique ~= 0 then
                 -- Unique index on single column? Apply as is unless it is defined as 1st column in
                 -- unique multi key index
                 if not indexed_cols[col_name] or indexed_cols[col_name] < PROP_INDEX_PRIORITY.UNIQ then
                     indexed_cols[col_name] = PROP_INDEX_PRIORITY.UNIQ
-                    propDef.rules.indexing = 'unique'
+                    propDef.index = 'unique'
                 end
             else
                 -- Check if this column was not yet included into other indexes. If not, check if column can be added to RTREE index
@@ -522,36 +474,8 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
                     goto end_of_loop
                 end
 
-                -- for long text columns consider using FTS
-                if (propDef.rules.type == 'text' or propDef.rules.type == 'string')
-                        and propDef.rules.maxLength > CONSTANTS.TEXT_PROP_LEN_THRESHOLD
-                        and (not indexed_cols[col_name] or indexed_cols[col_name] < PROP_INDEX_PRIORITY.FTS) then
-                    indexed_cols[col_name] = PROP_INDEX_PRIORITY.FTS
-                    propDef.rules.indexing = 'fulltext'
-                    goto end_of_loop
-                end
-
-                -- for numeric-based columns (float, integer, date/time) consider rtree
-                if isColNumeric(propDef.rules.type) and (#rtCols > 0) and
-                        (not indexed_cols[col_name] or indexed_cols[col_name] < PROP_INDEX_PRIORITY.RTREE) then
-                    if not rtree_def then
-                        rtree_def = { type = 'range', properties = {}
-                        }
-                    end
-
-                    local rtCol = table.remove(rtCols)
-                    classDef.rangeIndexing = classDef.rangeIndexing or {}
-                    classDef.rangeIndexing[rtCol .. '0'] = { text = col_name, }
-                    classDef.rangeIndexing[rtCol .. '1'] = { text = col_name }
-                    propDef.index = 'range'
-                    table.insert(rtree_def.properties, { name = col_name })
-
-                    -- Set priority
-                    indexed_cols[col_name] = PROP_INDEX_PRIORITY.RTREE;
-                else
-                    propDef.rules.indexing = 'index'
-                    indexed_cols[col_name] = PROP_INDEX_PRIORITY.INDEX
-                end
+                propDef.index = 'index'
+                indexed_cols[col_name] = PROP_INDEX_PRIORITY.INDEX
             end
         elseif idx_def.unique ~= 0 then
             if multi_key_idx_applied then
@@ -570,28 +494,29 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
             if not classDef.indexes then
                 classDef.indexes = {}
             end
-            local mkey_idx = {
-                type = 'unique',
-                properties = {}
-            }
-            classDef.indexes[idx_def.name] = mkey_idx
+            local mkey_idx = {            }
+            classDef.indexes.multiKeyIndexing = mkey_idx
 
             for i, cc in ipairs(idx_def.cols) do
-                table.insert(mkey_idx.properties, { name = cc.name })
+                table.insert(mkey_idx, { name = cc.name })
             end
             indexed_cols[idx_def.cols[1].name] = PROP_INDEX_PRIORITY.MKEY1;
 
             multi_key_idx_applied = true
+        else
+            if not indexed_cols[col_name] then
+                indexed_cols[col_name] = PROP_INDEX_PRIORITY.INDEX
+                propDef.index = 'index'
+            end
+
+            propDef.index = 'index'
+            -- Multi column non unique indexes are ignored
+            print(ansicolors(string([[%%{yellow}WARN: Only first column of multi-column, non-unique index [%s] will be indexed%%{reset}]],
+                    idx_def.name)))
+            goto end_of_loop
         end
 
         :: end_of_loop ::
-    end
-
-    if rtree_def then
-        if not classDef.indexes then
-            classDef.indexes = {}
-        end
-        classDef.indexes['$range_index'] = rtree_def
     end
 end
 
@@ -702,7 +627,7 @@ function SQLiteSchemaParser:processForeignKeys(tblInfo)
         return fkey.id == id
     end
 
-    local sameFKeys = tablex.filter(fkInfo, isTheSameFKey)
+    local sameFKeys = table.filter(fkInfo, isTheSameFKey)
 
     if #fkInfo > 0 then
         for i, fk in ipairs(fkInfo) do
@@ -796,16 +721,16 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
 
     local notNullProps = tablex.values(notNullPropsMap)
 
+    if #notNullProps == 0 then
+        return
+    end
+
     table.sort(notNullProps,
             function(A, B)
                 local aw = getColumnWeight(A)
                 local bw = getColumnWeight(B)
                 return aw < bw
             end)
-
-    if #notNullProps == 0 then
-        return
-    end
 
     -- Wild guessing about special properties
     -- uid - non autoinc primary key or single column unique index (shortest, if there are few unique single column indexes)
@@ -913,6 +838,16 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
 
     -- updateTime - date/datetime required column 'last_changed', 'update_date', 'updated', 'last_modified', 'modify_date', 'change_date'
     classDef.specialProperties.updateTime = findReqCol({ 'updatetime', 'updated', 'update_time', 'update_date', 'updatedate', 'last_changed', 'lastchanged', 'last_updated', 'lastupdated', 'last_modified', 'lastmodified' }, { 'time', 'date' })
+
+    -- If no special properties were defined, clean up the attribute. No need to carry on this luggage
+    local empty = true
+    for _, v in pairs(classDef.specialProperties) do
+        empty = false
+        break
+    end
+    if empty then
+        classDef.specialProperties = nil
+    end
 end
 
 -- Processes foreign key definitions
@@ -1067,7 +1002,7 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
 end
 
 ---@param tblInfo ITableInfo
----@param classDef IClassDefinition
+---@param classDef ClassDefData
 function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
     local nonUniqueIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
         return idx.unique ~= 1

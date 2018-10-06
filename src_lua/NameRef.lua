@@ -130,7 +130,6 @@ function PropNameRef:isResolved(classDef)
     return pp ~= nil
 end
 
--- TODO Confirm pattern
 local IdentifierSchema = schema.Pattern('[_%a][_%w]*')
 
 -- define schema for name definition

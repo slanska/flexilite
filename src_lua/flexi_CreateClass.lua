@@ -69,18 +69,6 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
         else
             local clsObject = self.ClassDef { newClassName = className, data = classDef, DBContext = self }
 
-            -- Validate class and its properties
-            --for name, prop in pairs(clsObject.Properties) do
-            --if not self:isNameValid(name) then
-            --    error('Invalid property name: ' .. name)
-            --end
-
-            --local isValid, errorMsg = prop:isValidDef()
-            --if not isValid then
-            --    error(errorMsg)
-            --end
-            --end
-
             insertNewClass(self, clsObject)
 
             -- TODO Set ctloMask

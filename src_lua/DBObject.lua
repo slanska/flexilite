@@ -85,6 +85,8 @@ local ChangedDBProperty = require('DBProperty').ChangedDBProperty
 local NullDBValue = require('DBProperty').NullDBValue
 local DictCI = require('Util').DictCI
 
+local table_insert = table.insert
+
 -------------------------------------------------------------------------------
 --[[
 Void DB objects exist as 2 singletons, handling access to inserted.old
@@ -901,7 +903,7 @@ function DBObject:ExportData(propIDs)
         local vv = {}
         result[propDef.Name.text] = vv
         for idx = 1, fetchCount or Constants.MAX_INTEGER do
-            table.insert(vv, pp.PropDef:ExportDBValue(self, pp:GetValue(idx)))
+            table_insert(vv, pp.PropDef:ExportDBValue(self, pp:GetValue(idx)))
         end
     end
 
