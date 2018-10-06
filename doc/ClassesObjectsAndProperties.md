@@ -65,3 +65,11 @@ database operations. Select, insert, update, delete requests can be executed in 
 These types of extensions include: a) relations between objects, including one-to-one, one-to-many, many-to-many, and nested objects;
 b) polymorphic collections, when objects of different classes are presented in one collection, c) mixing different types in one property
 
+Example of class definition in JSON:
+
+```json
+{
+  "properties": {},
+  "indexing": []
+}
+```

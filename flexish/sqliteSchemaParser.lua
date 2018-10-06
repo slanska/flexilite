@@ -466,6 +466,12 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
     -- First, sort by uniqueness and number of columns
     table.sort(tblInfo.indexes, sortIndexDefsByUniquenessAndColCount)
 
+    -- Pool of full text columns
+    local ftsCols = { 'X1', 'X2', 'X3', 'X4' }
+
+    -- Pool of rtree columns
+    local rtCols = { 'A', 'B', 'C', 'D', 'E' }
+
     local multi_key_idx_applied = false
 
     --[[
@@ -526,13 +532,21 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
                 end
 
                 -- for numeric-based columns (float, integer, date/time) consider rtree
-                if isColNumeric(propDef.rules.type) and (not rtree_def or #rtree_def.properties < 5) and
+                if isColNumeric(propDef.rules.type) and (#rtCols > 0) and
                         (not indexed_cols[col_name] or indexed_cols[col_name] < PROP_INDEX_PRIORITY.RTREE) then
                     if not rtree_def then
                         rtree_def = { type = 'range', properties = {}
                         }
                     end
+
+                    local rtCol = table.remove(rtCols)
+                    classDef.rangeIndexing = classDef.rangeIndexing or {}
+                    classDef.rangeIndexing[rtCol .. '0'] = { text = col_name, }
+                    classDef.rangeIndexing[rtCol .. '1'] = { text = col_name }
+                    propDef.index = 'range'
                     table.insert(rtree_def.properties, { name = col_name })
+
+                    -- Set priority
                     indexed_cols[col_name] = PROP_INDEX_PRIORITY.RTREE;
                 else
                     propDef.rules.indexing = 'index'
@@ -1117,7 +1131,7 @@ function SQLiteSchemaParser:ParseSchema()
     ---@type ISQLiteTableInfo
     for item in stmt:nrows() do
 
-        print(ansicolors(string.format('Processing: %%{magenta}%s%%{reset}', item.name)))
+        print(ansicolors(string.format('Processing: %%{white}%s%%{reset}', item.name)))
         self:loadTableInfo(item)
     end
 

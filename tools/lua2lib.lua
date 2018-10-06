@@ -50,7 +50,7 @@ if not path.exists(out_path) then
     end
 end
 
-for file_name, module_name in pairs(files) do
+for module_name, file_name in pairs(files) do
     -- Compile .lua file
     local nn = ''
     if type(file_name) ~= 'number'

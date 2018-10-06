@@ -284,11 +284,12 @@ end
 
 ---@class ClassDefData
 ---@field properties table<string, PropertyDefData>
+---@description ['$rangeindex'], ['$fulltextindex']
 ---@field indexes table<string, IndexDef> @comment Map by index name
 ---@field specialProperties specialProperties
----@field meta any
+---@field meta any @comment apply custom schema (database level defined)
 ---@field accessRules table @comment TODO access rules
----@field storage string @comment nil | '' | 'R' - normal class or .ref-values
+---@field storage string @comment nil | '' | 'R' - normal class or .ref-values @comment TODO needed?
 
 ---@class ClassDef
 ---@field ClassID number
