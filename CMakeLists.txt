@@ -38,6 +38,11 @@ set(SHELL_FILES
 
 add_executable(sqlite_shell ${SHELL_FILES})
 
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+
 target_compile_definitions(
         sqlite_shell
         PRIVATE
@@ -119,7 +124,7 @@ set(EXT_FILES
         src/misc/fileio.c
         src/misc/regexp.c
         src/misc/totype.c
-        src/misc/var.c
+#        src/misc/var.c
 
         src/util/hash.c
 
@@ -172,7 +177,6 @@ if (WIN32)
     target_link_libraries(Flexilite PRIVATE ${LuaJit_static})
 #    target_link_libraries(Flexilite PRIVATE ${LuaJit_shared})
     target_link_libraries(Flexilite PRIVATE  "-static -static-libgcc -static-libstdc++")
-#    set (CMAKE_SHARED_LINKER_FLAGS "-Wl, -static -static-libgcc -static-libstdc++")
 else ()
     target_link_libraries(Flexilite PUBLIC ${LuaJit_static})
 endif ()
@@ -241,12 +245,12 @@ ENDIF ()
 
 if (WIN32)
 #    target_link_libraries(flexish_cli PUBLIC ${LuaJit_shared})
-    target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
+    target_link_libraries(flexish_cli PRIVATE ${LuaJit_static})
     target_link_libraries(flexish_cli PRIVATE  "-static -static-libgcc")
     set (CMAKE_EXE_LINKER_FLAGS "-Wl, -static -static-libgcc")
     target_link_libraries(flexish_cli PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
-        # Math library
-    target_link_libraries(flexish_cli PRIVATE m)
+        # Math library - only for Mingw
+#    target_link_libraries(flexish_cli PRIVATE m)
 
 else ()
     target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
