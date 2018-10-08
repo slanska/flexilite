@@ -32,6 +32,7 @@ local os = require 'os'
 local path = require 'pl.path'
 local lapp = require 'pl.lapp'
 local DumpDatabase = require('dumpDatabase')
+local ansicolors = require 'ansicolors'
 
 -- set lua path
 package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua'))
@@ -88,6 +89,9 @@ local function generateSchema(cli_args)
             print(string.format("%s: [%s] %s", item.tableName, item.type, item.message))
         end
     end
+
+    print(ansicolors(string.format('\n%%{cyan}Generated schema has been saved in %%{white}%s %%{reset}',
+            cli_args.output)))
 end
 
 local function queryDatabase(args, options)

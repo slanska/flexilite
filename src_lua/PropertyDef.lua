@@ -651,65 +651,15 @@ end
 
 --[[
 ===============================================================================
-MixinPropertyDef
+ReferencePropertyDef: base class for all referencing properties: enum, nested etc.
 ===============================================================================
 ]]
 
--- Base type for all reference-able properties
---- @class MixinPropertyDef
-local MixinPropertyDef = class(PropertyDef)
-
-function MixinPropertyDef:_init(params)
-    self:super(params)
-end
-
---- @overload
---function MixinPropertyDef:isValidDef()
---    local ok, errorMsg = PropertyDef.isValidDef(self)
---    if not ok then
---        return ok, errorMsg
---    end
---
---    -- Check referenced class definition
---    if not self.D.refDef or not self.D.refDef.classRef then
---        return false, 'Reference definition is invalid'
---    end
---
---    return true
---end
-
-function MixinPropertyDef:applyDef()
-    PropertyDef.applyDef(self)
-
-    if self.D.refDef and self.D.refDef.classRef then
-        self.D.refDef.classRef:resolve(self.ClassDef)
-    end
-end
-
---- @overload
-function MixinPropertyDef:hasUnresolvedReferences()
-    local result = PropertyDef.hasUnresolvedReferences(self)
-    if not result then
-        return result
-    end
-
-    if self.D.refDef.classRef and not self.D.refDef.classRef:isResolved() then
-        return false
-    end
-
-    return true
-end
-
-function MixinPropertyDef:initMetadataRefs()
-    PropertyDef.initMetadataRefs(self)
-
-    if self.D and self.D.refDef then
-        self.ClassDef.DBContext:InitMetadataRef(self.D.refDef, 'classRef', ClassNameRef)
-    end
-end
+--- @class ReferencePropertyDef
+local ReferencePropertyDef = class(PropertyDef)
 
 -- Returns internal JSON representation of property
-function MixinPropertyDef:internalToJSON()
+function ReferencePropertyDef:internalToJSON()
     local result = PropertyDef.internalToJSON(self)
 
     result.refDef = tablex.deepcopy(self.refDef)
@@ -717,77 +667,51 @@ function MixinPropertyDef:internalToJSON()
     return result
 end
 
-function MixinPropertyDef:ColumnMappingSupported()
+function ReferencePropertyDef:ColumnMappingSupported()
     return false
 end
 
 -- true if property value can be used as user defined ID (UID)
-function MixinPropertyDef:CanBeUsedAsUID()
+function ReferencePropertyDef:CanBeUsedAsUID()
     return false
 end
 
 -- Returns schema for property value as schema for nested/owned/mixin
 -- Used for mixins, owned and nested objects for insert and update
-function MixinPropertyDef:getValueSchemaAsObject()
+function ReferencePropertyDef:getValueSchemaAsObject()
     local result = self:buildValueSchema()
     return result
 end
 
 -- Returns schema for property value as schema for query filter (to fetch list of referenced IDs)
 -- Used for normal references (except mixins, nested and owned objects) for both insert and update.
-function MixinPropertyDef:getValueSchemaAsFilter()
+function ReferencePropertyDef:getValueSchemaAsFilter()
 
 end
 
 ---@param op string @comment 'C' or 'U'
-function MixinPropertyDef:GetValueSchema(op)
+function ReferencePropertyDef:GetValueSchema(op)
     local result = self:buildValueSchema(schema.OneOf(schema.String, schema.Integer))
     return result
 end
 
 -- Creates instance of DBProperty for DBObject
 ---@param object DBObject
-function MixinPropertyDef:CreateDBProperty(object)
-    local result = dbprops.MixinDBProperty(object, self)
+function ReferencePropertyDef:CreateDBProperty(object)
+    local result = dbprops.ReferencePropertyDef(object, self)
     return result
 end
-
---[[
-===============================================================================
-ReferencePropertyDef
-===============================================================================
-]]
-
---- @class ReferencePropertyDef
-local ReferencePropertyDef = class(MixinPropertyDef)
 
 function ReferencePropertyDef:_init(params)
     self:super(params)
 end
 
---- @overload
---function ReferencePropertyDef:isValidDef()
---    local ok, errorMsg = MixinPropertyDef.isValidDef(self)
---    if not ok then
---        return ok, errorMsg
---    end
---
---    -- Either class or rules must be defined
---    if self.D.refDef and self.D.refDef.dynamic then
---        if not self.D.refDef.dynamic.classRef and not self.D.refDef.dynamic.rules then
---            return false, 'Either classRef or rules must be defined for dynamic reference'
---        end
---
---        if not self.D.refDef.dynamic.classRef and table.maxn(self.D.refDef.dynamic.rules) == 0 then
---            return false, 'No rules defined for dynamic reference rules'
---        end
---    end
---
---    return true
---end
-
 function ReferencePropertyDef:initMetadataRefs()
-    MixinPropertyDef.initMetadataRefs(self)
+    PropertyDef.initMetadataRefs(self)
+
+    if self.D and self.D.refDef then
+        self.ClassDef.DBContext:InitMetadataRef(self.D.refDef, 'classRef', ClassNameRef)
+    end
 
     self.ClassDef.DBContext:InitMetadataRef(self.D.refDef, 'reverseProperty', PropNameRef)
 
@@ -806,9 +730,13 @@ end
 
 --- @overload
 function ReferencePropertyDef:hasUnresolvedReferences()
-    local result = MixinPropertyDef.hasUnresolvedReferences(self)
+    local result = PropertyDef.hasUnresolvedReferences(self)
     if not result then
         return result
+    end
+
+    if self.D.refDef.classRef and not self.D.refDef.classRef:isResolved() then
+        return false
     end
 
     -- Check dynamic rules
@@ -831,7 +759,11 @@ function ReferencePropertyDef:hasUnresolvedReferences()
 end
 
 function ReferencePropertyDef:applyDef()
-    MixinPropertyDef.applyDef(self)
+    PropertyDef.applyDef(self)
+
+    if self.D.refDef and self.D.refDef.classRef then
+        self.D.refDef.classRef:resolve(self.ClassDef)
+    end
 
     if self.D.refDef then
         if self.D.refDef.reverseProperty then
@@ -1274,7 +1206,6 @@ PropertyDef.PropertyTypes = {
     ['reference'] = ReferencePropertyDef,
     ['link'] = ReferencePropertyDef,
     ['ref'] = ReferencePropertyDef,
-    ['mixin'] = MixinPropertyDef,
     ['json'] = TextPropertyDef, -- TODO special prop type???
     ['computed'] = ComputedPropertyDef,
     ['formula'] = ComputedPropertyDef,
@@ -1299,7 +1230,6 @@ PropertyDef.Classes = {
     UuidPropertyDef = UuidPropertyDef,
     EnumPropertyDef = EnumPropertyDef,
     ReferencePropertyDef = ReferencePropertyDef,
-    MixinPropertyDef = MixinPropertyDef,
     TextPropertyDef = TextPropertyDef,
     ComputedPropertyDef = ComputedPropertyDef,
     SymNamePropertyDef = SymNamePropertyDef,

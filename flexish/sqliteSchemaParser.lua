@@ -69,14 +69,6 @@ local ansicolors = require 'ansicolors'
 ---@field message string
 ---@field tableName string
 
----@class IClassDefinition
-
--- TODO move to a separate file?
-local CONSTANTS = {
-    -- determines threshold to distinct between short and long text values
-    TEXT_PROP_LEN_THRESHOLD = 255,
-}
-
 ---@class SQLiteSchemaParser
 ---@field outSchema table<string, ClassDefData> @comment list of Flexi classes to be exported to JSON
 ---@field tableInfo ITableInfo[] @comment list of internally used table information
@@ -999,54 +991,6 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     self:processSpecialProps(tblInfo, classDef)
 
     return classDef
-end
-
----@param tblInfo ITableInfo
----@param classDef ClassDefData
-function SQLiteSchemaParser:processNonUniqueIndexes(tblInfo, classDef)
-    local nonUniqueIndexes = table.filter(tblInfo.supportedIndexes, function(idx)
-        return idx.unique ~= 1
-    end)
-
-    -- Pool of full text columns
-    local ftsCols = { 'X1', 'X2', 'X3', 'X4' }
-
-    -- Pool of rtree columns
-    local rtCols = { 'A', 'B', 'C', 'D', 'E' }
-
-    for i, idx in ipairs(nonUniqueIndexes) do
-        local col = tblInfo.columns[idx.columns[1].cid + 1]
-        local prop = classDef.properties[col.name]
-
-        if prop.rules.type == 'text' then
-            if not prop.index then
-                -- No available full text indexes or text is too short
-                if #ftsCols == 0 or prop.rules.maxLength <= 40 then
-                    prop.index = 'index'
-                else
-                    local ftsCol = table.remove(ftsCols)
-                    classDef.fullTextIndexing = classDef.fullTextIndexing or {}
-                    classDef.fullTextIndexing[ftsCol] = { text = col.name }
-                    prop.index = 'fulltext'
-                end
-            end
-        elseif prop.rules.type == 'integer' or prop.rules.type == 'number'
-                or prop.rules.type == 'datetime' then
-            if not prop.index then
-                if #rtCols == 0 then
-                    prop.index = 'index'
-                else
-                    local rtCol = table.remove(rtCols)
-                    classDef.rangeIndexing = classDef.rangeIndexing or {}
-                    classDef.rangeIndexing[rtCol .. '0'] = { text = col.name, }
-                    classDef.rangeIndexing[rtCol .. '1'] = { text = col.name }
-                    prop.index = 'range'
-                end
-            end
-        else
-            prop.index = 'index'
-        end
-    end
 end
 
 -- Check required fields. Candidates for name, description, nonUniqueId, createTime, updateTime,
