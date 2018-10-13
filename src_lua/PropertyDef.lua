@@ -1249,7 +1249,8 @@ EnumDefSchemaDef.items = schema.Optional(schema.Collection(schema.Record {
 EnumDefSchemaDef.refProperty = schema.Optional(name_ref.IdentifierSchema)
 
 local EnumRefDefSchemaDef = {
-    classRef = schema.OneOf(schema.Nil, name_ref.IdentifierSchema, schema.Collection(name_ref.IdentifierSchema))
+    classRef = schema.OneOf(schema.Nil, name_ref.IdentifierSchema, schema.Collection(name_ref.IdentifierSchema)),
+    mixin = schema.Optional(schema.Boolean),
 }
 
 local RefDefSchemaDef = {
@@ -1306,6 +1307,8 @@ local RefDefSchemaDef = {
     ]]
             'dependent'
     ),
+
+    mixin = schema.Optional(schema.Boolean)
 }
 
 PropertyDef.Schema = schema.AllOf(schema.Record {
@@ -1341,7 +1344,7 @@ PropertyDef.Schema = schema.AllOf(schema.Record {
             { schema.Any, schema.Any }),
 
     refDef = schema.Case('rules.type',
-            { schema.OneOf('link', 'mixin', 'ref', 'reference'), schema.Record(RefDefSchemaDef) },
+            { schema.OneOf('link', 'ref', 'reference'), schema.Record(RefDefSchemaDef) },
             { schema.OneOf('enum', 'fkey', 'foreignkey'), schema.Optional(schema.Record(EnumRefDefSchemaDef)) },
             { schema.Any, schema.Any }),
 

@@ -7,7 +7,7 @@ There are few subtypes of reference properties:
 
 - nested objects
 
-- enumerations (or simply enums) 
+- enumerations (or "enums") 
 
 All reference properties are internally stored and accessed the same way, thus allowing 
 few interesting possibilities with schema refactoring.

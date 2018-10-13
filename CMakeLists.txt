@@ -38,10 +38,12 @@ set(SHELL_FILES
 
 add_executable(sqlite_shell ${SHELL_FILES})
 
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+if (WIN32)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+endif ()
 
 target_compile_definitions(
         sqlite_shell
@@ -90,7 +92,7 @@ ADD_CUSTOM_TARGET(
 IF (WIN32)
     message('Windows: Flexilite')
     SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
-#    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit.lib)
+    #    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit.lib)
     SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/luajit-2.1/src/lua51.lib)
     SET(LuaJit_shared ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/luajit-2.1/src/lua51.dll)
 ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -124,7 +126,7 @@ set(EXT_FILES
         src/misc/fileio.c
         src/misc/regexp.c
         src/misc/totype.c
-#        src/misc/var.c
+        #  TODO      src/misc/var.c
 
         src/util/hash.c
 
@@ -175,8 +177,7 @@ target_compile_definitions(
 
 if (WIN32)
     target_link_libraries(Flexilite PRIVATE ${LuaJit_static})
-#    target_link_libraries(Flexilite PRIVATE ${LuaJit_shared})
-    target_link_libraries(Flexilite PRIVATE  "-static -static-libgcc -static-libstdc++")
+    target_link_libraries(Flexilite PRIVATE "-static -static-libgcc -static-libstdc++")
 else ()
     target_link_libraries(Flexilite PUBLIC ${LuaJit_static})
 endif ()
@@ -244,13 +245,13 @@ ELSE ()
 ENDIF ()
 
 if (WIN32)
-#    target_link_libraries(flexish_cli PUBLIC ${LuaJit_shared})
     target_link_libraries(flexish_cli PRIVATE ${LuaJit_static})
-    target_link_libraries(flexish_cli PRIVATE  "-static -static-libgcc")
-    set (CMAKE_EXE_LINKER_FLAGS "-Wl, -static -static-libgcc")
+        # Link standard libraries
+    target_link_libraries(flexish_cli PRIVATE "-static -static-libgcc")
+    set(CMAKE_EXE_LINKER_FLAGS "-Wl, -static -static-libgcc")
     target_link_libraries(flexish_cli PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
-        # Math library - only for Mingw
-#    target_link_libraries(flexish_cli PRIVATE m)
+    # Math library - only for Mingw?
+    #    target_link_libraries(flexish_cli PRIVATE m)
 
 else ()
     target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
