@@ -1,3 +1,4 @@
+# This CMAKE builds the following output files:
 # EXE sqlite_shell
 # EXE flexish - flexish/main.c + libFlexish + luajit-static
 # LIB Flexilite - libFlexilite.dylib/so/dll : libFlexilite-static + luajit
@@ -11,12 +12,6 @@ if (WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif ()
 
-#CMake provides three variables to describe the system:
-#
-#CMAKE_SYSTEM_NAME (Window, Linux, Darwin),
-#CMAKE_SYSTEM_PROCESSOR (depends on the OS, for instance i386 on Linux, x86 on Windows, etc.)
-#CMAKE_SYSTEM_VERSION (depends on the OS too)
-
 set(CMAKE_BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(PLATFORM "${CMAKE_SYSTEM_NAME}")
@@ -25,6 +20,8 @@ string(TOUPPER "${PLATFORM}" PLATFORM)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+###############################################################################
+# sqlite_shell executable
 project(sqlite_shell)
 
 message("Building on: ${CMAKE_SYSTEM_NAME}")
@@ -62,18 +59,14 @@ target_compile_definitions(
 # Note libraries are linked AFTER executable is registered
 # also, using 'm' for standard math library
 target_link_libraries(sqlite_shell ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
-target_link_libraries(sqlite_shell m)
+if (WIN32)
+elseif ()
+    target_link_libraries(sqlite_shell m)
+endif ()
 
 ###############################################################################
 # libFlexilite library
 project(Flexilite)
-
-# TODO Needed?
-#if (WIN32)
-#    find_package(zlib REQUIRED)
-#else ()
-#    find_package(ZLIB REQUIRED)
-#endif ()
 
 include_directories(
         lib/sqlite
@@ -81,6 +74,7 @@ include_directories(
         src/util
 )
 
+# Compile Lua files to a static library
 ADD_CUSTOM_TARGET(
         Compile_Flexilite_LuaFiles
         ALL
@@ -91,8 +85,8 @@ ADD_CUSTOM_TARGET(
 
 IF (WIN32)
     message('Windows: Flexilite')
-    SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
-    #    SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit.lib)
+    SET(Flexilite_LuaFiles ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a)
+#    SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--export-all-symbols)
     SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/luajit-2.1/src/lua51.lib)
     SET(LuaJit_shared ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/luajit-2.1/src/lua51.dll)
 ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -102,7 +96,7 @@ ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     SET(LuaJit_shared ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit.dll)
 ELSE ()
     message('Linux: Flexilite')
-    SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,--no-whole-archive -Wl,-E)
+    SET(Flexilite_LuaFiles -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexiliteLua/libFlexiliteLua.a -Wl,-E)
     SET(LuaJit_static ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit-static.a -ldl -lm -lpthread)
     SET(LuaJit_shared ${CMAKE_CURRENT_SOURCE_DIR}/lib/torch-luajit-rocks/build/luajit-2.1/libluajit.dll)
 ENDIF ()
@@ -111,6 +105,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(EXT_FILES
+        # Lua modules written in C
         lib/lua-sqlite/lsqlite3.c
         lib/lua-cjson/fpconv.c
         lib/lua-cjson/lua_cjson.c
@@ -126,7 +121,6 @@ set(EXT_FILES
         src/misc/fileio.c
         src/misc/regexp.c
         src/misc/totype.c
-        #  TODO      src/misc/var.c
 
         src/util/hash.c
 
@@ -177,12 +171,17 @@ target_compile_definitions(
 
 if (WIN32)
     target_link_libraries(Flexilite PRIVATE ${LuaJit_static})
-    target_link_libraries(Flexilite PRIVATE "-static -static-libgcc -static-libstdc++")
+#    target_link_libraries(Flexilite PRIVATE "-static -static-libgcc -static-libstdc++")
 else ()
     target_link_libraries(Flexilite PUBLIC ${LuaJit_static})
 endif ()
 
 target_link_libraries(Flexilite PUBLIC ${Flexilite_LuaFiles})
+
+if (WIN32)
+    set_target_properties(Flexilite PROPERTIES LINK_FLAGS "/WHOLEARCHIVE:${Flexilite_LuaFiles}")
+endif ()
+
 
 ###############################################################################
 project(flexish_cli C)
@@ -234,31 +233,31 @@ target_compile_definitions(flexish_cli
         )
 
 IF (WIN32)
-    message('Windows: Flexish')
-    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,--export-all-symbols)
+    SET(Flexish_static_link ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
 ELSEIF (APPLE)
-    message('OSX: Flexish')
     SET(Flexish_static_link -Wl,-all_load ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a)
 ELSE ()
-    message('Linux: Flexish')
-    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,--no-whole-archive -Wl,-E)
+    SET(Flexish_static_link -Wl,--whole-archive ${CMAKE_CURRENT_SOURCE_DIR}/obj_lua/libFlexishLua/libFlexishLua.a -Wl,-E)
 ENDIF ()
 
 if (WIN32)
     target_link_libraries(flexish_cli PRIVATE ${LuaJit_static})
-        # Link standard libraries
-    target_link_libraries(flexish_cli PRIVATE "-static -static-libgcc")
-    set(CMAKE_EXE_LINKER_FLAGS "-Wl, -static -static-libgcc")
+    # Link standard libraries
+#    target_link_libraries(flexish_cli PRIVATE "-static -static-libgcc")
+#    set(CMAKE_EXE_LINKER_FLAGS "-Wl, -static -static-libgcc")
     target_link_libraries(flexish_cli PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
-    # Math library - only for Mingw?
-    #    target_link_libraries(flexish_cli PRIVATE m)
-
 else ()
     target_link_libraries(flexish_cli PUBLIC ${LuaJit_static})
 endif ()
 
 target_link_libraries(flexish_cli PUBLIC ${Flexish_static_link})
 
+if (WIN32)
+    # Needed to make all Lua objects public
+    set_target_properties(flexish_cli PROPERTIES LINK_FLAGS "/WHOLEARCHIVE:${Flexish_static_link}")
+endif ()
+
+
 ###############################################################################
 # test
-add_subdirectory(test)
+# TODO add_subdirectory(test)

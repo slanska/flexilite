@@ -111,11 +111,14 @@ for module_name, file_name in pairs(files) do
 end
 
 -- Bundle library into single archive
-local ar_path = 'ar'
+local Lib_ar_path
 if jit.os == 'Windows' then
-    -- Expect hard coded path for MinGW
-    ar_path = 'c:\\MinGW\\bin\\ar.exe'
+    -- Use Visual Studio LIB tool to build static ibrary
+    local cmd = string.format('lib  -nologo -out:%s %s/*.o', path.join(out_path, cli_args.name), out_path)
+    os_execute(cmd)
+else
+    -- *NIX - use AR for buiding static library
+    local cmd = string.format('ar rcus %s %s/*.o', Lib_ar_path, path.join(out_path, cli_args.name), out_path)
+    os_execute(cmd)
 end
-local cmd = string.format('%s rcus %s %s/*.o', ar_path, path.join(out_path, cli_args.name), out_path)
-os_execute(cmd)
 
