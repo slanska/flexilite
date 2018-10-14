@@ -118,7 +118,7 @@ if jit.os == 'Windows' then
     os_execute(cmd)
 else
     -- *NIX - use AR for buiding static library
-    local cmd = string.format('ar rcus %s %s/*.o', Lib_ar_path, path.join(out_path, cli_args.name), out_path)
+    local cmd = string.format('ar rcus %s %s/*.o', path.join(out_path, cli_args.name), out_path)
     os_execute(cmd)
 end
 
