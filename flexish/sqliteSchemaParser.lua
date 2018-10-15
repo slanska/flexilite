@@ -63,6 +63,7 @@ local ansicolors = require 'ansicolors'
 ---@field manyToManyTable boolean
 ---@field multiPKey boolean
 ---@field pkey ISQLiteIndexInfo
+---@field indexes ISQLiteIndexInfo[]
 
 ---@class IFlexishResultItem
 ---@field type string
@@ -90,11 +91,11 @@ end
 
 ---@param db sqlite3.Database
 function SQLiteSchemaParser:_init(db)
-    -- ClassDefCollection
-    self.outSchema = {}
-
     ---@type ITableInfo[]
     self.tableInfo = {}
+
+    -- ClassDefCollection
+    self.outSchema = {}
 
     --FlexishResults
     self.results = {}
@@ -987,8 +988,8 @@ function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     local classDef = self.outSchema[tblInfo.table]
 
     self:processReferences(tblInfo)
-
     self:processSpecialProps(tblInfo, classDef)
+    self:detectMixinCandidate(tblInfo, classDef)
 
     return classDef
 end
@@ -1009,7 +1010,6 @@ function SQLiteSchemaParser:ParseSchema()
 
     ---@type ISQLiteTableInfo
     for item in stmt:nrows() do
-
         print(ansicolors(string.format('Processing: %%{white}%s%%{reset}', item.name)))
         self:loadTableInfo(item)
     end
@@ -1034,18 +1034,21 @@ In that case references class is added as mixin property named 'base'.
 Definition of mixin property will also get name of udid (user defined ID) column to be used for future data import
 ]]
 ---@param tblInfo ITableInfo
----@param sqLiteTableInfo ISQLiteTableInfo
 ---@param classDef ClassDefData
-function SQLiteSchemaParser:detectMixinCandidate(tblInfo, sqLiteTableInfo, classDef)
+function SQLiteSchemaParser:detectMixinCandidate(tblInfo, classDef)
 
     ---@param idx ISQLiteIndexInfo
     local function isPKey(idx)
-        return idx.origin == 'pkey'
+        return idx.origin == 'pk'
     end
 
     -- Get primary key definition
+    local pkIdx = tablex.find_if(tblInfo.indexes, isPKey)
+
+    assert(pkIdx)
+
     ---@type ISQLiteIndexInfo
-    local pk = tablex.find_if(tblInfo.indexes, isPKey)
+    local pk = tblInfo.indexes[pkIdx]
 
     ---@param fkeyDef ISQLiteForeignKeyInfo
     local function isOutFKeyMatchingPKey(fkeyDef)
@@ -1053,10 +1056,21 @@ function SQLiteSchemaParser:detectMixinCandidate(tblInfo, sqLiteTableInfo, class
     end
 
     -- Get out foreign key matching primary key definition
+    local fkIdx = tablex.find_if(tblInfo.outFKeys, isOutFKeyMatchingPKey)
+
+    if not fkIdx then
+        return
+    end
+
     ---@type ISQLiteForeignKeyInfo
-    local fk = tablex.find_if(tblInfo.outFKeys, isOutFKeyMatchingPKey)
-    if fk and #fk.seq == 1 then
+    local fk = tblInfo.outFKeys[fkIdx]
+    if fk and fk.seq == 1 then
         -- Definitely, mixin
+        local propDef = classDef.properties[fk.from]
+        assert(propDef)
+        propDef.enumDef.mixin = true
+        print(string.format('%%{yellow}Class %s is detected as mixin based on %s.%%{reset}',
+                tblInfo.table, fk.table))
     end
 end
 

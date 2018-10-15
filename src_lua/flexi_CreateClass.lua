@@ -3,6 +3,18 @@
 --- DateTime: 2017-11-01 11:34 PM
 ---
 
+--[[
+select flexi('create class', class_name [, class_def_JSON]) or
+select flexi('class create', class_name [, class_def_JSON]) or
+select flexi('create', class_name [, class_def_JSON]) or
+select flexi('class', class_name [, class_def_JSON])
+
+Expected parameters:
+class_name - required
+class_def_JSON - optional. If not set, class with ad-hoc properties and no predefined
+properties will be created
+]]
+
 -- TODO deferred actions
 
 local json = cjson or require 'cjson'
@@ -123,6 +135,11 @@ end
 local function CreateClass(self, className, classDef, createVirtualTable)
     if type(classDef) == 'string' then
         classDef = json.decode(classDef)
+    elseif not classDef then
+        classDef = {
+            properties = {},
+            allowAnyProps = true,
+        }
     end
     return createSingleClass(self, className, classDef, createVirtualTable)
 end

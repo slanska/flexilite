@@ -900,6 +900,7 @@ flexiFuncs = {
     ['create class'] = flexi_CreateClass.CreateClass,
     ['class create'] = flexi_CreateClass.CreateClass,
     ['create'] = flexi_CreateClass.CreateClass,
+    ['class'] = flexi_CreateClass.CreateClass,
     ['alter class'] = flexi_AlterClass,
     ['class alter'] = flexi_AlterClass,
     ['drop class'] = flexi_DropClass,

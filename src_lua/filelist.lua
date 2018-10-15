@@ -47,6 +47,7 @@ return {
     ['ApiGlobalScope'] = 'src_lua/ApiGlobalScope.lua',
     ['DBProperty'] = 'src_lua/DBProperty.lua',
     ['ColMapping'] = 'src_lua/ColMapping.lua',
+    ['ClassStorage'] = 'src_lua/ClassStorage.lua',
 
     -- sql
     ['sql.dbschema'] = 'sql/dbschema.sql',
