@@ -141,11 +141,8 @@ set(EXT_FILES
         src/util/StringBuilder.c
         src/util/StringBuilder.h
 
-        src/flexi/ClassDef.cpp
         src/flexi/ClassDef.h
-        src/flexi/PropertyDef.cpp
-        src/flexi/PropertyDef.h
-        )
+        src/flexi/flexi_rel_vtable.cpp)
 
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
 

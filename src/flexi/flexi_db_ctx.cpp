@@ -4,7 +4,7 @@
 
 #include <stddef.h>
 #include "flexi_db_ctx.h"
-#include "flexi_class.h"
+//#include "flexi_class.h"
 #include "../misc/regexp.h"
 
 /*

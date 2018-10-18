@@ -2,18 +2,35 @@
 // Created by slanska on 2017-02-16.
 //
 
-#ifndef FLEXILITE_FLEXI_ENV_H
-#define FLEXILITE_FLEXI_ENV_H
+#ifndef FLEXILITE_DB_CTX_H
+#define FLEXILITE_DB_CTX_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 #include <sqlite3ext.h>
 #include "../util/hash.h"
-#include "flexi_UserInfo_t.h"
 #include "../util/Array.h"
 #include "../util/rbtree.h"
+
+typedef struct FlexiliteContext_t
+{
+    // sqlite3 database handler
+    sqlite3 *db;
+
+    // Lua state associated with sqlite3 connection
+    lua_State *L;
+
+    // Lua registry index to access DBContext
+    int DBContext_Index;
+
+    // Lua registry index to access lua-sqlite connection
+    int SQLiteConn_Index;
+} FlexiliteContext_t;
 
 /*
  * Forward declaration
@@ -166,10 +183,6 @@ typedef struct flexi_Context_t
      */
     sqlite3_stmt *pMatchFuncSelStmt;
 
-    /*
-     * Info on current user
-     */
-    flexi_UserInfo_t *pCurrentUser;
 
     /*
      * Hash of loaded class definitions (by current names)

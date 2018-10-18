@@ -39,12 +39,12 @@
  *
  */
 
-#include "DBContext.h"
+//#include "DBContext.h"
 #include "../project_defs.h"
 
 //SQLITE_EXTENSION_INIT3
 
-#include "flexi_class.h"
+//#include "flexi_class.h"
 #include "flexi_data.h"
 
 

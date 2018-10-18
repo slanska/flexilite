@@ -8,7 +8,7 @@
 SQLITE_EXTENSION_INIT3
 
 #include "../misc/regexp.h"
-#include "flexi_class.h"
+//#include "flexi_class.h"
 
 static int _disconnect(sqlite3_vtab *pVTab)
 {

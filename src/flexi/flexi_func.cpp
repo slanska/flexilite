@@ -6,19 +6,13 @@
  * Implementation of proxy 'flexi' function
  */
 
-extern "C"
-{
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-}
 
 #include <iostream>
 #include <fstream>
 // TODO #include <zconf.h>
 
 #include "../project_defs.h"
-#include "flexi_class.h"
+//#include "flexi_class.h"
 #include "../util/Path.h"
 
 // External declarations
@@ -36,20 +30,6 @@ int luaopen_cjson_safe(lua_State *l);
 
 int luaopen_lfs(lua_State *L);
 
-typedef struct FlexiliteContext_t
-{
-    // sqlite3 database handler
-    sqlite3 *db;
-
-    // Lua state associated with sqlite3 connection
-    lua_State *L;
-
-    // Lua registry index to access DBContext
-    int DBContext_Index;
-
-    // Lua registry index to access lua-sqlite connection
-    int SQLiteConn_Index;
-} FlexiliteContext_t;
 }
 
 /*
