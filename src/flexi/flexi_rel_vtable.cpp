@@ -63,6 +63,7 @@ public:
     int64_t _propID = 0;
     string _col1;
     string _col2;
+    FlexiliteContext_t* pCtx;
 };
 
 struct FlexiRel_vtab_cursor : sqlite3_vtab_cursor
@@ -119,6 +120,7 @@ static int _create_connect(sqlite3 *db, void *pAux,
     vtab->_propName = string(argv[4]);
     vtab->_col1 = string(argv[5]);
     vtab->_col2 = string(argv[6]);
+    vtab->pCtx = static_cast<FlexiliteContext_t*>(pAux);
 
     *ppVTab = vtab;
 
@@ -171,8 +173,9 @@ static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
  */
 static int _close(sqlite3_vtab_cursor *pCursor)
 {
-    struct flexi_VTabCursor *cur = (flexi_VTabCursor *) (void *) pCursor;
-    return flexi_VTabCursor_free(cur);
+//    struct flexi_VTabCursor *cur = (flexi_VTabCursor *) (void *) pCursor;
+//    return flexi_VTabCursor_free(cur);
+return SQLITE_OK;
 }
 
 static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
@@ -303,6 +306,12 @@ static sqlite3_module _flexirel_vtable_module = {
         .xRelease = nullptr
 };
 
+int register_flexi_rel_vtable(sqlite3* db, FlexiliteContext_t* pCtx)
+{
+    // TODO pass
+    int result = sqlite3_create_module(db, "flexi_rel", &_flexirel_vtable_module, pCtx);
+    return result;
+}
 
 #ifdef __cplusplus
 }

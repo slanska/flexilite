@@ -6,6 +6,7 @@
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 local ansicolors = require 'ansicolors'
+local List = require 'pl.List'
 
 ---@class ISQLiteTableInfo @comment row returned by [select * from sqlite_master;]
 ---@field type string

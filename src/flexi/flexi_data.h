@@ -99,7 +99,7 @@ typedef struct FlexiDataProxyVTab_t
      */
     struct AdHocQryParams_t *pQry;
 
-    enum FLEXI_DATA_LOAD_ROW_MODES eLoadRowMode;
+//    enum FLEXI_DATA_LOAD_ROW_MODES eLoadRowMode;
 } FlexiDataProxyVTab_t;
 
 //typedef struct FlexiDataProxyVTab_t FlexiDataProxyVTab_t;

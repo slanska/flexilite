@@ -6,6 +6,7 @@
 #define SQLITE_EXTENSIONS_MAIN_H
 
 #include "../lib/sqlite/sqlite3ext.h"
+#include "flexi/flexi_module.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,41 +14,42 @@ extern "C" {
 
 SQLITE_EXTENSION_INIT1
 
-int eval_func_init(
-        sqlite3 *db,
-        char **pzErrMsg,
-        const sqlite3_api_routines *pApi
-);
+//int eval_func_init(
+//        sqlite3 *db,
+//        char **pzErrMsg,
+//        const sqlite3_api_routines *pApi
+//);
+//
+//int fileio_func_init(
+//        sqlite3 *db,
+//        char **pzErrMsg,
+//        const sqlite3_api_routines *pApi
+//);
+//
+//int regexp_func_init(
+//        sqlite3 *db,
+//        char **pzErrMsg,
+//        const sqlite3_api_routines *pApi
+//);
+//
+//int totype_func_init(
+//        sqlite3 *db,
+//        char **pzErrMsg,
+//        const sqlite3_api_routines *pApi
+//);
+//
+//int var_func_init(
+//        sqlite3 *db,
+//        char **pzErrMsg,
+//        const sqlite3_api_routines *pApi
+//);
 
-int fileio_func_init(
-        sqlite3 *db,
-        char **pzErrMsg,
-        const sqlite3_api_routines *pApi
-);
-
-int regexp_func_init(
-        sqlite3 *db,
-        char **pzErrMsg,
-        const sqlite3_api_routines *pApi
-);
-
-int totype_func_init(
-        sqlite3 *db,
-        char **pzErrMsg,
-        const sqlite3_api_routines *pApi
-);
-
-int var_func_init(
-        sqlite3 *db,
-        char **pzErrMsg,
-        const sqlite3_api_routines *pApi
-);
-
-int hash_func_init(
-        sqlite3 *db,
-        char **pzErrMsg,
-        const sqlite3_api_routines *pApi
-);
+//int hash_func_init(
+//        sqlite3 *db,
+//        char **pzErrMsg,
+//        const sqlite3_api_routines *pApi
+//);
+//
 
 int sqlite3_flexi_get_init(
         sqlite3 *db,
@@ -72,9 +74,6 @@ int flexi_class_init(
         char **pzErrMsg,
         const sqlite3_api_routines *pApi);
 
-int flexi_init(sqlite3 *db,
-               char **pzErrMsg,
-               const sqlite3_api_routines *pApi);
 
 #ifdef __cplusplus
 }

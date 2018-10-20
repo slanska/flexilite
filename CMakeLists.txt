@@ -134,15 +134,15 @@ set(EXT_FILES
         src/common/common.h
         src/util/Array.c
         src/util/Array.h
-        src/flexi/flexi_func.cpp
+        src/flexi/flexi_module.cpp
 
         src/util/Path.c
         src/util/Path.h
         src/util/StringBuilder.c
         src/util/StringBuilder.h
 
-        src/flexi/ClassDef.h
-        src/flexi/flexi_rel_vtable.cpp)
+        src/flexi/flexi_rel_vtable.cpp
+        src/flexi/flexi_module.cpp)
 
 set(CMAKE_FIND_LIBRARY_PREFIXES "")
 

@@ -3,14 +3,14 @@
 //
 
 #include <stdio.h>
-//#include <printf.h>
 #include "main.h"
+#include "flexi/flexi_module.h"
 
 extern "C"
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
- int sqlite3_extension_init(
+int sqlite3_extension_init(
         sqlite3 *db,
         char **pzErrMsg,
         const sqlite3_api_routines *pApi
@@ -19,25 +19,27 @@ __declspec(dllexport)
     SQLITE_EXTENSION_INIT2(pApi);
 
     int (*funcs[])(sqlite3 *, char **, const sqlite3_api_routines *) = {
-            flexi_init,
-//            eval_func_init,
-//            fileio_func_init,
-//            regexp_func_init,
-//            totype_func_init,
-//            var_func_init,
-//            hash_func_init,
-//            memstat_func_init,
+            memstat_func_init,
     };
 
-    for (int idx = 0; idx < sizeof(funcs) / sizeof(funcs[0]); idx++)
+    int result;
+
+    // Init 'flexi' module and Lua/Flexilite context
+    FlexiliteContext_t* pDBCtx;
+    result = flexi_init(db, pzErrMsg, pApi, &pDBCtx);
+    if (result != SQLITE_OK)
     {
-        int result = funcs[idx](db, pzErrMsg, pApi);
-        if (result != SQLITE_OK)
-        {
-            printf("Flexilite: register func %d, error %d, %s", idx, result, sqlite3_errmsg(db));
-            return result;
-        }
+        return result;
     }
+    result = memstat_func_init(db, pzErrMsg, pApi);
+    if (result != SQLITE_OK)
+    {
+        return result;
+    }
+
+    // TODO register virtual table modules
+    // TODO pass flexilite lua context
+    result = register_flexi_rel_vtable(db, nullptr);
 
     return SQLITE_OK;
 }

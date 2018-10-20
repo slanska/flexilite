@@ -18,7 +18,7 @@
 
 #include "common/common.h"
 
-#include "flexi/flexi_db_ctx.h"
+#include "flexi/flexi_module.h"
 
 SQLITE_EXTENSION_INIT3
 
