@@ -18,10 +18,6 @@ int sqlite3_extension_init(
 {
     SQLITE_EXTENSION_INIT2(pApi);
 
-    int (*funcs[])(sqlite3 *, char **, const sqlite3_api_routines *) = {
-            memstat_func_init,
-    };
-
     int result;
 
     // Init 'flexi' module and Lua/Flexilite context
@@ -39,7 +35,7 @@ int sqlite3_extension_init(
 
     // TODO register virtual table modules
     // TODO pass flexilite lua context
-    result = register_flexi_rel_vtable(db, nullptr);
+//    result = register_flexi_rel_vtable(db, pDBCtx);
 
     return SQLITE_OK;
 }

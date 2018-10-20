@@ -60,10 +60,9 @@ int flexi_init(sqlite3 *db,
 {
     int result;
 
-    *pDBCtx = nullptr;
-    FlexiliteContext_t *pCtx = *pDBCtx;
-
     *pDBCtx = (FlexiliteContext_t *) sqlite3_malloc(sizeof(FlexiliteContext_t));
+
+    FlexiliteContext_t *pCtx = *pDBCtx;
 
     pCtx->db = db;
     pCtx->L = lua_newstate(lua_alloc_handler, pDBCtx);

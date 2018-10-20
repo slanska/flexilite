@@ -235,7 +235,7 @@ local function selfTest()
     --print(ii, ii.colUsed)
 end
 
---selfTest()
+selfTest()
 
 return {
     create_connect = create_connect,
