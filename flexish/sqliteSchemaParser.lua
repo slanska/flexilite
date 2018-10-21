@@ -71,24 +71,28 @@ local List = require 'pl.List'
 ---@field message string
 ---@field tableName string
 
----@class SQLiteSchemaParser
----@field outSchema table<string, ClassDefData> @comment list of Flexi classes to be exported to JSON
----@field tableInfo ITableInfo[] @comment list of internally used table information
----@field results IFlexishResultItem[]
----@field referencedTableNames string[]
-
-local SQLiteSchemaParser = class()
-
+---@param tbl any[]
+---@param func Function
+---@returns any[]
 table.filter = function(tbl, func)
     local result = {}
-    for i, v in pairs(tbl) do
+    for k, v in pairs(tbl) do
         if func(v) then
-            result[i] = v
+            result[k] = v
         end
     end
 
     return result
 end
+
+---@class SQLiteSchemaParser
+---@field outSchema table<string, ClassDefData> @comment list of Flexi classes to be exported to JSON
+---@field tableInfo ITableInfo[] @comment list of internally used table information
+---@field results IFlexishResultItem[]
+---@field referencedTableNames string[]
+---@field SQLScript string[] @comment pl.List
+
+local SQLiteSchemaParser = class()
 
 ---@param db sqlite3.Database
 function SQLiteSchemaParser:_init(db)
@@ -106,6 +110,8 @@ function SQLiteSchemaParser:_init(db)
     -- List of table names that are references by other tables
     -- Needed to enforce id and name special properties
     self.referencedTableNames = {}
+
+    self.SQLScript = List()
 end
 
 -- Mapping between SQLite column types and Flexilite property types
@@ -791,7 +797,7 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
 
     ---@param colNames string[]
     ---@param type string
-    ---@return boolean
+    ---@return table | nil
     local function findReqCol(colNames, types)
         if type(types) ~= 'table' then
             types = { types }
@@ -801,14 +807,14 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
                 if string.lower(name) == string.lower(colName) then
                     for _, tt in ipairs(types) do
                         if p.rules.type == tt then
-                            return true
+                            return { text = colName }
                         end
                     end
                 end
             end
         end
 
-        return false
+        return nil
     end
 
     -- description - next (after Name) required text column (or 'description')
@@ -948,7 +954,7 @@ function SQLiteSchemaParser:processReferences(tblInfo)
             --    propName = string.format("%s_%s", propName, fk.from)
             --end
 
-            cc.refDef = {
+            cc.enumDef = {
                 classRef = { text = fk.table }
             }
 
@@ -1057,21 +1063,27 @@ function SQLiteSchemaParser:detectMixinCandidate(tblInfo, classDef)
     end
 
     -- Get out foreign key matching primary key definition
-    local fkIdx = tablex.find_if(tblInfo.outFKeys, isOutFKeyMatchingPKey)
+    local fk = table.filter(tblInfo.outFKeys, isOutFKeyMatchingPKey)
 
-    if not fkIdx then
+    -->>
+    --if #fk > 1 then
+    --    print(string.format('detectMixinCandidate: %s, %d', tblInfo.table, #fk))
+    --    require('pl.pretty').dump(fk)
+    --end
+    --<<
+
+    if #fk ~= 1 or not fk[1] then
         return
     end
 
-    ---@type ISQLiteForeignKeyInfo
-    local fk = tblInfo.outFKeys[fkIdx]
-    if fk and fk.seq == 1 then
-        -- Definitely, mixin
-        local propDef = classDef.properties[fk.from]
-        assert(propDef)
+    -- Definitely, mixin
+    local propDef = classDef.properties[fk[1].from]
+    assert(propDef)
+
+    if propDef.enumDef then
         propDef.enumDef.mixin = true
-        print(string.format('%%{yellow}Class %s is detected as mixin based on %s.%%{reset}',
-                tblInfo.table, fk.table))
+        print(ansicolors(string.format('%%{yellow}Class %s is detected as mixin based on %s.%%{reset}',
+                tblInfo.table, fk[1].table)))
     end
 end
 

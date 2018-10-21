@@ -204,11 +204,11 @@ enum -> reference
 **2018-08-06**
 
 - conditional package.cpath for Windows version
-- static linking of gcc libraries on Windows (libstdc++-6.dll and libgcc_s_dw2-1.dll)
-- install busted and mobdebug on &#10003; Linux and Windows VMs
+- &#10003; **No need - use MSVC**. static linking of gcc libraries on Windows (libstdc++-6.dll and libgcc_s_dw2-1.dll)
+- &#10003; install busted and mobdebug on &#10003; Linux and Windows VMs
 - &#10003; create image of SD200 on Adata - better to copy contents directly
 - &#10003; handle <require 'sql.dbschema'> in busted tests
-- install MingW 64 bit on Windows VM. Build. Check cross platform build - 32 or 64 bits.
+- &#10003; No need. install MingW 64 bit on Windows VM. Build. Check cross platform build - 32 or 64 bits.
 - update README.md: move most of text to ./doc
 - Flexish_cli: load data
 - Flexish_cli: use ansicolors
@@ -219,10 +219,28 @@ number of days starting from 0 AD
 - Flexish_cli: help - extended info
 - Flexish_cli: schema - check enum, multi key index and many-2-many
 - Flexish_cli: unit tests
-- cmake: copy lua51.dll to ./bin 
+- &#10003; cmake: copy lua51.dll to ./bin 
 - &#10003; check if lib/luadec is used -> not needed.
-- try original make with LuaJIT 2.1 on Linux to get static lib for flexish_cli
+- &#10003; try original make with LuaJIT 2.1 on Linux to get static lib for flexish_cli
 
 Employees: EmployeeID
 EmployeesTerritories: EmployeeID, TerritoryID
 Territories: TerritoryID
+
+**2018-10-20**
+
+- &#10003; flexish_cli: create mixin properties
+- flexish_cli: process many2many tables (2 or 3 columns)
+- flexish_cli: output 2 files - sql and json
+- 'load' - from file
+- 'create property' - handle missing JSON, or string instead of JSON (as type)
+- sqlite3value_to_luavalue and luavalue_to_sqlite3value (from lsqlite?)
+- flexi_rel_vtable: finish (lua ffi etc.)
+- import data - check classes, if not found, check existing tables (including virtual)
+- export data (the same format as import)
+- enum properties
+- boxed object: access to referenced properties
+- query: fix unit tests
+- flexi_data_vtable: finish (ffi etc.)
+- [?] import/export xml
+- add Slovak sample social network database

@@ -897,27 +897,63 @@ flexiMeta = {
 flexiFuncs = {
     ['schema create'] = flexi_CreateClass.CreateSchema,
     ['create schema'] = flexi_CreateClass.CreateSchema,
+
     ['create class'] = flexi_CreateClass.CreateClass,
     ['class create'] = flexi_CreateClass.CreateClass,
     ['create'] = flexi_CreateClass.CreateClass,
     ['class'] = flexi_CreateClass.CreateClass,
+    ['new class'] = flexi_CreateClass.CreateClass,
+
     ['alter class'] = flexi_AlterClass,
     ['class alter'] = flexi_AlterClass,
+    ['alter'] = flexi_AlterClass,
+
+    ['drop'] = flexi_DropClass,
     ['drop class'] = flexi_DropClass,
     ['class drop'] = flexi_DropClass,
+    ['class delete'] = flexi_DropClass,
+    ['delete class'] = flexi_DropClass,
+    ['delete'] = flexi_DropClass,
+
     ['create property'] = flexi_CreateProperty,
     ['property create'] = flexi_CreateProperty,
+    ['prop create'] = flexi_CreateProperty,
+    ['create prop'] = flexi_CreateProperty,
+    ['prop'] = flexi_CreateProperty,
+    ['property'] = flexi_CreateProperty,
+    ['new property'] = flexi_CreateProperty,
+    ['new prop'] = flexi_CreateProperty,
+
     ['alter property'] = flexi_AlterProperty,
     ['property alter'] = flexi_AlterProperty,
+    ['prop alter'] = flexi_AlterProperty,
+    ['alter prop'] = flexi_AlterProperty,
+
     ['drop property'] = flexi_DropProperty,
     ['property drop'] = flexi_DropProperty,
+    ['prop drop'] = flexi_DropProperty,
+    ['drop prop'] = flexi_DropProperty,
+
     ['configure'] = flexi_Configure,
+    ['config'] = flexi_Configure,
+    ['initialize'] = flexi_Configure,
+    ['init'] = flexi_Configure,
+
     ['ping'] = DBContext.flexi_ping,
     ['current user'] = DBContext.flexi_CurrentUser,
+
     ['property to object'] = flexi_PropToObject,
+    ['prop to object'] = flexi_PropToObject,
+
     ['object to property'] = flexi_ObjectToProp,
+    ['object to prop'] = flexi_ObjectToProp,
+
     ['split property'] = flexi_SplitProperty,
+    ['split prop'] = flexi_SplitProperty,
+
     ['merge property'] = flexi_MergeProperty,
+    ['merge prop'] = flexi_MergeProperty,
+
     ['schema'] = DBContext.flexi_Schema,
     ['help'] = DBContext.flexi_Help,
     ['lock class'] = DBContext.flexi_LockClass,
@@ -925,16 +961,22 @@ flexiFuncs = {
     ['hard delete'] = DBContext.flexi_vacuum,
     ['purge'] = DBContext.flexi_vacuum,
     ['vacuum'] = DBContext.flexi_vacuum,
+
     ['translate'] = DBContext.flexi_translate,
     ['create trigger'] = TriggerAPI.Create,
     ['trigger create'] = TriggerAPI.Create,
+    ['new trigger'] = TriggerAPI.Create,
+    ['trigger new'] = TriggerAPI.Create,
+
     ['drop trigger'] = TriggerAPI.Drop,
     ['trigger drop'] = TriggerAPI.Drop,
+
     ['import data'] = flexi_DataUpdate.flexi_ImportData,
     ['import'] = flexi_DataUpdate.flexi_ImportData,
     ['data import'] = flexi_DataUpdate.flexi_ImportData,
     ['load data'] = flexi_DataUpdate.flexi_ImportData,
     ['load'] = flexi_DataUpdate.flexi_ImportData,
+
     ['close'] = DBContext.flexi_close,
     ['reset'] = DBContext.flexi_close,
     ['flush'] = DBContext.flexi_close,

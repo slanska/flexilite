@@ -7,34 +7,30 @@
 					"type": "enum",
 					"maxOccurrences": 1
 				},
-				"refDef": {
+				"enumDef": {
 					"classRef": {
 						"text": "Territories"
 					}
 				}
 			},
 			"EmployeeID": {
-				"refDef": {
-					"classRef": {
-						"text": "Employees"
-					}
-				},
 				"index": "unique",
 				"rules": {
 					"minOccurrences": 1,
 					"type": "enum",
 					"maxOccurrences": 1
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Employees"
+					}
 				}
 			}
 		},
 		"specialProperties": {
-			"owner": false,
-			"createTime": false,
-			"updateTime": false,
 			"uid": {
 				"text": "EmployeeID"
-			},
-			"description": false
+			}
 		},
 		"indexes": {
 			"multiKeyIndexing": [
@@ -55,7 +51,7 @@
 					"type": "enum",
 					"maxOccurrences": 1
 				},
-				"refDef": {
+				"enumDef": {
 					"classRef": {
 						"text": "Regions"
 					}
@@ -79,12 +75,9 @@
 			}
 		},
 		"specialProperties": {
-			"owner": false,
-			"createTime": false,
 			"name": {
 				"text": "TerritoryDescription"
 			},
-			"updateTime": false,
 			"uid": {
 				"text": "TerritoryID"
 			},
@@ -127,15 +120,15 @@
 				"index": "index"
 			},
 			"CustomerID": {
-				"refDef": {
-					"classRef": {
-						"text": "Customers"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"maxLength": 5,
 					"type": "enum"
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Customers"
+					}
 				}
 			},
 			"ShipCountry": {
@@ -298,9 +291,6 @@
 			}
 		},
 		"specialProperties": {
-			"owner": false,
-			"createTime": false,
-			"updateTime": false,
 			"uid": {
 				"text": "EmployeeID"
 			},
@@ -461,12 +451,9 @@
 			}
 		},
 		"specialProperties": {
-			"owner": false,
-			"createTime": false,
 			"name": {
 				"text": "LastName"
 			},
-			"updateTime": false,
 			"uid": {
 				"text": "EmployeeID"
 			},
@@ -574,14 +561,14 @@
 				"index": "index"
 			},
 			"SupplierID": {
-				"refDef": {
-					"classRef": {
-						"text": "Suppliers"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"type": "enum"
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Suppliers"
+					}
 				}
 			},
 			"Discontinued": {
@@ -636,14 +623,14 @@
 				"defaultValue": 0
 			},
 			"CategoryID": {
-				"refDef": {
-					"classRef": {
-						"text": "Categories"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"type": "enum"
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Categories"
+					}
 				}
 			},
 			"QuantityPerUnit": {
@@ -654,16 +641,12 @@
 			}
 		},
 		"specialProperties": {
-			"owner": false,
-			"createTime": false,
 			"name": {
 				"text": "ProductName"
 			},
-			"updateTime": false,
 			"uid": {
 				"text": "ProductID"
-			},
-			"description": false
+			}
 		}
 	},
 	"OrderDetails": {
@@ -677,16 +660,16 @@
 				"defaultValue": 0
 			},
 			"OrderID": {
-				"refDef": {
-					"classRef": {
-						"text": "Orders"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"minOccurrences": 1,
 					"type": "enum",
 					"maxOccurrences": 1
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Orders"
+					}
 				}
 			},
 			"Quantity": {
@@ -700,16 +683,16 @@
 				"defaultValue": 1
 			},
 			"ProductID": {
-				"refDef": {
-					"classRef": {
-						"text": "Products"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"minOccurrences": 1,
 					"type": "enum",
 					"maxOccurrences": 1
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Products"
+					}
 				}
 			},
 			"UnitPrice": {
@@ -720,12 +703,6 @@
 				},
 				"defaultValue": 0
 			}
-		},
-		"specialProperties": {
-			"updateTime": false,
-			"owner": false,
-			"createTime": false,
-			"description": false
 		},
 		"indexes": {
 			"multiKeyIndexing": [
@@ -874,26 +851,24 @@
 				}
 			},
 			"OrderID": {
-				"refDef": {
-					"classRef": {
-						"text": "Orders"
-					}
-				},
 				"index": "unique",
 				"rules": {
 					"minOccurrences": 1,
 					"type": "enum",
 					"maxOccurrences": 1
+				},
+				"enumDef": {
+					"mixin": true,
+					"classRef": {
+						"text": "Orders"
+					}
 				}
 			}
 		},
 		"specialProperties": {
-			"owner": false,
-			"createTime": false,
 			"name": {
 				"text": "CustomsDescription"
 			},
-			"updateTime": false,
 			"description": {
 				"text": "CustomsDescription"
 			}

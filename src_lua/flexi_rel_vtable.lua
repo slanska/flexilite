@@ -6,6 +6,7 @@
 
 local ffi = require 'ffi'
 
+-- Register SQLite types specific for virtual table API
 ffi.cdef [[
 typedef long long int sqlite_int64;
 
@@ -186,12 +187,12 @@ virtual table. Refer to src/flexi/flexi_rel.cpp for more details
 ---@return bool, string @comment true if success, and false and error message if failed
 local function create_connect(DBContext, dbName, tableName, className, propName,
                               col1Name, col2Name)
-    -- check permission to create new tables
+    -- check permission to create/open new tables
     -- get class
     -- get property
     -- ensure that this is reference property
-    -- get "to" class
-    --
+    -- get "to" class and property
+    -- set result
 end
 
 ---@param DBContext DBContext
@@ -200,15 +201,24 @@ end
 local function best_index(DBContext, propID, indexInfo)
     ---@type sqlite3_index_info
     local info = ffi.cast('struct sqlite3_index_info *', indexInfo)
+    if info.nConstraint > 0 then
 
-
-end
-
-local function filter()
+    end
 
 end
 
-local function update()
+---@param DBContext DBContext
+---@param propID number
+---@param idxNum number
+---@param idxStr string
+---@param values any[]
+local function filter(DBContext, propID, idxNum, idxStr, values)
+
+end
+
+---@param DBContext DBContext
+---@param propID number
+local function update(DBContext, propID)
 
 end
 
