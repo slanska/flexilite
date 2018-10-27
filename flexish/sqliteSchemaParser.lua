@@ -7,6 +7,7 @@ local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 local ansicolors = require 'ansicolors'
 local List = require 'pl.List'
+local path = require 'pl.path'
 
 ---@class ISQLiteTableInfo @comment row returned by [select * from sqlite_master;]
 ---@field type string
@@ -45,11 +46,11 @@ local List = require 'pl.List'
 ---@field cols ISQLiteIndexColumnInfo[]
 
 ---@class ISQLiteForeignKeyInfo
----@field id number
----@field seq number
----@field table string @comment table name
----@field from string @comment column name
----@field to string @comment column name
+---@field id number @comment 0-based FKEY item ID
+---@field seq number @comment 0-based, position in multi-column FK
+---@field table string @comment to-table name
+---@field from string @comment from-column name
+---@field to string @comment to-column name
 ---@field on_update string @comment NO_ACTION, CASCADE, NONE, SET_NULL...
 ---@field on_delete string @comment NO_ACTION, CASCADE, NONE, SET_NULL...
 ---@field match string @comment NONE...
@@ -90,7 +91,8 @@ end
 ---@field tableInfo ITableInfo[] @comment list of internally used table information
 ---@field results IFlexishResultItem[]
 ---@field referencedTableNames string[]
----@field SQLScript string[] @comment pl.List
+---@field SQLScript List @comment pl.List
+---@field SQLScriptPath string @comment Absolute path where SQL script will be saved
 
 local SQLiteSchemaParser = class()
 
@@ -218,10 +220,31 @@ function SQLiteSchemaParser:processMany2ManyRelations()
 
     for i, ti in ipairs(self.tableInfo) do
         -- 1) table must have only 2 columns (A & B)
-        if ti.columnCount == 2 then
-            --ti.indexes
-            --            ti.columns[1]
+        if ti.columnCount >= 2 and ti.columnCount <= 3 then
+
+            -- Check if primary key column is autoincrement integer
+            local cols = tablex.deepcopy(ti.columns)
+
+            if ti.columnCount == 3 then
+                -- primary autoincrement integer key - a) pk = 1 (and this is the only column with pk = 1),
+                -- b) nullable, c) integer
+                local pk_n = tablex.find_if(ti.indexes,
+                ---@param idx ISQLiteIndexInfo
+                        function(idx)
+                            return idx.pk == 1 and idx.type == 'integer' and idx.notnull == 0
+                        end)
+                if pk_n >= 1 then
+                    table.remove(cols, pk_n)
+                end
+            end
+
+            -- 2 remaining columns must be: a) foreign keys, b) form unique or primary index
+            -- TODO
+
         end
+
+        --ti.indexes
+        --            ti.columns[1]
     end
 
     return result
@@ -352,6 +375,7 @@ function SQLiteSchemaParser:loadIndexDefs(tblInfo, sqliteTblDef)
     end
 
     -- Check if primary key index info was included by SQLite
+    -- If not, create "artificial" primary key index info
     if not pk_found then
         ---@type ISQLiteIndexInfo
         local pk_def = {}
@@ -626,8 +650,6 @@ function SQLiteSchemaParser:processForeignKeys(tblInfo)
     local function isTheSameFKey(fkey, id)
         return fkey.id == id
     end
-
-    local sameFKeys = table.filter(fkInfo, isTheSameFKey)
 
     if #fkInfo > 0 then
         for i, fk in ipairs(fkInfo) do
@@ -1007,11 +1029,21 @@ end
 --[[
      Loads schema from SQLite database
      and parses it to Flexilite class definition
-     Returns promise which resolves to dictionary of Flexilite classes
 ]]
-function SQLiteSchemaParser:ParseSchema()
+---@param outJSON string @comment absolute path to JSON file where schema will be saved
+function SQLiteSchemaParser:ParseSchema(outJSON)
     self.outSchema = {}
     self.tableInfo = {}
+
+    self.SQLScript:append(string.format("select load_extension('libFlexilite');"))
+    self.SQLScript:append ""
+    self.SQLScript:append(string.format("select flexi('configure');"))
+    self.SQLScript:append ""
+    local jsonDir, jsonFile = path.splitpath(outJSON)
+    local fileName, fileExt = path.splitext(jsonFile)
+    --self.SQLScriptFile = path.
+    self.SQLScript:append(string.format("select flexi('load', './%s.sql');", fileName))
+    self.SQLScript:append ""
 
     local stmt, errMsg = self.db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
 
@@ -1066,10 +1098,11 @@ function SQLiteSchemaParser:detectMixinCandidate(tblInfo, classDef)
     local fk = table.filter(tblInfo.outFKeys, isOutFKeyMatchingPKey)
 
     -->>
-    --if #fk > 1 then
-    --    print(string.format('detectMixinCandidate: %s, %d', tblInfo.table, #fk))
-    --    require('pl.pretty').dump(fk)
-    --end
+    if #fk > 1 then
+        print(string.format('detectMixinCandidate: %s, %d', tblInfo.table, #fk))
+        require('pl.pretty').dump(tblInfo.outFKeys)
+        require('pl.pretty').dump(fk)
+    end
     --<<
 
     if #fk ~= 1 or not fk[1] then
