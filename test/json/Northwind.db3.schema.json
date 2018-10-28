@@ -1,48 +1,4 @@
 {
-	"EmployeesTerritories": {
-		"properties": {
-			"TerritoryID": {
-				"rules": {
-					"minOccurrences": 1,
-					"type": "enum",
-					"maxOccurrences": 1
-				},
-				"enumDef": {
-					"classRef": {
-						"text": "Territories"
-					}
-				}
-			},
-			"EmployeeID": {
-				"index": "unique",
-				"rules": {
-					"minOccurrences": 1,
-					"type": "enum",
-					"maxOccurrences": 1
-				},
-				"enumDef": {
-					"classRef": {
-						"text": "Employees"
-					}
-				}
-			}
-		},
-		"specialProperties": {
-			"uid": {
-				"text": "EmployeeID"
-			}
-		},
-		"indexes": {
-			"multiKeyIndexing": [
-				{
-					"name": "EmployeeID"
-				},
-				{
-					"name": "TerritoryID"
-				}
-			]
-		}
-	},
 	"Territories": {
 		"properties": {
 			"RegionID": {
@@ -389,6 +345,17 @@
 				"rules": {
 					"maxLength": -1,
 					"type": "binary"
+				}
+			},
+			"Territories": {
+				"rules": {
+					"maxOccurences": 9.007199254741e+15,
+					"type": "ref",
+					"minOccurences": 0
+				},
+				"refDef": {
+					"reverseProperty": "Employees",
+					"classRef": "Territories"
 				}
 			},
 			"PhotoPath": {

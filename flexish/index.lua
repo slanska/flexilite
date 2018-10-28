@@ -26,17 +26,20 @@ end
 
 _G.require = _require()
 
+local path = require 'pl.path'
+
+-- set lua path
+package.path =
+path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua')) .. ';' ..
+        path.abspath(path.relpath('../src_lua/?.lua')) .. ';' ..
+        package.path
+
 local sqlite3 = require 'lsqlite3complete'
 local SQLiteSchemaParser = require 'sqliteSchemaParser'
 local os = require 'os'
-local path = require 'pl.path'
 local lapp = require 'pl.lapp'
 local DumpDatabase = require('dumpDatabase')
 local ansicolors = require 'ansicolors'
-
--- set lua path
-package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua'))
-        .. ';' .. package.path
 
 local prettyJson = require "prettycjson"
 

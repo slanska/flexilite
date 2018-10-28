@@ -8,6 +8,7 @@ local tablex = require 'pl.tablex'
 local ansicolors = require 'ansicolors'
 local List = require 'pl.List'
 local path = require 'pl.path'
+local Constants = require 'Constants'
 
 ---@class ISQLiteTableInfo @comment row returned by [select * from sqlite_master;]
 ---@field type string
@@ -178,6 +179,22 @@ function SQLiteSchemaParser:sqliteColToFlexiProp(sqliteCol)
     return p
 end
 
+---@description Generates unique property name for the given class, based on given start prefix
+---@param cls ClassDefData
+---@param startPrefix string
+---@return string
+function SQLiteSchemaParser:getUniquePropertyName(cls, startPrefix)
+    local result = startPrefix or ''
+    local attempt = 1
+    while true do
+        if cls.properties[result] == nil then
+            return result
+        end
+        attempt = attempt + 1
+        result = (startPrefix or '') .. tostring(attempt)
+    end
+end
+
 --[[
 Iterates over list of tables and tries to find candidates for many-to-many relation tables.
 Canonical conditions:
@@ -218,33 +235,83 @@ function SQLiteSchemaParser:processMany2ManyRelations()
     ]]
     local result = 0
 
-    for i, ti in ipairs(self.tableInfo) do
-        -- 1) table must have only 2 columns (A & B)
-        if ti.columnCount >= 2 and ti.columnCount <= 3 then
+    for i, tblInfo in ipairs(self.tableInfo) do
+        -- 1) table must have only 2 or 3 columns (A & B)
+        if tblInfo.columnCount == 2 or tblInfo.columnCount == 3 then
+            ---@type table<number, ISQLiteColumnInfo>
+            local cols = tablex.deepcopy(tblInfo.columns)
 
             -- Check if primary key column is autoincrement integer
-            local cols = tablex.deepcopy(ti.columns)
-
-            if ti.columnCount == 3 then
+            if tblInfo.columnCount == 3 then
                 -- primary autoincrement integer key - a) pk = 1 (and this is the only column with pk = 1),
                 -- b) nullable, c) integer
-                local pk_n = tablex.find_if(ti.indexes,
+                local pk_n = tablex.find_if(tblInfo.indexes,
                 ---@param idx ISQLiteIndexInfo
                         function(idx)
                             return idx.pk == 1 and idx.type == 'integer' and idx.notnull == 0
                         end)
-                if pk_n >= 1 then
+                if pk_n ~= nil and pk_n >= 1 then
                     table.remove(cols, pk_n)
                 end
             end
 
             -- 2 remaining columns must be: a) foreign keys, b) form unique or primary index
-            -- TODO
+            local fk_count = 0
+            for c_idx, col in ipairs(cols) do
+                for fk_idx, fk in ipairs(tblInfo.outFKeys) do
+                    if fk.from == col.name and fk.table ~= tblInfo.table then
+                        fk_count = fk_count + 1
+                        col.to_table = fk.table
+                    end
+                end
+            end
 
+            if fk_count == 2 then
+                -- Both columns (except ID) are foreign keys: this is many-to-many table
+
+                -- Create enum property
+                ---@type ClassDefData
+                local cls1 = self.outSchema[cols[1].to_table]
+                assert(cls1, string.format('Class %s not found', cols[1].to_table))
+
+                ---@type ClassDefData
+                local cls2 = self.outSchema[cols[2].to_table]
+                assert(cls1, string.format('Class %s not found', cols[2].to_table))
+
+                local refPropName = self:getUniquePropertyName(cls1, cols[2].to_table)
+                local revRefPropName = self:getUniquePropertyName(cls2, cols[1].to_table)
+
+                -- Create new ref property
+                local propDef = {
+                    rules = {
+                        type = 'ref',
+                        minOccurences = 0,
+                        maxOccurences = Constants.MAX_INTEGER,
+                    },
+                    refDef = {
+                        classRef = cols[2].to_table,
+                        reverseProperty = revRefPropName,
+                    }
+                }
+
+                cls1.properties[refPropName] = propDef
+
+                --[[ Append SQL script to create a new virtual table, using
+                original table name.
+                ]]
+                local vt_sql = string.format([[create virtual table if not exists [%s]
+                using flexi_rel ([%s], [%s], [%s] hidden, [%s] hidden);
+
+                ]],
+                        tblInfo.table, cols[1].name, cols[2].name, cols[1].to_table, refPropName)
+
+                self.SQLScript:append(vt_sql)
+
+                self.outSchema[tblInfo.table] = nil
+
+                print(ansicolors(string.format('%%{yellow}Virtual table %s has been registered to handle many-to-many relation%%{reset}', tblInfo.table)))
+            end
         end
-
-        --ti.indexes
-        --            ti.columns[1]
     end
 
     return result
@@ -1064,6 +1131,8 @@ function SQLiteSchemaParser:ParseSchema(outJSON)
     for idx, tblName in ipairs(self.referencedTableNames) do
         self:enforceIdAndNameProps(tblName)
     end
+
+    self:processMany2ManyRelations()
 
     return self.outSchema
 end

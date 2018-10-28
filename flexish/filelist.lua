@@ -13,6 +13,7 @@ return {
     ['initDb'] = 'initDb.lua',
     ['runQuery'] = 'runQuery.lua',
     ['sqliteSchemaParser'] = 'sqliteSchemaParser.lua',
+    ['Constants'] = '../src_lua/Constants.lua',
 
     -- misc libs
     ['prettycjson'] = '../lib/lua-prettycjson/lib/resty/prettycjson.lua',
