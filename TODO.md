@@ -230,8 +230,8 @@ Territories: TerritoryID
 **2018-10-20**
 
 - &#10003; flexish_cli: create mixin properties
-- flexish_cli: process many2many tables (2 or 3 columns)
-- flexish_cli: output 2 files - sql and json
+- &#10003; flexish_cli: process many2many tables (2 or 3 columns)
+- &#10003; flexish_cli: output 2 files - sql and json
 - 'load' - from file
 - 'create property' - handle missing JSON, or string instead of JSON (as type)
 - sqlite3value_to_luavalue and luavalue_to_sqlite3value (from lsqlite?)
@@ -243,4 +243,4 @@ Territories: TerritoryID
 - query: fix unit tests
 - flexi_data_vtable: finish (ffi etc.)
 - [?] import/export xml
-- add Slovak sample social network database
+- [?] add Slovak sample social network database

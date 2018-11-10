@@ -29,8 +29,7 @@ _G.require = _require()
 local path = require 'pl.path'
 
 -- set lua path
-package.path =
-path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua')) .. ';' ..
+package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua')) .. ';' ..
         path.abspath(path.relpath('../src_lua/?.lua')) .. ';' ..
         package.path
 
@@ -83,6 +82,21 @@ local function generateSchema(cli_args)
         EnsureAbsPathArg(cli_args, 'output')
         local f = io.open(cli_args.output, 'w')
         f:write(schemaJson)
+        f:close()
+
+        local dirName, fullFileName = path.splitpath(cli_args.output)
+        local fileName, fileExt = path.splitext(fullFileName)
+
+        local SQLScriptFile = path.join(dirName, fileName .. '.sql')
+
+        -->>
+        print(string.format('SQLScriptFile: %s, dirName: %s, fileName: %s, fileExt: %s',
+                SQLScriptFile, dirName, fileName, fileExt))
+        --<<
+
+        f = io.open(SQLScriptFile, 'w')
+        local sqlText = table.concat(sqliteParser.SQLScript, '\n')
+        f:write(sqlText)
         f:close()
     end
 

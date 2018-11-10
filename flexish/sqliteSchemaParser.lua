@@ -1106,10 +1106,7 @@ function SQLiteSchemaParser:ParseSchema(outJSON)
     self.SQLScript:append ""
     self.SQLScript:append(string.format("select flexi('configure');"))
     self.SQLScript:append ""
-    local jsonDir, jsonFile = path.splitpath(outJSON)
-    local fileName, fileExt = path.splitext(jsonFile)
-    --self.SQLScriptFile = path.
-    self.SQLScript:append(string.format("select flexi('load', './%s.sql');", fileName))
+    self.SQLScript:append(string.format("select flexi('load', '%s');", outJSON))
     self.SQLScript:append ""
 
     local stmt, errMsg = self.db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
@@ -1158,6 +1155,11 @@ function SQLiteSchemaParser:detectMixinCandidate(tblInfo, classDef)
     ---@type ISQLiteIndexInfo
     local pk = tblInfo.indexes[pkIdx]
 
+    -- Only single column primary key is supported
+    if #pk > 1 then
+        return
+    end
+
     ---@param fkeyDef ISQLiteForeignKeyInfo
     local function isOutFKeyMatchingPKey(fkeyDef)
         return fkeyDef.from == pk.cols[1].name
@@ -1165,14 +1167,6 @@ function SQLiteSchemaParser:detectMixinCandidate(tblInfo, classDef)
 
     -- Get out foreign key matching primary key definition
     local fk = table.filter(tblInfo.outFKeys, isOutFKeyMatchingPKey)
-
-    -->>
-    if #fk > 1 then
-        print(string.format('detectMixinCandidate: %s, %d', tblInfo.table, #fk))
-        require('pl.pretty').dump(tblInfo.outFKeys)
-        require('pl.pretty').dump(fk)
-    end
-    --<<
 
     if #fk ~= 1 or not fk[1] then
         return
