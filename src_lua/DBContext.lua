@@ -103,7 +103,7 @@ end
 ---@field Classes table <string, ClassDef>
 ---@field Functions table @comment TODO use Function class
 ---@field ClassProps table<number, PropertyDef>
----@field Objects tables <number, DBObject>
+---@field Objects table <number, DBObject>
 ---@field DirtyObjects table <number, DBObject>
 ---@field ClassDef ClassDef @comment constructor
 ---@field PropertyDef PropertyDef @comment constructor

@@ -2,10 +2,6 @@
 
 ### Windows
 
-**Requirements:**
-
-* MinGW has to be used for compiling Flexilite on Windows.
-
 In Visual Studio Developer Command Prompt:
 ```shell    
 cd <Flexilite_location>

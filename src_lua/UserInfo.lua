@@ -6,6 +6,11 @@
 local class = require 'pl.class'
 local schema = require 'schema'
 
+---@class UserInfo
+---@field ID string
+---@field Name string
+---@field Roles string[]
+---@field Culture table
 local UserInfo = class()
 
 function UserInfo:_init(o)

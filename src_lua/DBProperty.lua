@@ -282,10 +282,8 @@ local function sort_values(values)
             return a < b
         elseif a < 0 and b < 0 then
             return a > b
-        elseif a > 0 and b < 0 then
-            return true
         else
-            return false
+            return a > 0 and b < 0
         end
     end)
 end
@@ -339,7 +337,7 @@ function ChangedDBProperty:SaveToDB(ctx)
                 if idx < 0 then
                     -- Append new value
                     DBContext:execStatement(string.format(
-                            ---@language sqlite
+                    ---@language sqlite
                             [[insert into [.ref-values]
                     (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
                     (:ObjectID, :PropertyID,
