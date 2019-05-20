@@ -16,15 +16,13 @@
  * flexirel virtual table establishes map to [.ref-values] table so that
  * all CRUD operations are executed on that table.
  * Exactly 4 columns must be specified. First 2 columns correspond to ObjectID and Value fields in
- * [.ref-values] table. Third and fourth columns are used to narrow scope to specific class and property
- * If either 3rd or 4th columns or both are text, they must be valid class and reference property
- * names.
+ * [.ref-values] table. Third and fourth columns define specific class and property names
  *
  * 'flexirel' tables get re-created automatically every time when class or property get renamed.
  * If class or property are removed, or property type changed to non-reference type, corresponding table
  * gets deleted.
  *
- * flexirel tables are mostly used for importing data from existing non-Flexilite databases.
+ * flexirel tables are mostly internally used for importing data from existing non-Flexilite databases.
  * When importing data from inline JSON or external JSON file, Flexilite first checks if there is a class
  * with required name. If no class is found, Flexilite checks existing flexirel tables which map to
  * corresponding class and property.
@@ -37,6 +35,11 @@
  * as these tables essentially serve as views, so there is negligible overhead related to the flexirel
  * table maintenance. Note that class and reference property must exist before call to create flexirel
  * virtual table.
+ *
+ * Implementation details:
+ *
+ * flexirel vtable uses reference to shared DBContext to pass calls to Lua code.
+ * This reference is available in FlexiliteContext_t struct
  *
  */
 
@@ -63,7 +66,7 @@ public:
     int64_t _propID = 0;
     string _col1;
     string _col2;
-    FlexiliteContext_t* pCtx;
+    FlexiliteContext_t *pCtx;
 };
 
 struct FlexiRel_vtab_cursor : sqlite3_vtab_cursor
@@ -83,14 +86,24 @@ static string &_extractColumnName(string &ss)
 }
 
 /*
+ * Prepares Lua stack for flexrel call of Lua function
+ */
+static void prepare_call(FlexiliteContext_t *pCtx, const char *szFuncName)
+{
+    lua_rawgeti(pCtx->L, LUA_REGISTRYINDEX, pCtx->DBContext_Index);
+    lua_getfield(pCtx->L, -1, "flexirel");
+    lua_getfield(pCtx->L, -1, szFuncName);
+}
+
+/*
  * argc must be exactly 7:
  * 0 - "flexirel"
  * 1 - "main" or "temp" or ...
  * 2 - new table name
- * 3 - class name
- * 4 - reference property name
- * 5 - column mapped to ObjectID
- * 6 - column mapped to Value
+ * 3 - column mapped to ObjectID
+ * 4 - column mapped to Value
+ * 5 - class name
+ * 6 - reference property name
  */
 static int _create_connect(sqlite3 *db, void *pAux,
                            int argc, const char *const *argv,
@@ -101,7 +114,7 @@ static int _create_connect(sqlite3 *db, void *pAux,
     {
         // TODO
         *pzErr = sqlite3_mprintf(
-                "Flexirel expects 4 column names: class_name, property_name, column_name_1, column_name_2");
+                "Flexirel expects 4 column names: column_name_1, column_name_2, class_name, property_name");
         return SQLITE_ERROR;
     }
 
@@ -120,9 +133,27 @@ static int _create_connect(sqlite3 *db, void *pAux,
     vtab->_propName = string(argv[4]);
     vtab->_col1 = string(argv[5]);
     vtab->_col2 = string(argv[6]);
-    vtab->pCtx = static_cast<FlexiliteContext_t*>(pAux);
+    vtab->pCtx = static_cast<FlexiliteContext_t *>(pAux);
 
     *ppVTab = vtab;
+
+    // Call Lua implementation
+    prepare_call(vtab->pCtx, "create_connect");
+    // DBContext
+    lua_rawgeti(vtab->pCtx->L, LUA_REGISTRYINDEX, vtab->pCtx->DBContext_Index);
+    // dbName
+    lua_pushstring(vtab->pCtx->L, argv[1]);
+    // tableName
+    lua_pushstring(vtab->pCtx->L, argv[2]);
+    // className
+    lua_pushstring(vtab->pCtx->L, argv[5]);
+    // propName
+    lua_pushstring(vtab->pCtx->L, argv[6]);
+    // colName
+    lua_pushstring(vtab->pCtx->L, argv[3]);
+    // colName2
+    lua_pushstring(vtab->pCtx->L, argv[4]);
+    lua_pcall(vtab->pCtx->L, 7, 1, 0);
 
     auto zCreateTable = sqlite3_mprintf("create table [%s] (PropID int, Col1, Col2, ID int, ctlv int, ExtData json1);");
     int result = sqlite3_declare_vtab(db, zCreateTable);
@@ -145,6 +176,8 @@ static int _best_index(
 )
 {
     auto vtab = static_cast<FlexiRel_vtab *>(tab);
+
+    // Call Lua implementation
 
     return SQLITE_OK;
 }
@@ -173,14 +206,15 @@ static int _open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
  */
 static int _close(sqlite3_vtab_cursor *pCursor)
 {
-//    struct flexi_VTabCursor *cur = (flexi_VTabCursor *) (void *) pCursor;
-//    return flexi_VTabCursor_free(cur);
-return SQLITE_OK;
+    //    struct flexi_VTabCursor *cur = (flexi_VTabCursor *) (void *) pCursor;
+    //    return flexi_VTabCursor_free(cur);
+    return SQLITE_OK;
 }
 
 static int _filter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr,
                    int argc, sqlite3_value **argv)
 {
+    // Call Lua implementation
     return SQLITE_OK;
 }
 
@@ -252,6 +286,7 @@ UPDATE table SET rowid=rowid+1 WHERE ...;
  */
 static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid)
 {
+    // Call Lua implementation
     int result = SQLITE_OK;
     return result;
 }
@@ -306,7 +341,7 @@ static sqlite3_module _flexirel_vtable_module = {
         .xRelease = nullptr
 };
 
-int register_flexi_rel_vtable(sqlite3* db, FlexiliteContext_t* pCtx)
+int register_flexi_rel_vtable(sqlite3 *db, FlexiliteContext_t *pCtx)
 {
     // TODO pass
     int result = sqlite3_create_module(db, "flexi_rel", &_flexirel_vtable_module, pCtx);

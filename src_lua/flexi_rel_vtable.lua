@@ -247,6 +247,12 @@ end
 
 selfTest()
 
+---@class FlexiRelVTable
+---@field create_connect function
+---@field best_index function
+---@field filter function
+---@field update function
+
 return {
     create_connect = create_connect,
     best_index = best_index,

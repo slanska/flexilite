@@ -28,6 +28,8 @@ int class_tests();
 
 void run_sql_tests(char *zBaseDir, const char *zJsonFile);
 
+int run_flexirel_vtable_tests(sqlite3 *pDB);
+
 /*
  * prop_tests();
  */
@@ -35,5 +37,8 @@ void run_sql_tests(char *zBaseDir, const char *zJsonFile);
 #ifdef __cplusplus
 }
 #endif
+
+/** Initializes a CMUnitTest structure. */
+#define cmocka_unit_test_state(f, initial_state) { #f, f, NULL, NULL, initial_state }
 
 #endif //FLEXILITE_DEFINITIONS_H

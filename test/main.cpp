@@ -10,7 +10,9 @@
 
 #define getcwd _getcwd // stupid MSFT "deprecation" warning
 #else
+
 #include <unistd.h>
+
 #endif
 
 #include <cstdint>
@@ -20,7 +22,8 @@
 
 #include "definitions.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char *zDir = nullptr;
     Path_dirname(&zDir, *argv);
 
@@ -28,7 +31,8 @@ int main(int argc, char **argv) {
     char zCurrentDir[PATH_MAX + 1];
     getcwd(zCurrentDir, PATH_MAX);
 
-    if (zDir == nullptr || strlen(zDir) == 0 || strcmp(zDir, ".") == 0) {
+    if (zDir == nullptr || strlen(zDir) == 0 || strcmp(zDir, ".") == 0)
+    {
         sqlite3_free(zDir);
         zDir = sqlite3_mprintf("%s", zCurrentDir);
     }
@@ -38,7 +42,6 @@ int main(int argc, char **argv) {
     char *zSchemaSql = nullptr;
     char *zError = nullptr;
 
-    //    run_sql_tests(zDir, "../../test/json/sql-test.class.json");
     int result = 0;
     CHECK_CALL(sqlite3_open_v2(":memory:", &pDB,
                                SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_SHAREDCACHE,
@@ -51,12 +54,17 @@ int main(int argc, char **argv) {
 
     sqlite3_stmt *pStmt;
     CHECK_CALL(sqlite3_prepare(pDB, "select flexi('configure');", -1, &pStmt, nullptr));
-//    CHECK_CALL(sqlite3_prepare(pDB, "select flexi('ping');", -1, &pStmt, nullptr));
     CHECK_STMT_STEP(pStmt, pDB);
     const unsigned char *szText;
     szText = sqlite3_column_text(pStmt, 0);
     printf("Flexi configure %s", szText);
     result = SQLITE_OK;
+
+    // Run tests, essentially
+    run_flexirel_vtable_tests(pDB);
+
+    //    run_sql_tests(zDir, "../../test/json/sql-test.class.json");
+
     goto EXIT;
 
     ONERROR:

@@ -108,6 +108,7 @@ int flexi_init(sqlite3 *db,
 
     // Create context, by passing SQLite db connection
     if (luaL_dostring(pCtx->L,
+                      // TODO Add cpath for Windows only
                       "package.cpath = package.cpath .. ';./libFlexilite.dll'; return require ('DBContext')"))
     {
         *pzErrMsg = sqlite3_mprintf("Flexilite require DBContext: %s\n", lua_tostring(pCtx->L, -1));

@@ -34,6 +34,7 @@ local EnumManager = require 'EnumManager'
 local Constants = require 'Constants'
 local DictCI = require('Util').DictCI
 local sqlite3 = sqlite3 or require 'sqlite3'
+local flexiRel = require 'flexi_rel_vtable'
 
 -------------------------------------------------------------------------------
 -- ActionList
@@ -112,6 +113,7 @@ end
 ---@field SchemaChanged boolean
 ---@field DeferredActions ActionList
 ---@field config DBContextConfig
+---@field flexirel FlexiRelVTable
 local DBContext = class()
 
 -- Forward declarations
@@ -191,6 +193,8 @@ function DBContext:_init(db)
     end)
 
     self:initMemoizeFunctions()
+
+    self.flexirel = flexiRel
 end
 
 -- Adds a deferred reference to the list to be resolved later

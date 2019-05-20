@@ -34,9 +34,7 @@ set(TEST_FILES
 
         ../lib/cmocka/src/cmocka.c
         ../lib/sqlite/sqlite3.c
-        fts.c
         main.cpp
-        fts.c
         util/db_init.c
         util/db_init.h
         definitions.h
@@ -48,7 +46,7 @@ set(TEST_FILES
         ../src/util/Array.c
         ../src/util/StringBuilder.c
         ../src/util/Path.c
-        )
+        flexirel_vtable_tests.c)
 
 
 #add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/luajit-2.1 ${CMAKE_CURRENT_BINARY_DIR}/lib/luajit-2.1)
