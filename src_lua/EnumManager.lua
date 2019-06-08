@@ -112,7 +112,7 @@ function EnumManager:ApplyEnumPropertyDef(propDef)
             refCls = self:CreateEnumClass(refClsName)
         end
 
-        if propDef.enumDef.items then
+        if propDef.D.enumDef.items then
             self:UpsertEnumItems(refCls, propDef.D.enumDef.items)
         end
     elseif propDef.D.refDef then

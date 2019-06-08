@@ -16,9 +16,16 @@
 
 #include "../src/common/common.h"
 #include "Array.h"
-#include "util/db_init.h"
+#include "util/db_util.h"
 #include "util/file_helper.h"
 #include "../src/util/Path.h"
+
+// OS specific path constants
+#if defined( _WIN32 ) || defined( __WIN32__ ) || defined( _WIN64 )
+#define NORTHWIND_DB3_SCHEMA_JSON "..\\..\\test\\json\\Northwind.db3.schema.json"
+#else
+#define NORTHWIND_DB3_SCHEMA_JSON "../../test/json/Northwind.db3.schema.json"
+#endif
 
 #ifdef __cplusplus
 extern "C" {

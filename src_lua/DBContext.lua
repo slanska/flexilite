@@ -34,6 +34,12 @@ local EnumManager = require 'EnumManager'
 local Constants = require 'Constants'
 local DictCI = require('Util').DictCI
 local sqlite3 = sqlite3 or require 'sqlite3'
+
+-- to fix bug of missing values when running Flexilite in flexi_test app
+sqlite3.OK = 0
+sqlite3.ROW = 100
+sqlite3.DONE = 101
+
 local flexiRel = require 'flexi_rel_vtable'
 local dbg = nil
 
@@ -180,10 +186,10 @@ function DBContext:_init(db)
     -- flexi
     self.db:create_function('flexi', -1, function(ctx, action, ...)
         if self.debugMode then
-            -->>
-            print('dbg.call')
-
-            dbg.call(self.flexiAction, self, ctx, action, ...)
+            local args = { ... }
+            dbg.call(function()
+                self.flexiAction(self, ctx, action, unpack(args))
+            end)
         else
             self.flexiAction(self, ctx, action, ...)
         end
@@ -336,7 +342,7 @@ function DBContext:flexiAction(ctx, action, ...)
 
     local errorMsg = ''
 
-    local ok = xpcall(function()
+    local function execute()
         -- Check if schema has been changed since last call
         local uv = self:loadOneRow(
         ---@language SQL
@@ -359,12 +365,14 @@ function DBContext:flexiAction(ctx, action, ...)
 
         self.db:exec 'commit'
     end
-    ,
-            function(error)
-                --errorMsg = tostring(error)
-                errorMsg = debug.traceback(tostring(error))
-                print(debug.traceback(tostring(error)))
-            end)
+
+    local function error_handler(error)
+        --errorMsg = tostring(error)
+        errorMsg = debug.traceback(tostring(error))
+        print(debug.traceback(tostring(error)))
+    end
+
+    local ok = xpcall(execute, error_handler)
 
     if not ok then
         self.db:exec 'rollback'
@@ -862,6 +870,9 @@ function DBContext:InitMetadataRef(container, fieldName, refClass)
     return v
 end
 
+--local g_error = error
+--local g_assert = assert
+
 --[[
 Activates/deactivates debugger mode, so that errors and asserts
 are automatically switch app to the command line debugging mode
@@ -876,6 +887,9 @@ function DBContext:debugger(mode)
             -- TODO confirm
             -- Consider enabling auto_where to make stepping through code easier to follow.
             dbg.auto_where = 2
+
+            --error = dbg.error
+            --assert = dbg.assert
         end
 
         self.debugMode = true
@@ -883,6 +897,8 @@ function DBContext:debugger(mode)
         error('Expected zero or one parameter with value ON | YES | 1 | OFF | NO | 0')
     else
         self.debugMode = false
+        --error = g_error
+        --assert = g_assert
     end
 
     return self.debugMode and 1 or 0

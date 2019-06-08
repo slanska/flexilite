@@ -13,4 +13,8 @@ int db_create_or_open(const char *zFile, sqlite3 **pDb);
 
 void process_sqlite_error(sqlite3 *db);
 
+int flexi_create_schema_from_json_file(sqlite3 *db, const char *zJSONPath);
+
+int flexi_create_class_from_json_file(sqlite3 *db, const char *zJSONPath);
+
 #endif //FLEXILITE_DB_INIT_H

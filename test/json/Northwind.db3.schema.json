@@ -349,9 +349,9 @@
 			},
 			"Territories": {
 				"rules": {
-					"maxOccurences": 9.007199254741e+15,
+					"minOccurrences": 0,
 					"type": "ref",
-					"minOccurences": 0
+					"maxOccurrences": 9.007199254741e+15
 				},
 				"refDef": {
 					"reverseProperty": "Employees",
@@ -674,10 +674,10 @@
 		"indexes": {
 			"multiKeyIndexing": [
 				{
-					"name": "OrderID"
+					"text": "OrderID"
 				},
 				{
-					"name": "ProductID"
+					"text": "ProductID"
 				}
 			]
 		}

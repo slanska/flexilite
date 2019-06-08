@@ -9,6 +9,7 @@ local json = cjson or require('cjson')
 ---@param sOptions string | nil @comment
 ---@param sSchema string | nil @comment list of classes
 local function Configure(self, sOptions, sSchema)
+    -- Get SQL script to execute
     local sql_dbschema = require 'sql.dbschema'
 
     local result = self.db:exec(sql_dbschema)

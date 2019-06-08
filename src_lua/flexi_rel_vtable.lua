@@ -234,8 +234,8 @@ local function selfTest()
     idxInfo.aConstraint[1].iTermOffset = 20
     idxInfo.aConstraint[1].op = 31
 
-    print(idxInfo.aConstraint, idxInfo.aConstraint[0].op, idxInfo.aConstraint[0].iColumn, ffi.sizeof(idxInfo.aConstraint),
-            idxInfo.aConstraint[1].op, idxInfo.aConstraint[1].iTermOffset)
+    --print(idxInfo.aConstraint, idxInfo.aConstraint[0].op, idxInfo.aConstraint[0].iColumn, ffi.sizeof(idxInfo.aConstraint),
+    --        idxInfo.aConstraint[1].op, idxInfo.aConstraint[1].iTermOffset)
 
     --local pIdxInfo = ffi.cast('struct sqlite3_index_info *', idxInfo)
     --print(ffi.sizeof(idxInfo))

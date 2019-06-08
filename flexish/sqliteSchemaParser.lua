@@ -285,8 +285,8 @@ function SQLiteSchemaParser:processMany2ManyRelations()
                 local propDef = {
                     rules = {
                         type = 'ref',
-                        minOccurences = 0,
-                        maxOccurences = Constants.MAX_INTEGER,
+                        minOccurrences = 0,
+                        maxOccurrences = Constants.MAX_INTEGER,
                     },
                     refDef = {
                         classRef = cols[2].to_table,
@@ -589,7 +589,7 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
             classDef.indexes.multiKeyIndexing = mkey_idx
 
             for i, cc in ipairs(idx_def.cols) do
-                table.insert(mkey_idx, { name = cc.name })
+                table.insert(mkey_idx, { text = cc.name })
             end
             indexed_cols[idx_def.cols[1].name] = PROP_INDEX_PRIORITY.MKEY1;
 
@@ -1033,8 +1033,8 @@ function SQLiteSchemaParser:processReferences(tblInfo)
             --local pp = {
             --    rules = {
             --        type = 'enum',
-            --        minOccurences = cc.rules.minOccurences,
-            --        maxOccurences = bits.lshift(1, 31) - 1
+            --        minOccurrences = cc.rules.minOccurences,
+            --        maxOccurrences = bits.lshift(1, 31) - 1
             --    }
             --}
             --local propName = fk.table -- FIXME Pluralize

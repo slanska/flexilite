@@ -18,9 +18,11 @@ extern "C" {
 static void create_flexirel_vtable(void **state)
 {
     int result = 0;
-    sqlite3* pDB = *state;
+    sqlite3 *pDB = *state;
 
     sqlite3_stmt *pStmt;
+
+    CHECK_CALL(flexi_create_schema_from_json_file(pDB, NORTHWIND_DB3_SCHEMA_JSON));
 
     // Create class: Employees
 
@@ -29,10 +31,10 @@ static void create_flexirel_vtable(void **state)
     // Create flexirel: EmployeeTerritories
 
 
-    CHECK_CALL(sqlite3_prepare(pDB, "select flexi('configure');", -1, &pStmt, NULL));
-    CHECK_STMT_STEP(pStmt, pDB);
+    //    CHECK_CALL(sqlite3_prepare(pDB, "select flexi('configure');", -1, &pStmt, NULL));
+    //    CHECK_STMT_STEP(pStmt, pDB);
 
-    printf("create_flexirel_vtable: %x", pDB);
+    printf("create_flexirel_vtable: %p", pDB);
 
     goto EXIT;
 

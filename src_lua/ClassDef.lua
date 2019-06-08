@@ -444,19 +444,19 @@ end
 function ClassDef:initMixinProperties()
     self.MixinProperties = {}
     for _, pp in pairs(self.Properties) do
-        if pp:is_a(PropertyDef.PropertyTypes['mixin']) then
-            assert(pp.refDef and pp.refDef.classRef)
-            local mixin = self.DBContext:getClassDef(pp.refDef.classRef.ID)
-
-            for _, mp in pairs(mixin.Properties) do
-                local d = self.MixinProperties[mp.Name.text]
-                if not d then
-                    d = {}
-                    self.MixinProperties[mp.Name.text] = d
-                end
-                table_insert(d, mp)
-            end
-        end
+        --if pp:is_a(PropertyDef.PropertyTypes['mixin']) then
+        --    assert(pp.refDef and pp.refDef.classRef)
+        --    local mixin = self.DBContext:getClassDef(pp.refDef.classRef.ID)
+        --
+        --    for _, mp in pairs(mixin.Properties) do
+        --        local d = self.MixinProperties[mp.Name.text]
+        --        if not d then
+        --            d = {}
+        --            self.MixinProperties[mp.Name.text] = d
+        --        end
+        --        table_insert(d, mp)
+        --    end
+        --end
     end
 end
 

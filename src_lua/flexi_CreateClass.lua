@@ -53,7 +53,11 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
     for className, classDef in pairs(schemaDef) do
         local classID = self:getClassIdByName(className, false)
+        -->>
+        require('debugger')(className ~= 'Categories')
+
         if classID ~= 0 then
+
             error('Class ' .. className .. ' already exists')
         end
 

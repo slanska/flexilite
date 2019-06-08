@@ -35,8 +35,8 @@ set(TEST_FILES
         ../lib/cmocka/src/cmocka.c
         ../lib/sqlite/sqlite3.c
         main.cpp
-        util/db_init.c
-        util/db_init.h
+        util/db_util.c
+        util/db_util.h
         definitions.h
         util/file_helper.c
         util/file_helper.h

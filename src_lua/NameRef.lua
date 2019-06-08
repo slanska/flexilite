@@ -89,7 +89,7 @@ end
 ---@param classDef ClassDef
 function ClassNameRef:resolve(classDef)
     if self.id or self.text then
-        local cc = classDef.DBContext:LoadClassDefinition(self.id and self.id or self.text)
+        local cc = classDef.DBContext:getClassDef(self.id and self.id or self.text, false)
         if cc ~= nil then
             self.id = cc.ClassID
         else
