@@ -72,6 +72,7 @@ include_directories(
         lib/sqlite
         lib/torch-luajit-rocks/luajit-2.1/src
         src/util
+        # TODO remove - lib/debugger-lua/embed
 )
 
 # Compile Lua files to a static library
@@ -111,6 +112,9 @@ set(EXT_FILES
         lib/lua-cjson/strbuf.c
         lib/lua-base64/lbase64.c
         lib/luafilesystem/src/lfs.c
+
+        # Lua debugger
+        # TODO remove -- lib/debugger-lua/embed/debugger.c
 
         src/misc/json1.c
         src/project_defs.h

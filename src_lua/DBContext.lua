@@ -35,6 +35,7 @@ local Constants = require 'Constants'
 local DictCI = require('Util').DictCI
 local sqlite3 = sqlite3 or require 'sqlite3'
 local flexiRel = require 'flexi_rel_vtable'
+local dbg = nil
 
 -------------------------------------------------------------------------------
 -- ActionList
@@ -114,6 +115,7 @@ end
 ---@field DeferredActions ActionList
 ---@field config DBContextConfig
 ---@field flexirel FlexiRelVTable
+---@field debugMode boolean
 local DBContext = class()
 
 -- Forward declarations
@@ -177,7 +179,14 @@ function DBContext:_init(db)
 
     -- flexi
     self.db:create_function('flexi', -1, function(ctx, action, ...)
-        self.flexiAction(self, ctx, action, ...)
+        if self.debugMode then
+            -->>
+            print('dbg.call')
+
+            dbg.call(self.flexiAction, self, ctx, action, ...)
+        else
+            self.flexiAction(self, ctx, action, ...)
+        end
     end)
 
     -- var:get
@@ -195,6 +204,8 @@ function DBContext:_init(db)
     self:initMemoizeFunctions()
 
     self.flexirel = flexiRel
+
+    self.debugMode = false
 end
 
 -- Adds a deferred reference to the list to be resolved later
@@ -851,6 +862,32 @@ function DBContext:InitMetadataRef(container, fieldName, refClass)
     return v
 end
 
+--[[
+Activates/deactivates debugger mode, so that errors and asserts
+are automatically switch app to the command line debugging mode
+]]
+---@param mode string | number @comment ON on 1 OFF off 0
+function DBContext:debugger(mode)
+    mode = type(mode) == 'string' and string.lower(mode) or mode
+    if mode == 'on' or mode == 1 or mode == 'yes' then
+        if dbg == nil then
+            dbg = require 'debugger'
+
+            -- TODO confirm
+            -- Consider enabling auto_where to make stepping through code easier to follow.
+            dbg.auto_where = 2
+        end
+
+        self.debugMode = true
+    elseif mode ~= nil and mode ~= 'off' and mode ~= 'no' and mode ~= 0 then
+        error('Expected zero or one parameter with value ON | YES | 1 | OFF | NO | 0')
+    else
+        self.debugMode = false
+    end
+
+    return self.debugMode and 1 or 0
+end
+
 local flexi_CreateClass = require 'flexi_CreateClass'
 local flexi_AlterClass = require 'flexi_AlterClass'
 local flexi_DropClass = require 'flexi_DropClass'
@@ -865,7 +902,7 @@ local flexi_MergeProperty = require 'flexi_MergeProperty'
 local TriggerAPI = require 'Triggers'
 local flexi_DataUpdate = require 'flexi_DataUpdate'
 
--- Initialization should be after all FLEXI functions are defined
+-- Initialization should be **AFTER** all FLEXI functions are defined
 -- Variables are declared above
 
 -- Dictionary by action functions, to get metadata about actions
@@ -895,6 +932,7 @@ flexiMeta = {
     [TriggerAPI.Create] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
     [flexi_DataUpdate.flexi_ImportData] = { shortInfo = '', fullInfo = [[]], schemaChange = true },
     [DBContext.flexi_close] = { shortInfo = '', fullInfo = [[]], schemaChange = false },
+    [DBContext.debugger] = { shortInfo = '', fullInfo = [[]], schemaChange = false },
 }
 
 -- Dictionary by action names
@@ -984,6 +1022,10 @@ flexiFuncs = {
     ['close'] = DBContext.flexi_close,
     ['reset'] = DBContext.flexi_close,
     ['flush'] = DBContext.flexi_close,
+
+    ['debugger'] = DBContext.debugger,
+    ['debug'] = DBContext.debugger,
+
 
     --[[
 

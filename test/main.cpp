@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     char *zSchemaSql = nullptr;
     char *zError = nullptr;
 
-    int result = 0;
+    int result = SQLITE_OK;
     CHECK_CALL(sqlite3_open_v2(":memory:", &pDB,
                                SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_SHAREDCACHE,
                                nullptr));
@@ -52,13 +52,25 @@ int main(int argc, char **argv)
     // load extension library
     CHECK_CALL(sqlite3_load_extension(pDB, "../../bin/libFlexilite", nullptr, &zError));
 
-    sqlite3_stmt *pStmt;
-    CHECK_CALL(sqlite3_prepare(pDB, "select flexi('configure');", -1, &pStmt, nullptr));
-    CHECK_STMT_STEP(pStmt, pDB);
-    const unsigned char *szText;
-    szText = sqlite3_column_text(pStmt, 0);
-    printf("Flexi configure %s", szText);
-    result = SQLITE_OK;
+    // Enable debug mode
+    {
+        sqlite3_stmt *pStmt;
+        CHECK_CALL(sqlite3_prepare(pDB, "select flexi('debugger', 1);", -1, &pStmt, nullptr));
+        CHECK_STMT_STEP(pStmt, pDB);
+        int iDebugMode;
+        iDebugMode = sqlite3_column_int(pStmt, 0);
+        printf("Flexi debugger: %d\n", iDebugMode);
+    }
+
+    // Flexi configure
+    {
+        sqlite3_stmt *pStmt;
+        CHECK_CALL(sqlite3_prepare(pDB, "select flexi('configure');", -1, &pStmt, nullptr));
+        CHECK_STMT_STEP(pStmt, pDB);
+        const unsigned char *szText;
+        szText = sqlite3_column_text(pStmt, 0);
+        printf("\nFlexi configure %s\n", szText);
+    }
 
     // Run tests, essentially
     run_flexirel_vtable_tests(pDB);

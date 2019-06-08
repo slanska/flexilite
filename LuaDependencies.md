@@ -4,6 +4,10 @@
 * luarocks install penlight
 
 
+**Example of adding a new submodule:**
+
+git submodule add MODULE_URL lib/LOCAL_MODULE_PATH
+
 ```shell
 git rm --cached projectfolder
 ```

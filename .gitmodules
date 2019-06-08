@@ -37,3 +37,6 @@
 [submodule "lib/lua-ansicolors"]
 	path = lib/lua-ansicolors
 	url = https://github.com/kikito/ansicolors.lua.git
+[submodule "lib/debugger-lua"]
+	path = lib/debugger-lua
+	url = https://github.com/slembcke/debugger.lua.git

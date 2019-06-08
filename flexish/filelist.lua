@@ -18,6 +18,7 @@ return {
     -- misc libs
     ['prettycjson'] = '../lib/lua-prettycjson/lib/resty/prettycjson.lua',
     ['ansicolors'] = '../lib/lua-ansicolors/ansicolors.lua',
+    ['debugger'] = '../lib/debugger-lua/debugger.lua',
 
     -- penlight
     ['pl.Date'] = '../lib/lua-penlight/lua/pl/Date.lua',

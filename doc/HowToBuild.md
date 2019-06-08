@@ -59,6 +59,12 @@ cmake .. -DCMAKE_INSTALL_PREFIX=/usr/torch -DWITH_LUAJIT21=ON
 make 
 ```
 
+### Install dependencies
+
+```shell
+cd ./lib/debugger-lua && luajit embed/debugger.c.lua
+```
+
 ## Test
 
 [busted](https://github.com/Olivine-Labs/busted) is used to run Flexilite tests

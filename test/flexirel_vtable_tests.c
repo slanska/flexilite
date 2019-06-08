@@ -21,6 +21,14 @@ static void create_flexirel_vtable(void **state)
     sqlite3* pDB = *state;
 
     sqlite3_stmt *pStmt;
+
+    // Create class: Employees
+
+    // Create class: Territories
+
+    // Create flexirel: EmployeeTerritories
+
+
     CHECK_CALL(sqlite3_prepare(pDB, "select flexi('configure');", -1, &pStmt, NULL));
     CHECK_STMT_STEP(pStmt, pDB);
 
