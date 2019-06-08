@@ -49,6 +49,7 @@ local class = require 'pl.class'
 
 -- Implements enum storage
 ---@class EnumManager
+---@field DBContext DBContext
 local EnumManager = class()
 
 ---@param DBContext DBContext
@@ -206,7 +207,7 @@ function EnumManager:UpsertEnumItems(cls, items)
 
     -- use flexi_DataUpdate
     local stmt = self.DBContext:getStatement '' -- TODO SQL
-    for i, v in ipairs(items) do
+    for _, v in ipairs(items) do
         local nameRef = { text = v.name }
         setmetatable(nameRef, NameRef)
         nameRef:resolve(cls)

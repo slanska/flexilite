@@ -761,11 +761,11 @@ end
 function ReferencePropertyDef:applyDef()
     PropertyDef.applyDef(self)
 
-    if self.D.refDef and self.D.refDef.classRef then
-        self.D.refDef.classRef:resolve(self.ClassDef)
-    end
-
     if self.D.refDef then
+        if self.D.refDef.classRef then
+            self.D.refDef.classRef:resolve(self.ClassDef)
+        end
+
         if self.D.refDef.reverseProperty then
             self.D.refDef.reverseProperty:resolve(self.ClassDef)
         end

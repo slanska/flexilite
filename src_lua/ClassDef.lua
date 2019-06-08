@@ -51,7 +51,7 @@ local IndexDefinitions = class()
 IndexDefinitions.ftsCols = { 'X1', 'X2', 'X3', 'X4', 'X5' }
 IndexDefinitions.rngCols = { 'A0', 'A1', 'B0', 'B1', 'C0', 'C1', 'D0', 'D1', 'E0', 'E1' }
 
----@description Returns true if column type is a numeric one (INTEGER, FLOAT, DATETIME etc.)
+---Returns true if column type is a numeric one (INTEGER, FLOAT, DATETIME etc.)
 ---@param col_type string @comment
 ---@return boolean
 local function isColNumeric(col_type)
@@ -320,8 +320,6 @@ end
 ---@field Deleted boolean
 ---@field ColMapActive boolean
 ---@field vtypes number
----@field insertObjectsStmt sqlite3.stmt @comment 'insert into [.objects]' prepared statement
----@field updateObjectsStmt sqlite3.stmt @comment 'update [.objects]' prepared statement
 local ClassDef = class()
 
 ---@class ClassDefCtorParamsData
@@ -461,8 +459,8 @@ function ClassDef:initMixinProperties()
 end
 
 -- Attempts to assign column mapping
----@param prop IPropertyDef
----@return bool
+---@param prop PropertyDef
+---@return boolean
 function ClassDef:assignColMappingForProperty(prop)
     -- Already assigned?
     if prop.ColMap then
@@ -506,7 +504,7 @@ function ClassDef:getProperty(propName)
     -- Check if exists
     local prop = self:hasProperty(propName)
     if not prop then
-        error("Property " .. tostring(propName) .. " not found or ambiguous")
+        error(string.format("Property `%s` not found or ambiguous in class `%s`", propName, self.Name.text))
     end
     return prop
 end

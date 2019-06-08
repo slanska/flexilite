@@ -7,7 +7,7 @@ local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 local ansicolors = require 'ansicolors'
 local List = require 'pl.List'
-local path = require 'pl.path'
+--local path = require 'pl.path'
 local Constants = require 'Constants'
 
 ---@class ISQLiteTableInfo @comment row returned by [select * from sqlite_master;]
@@ -17,7 +17,7 @@ local Constants = require 'Constants'
 ---@field rootpage number
 ---@field sql string
 
----@description Info on SQLite column indexing
+---Info on SQLite column indexing
 ---@class IColIndexXInfo
 ---@field indexName string @description empty for primary key
 ---@field desc boolean
@@ -74,8 +74,8 @@ local Constants = require 'Constants'
 ---@field tableName string
 
 ---@param tbl any[]
----@param func Function
----@returns any[]
+---@param func function
+---@return any[]
 table.filter = function(tbl, func)
     local result = {}
     for k, v in pairs(tbl) do
@@ -92,12 +92,12 @@ end
 ---@field tableInfo ITableInfo[] @comment list of internally used table information
 ---@field results IFlexishResultItem[]
 ---@field referencedTableNames string[]
----@field SQLScript List @comment pl.List
+---@field SQLScript table @comment pl.List
 ---@field SQLScriptPath string @comment Absolute path where SQL script will be saved
 
 local SQLiteSchemaParser = class()
 
----@param db sqlite3.Database
+---@param db userdata @comment sqlite3.Database
 function SQLiteSchemaParser:_init(db)
     ---@type ITableInfo[]
     self.tableInfo = {}
@@ -153,8 +153,8 @@ local sqliteTypesToFlexiTypes = {
     ['tinyint'] = { type = 'integer', minValue = 0, maxValue = 255 },
 }
 
----@param sqliteCol ISQLiteColumn
----@return IClassPropertyDef
+---@param sqliteCol any @comment SQLiteColumn
+---@return PropertyDef
 function SQLiteSchemaParser:sqliteColToFlexiProp(sqliteCol)
     local p = { rules = { type = 'any' } }
 
@@ -179,7 +179,7 @@ function SQLiteSchemaParser:sqliteColToFlexiProp(sqliteCol)
     return p
 end
 
----@description Generates unique property name for the given class, based on given start prefix
+---Generates unique property name for the given class, based on given start prefix
 ---@param cls ClassDefData
 ---@param startPrefix string
 ---@return string
@@ -336,7 +336,7 @@ function SQLiteSchemaParser:getIndexColumnName(indexName)
     return ''
 end
 
----@description Loads SQLite table columns and initializes tblInfo.columns
+---Loads SQLite table columns and initializes tblInfo.columns
 ---@param tblInfo ITableInfo
 ---@param tblDef ISQLiteTableInfo
 function SQLiteSchemaParser:loadTableColumns(tblInfo, tblDef)
@@ -366,7 +366,7 @@ function SQLiteSchemaParser:loadTableColumns(tblInfo, tblDef)
     end
 end
 
----@description Create properties based on SQLite columns: first iteration
+---Create properties based on SQLite columns: first iteration
 ---@param tblInfo ITableInfo
 ---@param classDef ClassDefData
 function SQLiteSchemaParser:initializeProperties(tblInfo, classDef)
@@ -399,7 +399,7 @@ function SQLiteSchemaParser:initializeProperties(tblInfo, classDef)
 
         classDef.properties[col.name] = prop
 
-        ---@type IPropertyExtData
+        ---@type table @comment PropertyExtData
         local propXDef = {}
         if not self.propXDefs then
             self.propXDefs = {}
@@ -408,7 +408,7 @@ function SQLiteSchemaParser:initializeProperties(tblInfo, classDef)
     end
 end
 
----@description Load and processes table's indexes
+---Load and processes table's indexes
 ---SQLite may not include primary key index definition in the index list
 ---and in this case PK definition can be retrieved from column information.
 ---For consistency, if PK index is missing in pragma index_list, we add extra item,
@@ -499,7 +499,7 @@ local PROP_INDEX_PRIORITY = {
     MKEY1 = 2,
 }
 
----@description Applies SQLite index definitions to Flexi properties
+--- Applies SQLite index definitions to Flexi properties
 ---The following cases are handled:
 ---1) single column unique indexes - accepted as is
 ---2) single column non-unique indexes on float, integer or date types - added to RTREE index if possible
@@ -570,13 +570,13 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
             end
         elseif idx_def.unique ~= 0 then
             if multi_key_idx_applied then
-                print(ansicolors(string([[%%{yellow}WARN: More than 1 multi column unique index [%s] found.
+                print(ansicolors(string.format([[%%{yellow}WARN: More than 1 multi column unique index [%s] found.
                 Currently Flexilite can support only one multi column unique index%%{reset}]], idx_def.name)))
                 goto end_of_loop
             end
 
             if #idx_def.cols > 4 then
-                print(ansicolors(string([[%%{yellow}WARN: Index [%s] has %d columns.
+                print(ansicolors(string.format([[%%{yellow}WARN: Index [%s] has %d columns.
                  Maximum 4 columns is supported by Flexilite%%{reset}]], idx_def.name, #idx_def.cols)))
                 goto end_of_loop
             end
@@ -749,8 +749,8 @@ function SQLiteSchemaParser:getIndexColumnNames(tbl, idx)
     return table.concat(result, ',')
 end
 
----@param classDef IClassDef
----@param prop IPropertyDef
+---@param classDef ClassDef
+---@param prop PropertyDef
 ---@return string
 function SQLiteSchemaParser:findPropName(classDef, prop)
     for name, p in pairs(classDef.properties) do
@@ -764,7 +764,7 @@ end
 
 -- Try to find matching properties for special purposes (IClassDef.specialProperties)
 ---@param tblInfo ITableInfo
----@param classDef IClassDef
+---@param classDef ClassDef
 function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
 
     -- This dictionary defines weights for property types to be used when guessing for special properties
@@ -780,7 +780,7 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
     }
 
     -- Calculates weight of column based on type and index
-    ---@param prop IPropertyDef
+    ---@param prop PropertyDef
     ---@return number
     local function getColumnWeight(prop)
         local weight = propTypeMetadata[prop.rules.type]
@@ -1079,7 +1079,7 @@ function SQLiteSchemaParser:enforceIdAndNameProps(tableName)
 end
 
 ---@param tblInfo ITableInfo
----@return IClassDef
+---@return ClassDef
 function SQLiteSchemaParser:processFlexiliteClassDef(tblInfo)
     local classDef = self.outSchema[tblInfo.table]
 

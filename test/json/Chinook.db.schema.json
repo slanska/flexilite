@@ -25,36 +25,6 @@
 			}
 		}
 	},
-	"PlaylistTrack": {
-		"properties": {
-			"TrackId": {
-				"refDef": {
-					"classRef": {
-						"text": "Track"
-					}
-				},
-				"index": "index",
-				"rules": {
-					"minOccurrences": 1,
-					"type": "enum",
-					"maxOccurrences": 1
-				}
-			},
-			"PlaylistId": {
-				"rules": {
-					"minOccurrences": 1,
-					"type": "enum",
-					"maxOccurrences": 1
-				},
-				"refDef": {
-					"classRef": {
-						"text": "Playlist"
-					}
-				}
-			}
-		},
-		"specialProperties": 		{}
-	},
 	"Employee": {
 		"properties": {
 			"Fax": {
@@ -110,14 +80,14 @@
 				}
 			},
 			"ReportsTo": {
-				"refDef": {
-					"classRef": {
-						"text": "Employee"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"type": "enum"
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Employee"
+					}
 				}
 			},
 			"Address": {
@@ -169,16 +139,16 @@
 	"InvoiceLine": {
 		"properties": {
 			"InvoiceId": {
-				"refDef": {
-					"classRef": {
-						"text": "Invoice"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"minOccurrences": 1,
 					"type": "enum",
 					"maxOccurrences": 1
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Invoice"
+					}
 				}
 			},
 			"Quantity": {
@@ -197,16 +167,16 @@
 				"index": "unique"
 			},
 			"TrackId": {
-				"refDef": {
-					"classRef": {
-						"text": "Track"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"minOccurrences": 1,
 					"type": "enum",
 					"maxOccurrences": 1
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Track"
+					}
 				}
 			},
 			"UnitPrice": {
@@ -252,16 +222,16 @@
 	"Track": {
 		"properties": {
 			"MediaTypeId": {
-				"refDef": {
-					"classRef": {
-						"text": "MediaType"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"minOccurrences": 1,
 					"type": "enum",
 					"maxOccurrences": 1
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "MediaType"
+					}
 				}
 			},
 			"Name": {
@@ -295,14 +265,14 @@
 				}
 			},
 			"GenreId": {
-				"refDef": {
-					"classRef": {
-						"text": "Genre"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"type": "enum"
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Genre"
+					}
 				}
 			},
 			"Composer": {
@@ -312,14 +282,14 @@
 				}
 			},
 			"AlbumId": {
-				"refDef": {
-					"classRef": {
-						"text": "Album"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"type": "enum"
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Album"
+					}
 				}
 			},
 			"Bytes": {
@@ -348,16 +318,16 @@
 				"index": "unique"
 			},
 			"ArtistId": {
-				"refDef": {
-					"classRef": {
-						"text": "Artist"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"minOccurrences": 1,
 					"type": "enum",
 					"maxOccurrences": 1
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Artist"
+					}
 				}
 			},
 			"Title": {
@@ -383,12 +353,6 @@
 	},
 	"Playlist": {
 		"properties": {
-			"Name": {
-				"rules": {
-					"maxLength": 120,
-					"type": "text"
-				}
-			},
 			"PlaylistId": {
 				"rules": {
 					"minOccurrences": 1,
@@ -396,6 +360,23 @@
 					"maxOccurrences": 1
 				},
 				"index": "unique"
+			},
+			"Track": {
+				"rules": {
+					"minOccurrences": 0,
+					"type": "ref",
+					"maxOccurrences": 9.007199254741e+15
+				},
+				"refDef": {
+					"reverseProperty": "Playlist",
+					"classRef": "Track"
+				}
+			},
+			"Name": {
+				"rules": {
+					"maxLength": 120,
+					"type": "text"
+				}
 			}
 		},
 		"specialProperties": {
@@ -426,14 +407,14 @@
 				}
 			},
 			"SupportRepId": {
-				"refDef": {
-					"classRef": {
-						"text": "Employee"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"type": "enum"
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Employee"
+					}
 				}
 			},
 			"Country": {
@@ -513,16 +494,16 @@
 	"Invoice": {
 		"properties": {
 			"CustomerId": {
-				"refDef": {
-					"classRef": {
-						"text": "Customer"
-					}
-				},
 				"index": "index",
 				"rules": {
 					"minOccurrences": 1,
 					"type": "enum",
 					"maxOccurrences": 1
+				},
+				"enumDef": {
+					"classRef": {
+						"text": "Customer"
+					}
 				}
 			},
 			"InvoiceDate": {

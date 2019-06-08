@@ -107,7 +107,7 @@ local function generateSchema(cli_args)
         end
     end
 
-    print(ansicolors(string.format('\n%%{cyan}Generated schema has been saved in %%{white}%s %%{reset}',
+    print(ansicolors(string.format('\n%%{cyan}Generated schema has been saved in %%{white}%s %%{reset}\n\n',
             cli_args.output)))
 end
 

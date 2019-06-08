@@ -32,9 +32,9 @@ local function insertNewClass(self, clsObject)
     -- Save new class record to get ID
     clsObject.Name:resolve(clsObject)
     self:execStatement("insert into [.classes] (NameID) values (:ClassNameID);",
-                       {
-                           ClassNameID = clsObject.Name.id,
-                       })
+            {
+                ClassNameID = clsObject.Name.id,
+            })
     clsObject.D.ClassID = self.db:last_insert_rowid()
     clsObject.ClassID = clsObject.D.ClassID
 
@@ -51,20 +51,35 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
         error(s)
     end
 
+    -- Reference properties are deferred and processed in 2 phases, to allow
+    -- all necessary classes to be created first
+    local refProps = {}
+
+    ---@param clsObject ClassDef
+    ---@param p PropertyDef
+    ---@param name string
+    local function applyProp(
+            clsObject --: ClassDef
+    , p --: PropertyDef
+    , name --: string
+    )
+        --: void
+        clsObject:assignColMappingForProperty(p)
+        p:applyDef()
+        local propID = p:saveToDB(nil, name)
+        self.ClassProps[propID] = p
+    end
+
     for className, classDef in pairs(schemaDef) do
         local classID = self:getClassIdByName(className, false)
-        -->>
-        require('debugger')(className ~= 'Categories')
-
         if classID ~= 0 then
-
             error('Class ' .. className .. ' already exists')
         end
 
         -- validate name
-        --if not self:isNameValid(className) then
-        --    error('Invalid class name' .. className)
-        --end
+        if not self:isNameValid(className) then
+            error('Invalid class name' .. className)
+        end
 
         if createVirtualTable == 0 then
             createVirtualTable = false
@@ -90,12 +105,15 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
             -- TODO Set ctloMask
             clsObject.D.ctloMask = 0
 
+            clsObject.D.VirtualTable = false
+
             -- Apply definition
             for name, p in pairs(clsObject.Properties) do
-                clsObject:assignColMappingForProperty(p)
-                p:applyDef()
-                local propID = p:saveToDB(nil, name)
-                self.ClassProps[propID] = p
+                if p:isReference() then
+                    table.insert(refProps, { clsObject, p, name })
+                else
+                    applyProp(clsObject, p, name)
+                end
             end
 
             -- Check if class is fully resolved, i.e. does not have references to non-existing classes
@@ -106,10 +124,12 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
                 end
             end
 
-            clsObject.D.VirtualTable = false
-
             self:addClassToList(clsObject)
         end
+    end
+
+    for _, refPropInfo in ipairs(refProps) do
+        applyProp(unpack(refPropInfo))
     end
 
     for className in pairs(schemaDef) do
