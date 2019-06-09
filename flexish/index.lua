@@ -31,6 +31,7 @@ local path = require 'pl.path'
 -- set lua path
 package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua')) .. ';' ..
         path.abspath(path.relpath('../src_lua/?.lua')) .. ';' ..
+        path.abspath(path.relpath('../lib/debugger-lua/?.lua')) .. ';' ..
         package.path
 
 local sqlite3 = require 'lsqlite3complete'
@@ -102,7 +103,7 @@ local function generateSchema(cli_args)
 
     -- Print warnings and other messages
     if sqliteParser.results then
-        for i, item in ipairs(sqliteParser.results) do
+        for _, item in ipairs(sqliteParser.results) do
             print(string.format("%s: [%s] %s", item.tableName, item.type, item.message))
         end
     end
@@ -129,6 +130,14 @@ local function configDatabase()
 
 end
 
+-- Dumps entire native SQLite database into single JSON file, ready for INSERT INTO flexi_data (Data) values (:DataInJSON)
+-- or select flexi('load', null, :DataInJSON)
+local function doDumpDatabase(cli_args)
+    EnsureAbsPathArg(cli_args, 'database')
+    EnsureAbsPathArg(cli_args, 'output')
+    DumpDatabase(cli_args.database, cli_args.output, cli_args.table, cli_args.compactJson)
+end
+
 lapp.slack = true
 local cli_args = lapp [[
 Flexilite Shell Utility
@@ -141,14 +150,6 @@ Flexilite Shell Utility
     -d, --data (string default '') Path to JSON file with data to load
     -cj, --compactJson (boolean default false)  If set, output JSON will be in compact (minified) form
 ]]
-
--- Dumps entire native SQLite database into single JSON file, ready for INSERT INTO flexi_data (Data) values (:DataInJSON)
--- or select flexi('load', null, :DataInJSON)
-local function doDumpDatabase(cli_args)
-    EnsureAbsPathArg(cli_args, 'database')
-    EnsureAbsPathArg(cli_args, 'output')
-    DumpDatabase(cli_args.database, cli_args.output, cli_args.table, cli_args.compactJson)
-end
 
 local commandMap = {
     ['schema'] = generateSchema,

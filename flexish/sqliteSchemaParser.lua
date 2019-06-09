@@ -217,7 +217,7 @@ Based on structure of original table, 'Employees.EmployeesTerritories' will be a
 (mapped to PropertyID), 'Territories.Employees' - linked property (mapped to Value)
 
 As far as 'EmployeesTerritories' exists (and not renamed), external data can be loaded to the
-'EmployeesTerritories' virtual class. Note that actual class 'EmployeesTerritories' will not be created,
+'EmployeesTerritories' virtual table. Note that actual class 'EmployeesTerritories' will not be created,
 so if such a class to be created later, it will prevent importing data from external source.
 ]]
 
@@ -290,7 +290,8 @@ function SQLiteSchemaParser:processMany2ManyRelations()
                     },
                     refDef = {
                         classRef = cols[2].to_table,
-                        reverseProperty = revRefPropName,
+                        -- TODO resolve
+                        --reverseProperty = revRefPropName,
                     }
                 }
 
@@ -585,10 +586,10 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
             if not classDef.indexes then
                 classDef.indexes = {}
             end
-            local mkey_idx = {            }
+            local mkey_idx = {}
             classDef.indexes.multiKeyIndexing = mkey_idx
 
-            for i, cc in ipairs(idx_def.cols) do
+            for _, cc in ipairs(idx_def.cols) do
                 table.insert(mkey_idx, { text = cc.name })
             end
             indexed_cols[idx_def.cols[1].name] = PROP_INDEX_PRIORITY.MKEY1;
@@ -685,11 +686,11 @@ function SQLiteSchemaParser:loadTableInfo(sqliteTblDef)
 
     tblInfo.supportedIndexes = {}
     -- Checking if there non-supported indexes
-    for nn, idx in ipairs(indexes) do
+    for _, idx in ipairs(indexes) do
         if idx.partial == 0 and (string.lower(idx.origin) == 'c' or string.lower(idx.origin) == 'pk') then
             table.insert(tblInfo.supportedIndexes, idx)
         else
-            -----@type IFlexishResultItem
+            ---@type IFlexishResultItem
             local msg = {
                 type = 'warn',
                 message = string.format('Index %s is not supported', idx.name),
@@ -713,10 +714,11 @@ function SQLiteSchemaParser:processForeignKeys(tblInfo)
         table.insert(fkInfo, v)
     end
 
-    ---@param fkey ISQLiteForeignKeyInfo
-    local function isTheSameFKey(fkey, id)
-        return fkey.id == id
-    end
+    -- TODO
+    -----@param fkey ISQLiteForeignKeyInfo
+    --local function isTheSameFKey(fkey, id)
+    --    return fkey.id == id
+    --end
 
     if #fkInfo > 0 then
         for i, fk in ipairs(fkInfo) do
@@ -1102,10 +1104,10 @@ function SQLiteSchemaParser:ParseSchema(outJSON)
     self.outSchema = {}
     self.tableInfo = {}
 
-    self.SQLScript:append(string.format("select load_extension('libFlexilite');"))
-    self.SQLScript:append ""
-    self.SQLScript:append(string.format("select flexi('configure');"))
-    self.SQLScript:append ""
+
+    self.SQLScript:append("-- Uncomment following line if running in the context when Flexilite is not yet loaded")
+    self.SQLScript:append("-- select load_extension('libFlexilite');\n")
+    self.SQLScript:append("select flexi('configure');\n")
     self.SQLScript:append(string.format("select flexi('load', '%s');", outJSON))
     self.SQLScript:append ""
 
