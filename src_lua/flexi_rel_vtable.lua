@@ -184,15 +184,29 @@ virtual table. Refer to src/flexi/flexi_rel.cpp for more details
 ---@param propName string @comment reference property in className
 ---@param col1Name string @comment alias for column1 ("ObjectID" or "from")
 ---@param col2Name string @comment alias for column2 ("Value" or "to")
----@return bool, string @comment true if success, and false and error message if failed
+---@return boolean, string @comment true and virtual table SQL definition if success,
+---and false and error message if failed
 local function create_connect(DBContext, dbName, tableName, className, propName,
                               col1Name, col2Name)
     -- check permission to create/open new tables
+    DBContext.AccessControl:ensureUserCanCreateClass(DBContext.UserInfo)
+
     -- get class
+    local classDef = DBContext:getClassDef(className, true)
+
     -- get property
+    local propDef = classDef:getProperty(propName)
+
     -- ensure that this is reference property
+    if not propDef:isReference() or propDef.D.refDef.mixin then
+        error(string.format('[%s].[%s] must be a pure reference property', className, propName))
+    end
+
     -- get "to" class and property
-    -- set result
+    -- set result SQL
+
+    --print(string.format('create_connect: %s, %s, %s, %s, %s, %s',
+    --        dbName, tableName, className, propName, col1Name, col2Name))
 end
 
 ---@param DBContext DBContext

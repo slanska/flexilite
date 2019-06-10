@@ -21,12 +21,21 @@ function AccessControl:_init(DBContext)
     self.DBContext = DBContext
 end
 
+--- Ensures that given user is granted permission to create a new class
+---@param userInfo UserInfo
+function AccessControl:ensureUserCanCreateClass(userInfo)
+    -- TODO temp
+    return true
+end
+
 --[[
 Checks if given user's roles match given accessRules (coming from class, property, or object)
 Returns true or false
 accessRules may have 3 (optional) elements: roles, users, hook. If present, all of them are checked
 to determine if there is any 'access denied' setting. 'Access denied' has highest priority
 If userInfo or userInfo.roles is nil or empty, it is treated as '*' - access to everything
+
+accessRules are defined on class or property level
 ]]
 ---@param userInfo UserInfo
 ---@param accessRules table
@@ -87,7 +96,7 @@ end
 function AccessControl:ensureUserPermission(userInfo, accessRules, op)
     local allowed = self:checkUserPermission(userInfo, accessRules, op)
     if not allowed then
-        -- TODO Log details
+        -- TODO Log details. Message with specific info
         error('Not authorized')
     end
 end
@@ -123,7 +132,7 @@ Pattern to match access rules
 ]]
 AccessControl.PermissionSchema = schema.Pattern('[C?c?R?r?U?u?D?d?N?n?E?e?+?*?-?]')
 AccessControl.PermissionMapSchema = schema.Optional(schema.Map(schema.OneOf(schema.String, schema.Integer)),
-    AccessControl.PermissionSchema)
+        AccessControl.PermissionSchema)
 
 AccessControl.Schema = schema.Record {
     roles = AccessControl.PermissionMapSchema,

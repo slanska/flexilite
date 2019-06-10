@@ -940,7 +940,7 @@ function DBObject:processReferenceProperties()
     --    local prop = self.ClassDef:hasProperty(name)
     --    -- if reference property, proceed recursively
     --    if prop:isReference() then
-    --        if prop.rules.type == 'nested' or prop.rules.type == 'master' then
+    --        if prop.rules.type == 'inner' or prop.rules.type == 'master' then
     --            -- Sub-data is data
     --        else
     --            -- Sub-data is query to return ID(s) to update or delete references

@@ -35,7 +35,7 @@ int sqlite3_extension_init(
 
     // TODO register virtual table modules
     // TODO pass flexilite lua context
-//    result = register_flexi_rel_vtable(db, pDBCtx);
+    result = register_flexi_rel_vtable(db, pDBCtx);
 
-    return SQLITE_OK;
+    return result;
 }

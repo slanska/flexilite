@@ -110,6 +110,9 @@ static int _create_connect(sqlite3 *db, void *pAux,
                            sqlite3_vtab **ppVTab,
                            char **pzErr)
 {
+    int result = SQLITE_OK;
+    char* zCreateTable = nullptr;
+
     if (argc != 7)
     {
         // TODO
@@ -153,18 +156,24 @@ static int _create_connect(sqlite3 *db, void *pAux,
     lua_pushstring(vtab->pCtx->L, argv[3]);
     // colName2
     lua_pushstring(vtab->pCtx->L, argv[4]);
-    lua_pcall(vtab->pCtx->L, 7, 1, 0);
 
-    auto zCreateTable = sqlite3_mprintf("create table [%s] (PropID int, Col1, Col2, ID int, ctlv int, ExtData json1);");
-    int result = sqlite3_declare_vtab(db, zCreateTable);
+    if (lua_pcall(vtab->pCtx->L, 7, 1, 0))
+    {
+        *pzErr = sqlite3_mprintf("Flexilite DBContext(db): %s\n", lua_tostring(vtab->pCtx->L, -1));
+        result = SQLITE_ERROR;
+        goto ONERROR;
+    }
+
+    zCreateTable = sqlite3_mprintf("create table [%s] (PropID int, Col1, Col2, ID int, ctlv int, ExtData json1);");
+    result = sqlite3_declare_vtab(db, zCreateTable);
     sqlite3_free(zCreateTable);
     if (result != SQLITE_OK)
-    { goto ERROR; }
+    { goto ONERROR; }
 
-    ERROR:
+    ONERROR:
     delete vtab;
     EXIT:
-    return SQLITE_OK;
+    return result;
 }
 
 /*

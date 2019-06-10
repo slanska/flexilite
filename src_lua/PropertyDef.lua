@@ -87,10 +87,26 @@ PropertyDef
 ---@class PropertyEnumDef
 ---@field items table @comment EnumItemDef[]
 
+---@class PropertyRefDefDynamicRule
+---@field regex string
+---@field classRef ClassNameRef
+
+---@class PropertyRefDefDynamic
+---@field selectorProp PropNameRef
+---@field rules PropertyRefDefDynamicRule[]
+
+---@class PropertyRefDef
+---@field classRef ClassNameRef
+---@field reverseProperty PropNameRef
+---@field dynamic PropertyRefDefDynamic
+---@field autoFetchLimit number
+---@field autoFetchDepth number
+---@field mixin boolean
+
 ---@class PropertyDefData
 ---@field rules PropertyRules
 ---@field enumDef PropertyEnumDef
----@field refDef table
+---@field refDef PropertyRefDef
 ---@field accessRules table
 ---@field indexing string
 ---@field defaultValue any
@@ -388,7 +404,7 @@ function PropertyDef:ExportDBValue(dbo, dbv)
 end
 
 -- Binds Value parameter to insert/update .ref-values
----@param stmt sqlite3_statement
+---@param stmt userdata @comment sqlite3_statement
 ---@param param_no number
 ---@param dbv DBValue
 function PropertyDef:BindValueParameter(stmt, param_no, dbv)
@@ -897,7 +913,7 @@ end
 ---@return boolean, function
 function EnumPropertyDef:BeforeDBValueSave(dbv)
 
-    ---@return bool
+    ---@return boolean
     local function validateEnumRef()
         -- TODO
 
@@ -1013,7 +1029,7 @@ function BlobPropertyDef:ExportDBValue(dbo, dbv)
 end
 
 -- Binds Value parameter to insert/update .ref-values
----@param stmt sqlite3_statement
+---@param stmt userdata @comment sqlite3_statement
 ---@param param_no number
 ---@param dbv DBValue
 function BlobPropertyDef:BindValueParameter(stmt, param_no, dbv)
@@ -1300,7 +1316,7 @@ local RefDefSchemaDef = {
     --[[
     Similar to master but referenced objects are treated as part of master object
     ]]
-            'nested',
+            'inner',
 
     --[[
     Object cannot be deleted if there are references. Equivalent of DELETE RESTRICT

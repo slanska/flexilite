@@ -76,6 +76,8 @@ static int _flexi_create_from_json(sqlite3 *db, const char *zJSONPath, const cha
     CHECK_STMT_PREPARE(db, zSql, &pStmt);
     sqlite3_bind_text(pStmt, 1, zBuf, -1, NULL);
     CHECK_STMT_STEP(pStmt, db);
+    if (result == SQLITE_DONE || result == SQLITE_ROW)
+        result = SQLITE_OK;
 
     goto EXIT;
 
@@ -99,5 +101,47 @@ int flexi_create_schema_from_json_file(sqlite3 *db, const char *zJSONPath)
 int flexi_create_class_from_json_file(sqlite3 *db, const char *zJSONPath)
 {
     return _flexi_create_from_json(db, zJSONPath, "create class");
+}
+
+int run_sql(sqlite3 * db, const char* zSql)
+{
+    int result = 0;
+
+    sqlite3_stmt *pStmt = NULL;
+    CHECK_STMT_PREPARE(db, zSql, &pStmt);
+    CHECK_STMT_STEP(pStmt, db);
+    if (result == SQLITE_DONE || result == SQLITE_ROW)
+        result = SQLITE_OK;
+
+    goto EXIT;
+
+    ONERROR:
+    assert_false(result);
+
+    EXIT:
+    if (pStmt)
+        sqlite3_finalize(pStmt);
+
+    return result;
+}
+
+int run_sql_from_file(sqlite3 *db, const char *zSQLPath)
+{
+    int result = 0;
+    char *zSql = NULL;
+
+    CHECK_CALL(file_load_utf8(zSQLPath, &zSql));
+
+    CHECK_CALL(run_sql(db, zSql));
+
+    goto EXIT;
+
+    ONERROR:
+    assert_false(result);
+
+    EXIT:
+    sqlite3_free(zSql);
+
+    return result;
 }
 

@@ -266,10 +266,6 @@ function IndexDefinitions:toInternalJSON()
     return result
 end
 
-----@class NameRef
----@field text string
----@field id number | nil
-
 ---@class propColMap
 ---@field A NameRef
 ---@field B NameRef

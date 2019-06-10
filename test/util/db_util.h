@@ -17,4 +17,8 @@ int flexi_create_schema_from_json_file(sqlite3 *db, const char *zJSONPath);
 
 int flexi_create_class_from_json_file(sqlite3 *db, const char *zJSONPath);
 
+int run_sql(sqlite3 * db, const char* zSql);
+
+int run_sql_from_file(sqlite3 *db, const char *zSQLPath);
+
 #endif //FLEXILITE_DB_INIT_H

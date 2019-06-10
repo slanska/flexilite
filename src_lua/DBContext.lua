@@ -759,7 +759,7 @@ function DBContext:initMemoizeFunctions()
     self.GetNestedAndMasterProperties = util.memoize(function(classID)
         local classDef = self:getClassDef(classID)
         return tablex.filter(tablex.values(classDef.Properties), function(propDef)
-            return propDef.rules.type == 'nested'
+            return propDef.rules.type == 'inner'
         end)
     end)
 end

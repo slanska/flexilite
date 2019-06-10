@@ -20,27 +20,19 @@ static void create_flexirel_vtable(void **state)
     int result = 0;
     sqlite3 *pDB = *state;
 
-    sqlite3_stmt *pStmt;
-
+    // Create schema
     CHECK_CALL(flexi_create_schema_from_json_file(pDB, NORTHWIND_DB3_SCHEMA_JSON));
 
-    // Create class: Employees
-
-    // Create class: Territories
-
     // Create flexirel: EmployeeTerritories
-
-
-    //    CHECK_CALL(sqlite3_prepare(pDB, "select flexi('configure');", -1, &pStmt, NULL));
-    //    CHECK_STMT_STEP(pStmt, pDB);
-
-    printf("create_flexirel_vtable: %p", pDB);
+    CHECK_CALL(run_sql(pDB, "create virtual table if not exists [EmployeesTerritories]\n"
+                            "using flexi_rel ([EmployeeID], [TerritoryID], [Employees] hidden, [Territories] hidden);"));
 
     goto EXIT;
 
     ONERROR:
-    EXIT:
     printf("Error %d, %s", sqlite3_errcode(pDB), sqlite3_errmsg(pDB));
+    EXIT:
+    printf("create_flexirel_vtable: %p", pDB);
 }
 
 int run_flexirel_vtable_tests(sqlite3 *pDB)

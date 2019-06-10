@@ -17,8 +17,8 @@ package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua
 local prettyJson = require "prettycjson"
 -- Dumps given table to out table
 ---@param out table
----@param db sqlite3
----@param classDef IClassDef
+---@param db userdata @comment sqlite3
+---@param classDef ClassDef
 ---@param tableName string
 local function outTable(out, db, classDef, tableName)
     -- List of all table rows
