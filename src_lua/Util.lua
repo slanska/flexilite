@@ -125,6 +125,26 @@ function DictCI:__newindex(key, value)
     return rawset(self, key, value)
 end
 
+--- Normalizes SQL table or column name by removing spaces, [] and ``
+---@param n string @comment class or property name
+---@return string
+local function normalizeSqlName(n)
+    -- []
+    local _, _, result = string.find(n, '^%s*%[(%w+)%]%s*$')
+
+    -- ``
+    if result == nil then
+         _, _, result = string.find(n, '^%s*%`(%w+)%`%s*$')
+    end
+
+    -- Normal string
+    if result == nil then
+        _, _, result = string.find(n, '^%s*(%w+)%s*$')
+    end
+
+    return result
+end
+
 return {
     -- Bit operations on 52-bit values
     -- (52 bit integer are natively supported by Lua's number)
@@ -141,5 +161,6 @@ return {
     parseDateTimeToJulian = parseDateTimeToJulian,
     stringifyJulianToDateTime = stringifyJulianToDateTime,
     stringifyDateTimeInfo = stringifyDateTimeInfo,
-    DictCI = DictCI
+    DictCI = DictCI,
+    normalizeSqlName = normalizeSqlName,
 }

@@ -25,7 +25,7 @@ static void create_flexirel_vtable(void **state)
 
     // Create flexirel: EmployeeTerritories
     CHECK_CALL(run_sql(pDB, "create virtual table if not exists [EmployeesTerritories]\n"
-                            "using flexi_rel ([EmployeeID], [TerritoryID], [Employees] hidden, [Territories] hidden);"));
+                            "using flexi_rel ([EmployeeID], [TerritoryID], [Employees], [Territories]);"));
 
     goto EXIT;
 

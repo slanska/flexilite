@@ -3,6 +3,9 @@
 --- DateTime: 2017-11-07 2:25 PM
 ---
 
+require 'test_paths'
+local Util = require('Util')
+
 --[[ Miscellaneous tests for utility classes ]]
 
 --[[
@@ -27,22 +30,52 @@ SELECT julianday([value]) from json_each('["2017-12-01T11:30",' ||
 
 ]]
 
-describe('PropertyDef utility tests', function()
+describe('misc tests', function()
 
-    pending('should use correct subclasses', function()
+    describe('PropertyDef utility tests', function()
+
+        pending('should use correct subclasses', function()
+
+        end)
+
+        pending('should convert from JulianDate', function()
+
+        end)
+
+        pending('should convert to JulianDate', function()
+
+        end)
+
+        pending('should match identifier name', function()
+
+        end)
 
     end)
 
-    pending('should convert from JulianDate', function()
+    describe('normalizeSqlName tests', function()
 
-    end)
+        local tests = {
+            { name = '  [Abc] ', expected = 'Abc' },
+            { name = '  `Abc` ', expected = 'Abc' },
+            { name = '`Abc` ', expected = 'Abc' },
+            { name = ' `Abc`', expected = 'Abc' },
+            { name = '[Abc]', expected = 'Abc' },
+            { name = '[Abc]  ', expected = 'Abc' },
+            { name = ' Abc  ', expected = 'Abc' },
+            { name = 'Abc  ', expected = 'Abc' },
+            { name = '  Abc', expected = 'Abc' },
+            { name = 'Abc', expected = 'Abc' },
+            { name = '[123]', expected = '123' },
+        }
 
-    pending('should convert to JulianDate', function()
-
-    end)
-
-    pending('should match identifier name', function()
-
+        it(':', function()
+            for _, tt in ipairs(tests) do
+                local fact = Util.normalizeSqlName(tt.name)
+                assert.are.equal(fact, tt.expected)
+            end
+        end)
     end)
 
 end)
+
+

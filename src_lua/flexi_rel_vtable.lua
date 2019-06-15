@@ -5,6 +5,9 @@
 ---
 
 local ffi = require 'ffi'
+local normalizeSqlName = require('Util').normalizeSqlName
+
+--TODO move cdef declarations to separate module
 
 -- Register SQLite types specific for virtual table API
 ffi.cdef [[
@@ -184,10 +187,17 @@ virtual table. Refer to src/flexi/flexi_rel.cpp for more details
 ---@param propName string @comment reference property in className
 ---@param col1Name string @comment alias for column1 ("ObjectID" or "from")
 ---@param col2Name string @comment alias for column2 ("Value" or "to")
----@return boolean, string @comment true and virtual table SQL definition if success,
----and false and error message if failed
+---@return number, string @comment ref property ID and  virtual table SQL definition if succeeds
+---or throws error if fails
 local function create_connect(DBContext, dbName, tableName, className, propName,
                               col1Name, col2Name)
+
+    -- Normalize class and prop names
+    className = normalizeSqlName(className)
+    propName = normalizeSqlName(propName)
+    col1Name = normalizeSqlName(col1Name)
+    col2Name = normalizeSqlName(col2Name)
+
     -- check permission to create/open new tables
     DBContext.AccessControl:ensureUserCanCreateClass(DBContext.UserInfo)
 
@@ -202,11 +212,13 @@ local function create_connect(DBContext, dbName, tableName, className, propName,
         error(string.format('[%s].[%s] must be a pure reference property', className, propName))
     end
 
-    -- get "to" class and property
-    -- set result SQL
+    -- TODO get "to" class and property
 
-    --print(string.format('create_connect: %s, %s, %s, %s, %s, %s',
-    --        dbName, tableName, className, propName, col1Name, col2Name))
+
+    -- set result SQL
+    local result = string.format("create table [%s] ([%s], [%s], [%s_x] INT HIDDEN, [%s_x] INT HIDDEN) without rowid;",
+            tableName, col1Name, col2Name, col1Name, col2Name)
+    return propDef.ID, result
 end
 
 ---@param DBContext DBContext
@@ -227,12 +239,25 @@ end
 ---@param idxStr string
 ---@param values any[]
 local function filter(DBContext, propID, idxNum, idxStr, values)
-
+    -- Build SQL based on filter
 end
 
 ---@param DBContext DBContext
 ---@param propID number
-local function update(DBContext, propID)
+---@param newRowID number
+---@param oldRowID number
+---@param fromID number
+---@param toID number
+---@param fromUDID string | number
+---@param toUDID string | number
+local function update(DBContext, propID, newRowID, oldRowID, fromID, toID, fromUDID, toUDID)
+
+    -- Check propID
+
+    -- Check DBContext
+
+    -- Determine kind of operation, based on newID and oldID values
+
 
 end
 
@@ -247,6 +272,8 @@ local function selfTest()
     idxInfo.aConstraint[0].usable = 1
     idxInfo.aConstraint[1].iTermOffset = 20
     idxInfo.aConstraint[1].op = 31
+
+    -- TODO check field offsets
 
     --print(idxInfo.aConstraint, idxInfo.aConstraint[0].op, idxInfo.aConstraint[0].iColumn, ffi.sizeof(idxInfo.aConstraint),
     --        idxInfo.aConstraint[1].op, idxInfo.aConstraint[1].iTermOffset)

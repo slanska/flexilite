@@ -483,6 +483,7 @@ function ClassDef:assignColMappingForProperty(prop)
 end
 
 ---@param propName string
+---@return PropertyDef | nil
 function ClassDef:hasProperty(propName)
     local result = self.Properties[propName]
     if result then
@@ -496,6 +497,7 @@ function ClassDef:hasProperty(propName)
 end
 
 ---@param propName string
+---@return PropertyDef @comment throws error if property is not found
 function ClassDef:getProperty(propName)
     -- Check if exists
     local prop = self:hasProperty(propName)

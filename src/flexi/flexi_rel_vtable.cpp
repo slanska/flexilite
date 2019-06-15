@@ -22,7 +22,7 @@
  * If class or property are removed, or property type changed to non-reference type, corresponding table
  * gets deleted.
  *
- * flexirel tables are mostly internally used for importing data from existing non-Flexilite databases.
+ * flexirel tables are used mostly internally for importing data from existing non-Flexilite databases.
  * When importing data from inline JSON or external JSON file, Flexilite first checks if there is a class
  * with required name. If no class is found, Flexilite checks existing flexirel tables which map to
  * corresponding class and property.
@@ -40,6 +40,15 @@
  *
  * flexirel vtable uses reference to shared DBContext to pass calls to Lua code.
  * This reference is available in FlexiliteContext_t struct
+ *
+ * flexirel vtable is mapped to the .ref-values table with given PropertyID. ObjectID is treated as `fromID`
+ * Value - as `toID`. These columns are declared as hidden, i.e. there are not returned by select * from <flexirel_table>
+ * Instead, user is presented with user defined IDs which correspond to original row IDs in the source non-Flexilite
+ * database. For example, in Northwind.EmployeeTerritories has EmployeeID - this will be exposed as user defined `fromID`.
+ * TerritoryID will be servind as user defined `toID`. Two other columns will be also declared - EmployeeID_x and TerritoryID_x,
+ * which will map to ObjectID and Value columns of .ref-values, respectively.
+ *
+ *
  *
  */
 
@@ -111,11 +120,10 @@ static int _create_connect(sqlite3 *db, void *pAux,
                            char **pzErr)
 {
     int result = SQLITE_OK;
-    char* zCreateTable = nullptr;
+    const char *zCreateTable = nullptr;
 
     if (argc != 7)
     {
-        // TODO
         *pzErr = sqlite3_mprintf(
                 "Flexirel expects 4 column names: column_name_1, column_name_2, class_name, property_name");
         return SQLITE_ERROR;
@@ -123,12 +131,6 @@ static int _create_connect(sqlite3 *db, void *pAux,
 
     string sTable(argv[2]);
     string sDB(argv[1]);
-
-    // Find class and property IDs
-
-    // Check if property is a reference property
-
-    // Parse column names
 
     // Initialize
     auto vtab = new FlexiRel_vtab();
@@ -139,6 +141,10 @@ static int _create_connect(sqlite3 *db, void *pAux,
     vtab->pCtx = static_cast<FlexiliteContext_t *>(pAux);
 
     *ppVTab = vtab;
+
+    lua_checkstack(vtab->pCtx->L, 10);
+
+    int oldTop = lua_gettop(vtab->pCtx->L);
 
     // Call Lua implementation
     prepare_call(vtab->pCtx, "create_connect");
@@ -157,22 +163,28 @@ static int _create_connect(sqlite3 *db, void *pAux,
     // colName2
     lua_pushstring(vtab->pCtx->L, argv[4]);
 
-    if (lua_pcall(vtab->pCtx->L, 7, 1, 0))
+    // 7 arguments, 2 results, no error handler
+    if (lua_pcall(vtab->pCtx->L, 7, 2, NULL))
     {
         *pzErr = sqlite3_mprintf("Flexilite DBContext(db): %s\n", lua_tostring(vtab->pCtx->L, -1));
         result = SQLITE_ERROR;
         goto ONERROR;
     }
 
-    zCreateTable = sqlite3_mprintf("create table [%s] (PropID int, Col1, Col2, ID int, ctlv int, ExtData json1);");
+    vtab->_propID = lua_tointeger(vtab->pCtx->L, -2);
+    zCreateTable = lua_tostring(vtab->pCtx->L, -1);
+
     result = sqlite3_declare_vtab(db, zCreateTable);
-    sqlite3_free(zCreateTable);
     if (result != SQLITE_OK)
     { goto ONERROR; }
+
+    goto EXIT;
 
     ONERROR:
     delete vtab;
     EXIT:
+    // Restore Lua stack
+    lua_settop(vtab->pCtx->L, oldTop);
     return result;
 }
 
@@ -297,6 +309,47 @@ static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_i
 {
     // Call Lua implementation
     int result = SQLITE_OK;
+
+    FlexiRel_vtab *vtab = (FlexiRel_vtab *) pVTab;
+
+    // Call Lua implementation
+    prepare_call(vtab->pCtx, "update");
+
+    // DBContext
+    lua_rawgeti(vtab->pCtx->L, LUA_REGISTRYINDEX, vtab->pCtx->DBContext_Index);
+    // propID
+    lua_pushinteger(vtab->pCtx->L, vtab->_propID);
+    // newRowID
+//    lua_pushstring(vtab->pCtx->L, argv[2]);
+    // oldRowID
+//    lua_pushstring(vtab->pCtx->L, argv[0]);
+    // fromID
+//    lua_pushstring(vtab->pCtx->L, argv[6]);
+    // toID
+//    lua_pushstring(vtab->pCtx->L, argv[3]);
+    // fromUDID
+//    lua_pushstring(vtab->pCtx->L, argv[4]);
+    // toUDID
+//    lua_pushstring(vtab->pCtx->L, argv[4]);
+
+    // 7 arguments, 2 results, no error handler
+    if (lua_pcall(vtab->pCtx->L, 8, 0, NULL))
+    {
+        vtab->zErrMsg = sqlite3_mprintf("Flexilite DBContext(db): %s\n", lua_tostring(vtab->pCtx->L, -1));
+        result = SQLITE_ERROR;
+        goto ONERROR;
+    }
+
+
+    if (result != SQLITE_OK)
+    { goto ONERROR; }
+
+    goto EXIT;
+
+    ONERROR:
+
+    EXIT:
+
     return result;
 }
 
