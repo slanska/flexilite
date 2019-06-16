@@ -6,6 +6,8 @@
 
 local ffi = require 'ffi'
 local normalizeSqlName = require('Util').normalizeSqlName
+local List = require 'pl.List'
+local Constants = require 'Constants'
 
 --TODO move cdef declarations to separate module
 
@@ -179,6 +181,95 @@ These are few "complex" callback methods needed by flexi_rel SQLite
 virtual table. Refer to src/flexi/flexi_rel.cpp for more details
 ]]
 
+--- Regenerates updatable view to deal for flexirel
+---@param self DBContext
+---@param tableName string
+---@param className string
+---@param propName string
+---@param col1Name string
+---@param col2Name string
+--- may throw error
+local function generateView(self, tableName, className, propName, col1Name, col2Name)
+    -- Normalize class and prop names
+    className = normalizeSqlName(className)
+    propName = normalizeSqlName(propName)
+    col1Name = normalizeSqlName(col1Name)
+    col2Name = normalizeSqlName(col2Name)
+
+    -- check permission to create/open new tables
+    self.AccessControl:ensureUserCanCreateClass(self.UserInfo)
+
+    -- get class
+    local fromClassDef = self:getClassDef(className, true)
+
+    -- get property
+    local propDef = fromClassDef:getProperty(propName)
+
+    local toClassDef = self:getClassDef(propDef.D.refDef.classRef.text, true)
+
+    local toUDID = toClassDef:getUdidProp()
+    local fromUDID = fromClassDef:getUdidProp()
+
+    -- ensure that this is reference property
+    if not propDef:isReference() or propDef.D.refDef.mixin then
+        error(string.format('[%s].[%s] must be a pure reference property', className, propName))
+    end
+
+    local sql = List()
+    -- View
+    sql:append(string.format([[drop view if exists [%s];
+        create view if not exists [%s] as select %s, %s, ]], tableName, tableName, col1Name, col2Name))
+
+    ---@param udidProp PropertyDef
+    ---@param colName string
+    local function appendUDID(udidProp, colName)
+        if udidProp ~= nil then
+            if udidProp.ColMap ~= nil then
+                sql:append(string.format('(select o.[%s] from [.objects] o where o.ObjectID = v.[%s] limit 1) as [%s_2]',
+                        udidProp.ColMap, colName, colName))
+            else
+                sql:append(string.format([[(select ObjectID from [.ref-values] where PropertyID = %d
+                and ctlv & %d <> 0 and [Value] = v.[%s]) as [%s_2] ]],
+                        udidProp.ID, Constants.CTLV_FLAGS.INDEX_AND_REFS_MASK, colName, colName))
+            end
+        else
+            sql:append(string.format('v.[%s] as [%s_2]', colName, colName))
+        end
+    end
+
+    appendUDID(fromUDID, col1Name)
+    sql:append ','
+    appendUDID(toUDID, col2Name)
+
+    sql:append(string.format('from (select ObjectID as [%s], [Value] as [%s] from [.ref-values] where PropertyID = %d and ctlv & %d <> 0) v;',
+            col1Name, col2Name, propDef.ID, Constants.CTLV_FLAGS.INDEX_AND_REFS_MASK))
+
+    -->>
+    --require('debugger')()
+
+    -- Insert trigger when IDs are not nil
+    sql:append(string.format(
+            [[create trigger [%s_insert_ids]
+        instead of insert on [%s] for each row
+        when [%s_2] is not null and [%s_2] is not null
+        begin]],
+            tableName, tableName, col1Name, col2Name))
+
+    sql:append 'end'
+
+    -- Insert trigger when IDs are nil
+
+    -- Update trigger when IDs are not nil
+
+    -- Update trigger when IDs are not nil
+
+    -- Update trigger when IDs are nil
+
+    -->>
+    print('@@@@ generateView: ', sql:join('\n'))
+
+    self:ExecAdhocSql(sql:join('\n'))
+end
 
 ---@param DBContext DBContext
 ---@param dbName string @comment main, temp...
@@ -211,6 +302,9 @@ local function create_connect(DBContext, dbName, tableName, className, propName,
     if not propDef:isReference() or propDef.D.refDef.mixin then
         error(string.format('[%s].[%s] must be a pure reference property', className, propName))
     end
+
+    -->>
+    generateView(DBContext, tableName, className, propName, col1Name, col2Name)
 
     -- TODO get "to" class and property
 
@@ -299,4 +393,5 @@ return {
     best_index = best_index,
     filter = filter,
     update = update,
+    generateView = generateView
 }

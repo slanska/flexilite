@@ -14,6 +14,8 @@ MetadataRef
 ]]
 
 ---@class MetadataRef
+---@field id number
+---@field text string
 local MetadataRef = class()
 
 ---@param text string

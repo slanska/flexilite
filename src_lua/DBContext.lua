@@ -814,7 +814,7 @@ end
 -- Internal method. Prepares ad hoc SQL statement and binds parameters
 ---@param sql string
 ---@param params table
----@return lsqlite.stmt
+---@return userdata @comment lsqlite.stmt
 function DBContext:getAdhocStmt(sql, params)
     local result = self.db:prepare(sql)
     if not result then

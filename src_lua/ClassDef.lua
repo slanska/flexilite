@@ -399,12 +399,12 @@ function ClassDef:_init(params)
 
     ---@param dictName string
     local function dictFromJSON(dictName)
-        self[dictName] = {}
+        self.D[dictName] = {}
         local tt = data[dictName]
         if tt then
             for k, v in pairs(tt) do
-                self[dictName][k] = v
-                self.DBContext:InitMetadataRef(self[dictName], k, NameRef)
+                self.D[dictName][k] = v
+                self.DBContext:InitMetadataRef(self.D[dictName], k, NameRef)
             end
         end
     end
@@ -877,6 +877,25 @@ function ClassDef:getObjectSchema(op)
     result = schema.Record(objSchema, self.allowAnyProps)
     self.objectSchema[op] = result
     return result
+end
+
+---@param propKey string
+---@return PropertyDef | nil @comment Special property if applicable
+function ClassDef:getSpecialProperty(propKey)
+    if self.D.specialProperties ~= nil then
+        local pp = self.D.specialProperties[propKey]
+        if pp ~= nil then
+            local result = self:getProperty(pp.text)
+            return result
+        end
+    end
+
+    return nil
+end
+
+---@return PropertyDef | nil @comment User Defined ID property, if applicable
+function ClassDef:getUdidProp()
+    return self:getSpecialProperty('uid')
 end
 
 -- define schema for class JSON definition
