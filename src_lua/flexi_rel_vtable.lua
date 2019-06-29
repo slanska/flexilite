@@ -8,6 +8,7 @@ local ffi = require 'ffi'
 local normalizeSqlName = require('Util').normalizeSqlName
 local List = require 'pl.List'
 local Constants = require 'Constants'
+local ClassDef = require 'ClassDef'
 
 --TODO move cdef declarations to separate module
 
@@ -181,6 +182,32 @@ These are few "complex" callback methods needed by flexi_rel SQLite
 virtual table. Refer to src/flexi/flexi_rel.cpp for more details
 ]]
 
+
+--- Appends subquery for user-defined columns to instead of trigger body
+---@param sql table @comment pl.List
+---@param classDef ClassDef
+---@param udidProp PropertyDef
+---@param colName string
+---@param op string @comment new, old
+local function appendUDIDtoTrigger(sql, classDef, udidProp, colName, op)
+    if udidProp ~= nil then
+        sql:append(string.format('coalesce(%s.[%s], ', op, colName))
+        if udidProp.ColMap ~= nil then
+            local mask = ClassDef.getCtloMaskForColMapIndex(udidProp)
+            sql:append(string.format(
+                    '(select ObjectID from [.objects] where ClassID = %d and %s = %s.[%s_2] and ctlo & %d = %d limit 1)',
+                    classDef.ClassID, udidProp.ColMap, op, colName, mask, mask))
+        else
+            sql:append(string.format(
+                    '(select ObjectID from [.ref-values] where PropertyID = %d and [Value] = %s.[%s_2] and ctlv & %d <> 0)',
+                    udidProp.ID, op, colName, Constants.CTLV_FLAGS.UNIQUE))
+        end
+
+        sql:append ')'
+
+    end
+end
+
 --- Regenerates updatable view to deal for flexirel
 ---@param self DBContext
 ---@param tableName string
@@ -202,11 +229,12 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     -- get class
     local fromClassDef = self:getClassDef(className, true)
 
-    -- get property
+    -- get reference property
     local propDef = fromClassDef:getProperty(propName)
 
     local toClassDef = self:getClassDef(propDef.D.refDef.classRef.text, true)
 
+    -- attempt to get (optional) user defined ID properties
     local toUDID = toClassDef:getUdidProp()
     local fromUDID = fromClassDef:getUdidProp()
 
@@ -218,12 +246,15 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     local sql = List()
     -- View
     sql:append(string.format([[drop view if exists [%s];
-        create view if not exists [%s] as select %s, %s, ]], tableName, tableName, col1Name, col2Name))
+        create view if not exists [%s] as select v.%s as %s, v.%s as %s]],
+            tableName, tableName, col1Name, col1Name, col2Name, col2Name))
 
+    --- Appends subquery for user-defined columns to view body
     ---@param udidProp PropertyDef
     ---@param colName string
-    local function appendUDID(udidProp, colName)
+    local function appendUDIDtoView(udidProp, colName)
         if udidProp ~= nil then
+            sql:append ','
             if udidProp.ColMap ~= nil then
                 sql:append(string.format('(select o.[%s] from [.objects] o where o.ObjectID = v.[%s] limit 1) as [%s_2]',
                         udidProp.ColMap, colName, colName))
@@ -232,14 +263,11 @@ local function generateView(self, tableName, className, propName, col1Name, col2
                 and ctlv & %d <> 0 and [Value] = v.[%s]) as [%s_2] ]],
                         udidProp.ID, Constants.CTLV_FLAGS.INDEX_AND_REFS_MASK, colName, colName))
             end
-        else
-            sql:append(string.format('v.[%s] as [%s_2]', colName, colName))
         end
     end
 
-    appendUDID(fromUDID, col1Name)
-    sql:append ','
-    appendUDID(toUDID, col2Name)
+    appendUDIDtoView(fromUDID, col1Name)
+    appendUDIDtoView(toUDID, col2Name)
 
     sql:append(string.format('from (select ObjectID as [%s], [Value] as [%s] from [.ref-values] where PropertyID = %d and ctlv & %d <> 0) v;',
             col1Name, col2Name, propDef.ID, Constants.CTLV_FLAGS.INDEX_AND_REFS_MASK))
@@ -247,28 +275,88 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     -->>
     --require('debugger')()
 
-    -- Insert trigger when IDs are not nil
+    -- Insert trigger
     sql:append(string.format(
-            [[create trigger [%s_insert_ids]
+            [[create trigger [%s_insert]
         instead of insert on [%s] for each row
-        when [%s_2] is not null and [%s_2] is not null
         begin]],
-            tableName, tableName, col1Name, col2Name))
+            tableName, tableName))
 
-    sql:append 'end'
+    local function appendInsertStatement()
 
-    -- Insert trigger when IDs are nil
+        --[[
+        resulting insert sql looks like this (unfortunately CTE is not supporte in SQLite triggers, so we
+        use a bit complicated subqueries instead):
+        insert into .ref-values select col1, col2, (select max(PropIndex) + 1)... from (select coalesce(col1), coalesce(col2))
+        ]]
+        sql:append(string.format(
+                [[insert into [.ref-values] (ObjectID, [Value], PropIndex, PropertyID, ctlv, Metadata)
+            select v.[%s], v.[%s], coalesce((select max(PropIndex) from [.ref-values] where ObjectID = v.[%s]
+            and [Value] = v.[%s] and ctlv and %d <> 0), 0) + 1, ]],
+                col1Name, col2Name, col1Name, col2Name, Constants.CTLV_FLAGS.ALL_REFS_MASK))
+        sql:append(string.format('%d, %d, null ', propDef.ID, propDef.ctlv))
 
-    -- Update trigger when IDs are not nil
+        sql:append(' from (select ')
+        appendUDIDtoTrigger(sql, fromClassDef, fromUDID, col1Name, 'new')
+        sql:append(string.format(' as [%s], ', col1Name))
+        appendUDIDtoTrigger(sql, toClassDef, toUDID, col2Name, 'new')
+        sql:append(string.format(' as [%s]', col2Name))
 
-    -- Update trigger when IDs are not nil
+        sql:append(') v;')
+    end
 
-    -- Update trigger when IDs are nil
+    local function appendDeleteStatement()
+        sql:append(string.format('delete from [.ref-values] where '))
+        sql:append(string.format(' [%s] = ', col1Name))
+        appendUDIDtoTrigger(sql, fromClassDef, fromUDID, col1Name, 'old')
+        sql:append(string.format(' and [%s] = ', col2Name))
+        appendUDIDtoTrigger(sql, toClassDef, toUDID, col2Name, 'old')
+        sql:append(string.format(' and ctlv & %d <> 0;', Constants.CTLV_FLAGS.ALL_REFS_MASK))
+    end
+
+    appendInsertStatement()
+    sql:append [[end;]]
+
+    -- Update trigger
+    sql:append(string.format(
+            [[create trigger [%s_update]
+        instead of update on [%s] for each row]],
+            tableName, tableName))
+
+    ---@param prefix string
+    ---@param colName string
+    local function appendWhenCondition(prefix, colName)
+        sql:append(string.format(
+                ' %s (new.[%s] is not null and new.[%s] <> old.[%s])',
+                prefix, colName, colName, colName))
+    end
+
+    appendWhenCondition('when', col1Name)
+    appendWhenCondition('or', col2Name)
+    appendWhenCondition('or', col1Name .. '_2')
+    appendWhenCondition('or', col1Name .. '_2')
+
+    sql:append('begin')
+    appendDeleteStatement()
+    appendInsertStatement()
+
+    sql:append('end;')
+
+    -- Delete trigger
+    sql:append(string.format(
+            [[create trigger [%s_delete]
+        instead of delete on [%s] for each row
+        begin]],
+            tableName, tableName))
+    appendDeleteStatement()
+
+    sql:append('end;')
 
     -->>
     print('@@@@ generateView: ', sql:join('\n'))
 
-    self:ExecAdhocSql(sql:join('\n'))
+    self:ExecAdhocSql(sql:join('\n')
+    )
 end
 
 ---@param DBContext DBContext

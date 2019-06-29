@@ -717,6 +717,20 @@ function ClassDef:normalizeIndexDefinitions()
 end
 
 -- Static (class level) method
+---@param propDef PropertyDef
+---@return number @comment integer mask for indexed propDef.ColMap property
+function ClassDef.getCtloMaskForColMapIndex(propDef)
+    local result = 0
+    local colIdx = string.byte(propDef.ColMap) - string.byte('A')
+    if propDef.index == 'unique' then
+        result = bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.UNIQUE_SHIFT)
+    elseif propDef.index == 'index' then
+        result = bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.INDEX_SHIFT)
+    end
+    return result
+end
+
+-- Static (class level) method
 -- Applies changes in class' index definitions
 -- Potentially long operation to update indexes (drop, create, update etc.)
 ---@param oldClassDef ClassDef
@@ -745,13 +759,9 @@ function ClassDef.ApplyIndexing(oldClassDef, newClassDef)
         end
 
         if propDef.ColMap then
-            -- TODO set ctlo
-            local colIdx = string.byte(propDef.ColMap) - string.byte('A')
-            if propDef.index == 'unique' then
-                local mask = bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.UNIQUE_SHIFT)
-            elseif propDef.index == 'index' then
+            local mask = ClassDef.getCtloMaskForColMapIndex(propDef)
 
-            end
+            -- TODO set ctlo
         end
 
         propDef:applyDef()
