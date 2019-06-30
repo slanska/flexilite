@@ -298,7 +298,6 @@ end
 ---@field specialProperties specialProperties
 ---@field meta any @comment Custom schema for meta data (defined by user on database level)
 ---@field accessRules table @comment TODO define structure of access rules
----@field storage string @comment nil | '' | 'R' - normal class or .ref-values @comment TODO needed?
 
 ---@class ClassDef
 ---@field ClassID number

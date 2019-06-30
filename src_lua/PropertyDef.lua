@@ -67,6 +67,7 @@ local dbprops = require 'DBProperty'
 local parseDateTimeToJulian = require('Util').parseDateTimeToJulian
 local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
 local base64 = require 'base64'
+local generateRelView = require('flexi_rel_vtable').generateView
 
 --[[
 ===============================================================================
@@ -102,6 +103,7 @@ PropertyDef
 ---@field autoFetchLimit number
 ---@field autoFetchDepth number
 ---@field mixin boolean
+---@field viewName string @comment optional name of view for many-to-many relationship
 
 ---@class PropertyDefData
 ---@field rules PropertyRules
@@ -774,29 +776,56 @@ function ReferencePropertyDef:hasUnresolvedReferences()
     return true
 end
 
+function ReferencePropertyDef:_checkRegenerateRelView()
+    ---@type PropertyRefDef
+    local refDef = self.D.refDef
+
+    if refDef.viewName ~= nil then
+        -- Generate view for many-2-many relationship
+        -- self, tableName, className, propName, col1Name, col2Name
+        local thisName = self.Name.text
+        local thatName
+        if refDef.reverseProperty then
+            thatName = refDef.reverseProperty.text
+        elseif refDef.classRef then
+            thatName = refDef.classRef.text
+        else
+            error(string.format(
+                    '%s.%s: Reversed property or referenced class are required for relational view. Both refDef.classRef and refDef.reverseProperty',
+                    self.ClassDef.Name.text,  self.Name.text))
+        end
+        generateRelView(self.ClassDef.DBContext, refDef.viewName, self.ClassDef.Name.text,
+                thisName, thisName, thatName)
+    end
+end
+
 function ReferencePropertyDef:applyDef()
     PropertyDef.applyDef(self)
 
-    if self.D.refDef then
-        if self.D.refDef.classRef then
-            self.D.refDef.classRef:resolve(self.ClassDef)
+    ---@type PropertyRefDef
+    local refDef = self.D.refDef
+    if refDef then
+        if refDef.classRef then
+            refDef.classRef:resolve(self.ClassDef)
         end
 
-        if self.D.refDef.reverseProperty then
-            self.D.refDef.reverseProperty:resolve(self.ClassDef)
+        if refDef.reverseProperty then
+            refDef.reverseProperty:resolve(self.ClassDef)
         end
 
-        if self.D.refDef.dynamic then
-            if self.D.refDef.dynamic.selectorProp then
-                self.D.refDef.dynamic.selectorProp:resolve(self.ClassDef)
+        if refDef.dynamic then
+            if refDef.dynamic.selectorProp then
+                refDef.dynamic.selectorProp:resolve(self.ClassDef)
             end
 
-            if self.D.refDef.dynamic.rules then
-                for _, v in pairs(self.D.refDef.dynamic.rules) do
+            if refDef.dynamic.rules then
+                for _, v in pairs(refDef.dynamic.rules) do
                     v.classRef:resolve(self.ClassDef)
                 end
             end
         end
+
+        self:_checkRegenerateRelView()
     end
 end
 
@@ -852,6 +881,7 @@ function EnumPropertyDef:hasUnresolvedReferences()
 end
 
 function EnumPropertyDef:applyDef()
+    -- Note: calling PropertyDef, not ReferencePropertyDef
     PropertyDef.applyDef(self)
 
     -- Resolve names
@@ -1324,7 +1354,9 @@ local RefDefSchemaDef = {
             'dependent'
     ),
 
-    mixin = schema.Optional(schema.Boolean)
+    mixin = schema.Optional(schema.Boolean),
+
+    viewName = schema.Optional(schema.String),
 }
 
 PropertyDef.Schema = schema.AllOf(schema.Record {

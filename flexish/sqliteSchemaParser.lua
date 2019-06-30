@@ -91,7 +91,7 @@ end
 ---@field tableInfo ITableInfo[] @comment list of internally used table information
 ---@field results IFlexishResultItem[]
 ---@field referencedTableNames string[]
----@field SQLScript table @comment pl.List
+-- -@field SQLScript table @comment pl.List
 ---@field SQLScriptPath string @comment Absolute path where SQL script will be saved
 
 local SQLiteSchemaParser = class()
@@ -113,7 +113,7 @@ function SQLiteSchemaParser:_init(db)
     -- Needed to enforce id and name special properties
     self.referencedTableNames = {}
 
-    self.SQLScript = List()
+    --self.SQLScript = List()
 end
 
 -- Mapping between SQLite column types and Flexilite property types
@@ -289,27 +289,30 @@ function SQLiteSchemaParser:processMany2ManyRelations()
                     },
                     refDef = {
                         classRef = cols[2].to_table,
-                        -- TODO resolve
-                        --reverseProperty = revRefPropName,
+                        -- TODO confirm
+                        reverseProperty = revRefPropName,
+                        viewName = tblInfo.table,
                     }
                 }
 
                 cls1.properties[refPropName] = propDef
 
+                -- TODO remove
                 --[[ Append SQL script to create a new virtual table, using
-                original table name.
-                ]]
-                local vt_sql = string.format([[create virtual table if not exists [%s]
-                using flexi_rel ([%s], [%s], [%s] hidden, [%s] hidden);
+                --original table name.
+                --]]
+                --local vt_sql = string.format([[create virtual table if not exists [%s]
+                --using flexi_rel ([%s], [%s], [%s] hidden, [%s] hidden);
+                --
+                --]],
+                --        tblInfo.table, cols[1].name, cols[2].name, cols[1].to_table, refPropName)
+                --
+                --self.SQLScript:append(vt_sql)
 
-                ]],
-                        tblInfo.table, cols[1].name, cols[2].name, cols[1].to_table, refPropName)
-
-                self.SQLScript:append(vt_sql)
-
+                -- Remove this table from list of classes
                 self.outSchema[tblInfo.table] = nil
 
-                print(ansicolors(string.format('%%{yellow}Virtual table %s has been registered to handle many-to-many relation%%{reset}', tblInfo.table)))
+                print(ansicolors(string.format('%%{yellow}Table %s was detected as many-to-many relation storage and will be ported as updatable view%%{reset}', tblInfo.table)))
             end
         end
     end
@@ -1103,12 +1106,12 @@ function SQLiteSchemaParser:ParseSchema(outJSON)
     self.outSchema = {}
     self.tableInfo = {}
 
-
-    self.SQLScript:append("-- Uncomment following line if running in the context when Flexilite is not yet loaded")
-    self.SQLScript:append("-- select load_extension('libFlexilite');\n")
-    self.SQLScript:append("select flexi('configure');\n")
-    self.SQLScript:append(string.format("select flexi('load', '%s');", outJSON))
-    self.SQLScript:append ""
+    -- TODO remove
+    --self.SQLScript:append("-- Uncomment following line if running in the context when Flexilite is not yet loaded")
+    --self.SQLScript:append("-- select load_extension('libFlexilite');\n")
+    --self.SQLScript:append("select flexi('configure');\n")
+    --self.SQLScript:append(string.format("select flexi('load', '%s');", outJSON))
+    --self.SQLScript:append ""
 
     local stmt, errMsg = self.db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
 
@@ -1179,7 +1182,7 @@ function SQLiteSchemaParser:detectMixinCandidate(tblInfo, classDef)
 
     if propDef.enumDef then
         propDef.enumDef.mixin = true
-        print(ansicolors(string.format('%%{yellow}Class %s is detected as mixin based on %s.%%{reset}',
+        print(ansicolors(string.format('%%{yellow}Table %s was detected as a mixin based on %s.%%{reset}',
                 tblInfo.table, fk[1].table)))
     end
 end

@@ -208,6 +208,14 @@ local function appendUDIDtoTrigger(sql, classDef, udidProp, colName, op)
     end
 end
 
+--- Generates SQL for dropping view
+---@param tableName string
+---@return string @comment generated SQL
+local function generateDropViewSql(tableName)
+    local result = string.format('drop view if exists [%s];', tableName)
+    return result
+end
+
 --- Regenerates updatable view to deal for flexirel
 ---@param self DBContext
 ---@param tableName string
@@ -245,9 +253,10 @@ local function generateView(self, tableName, className, propName, col1Name, col2
 
     local sql = List()
     -- View
-    sql:append(string.format([[drop view if exists [%s];
-        create view if not exists [%s] as select v.%s as %s, v.%s as %s]],
-            tableName, tableName, col1Name, col1Name, col2Name, col2Name))
+    sql:append(generateDropViewSql(tableName))
+    sql:append '' -- new line
+    sql:append(string.format('create view if not exists [%s] as select v.%s as %s, v.%s as %s',
+            tableName, col1Name, col1Name, col2Name, col2Name))
 
     --- Appends subquery for user-defined columns to view body
     ---@param udidProp PropertyDef
@@ -276,6 +285,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     --require('debugger')()
 
     -- Insert trigger
+    sql:append '' -- new line
     sql:append(string.format(
             [[create trigger [%s_insert]
         instead of insert on [%s] for each row
@@ -316,6 +326,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
 
     appendInsertStatement()
     sql:append [[end;]]
+    sql:append '' -- new line
 
     -- Update trigger
     sql:append(string.format(
@@ -343,6 +354,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     sql:append('end;')
 
     -- Delete trigger
+    sql:append '' -- new line
     sql:append(string.format(
             [[create trigger [%s_delete]
         instead of delete on [%s] for each row
