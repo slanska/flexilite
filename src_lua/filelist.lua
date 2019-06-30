@@ -48,6 +48,7 @@ return {
     ['DBProperty'] = 'src_lua/DBProperty.lua',
     ['ColMapping'] = 'src_lua/ColMapping.lua',
     ['flexi_rel_vtable'] = 'src_lua/flexi_rel_vtable.lua',
+    ['flexi_data_vtable'] = 'src_lua/flexi_data_vtable.lua',
 
     -- sql
     ['sql.dbschema'] = 'sql/dbschema.sql',

@@ -354,7 +354,7 @@
 					"maxOccurrences": 9.007199254741e+15
 				},
 				"refDef": {
-					"reverseProperty": "Employees",
+					"reverseProperty": "Territories",
 					"viewName": "EmployeesTerritories",
 					"classRef": "Territories"
 				}

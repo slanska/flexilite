@@ -277,6 +277,10 @@ function SQLiteSchemaParser:processMany2ManyRelations()
                 local cls2 = self.outSchema[cols[2].to_table]
                 assert(cls1, string.format('Class %s not found', cols[2].to_table))
 
+                -->>
+                --require('debugger')()
+                --<<
+
                 local refPropName = self:getUniquePropertyName(cls1, cols[2].to_table)
                 local revRefPropName = self:getUniquePropertyName(cls2, cols[1].to_table)
 
@@ -290,7 +294,7 @@ function SQLiteSchemaParser:processMany2ManyRelations()
                     refDef = {
                         classRef = cols[2].to_table,
                         -- TODO confirm
-                        reverseProperty = revRefPropName,
+                        reverseProperty = refPropName,
                         viewName = tblInfo.table,
                     }
                 }

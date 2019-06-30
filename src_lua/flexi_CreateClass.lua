@@ -128,8 +128,16 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
         end
     end
 
+    -- Apply changes for ref props
     for _, refPropInfo in ipairs(refProps) do
         applyProp(unpack(refPropInfo))
+    end
+
+    -- Pos-apply changes for ref props
+    for _, refPropInfo in ipairs(refProps) do
+        ---@type ReferencePropertyDef
+        local refProp = refPropInfo[2]
+        refProp:postApplyDef()
     end
 
     for className in pairs(schemaDef) do

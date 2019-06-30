@@ -46,7 +46,7 @@ set(TEST_FILES
         ../src/util/Array.c
         ../src/util/StringBuilder.c
         ../src/util/Path.c
-        flexirel_vtable_tests.c
+        import_data_tests.c
         )
 
 

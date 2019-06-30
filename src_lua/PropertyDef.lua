@@ -436,6 +436,10 @@ function PropertyDef:ColMapIndex()
     return self.ColMap ~= nil and string.lower(self.ColMap):byte() - string.byte('a') or nil
 end
 
+function PropertyDef:postApplyDef()
+    -- NOP
+end
+
 --[[
 ===============================================================================
 AnyPropertyDef
@@ -780,7 +784,7 @@ function ReferencePropertyDef:_checkRegenerateRelView()
     ---@type PropertyRefDef
     local refDef = self.D.refDef
 
-    if refDef.viewName ~= nil then
+    if refDef and refDef.viewName then
         -- Generate view for many-2-many relationship
         -- self, tableName, className, propName, col1Name, col2Name
         local thisName = self.Name.text
@@ -797,6 +801,12 @@ function ReferencePropertyDef:_checkRegenerateRelView()
         generateRelView(self.ClassDef.DBContext, refDef.viewName, self.ClassDef.Name.text,
                 thisName, thisName, thatName)
     end
+end
+
+function ReferencePropertyDef:postApplyDef()
+    PropertyDef.postApplyDef(self)
+    -- Postpone until all properties are configured
+    self:_checkRegenerateRelView()
 end
 
 function ReferencePropertyDef:applyDef()
@@ -824,8 +834,6 @@ function ReferencePropertyDef:applyDef()
                 end
             end
         end
-
-        self:_checkRegenerateRelView()
     end
 end
 

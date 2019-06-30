@@ -73,14 +73,21 @@ int main(int argc, char **argv)
     }
 
     // Run tests, essentially
-    run_flexirel_vtable_tests(pDB);
+    run_flexi_import_data_tests(pDB);
 
     //    run_sql_tests(zDir, "../../test/json/sql-test.class.json");
 
     goto EXIT;
 
     ONERROR:
-    printf("Error %d, %s", sqlite3_errcode(pDB), sqlite3_errmsg(pDB));
+    if (zError != nullptr)
+    {
+        printf("Error %d, %s", sqlite3_errcode(pDB), zError);
+    }
+    else
+    {
+        printf("Error %d, %s", sqlite3_errcode(pDB), sqlite3_errmsg(pDB));
+    }
     EXIT:
     sqlite3_free(zDir);
     sqlite3_close(pDB);

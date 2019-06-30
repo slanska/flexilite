@@ -15,7 +15,7 @@ extern "C" {
 #endif
 
 /* A test case that does nothing and succeeds. */
-static void create_flexirel_vtable(void **state)
+static void create_Northwind(void **state)
 {
     int result = 0;
     sqlite3 *pDB = *state;
@@ -23,22 +23,18 @@ static void create_flexirel_vtable(void **state)
     // Create schema
     CHECK_CALL(flexi_create_schema_from_json_file(pDB, NORTHWIND_DB3_SCHEMA_JSON));
 
-    // Create flexirel: EmployeeTerritories
-    CHECK_CALL(run_sql(pDB, "create virtual table if not exists [EmployeesTerritories]\n"
-                            "using flexi_rel ([EmployeeID], [TerritoryID], [Employees], [Territories]);"));
-
     goto EXIT;
 
     ONERROR:
     printf("Error %d, %s", sqlite3_errcode(pDB), sqlite3_errmsg(pDB));
     EXIT:
-    printf("create_flexirel_vtable: %p", pDB);
+    printf("create_Northwind: %p", pDB);
 }
 
-int run_flexirel_vtable_tests(sqlite3 *pDB)
+int run_flexi_import_data_tests(sqlite3 *pDB)
 {
     const struct CMUnitTest tests[] = {
-            cmocka_unit_test_state(create_flexirel_vtable, pDB),
+            cmocka_unit_test_state(create_Northwind, pDB),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

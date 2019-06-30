@@ -35,7 +35,7 @@ int class_tests();
 
 void run_sql_tests(char *zBaseDir, const char *zJsonFile);
 
-int run_flexirel_vtable_tests(sqlite3 *pDB);
+int run_flexi_import_data_tests(sqlite3 *pDB);
 
 /*
  * prop_tests();

@@ -164,45 +164,45 @@ enum -> reference
 
 **2018-07-14**
 
-- &#10003; use GC64 for luajit 2.1
-- &#10003; switch to openresty luajit for all platforms
-- &#10003; lean up JS tests and convert them to lua
-- &#10003; move util/* to tools
-- move definitions.d.ts to metacix project
-- delete typings
-- &#10003; merge flexish cmakefiles with main one
-- &#10003; build flexish_cli (except Linux)
+- [x] use GC64 for luajit 2.1
+- [x] switch to openresty luajit for all platforms
+- [x] clean up JS tests and convert them to lua
+- [x] move util/* to tools
+- [ ] move definitions.d.ts to metacix project
+- [?] delete typings
+- [x] merge flexish cmakefiles with main one
+- [x] build flexish_cli (except Linux)
 - put compiled binaries to git
 - install.md
 
 **2018-07-23**
 
-- &#10003; Windows: flexish_cli - LuaFileSystem
-- &#10003; Windows:debug sqlte_shell
-- &#10003; Windows: try DB Tools and load flexilite
-- &#10003; remove openresty/luajit
+- [x] Windows: flexish_cli - LuaFileSystem
+- [x] Windows:debug sqlte_shell
+- [x] Windows: try DB Tools and load flexilite
+- [x] remove openresty/luajit
 
 **2018-08-06**
 
-- conditional package.cpath for Windows version
-- &#10003; **No need - use MSVC**. static linking of gcc libraries on Windows (libstdc++-6.dll and libgcc_s_dw2-1.dll)
-- &#10003; install busted and mobdebug on &#10003; Linux and Windows VMs
-- &#10003; create image of SD200 on Adata - better to copy contents directly
-- &#10003; handle <require 'sql.dbschema'> in busted tests
-- &#10003; No need. install MingW 64 bit on Windows VM. Build. Check cross platform build - 32 or 64 bits.
+- [x] conditional package.cpath for Windows version
+- [x] **No need - use MSVC**. static linking of gcc libraries on Windows (libstdc++-6.dll and libgcc_s_dw2-1.dll)
+- [x] install busted and mobdebug on &#10003; Linux and Windows VMs
+- [x] create image of SD200 on Adata - better to copy contents directly
+- [x] handle <require 'sql.dbschema'> in busted tests
+- [x] No need. install MingW 64 bit on Windows VM. Build. Check cross platform build - 32 or 64 bits.
 - update README.md: move most of text to ./doc
 - Flexish_cli: load data
-- Flexish_cli: use ansicolors
+- [x] Flexish_cli: use ansicolors
 - Flexish_cli: query
 - Flexish_cli: configure database
-- &#10003; get rid of Lua date, use Penlight date instead - Penlight Date does not provide feature to get 
+-[x] ~~get rid of Lua date, use Penlight date instead~~ - Penlight Date does not provide feature to get 
 number of days starting from 0 AD
 - Flexish_cli: help - extended info
 - Flexish_cli: schema - check enum, multi key index and many-2-many
 - Flexish_cli: unit tests
-- &#10003; cmake: copy lua51.dll to ./bin 
-- &#10003; check if lib/luadec is used -> not needed.
-- &#10003; try original make with LuaJIT 2.1 on Linux to get static lib for flexish_cli
+- [x] cmake: copy lua51.dll to ./bin 
+- [x] check if lib/luadec is used -> not needed.
+- [x] try original make with LuaJIT 2.1 on Linux to get static lib for flexish_cli
 
 Employees: EmployeeID
 EmployeesTerritories: EmployeeID, TerritoryID
@@ -210,18 +210,29 @@ Territories: TerritoryID
 
 **2018-10-20**
 
-- &#10003; flexish_cli: create mixin properties
-- &#10003; flexish_cli: process many2many tables (2 or 3 columns)
-- &#10003; flexish_cli: output 2 files - sql and json
+- [x] flexish_cli: create mixin properties
+- [x] flexish_cli: process many2many tables (2 or 3 columns)
+- [x] ~~flexish_cli: output 2 files - sql and json - N/A~~
 - 'load' - from file
 - 'create property' - handle missing JSON, or string instead of JSON (as type)
 - sqlite3value_to_luavalue and luavalue_to_sqlite3value (from lsqlite?)
-- flexi_rel_vtable: finish (lua ffi etc.)
-- import data - check classes, if not found, check existing tables (including virtual)
-- export data (the same format as import)
-- enum properties
-- boxed object: access to referenced properties
-- query: fix unit tests
-- flexi_data_vtable: finish (ffi etc.)
+- [x] ~~flexi_rel_vtable: finish (lua ffi etc.)~~
+- [x] ~~flexi_data_vtable: finish (ffi etc.)~~
 - [?] import/export xml
 - [?] add Slovak sample social network database
+
+**2019-06-30**
+
+-[x] move ffi declarations for virtual table to flexi vt
+-[ ] import data: if no class found, try existing updatable view
+-[ ] fix ctlv and property index 
+-[x] remove flexi_rel tests and C code
+-[ ] test imported data for specific rows/values (busted tests)
+-[ ] import data - check classes, if not found, check existing tables (including virtual)
+-[ ] export data (the same format as import)
+-[ ] enum properties
+-[ ] boxed object: access to referenced properties
+-[ ] query: fix unit tests
+
+"error during initialization: Flexilite require DBContext: ...ts/Github/slanska/flexilite/src_lua/flexi_rel_vtable.lua:10: loop or previous error loading module 'ClassDef'\n"
+
