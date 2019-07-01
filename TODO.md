@@ -233,6 +233,7 @@ Territories: TerritoryID
 -[ ] enum properties
 -[ ] boxed object: access to referenced properties
 -[ ] query: fix unit tests
+-[ ] refactor deferred actions
+-[ ] 'Territories' appears twice in view EmployeeTerritories
 
-"error during initialization: Flexilite require DBContext: ...ts/Github/slanska/flexilite/src_lua/flexi_rel_vtable.lua:10: loop or previous error loading module 'ClassDef'\n"
 

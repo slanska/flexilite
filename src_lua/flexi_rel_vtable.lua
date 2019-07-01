@@ -15,12 +15,10 @@ local Constants = require 'Constants'
 ---@param colName string
 ---@param op string @comment new, old
 local function appendUDIDtoTrigger(sql, classDef, udidProp, colName, op)
-    local ClassDef = require 'ClassDef'
-
     if udidProp ~= nil then
         sql:append(string.format('coalesce(%s.[%s], ', op, colName))
         if udidProp.ColMap ~= nil then
-            local mask = ClassDef.getCtloMaskForColMapIndex(udidProp)
+            local mask = classDef.DBContext.ClassDef.getCtloMaskForColMapIndex(udidProp)
             sql:append(string.format(
                     '(select ObjectID from [.objects] where ClassID = %d and %s = %s.[%s_2] and ctlo & %d = %d limit 1)',
                     classDef.ClassID, udidProp.ColMap, op, colName, mask, mask))
@@ -31,7 +29,6 @@ local function appendUDIDtoTrigger(sql, classDef, udidProp, colName, op)
         end
 
         sql:append ')'
-
     end
 end
 
@@ -65,18 +62,32 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     local fromClassDef = self:getClassDef(className, true)
 
     -- get reference property
-    local propDef = fromClassDef:getProperty(propName)
+    local fromPropDef = fromClassDef:getProperty(propName)
 
-    local toClassDef = self:getClassDef(propDef.D.refDef.classRef.text, true)
+    local toClassDef = self:getClassDef(fromPropDef.D.refDef.classRef.text, true)
+
+    -- ensure that this is reference property
+    if not fromPropDef.D.refDef or not fromPropDef:isReference() or fromPropDef.D.refDef.mixin then
+        error(string.format('[%s].[%s] must be a pure reference property', className, propName))
+    end
+
+    -- Check if there is reverse property defined. If so, IDs of both ref properties will be compared to
+    -- determine how ObjectID and Value columns in .ref-values to be mapped. Lower property ID will be used
+    -- for <from> property, and higher ID - for <to> property. If reverse property is not defined, original
+    -- property will be used for <from>
+    local toPropDef = nil
+    if fromPropDef.D.refDef.reverseProperty then
+        toPropDef = toClassDef:getProperty(fromPropDef.D.refDef.reverseProperty.text)
+    end
+
+    if toPropDef and toPropDef.ID < fromPropDef.ID then
+        toPropDef, fromPropDef = fromPropDef, toPropDef
+        toClassDef, fromClassDef = fromClassDef, toClassDef
+    end
 
     -- attempt to get (optional) user defined ID properties
     local toUDID = toClassDef:getUdidProp()
     local fromUDID = fromClassDef:getUdidProp()
-
-    -- ensure that this is reference property
-    if not propDef:isReference() or propDef.D.refDef.mixin then
-        error(string.format('[%s].[%s] must be a pure reference property', className, propName))
-    end
 
     local sql = List()
     -- View
@@ -105,10 +116,10 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     appendUDIDtoView(fromUDID, col1Name)
     appendUDIDtoView(toUDID, col2Name)
 
-    assert(propDef.ID, string.format('Property.ID is not yet set (%s)', propDef.Name.text))
+    assert(fromPropDef.ID, string.format('Property.ID is not yet set (%s)', fromPropDef.Name.text))
 
     sql:append(string.format('from (select ObjectID as [%s], [Value] as [%s] from [.ref-values] where PropertyID = %d and ctlv & %d <> 0) v;',
-            col1Name, col2Name, propDef.ID, Constants.CTLV_FLAGS.INDEX_AND_REFS_MASK))
+            col1Name, col2Name, fromPropDef.ID, Constants.CTLV_FLAGS.INDEX_AND_REFS_MASK))
 
     -- Insert trigger
     sql:append '' -- new line
@@ -130,7 +141,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
             select v.[%s], v.[%s], coalesce((select max(PropIndex) from [.ref-values] where ObjectID = v.[%s]
             and [Value] = v.[%s] and ctlv and %d <> 0), 0) + 1, ]],
                 col1Name, col2Name, col1Name, col2Name, Constants.CTLV_FLAGS.ALL_REFS_MASK))
-        sql:append(string.format('%d, %d, null ', propDef.ID, propDef.ctlv))
+        sql:append(string.format('%d, %d, null ', fromPropDef.ID, fromPropDef.ctlv))
 
         sql:append(' from (select ')
         appendUDIDtoTrigger(sql, fromClassDef, fromUDID, col1Name, 'new')
@@ -170,8 +181,12 @@ local function generateView(self, tableName, className, propName, col1Name, col2
 
     appendWhenCondition('when', col1Name)
     appendWhenCondition('or', col2Name)
-    appendWhenCondition('or', col1Name .. '_2')
-    appendWhenCondition('or', col1Name .. '_2')
+    if fromUDID then
+        appendWhenCondition('or', col1Name .. '_2')
+    end
+    if toUDID then
+        appendWhenCondition('or', col1Name .. '_2')
+    end
 
     sql:append('begin')
     appendDeleteStatement()

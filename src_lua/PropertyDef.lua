@@ -263,8 +263,9 @@ function PropertyDef:saveToDB()
         -- As property ID is now known, register property in DBContext property collection
         self.ClassDef.DBContext.ClassProps[self.ID] = self
 
-        local key = string.format('%s.%s', self.ClassDef.Name.text, self.Name.text)
-        self.ClassDef.DBContext:ResolveDeferredRefs(key, self.ID)
+        -- TODO
+        --local key = string.format('%s.%s', self.ClassDef.Name.text, self.Name.text)
+        --self.ClassDef.DBContext:ResolveDeferredRefs(key, self.ID)
     end
 
     return self.ID
@@ -436,10 +437,6 @@ function PropertyDef:ColMapIndex()
     return self.ColMap ~= nil and string.lower(self.ColMap):byte() - string.byte('a') or nil
 end
 
-function PropertyDef:postApplyDef()
-    -- NOP
-end
-
 --[[
 ===============================================================================
 AnyPropertyDef
@@ -468,7 +465,8 @@ function NumberPropertyDef:_init(params)
     self:super(params)
 end
 
--- Checks if number property is well defined
+-- TODO needed?
+--- Checks if number property is well defined
 --- @overload
 --function NumberPropertyDef:isValidDef()
 --    local ok, errorMsg = PropertyDef.isValidDef(self)
@@ -677,15 +675,13 @@ ReferencePropertyDef: base class for all referencing properties: enum, nested et
 ===============================================================================
 ]]
 
---- @class ReferencePropertyDef
+--- @class ReferencePropertyDef: PropertyDef
 local ReferencePropertyDef = class(PropertyDef)
 
 -- Returns internal JSON representation of property
 function ReferencePropertyDef:internalToJSON()
     local result = PropertyDef.internalToJSON(self)
-
     result.refDef = tablex.deepcopy(self.refDef)
-
     return result
 end
 
@@ -784,29 +780,48 @@ function ReferencePropertyDef:_checkRegenerateRelView()
     ---@type PropertyRefDef
     local refDef = self.D.refDef
 
-    if refDef and refDef.viewName then
+    if refDef then
+
+        -->>
+        require('debugger')()
+
         -- Generate view for many-2-many relationship
         -- self, tableName, className, propName, col1Name, col2Name
-        local thisName = self.Name.text
         local thatName
         if refDef.reverseProperty then
+            -- Check if reverse property exists. If no, create it
+            local revClassDef = self.ClassDef.DBContext:getClassDef(refDef.classRef.text, true)
+            if not revClassDef:hasProperty(refDef.reverseProperty.text) then
+                -- Create new ref property
+                local propDef = {
+                    rules = {
+                        type = 'ref',
+                        minOccurrences = 0,
+                        maxOccurrences = Constants.MAX_INTEGER,
+                    },
+                    refDef = {
+                        classRef = self.ClassDef.Name.text,
+                        reverseProperty = self.Name.text,
+                    }
+                }
+                revClassDef:AddNewProperty(refDef.reverseProperty.text, propDef)
+            end
+
             thatName = refDef.reverseProperty.text
         elseif refDef.classRef then
             thatName = refDef.classRef.text
         else
             error(string.format(
                     '%s.%s: Reversed property or referenced class are required for relational view. Both refDef.classRef and refDef.reverseProperty',
-                    self.ClassDef.Name.text,  self.Name.text))
+                    self.ClassDef.Name.text, self.Name.text))
         end
-        generateRelView(self.ClassDef.DBContext, refDef.viewName, self.ClassDef.Name.text,
-                thisName, thisName, thatName)
-    end
-end
 
-function ReferencePropertyDef:postApplyDef()
-    PropertyDef.postApplyDef(self)
-    -- Postpone until all properties are configured
-    self:_checkRegenerateRelView()
+        if refDef.viewName then
+            local thisName = self.Name.text
+            generateRelView(self.ClassDef.DBContext, refDef.viewName, self.ClassDef.Name.text,
+                    thisName, thisName, thatName)
+        end
+    end
 end
 
 function ReferencePropertyDef:applyDef()
@@ -834,6 +849,10 @@ function ReferencePropertyDef:applyDef()
                 end
             end
         end
+
+        self.ClassDef.DBContext.ActionQueue:enqueue(function()
+            self:_checkRegenerateRelView()
+        end)
     end
 end
 
@@ -1260,7 +1279,7 @@ PropertyDef.PropertyTypes = {
     ['reference'] = ReferencePropertyDef,
     ['link'] = ReferencePropertyDef,
     ['ref'] = ReferencePropertyDef,
-    ['json'] = TextPropertyDef, -- TODO special prop type???
+    ['json'] = TextPropertyDef, -- TODO special prop class type???
     ['computed'] = ComputedPropertyDef,
     ['formula'] = ComputedPropertyDef,
     ['name'] = SymNamePropertyDef,

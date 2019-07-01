@@ -99,44 +99,46 @@ Ensures that corresponding
 function EnumManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
 
-    -- TODO
-    if propDef.D.enumDef then
-        -- Process as pure enum
-        local refClsName
-        if propDef.D.enumDef.classRef then
-            refClsName = propDef.D.enumDef.classRef.text
-        else
-            refClsName = string.format('%s_%s', propDef.ClassDef.Name.text, propDef.Name.text)
-        end
-        local refCls = self.DBContext:getClassDef(propDef.D.enumDef.classRef.text)
-        if not refCls then
-            refCls = self:CreateEnumClass(refClsName)
-        end
+    self.DBContext.ActionQueue:enqueue(function()
+        -- TODO
+        if propDef.D.enumDef then
+            -- Process as pure enum
+            local refClsName
+            if propDef.D.enumDef.classRef then
+                refClsName = propDef.D.enumDef.classRef.text
+            else
+                refClsName = string.format('%s_%s', propDef.ClassDef.Name.text, propDef.Name.text)
+            end
+            local refCls = self.DBContext:getClassDef(propDef.D.enumDef.classRef.text)
+            if not refCls then
+                refCls = self:CreateEnumClass(refClsName)
+            end
 
-        if propDef.D.enumDef.items then
-            self:UpsertEnumItems(refCls, propDef.D.enumDef.items)
-        end
-    elseif propDef.D.refDef then
-        -- Process as foreign key
+            if propDef.D.enumDef.items then
+                self:UpsertEnumItems(refCls, propDef.D.enumDef.items)
+            end
+        elseif propDef.D.refDef then
+            -- Process as foreign key
 
-        -- Check if this is self-reference (like Employee.ReportsTo -> Employee)
-        ---@type ClassDef
-        local refCls
-        if string.lower(propDef.D.refDef.classRef.text) == string.lower(propDef.ClassDef.Name.text) then
-            refCls = propDef.ClassDef
-        else
-            refCls = self.DBContext:getClassDef(propDef.D.refDef.classRef.text)
-        end
+            -- Check if this is self-reference (like Employee.ReportsTo -> Employee)
+            ---@type ClassDef
+            local refCls
+            if string.lower(propDef.D.refDef.classRef.text) == string.lower(propDef.ClassDef.Name.text) then
+                refCls = propDef.ClassDef
+            else
+                refCls = self.DBContext:getClassDef(propDef.D.refDef.classRef.text)
+            end
 
-        if refCls then
-            -- TODO
+            if refCls then
+                -- TODO
+            else
+                -- TODO Defer resolving
+                --self.DBContext:AddDeferredRef(propDef.D.refDef.classRef.text, propDef.D.refDef.classRef, 'id')
+            end
         else
-            -- Defer resolving
-            self.DBContext:AddDeferredRef(propDef.D.refDef.classRef.text, propDef.D.refDef.classRef, 'id')
+            error('Neither enumDef nor refDef set')
         end
-    else
-        error('Neither enumDef nor refDef set')
-    end
+    end)
 end
 
 -- Creates class for enum type, if needed.

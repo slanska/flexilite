@@ -27,7 +27,7 @@ end
 
 -- load sql scripts into Flexi variables
 -- TODO use relative paths
-Flexi.DBSchemaSQL = readAll( path.abspath(path.relpath('../sql/dbschema.sql')))
+Flexi.DBSchemaSQL = readAll(path.abspath(path.relpath('../sql/dbschema.sql')))
 Flexi.InitDefaultData = readAll(path.abspath(path.relpath('../sql/init_default_data.sql')))
 
 -- Tests for class creation
@@ -108,6 +108,18 @@ describe('Create class', function()
 
     pending('should fail on invalid property definition', function()
 
+    end)
+
+    pending('create re-view with no from_UDID', function()
+    end)
+
+    pending('create re-view with no to_UDID', function()
+    end)
+
+    pending('create re-view with no both from_UDID and to_UDID', function()
+    end)
+
+    pending('create re-view with both from_UDID and to_UDID', function()
     end)
 
     teardown(function()

@@ -34,6 +34,7 @@ local EnumManager = require 'EnumManager'
 local Constants = require 'Constants'
 local DictCI = require('Util').DictCI
 local sqlite3 = sqlite3 or require 'sqlite3'
+local List = require 'pl.List'
 
 -- to fix bug of missing values when running Flexilite in flexi_test app
 sqlite3.OK = 0
@@ -41,59 +42,42 @@ sqlite3.ROW = 100
 sqlite3.DONE = 101
 
 local flexiRel = require 'flexi_rel_vtable'
-local dbg = nil
+local dbg = nil -- future reference to 'debugger.lua'
 
--------------------------------------------------------------------------------
--- ActionList
--------------------------------------------------------------------------------
 
---[[
-Maintains list of (normally deferred) actions to execute
-]]
----@class ActionItem
----@field func fun(arg1: any, arg2: any, arg3: any):nil
----@field arg1 any
----@field arg2 any
----@field arg3 any
+---@class ActionQueue
+---@field DBContext DBContext
+local ActionQueue = class(List)
 
----@class ActionList
----@field tags table <string, boolean>
----@field list ActionItem[]
-local ActionList = class()
-
--- constructor
-function ActionList:_init(DBContext)
-    self:Clear()
+---@param DBContext DBContext
+function ActionQueue:_init(DBContext)
+    self:super()
+    self.DBContext = DBContext
 end
 
-function ActionList:Add(tag, func, arg1, arg2, arg3)
-    if tag then
-        if self.tags[tag] then
-            -- already registered
-            return
-        end
-        self.tags[tag] = true
+---@param act function
+function ActionQueue:enqueue(act)
+    self:append(act)
+end
+
+---@return function
+function ActionQueue:dequeue()
+    if #self > 0 then
+        local result = self[1]
+        self:remove(1)
+        return result
     end
 
-    local item = { func = func, arg1 = arg1, arg2 = arg2, arg3 = arg3 }
-    table.insert(self.list, item)
+    return nil
 end
 
----@param clearWhenDone boolean
-function ActionList:Run(clearWhenDone)
-    for idx, item in ipairs(self.list) do
-        if item.func then
-            item.func(item.arg1, item.arg2, item.arg3)
+function ActionQueue:run()
+    while #self > 0 do
+        local act = self:dequeue()
+        if act then
+            act()
         end
     end
-    if clearWhenDone then
-        self:Clear()
-    end
-end
-
-function ActionList:Clear()
-    self.list = {}
-    self.tags = {}
 end
 
 -------------------------------------------------------------------------------
@@ -104,8 +88,8 @@ end
 ---@field createVirtualTable boolean
 
 ---@class DBContext
----@field db sqlite3
----@field Statements table <string, sqlite3_stmt>
+---@field db userdata @comment sqlite3
+---@field Statements table <string, userdata> @comment <string, sqlite3_stmt>
 ---@field MemDB table
 ---@field UserInfo UserInfo
 ---@field Classes table <string, ClassDef>
@@ -118,7 +102,7 @@ end
 ---@field AccessControl AccessControl
 ---@field EnumManager EnumManager
 ---@field SchemaChanged boolean
----@field DeferredActions ActionList
+---@field ActionQueue ActionQueue
 ---@field config DBContextConfig
 ---@field flexirel FlexiRelVTable
 ---@field debugMode boolean
@@ -129,7 +113,7 @@ local flexiFuncs
 local flexiMeta
 
 --- Creates a new DBContext, associated with sqlite database connection
---- @param db sqlite3
+--- @param db userdata @comment sqlite3
 --- @return DBContext
 function DBContext:_init(db)
 
@@ -142,7 +126,6 @@ function DBContext:_init(db)
 
     -- Collection of classes. Each class is referenced twice - by ID and Name
     self.Classes = DictCI()
-    --TODO self.Classes = {}
 
     -- Global list of registered functions. Each function is referenced twice - by ID and name
     self.Functions = {}
@@ -163,18 +146,7 @@ function DBContext:_init(db)
 
     self.SchemaChanged = false
 
-    ---@type ActionList
-    self.DeferredActions = ActionList()
-
-    --[[ Deferred (unresolved) references. There are following categories of references:
-    1) classes - by class_name (string)
-    2) properties - by class_name.property_name (string)
-    3) objects - by object ID (string)
-    every deferred reference is presented as 2 items in array: odd index is container,
-    following even index - name of property to hold ID
-    ]]
-    ---@type table @comment [key]: array
-    self.DeferredRefs = {}
+    self:setActionQueue()
 
     -- Can be overridden by flexi('config', ...)
     self.config = {
@@ -218,31 +190,32 @@ end
 ---@param key string|number @comment class_name, class_name.property_name, object_id
 ---@param container table
 ---@param propName string @comment attribute name in container to update with new ID
-function DBContext:AddDeferredRef(key, container, propName)
-    local v = self.DeferredRefs[key]
-    if not v then
-        self.DeferredRefs[key] = {}
-    end
-    table.insert(self.DeferredRefs[key], container)
-    table.insert(self.DeferredRefs[key], propName)
-end
+--function DBContext:AddDeferredRef(key, container, propName)
+--    local v = self.DeferredRefs[key]
+--    if not v then
+--        self.DeferredRefs[key] = {}
+--    end
+--    table.insert(self.DeferredRefs[key], container)
+--    table.insert(self.DeferredRefs[key], propName)
+--end
 
+-- TODO
 -- Resolved pending deferred references
 ---@param key string|number @comment same as key in AddDeferredRef
 ---@param newID number
-function DBContext:ResolveDeferredRefs(key, newID)
-    local v = self.DeferredRefs[key]
-    if not v then
-        return
-    end
-
-    for i = 1, #v, 2 do
-        local container = v[i]
-        local propName = v[i + 1]
-        container[propName] = newID
-    end
-    self.DeferredRefs[key] = nil
-end
+--function DBContext:ResolveDeferredRefs(key, newID)
+--    local v = self.DeferredRefs[key]
+--    if not v then
+--        return
+--    end
+--
+--    for i = 1, #v, 2 do
+--        local container = v[i]
+--        local propName = v[i + 1]
+--        container[propName] = newID
+--    end
+--    self.DeferredRefs[key] = nil
+--end
 
 --[[ Loads existing object by ID. propIds define subset of values to load (passing subset of properties used
 for better performance). Note that once loaded with subset of values, object will be manipulated as is, and non-loaded
@@ -323,6 +296,12 @@ function DBContext:checkSqlite(opResult)
     end
 end
 
+--- Adds action to DeferredActions
+---@param action function
+function DBContext:queueAction(action)
+    self.ActionQueue:enqueue(action)
+end
+
 -- Callback to sqlite 'flexi' function
 function DBContext:flexiAction(ctx, action, ...)
     local result
@@ -351,8 +330,7 @@ function DBContext:flexiAction(ctx, action, ...)
             self:flushSchemaCache()
         end
 
-        self.DeferredActions:Clear()
-        self.DeferredRefs = {}
+        self.ActionQueue:clear()
 
         result = ff(self, unpack(args))
 
@@ -361,7 +339,7 @@ function DBContext:flexiAction(ctx, action, ...)
             self.db:exec(string.format([[pragma user_version=%d;]], self.SchemaVersion))
         end
 
-        self.DeferredActions:Run(true)
+        self.ActionQueue:run()
 
         self.db:exec 'commit'
     end
@@ -381,8 +359,6 @@ function DBContext:flexiAction(ctx, action, ...)
         ctx:result(result)
     end
 
-    self.DeferredActions:Clear()
-    self.DeferredRefs = {}
     self:flushDataCache()
     self.AccessControl:flushCache()
 end
@@ -390,7 +366,7 @@ end
 -- Utility method to obtain prepared sqlite statement
 -- All prepared statements are kept in DBContext.Statements pool and accessed by sql as key
 --- @param sql string
---- @return stmt
+--- @return userdata @comment sqlite3_stmt
 -- (alias to sqlite3_stmt)
 function DBContext:getStatement(sql)
     local result = self.Statements[sql]
@@ -557,7 +533,7 @@ end
 --- Utility function to get statement, bind parameters, and return iterator to iterate through rows
 --- @param sql string
 --- @param params table
---- @return iterator
+--- @return function @comment iterator
 function DBContext:loadRows(sql, params)
     local stmt = self:getStatement(sql)
     local ok = stmt:bind_names(params)
@@ -841,7 +817,7 @@ end
 --- Utility function to get statement, bind parameters, and return iterator to iterate through rows
 --- @param sql string
 --- @param params table
---- @return iterator
+--- @return function @comment iterator
 function DBContext:LoadAdhocRows(sql, params)
     local stmt = self:getAdhocStmt(sql, params)
     return stmt:nrows()
@@ -902,6 +878,20 @@ function DBContext:debugger(mode)
     end
 
     return self.debugMode and 1 or 0
+end
+
+--- Sets new ActionQueue. Id actQue is nil, creates new ActionQueue
+--- Typical usage is to temporarily replace current queue with a scope-centric one (e.g. create class/schema to allow
+--- postponed class or property creation)
+---@param actQue ActionQueue | nil
+---@return ActionQueue
+function DBContext:setActionQueue(actQue)
+    if not actQue then
+        actQue = ActionQueue(self)
+    end
+    local result = self.ActionQueue
+    self.ActionQueue = actQue
+    return result
 end
 
 local flexi_CreateClass = require 'flexi_CreateClass'

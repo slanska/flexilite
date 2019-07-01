@@ -427,7 +427,7 @@ end
 -- Called when a) creating a new class, b) loading existing class from DB,
 -- c) altering existing class
 ---@param propName string
----@param propJsonData table @comment parsed JSON for property definition
+---@param propJsonData PropertyDefData
 function ClassDef:AddNewProperty(propName, propJsonData)
     local prop = PropertyDef.CreateInstance { ClassDef = self, newPropertyName = propName, jsonData = propJsonData }
     self.Properties[propName] = prop

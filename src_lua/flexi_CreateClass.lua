@@ -38,9 +38,10 @@ local function insertNewClass(self, clsObject)
     clsObject.D.ClassID = self.db:last_insert_rowid()
     clsObject.ClassID = clsObject.D.ClassID
 
-    self:ResolveDeferredRefs(clsObject.Name.text, clsObject.ClassID)
+    -- TODO self:ResolveDeferredRefs(clsObject.Name.text, clsObject.ClassID)
 end
 
+--- Creates multiple classes from schema definition
 ---@param self DBContext
 ---@param schemaDef table
 ---@param createVirtualTable boolean
@@ -58,12 +59,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     ---@param clsObject ClassDef
     ---@param p PropertyDef
     ---@param name string
-    local function applyProp(
-            clsObject --: ClassDef
-    , p --: PropertyDef
-    , name --: string
-    )
-        --: void
+    local function applyProp(clsObject, p, name)
         clsObject:assignColMappingForProperty(p)
         p:applyDef()
         local propID = p:saveToDB(nil, name)
@@ -73,7 +69,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     for className, classDef in pairs(schemaDef) do
         local classID = self:getClassIdByName(className, false)
         if classID ~= 0 then
-            error('Class ' .. className .. ' already exists')
+            error(string.format('Class %s already exists', className))
         end
 
         -- validate name
@@ -109,11 +105,11 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
             -- Apply definition
             for name, p in pairs(clsObject.Properties) do
-                if p:isReference() then
-                    table.insert(refProps, { clsObject, p, name })
-                else
-                    applyProp(clsObject, p, name)
-                end
+                --if p:isReference() then
+                --    table.insert(refProps, { clsObject, p, name })
+                --else
+                applyProp(clsObject, p, name)
+                --end
             end
 
             -- Check if class is fully resolved, i.e. does not have references to non-existing classes
@@ -129,16 +125,18 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     end
 
     -- Apply changes for ref props
-    for _, refPropInfo in ipairs(refProps) do
-        applyProp(unpack(refPropInfo))
-    end
+    --for _, refPropInfo in ipairs(refProps) do
+    --    applyProp(unpack(refPropInfo))
+    --end
+    --
+    ---- Pos-apply changes for ref props
+    --for _, refPropInfo in ipairs(refProps) do
+    --    ---@type ReferencePropertyDef
+    --    local refProp = refPropInfo[2]
+    --    refProp:postApplyDef()
+    --end
 
-    -- Pos-apply changes for ref props
-    for _, refPropInfo in ipairs(refProps) do
-        ---@type ReferencePropertyDef
-        local refProp = refPropInfo[2]
-        refProp:postApplyDef()
-    end
+    self.ActionQueue:run()
 
     for className in pairs(schemaDef) do
         local clsObject = self:getClassDef(className)
@@ -154,7 +152,17 @@ end
 ---@return string @comment result of operation
 local function createSingleClass(self, className, classDef, createVirtualTable)
     local schemaDef = { [className] = classDef }
-    createMultiClasses(self, schemaDef, createVirtualTable)
+
+    local savedActQue = self:setActionQueue()
+
+    local result, errMsg = pcall(createMultiClasses, self, schemaDef, createVirtualTable)
+    --createMultiClasses(self, schemaDef, createVirtualTable)
+    self:setActionQueue(savedActQue)
+
+    if not result then
+        error(errMsg)
+    end
+
     return string.format('Class [%s] has been created', className)
 end
 
@@ -191,7 +199,17 @@ They are processed in few steps, to provide referential integrity:
 ---@param createVirtualTable boolean
 local function CreateSchema(self, schemaJson, createVirtualTable)
     local classSchema = json.decode(schemaJson)
-    createMultiClasses(self, classSchema, createVirtualTable)
+
+    local savedActQue = self:setActionQueue()
+
+    local result, errMsg = pcall(createMultiClasses, self, classSchema, createVirtualTable)
+    --createMultiClasses(self, classSchema, createVirtualTable)
+    self:setActionQueue(savedActQue)
+
+    if not result then
+        error(errMsg)
+    end
+
     local cnt = tablex.size(classSchema)
     return string.format('%d class(es) have been created', cnt)
 end
