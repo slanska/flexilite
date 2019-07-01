@@ -44,7 +44,6 @@ sqlite3.DONE = 101
 local flexiRel = require 'flexi_rel_vtable'
 local dbg = nil -- future reference to 'debugger.lua'
 
-
 ---@class ActionQueue
 ---@field DBContext DBContext
 local ActionQueue = class(List)
@@ -858,10 +857,9 @@ function DBContext:debugger(mode)
     mode = type(mode) == 'string' and string.lower(mode) or mode
     if mode == 'on' or mode == 1 or mode == 'yes' then
         if dbg == nil then
+            -- Enable auto_where to make stepping through code easier to follow. This will automatically show 5 lines of code
+            -- around the current debugging location
             dbg = require 'debugger'
-
-            -- TODO confirm
-            -- Consider enabling auto_where to make stepping through code easier to follow.
             dbg.auto_where = 2
 
             --error = dbg.error

@@ -16,7 +16,6 @@ local bits = type(jit) == 'table' and require('bit') or require('bit32')
 local JulianDate = require 'JulianDate'
 local date = require 'date'
 local class = require 'pl.class'
-
 -- Max value for 26 bit integer
 local MAX27 = 0x8000000 -- 134217728
 
@@ -134,7 +133,7 @@ local function normalizeSqlName(n)
 
     -- ``
     if result == nil then
-         _, _, result = string.find(n, '^%s*%`(%w+)%`%s*$')
+        _, _, result = string.find(n, '^%s*%`(%w+)%`%s*$')
     end
 
     -- Normal string

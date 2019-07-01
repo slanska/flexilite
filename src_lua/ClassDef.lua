@@ -499,8 +499,12 @@ end
 ---@return PropertyDef @comment throws error if property is not found
 function ClassDef:getProperty(propName)
     -- Check if exists
+
     local prop = self:hasProperty(propName)
     if not prop then
+        -->>
+        require('debugger')(not (propName == 'Employees'))
+
         error(string.format("Property `%s` not found or ambiguous in class `%s`", propName, self.Name.text))
     end
     return prop

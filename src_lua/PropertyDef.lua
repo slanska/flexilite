@@ -805,6 +805,8 @@ function ReferencePropertyDef:_checkRegenerateRelView()
                     }
                 }
                 revClassDef:AddNewProperty(refDef.reverseProperty.text, propDef)
+                local revPropDef = revClassDef:hasProperty(refDef.reverseProperty.text)
+                revPropDef.Name:resolve(revClassDef)
             end
 
             thatName = refDef.reverseProperty.text
@@ -825,35 +827,35 @@ function ReferencePropertyDef:_checkRegenerateRelView()
 end
 
 function ReferencePropertyDef:applyDef()
-    PropertyDef.applyDef(self)
+    self.ClassDef.DBContext.ActionQueue:enqueue(function()
+        PropertyDef.applyDef(self)
 
-    ---@type PropertyRefDef
-    local refDef = self.D.refDef
-    if refDef then
-        if refDef.classRef then
-            refDef.classRef:resolve(self.ClassDef)
-        end
-
-        if refDef.reverseProperty then
-            refDef.reverseProperty:resolve(self.ClassDef)
-        end
-
-        if refDef.dynamic then
-            if refDef.dynamic.selectorProp then
-                refDef.dynamic.selectorProp:resolve(self.ClassDef)
+        ---@type PropertyRefDef
+        local refDef = self.D.refDef
+        if refDef then
+            if refDef.classRef then
+                refDef.classRef:resolve(self.ClassDef)
             end
 
-            if refDef.dynamic.rules then
-                for _, v in pairs(refDef.dynamic.rules) do
-                    v.classRef:resolve(self.ClassDef)
+            if refDef.reverseProperty then
+                local revClassDef = self.ClassDef.DBContext:getClassDef(refDef.classRef.text)
+                refDef.reverseProperty:resolve(revClassDef)
+            end
+
+            if refDef.dynamic then
+                if refDef.dynamic.selectorProp then
+                    refDef.dynamic.selectorProp:resolve(self.ClassDef)
+                end
+
+                if refDef.dynamic.rules then
+                    for _, v in pairs(refDef.dynamic.rules) do
+                        v.classRef:resolve(self.ClassDef)
+                    end
                 end
             end
-        end
-
-        self.ClassDef.DBContext.ActionQueue:enqueue(function()
             self:_checkRegenerateRelView()
-        end)
-    end
+        end
+    end)
 end
 
 function ReferencePropertyDef:isReference()

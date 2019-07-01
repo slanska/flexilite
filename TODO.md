@@ -233,7 +233,7 @@ Territories: TerritoryID
 -[ ] enum properties
 -[ ] boxed object: access to referenced properties
 -[ ] query: fix unit tests
--[ ] refactor deferred actions
+-[x] refactor deferred actions
 -[ ] 'Territories' appears twice in view EmployeeTerritories
 
 
