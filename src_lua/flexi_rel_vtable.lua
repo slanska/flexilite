@@ -80,6 +80,9 @@ local function generateView(self, tableName, className, propName, col1Name, col2
         toPropDef = toClassDef:getProperty(fromPropDef.D.refDef.reverseProperty.text)
     end
 
+    -->>
+    require('debugger')()
+
     if toPropDef and toPropDef.ID < fromPropDef.ID then
         toPropDef, fromPropDef = fromPropDef, toPropDef
         toClassDef, fromClassDef = fromClassDef, toClassDef

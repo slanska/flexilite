@@ -229,7 +229,8 @@ end
 function PropertyDef:saveToDB()
     assert(self.ClassDef and self.ClassDef.DBContext)
 
-    assert(self.Name and self.Name:isResolved())
+    assert(self.Name and self.Name:isResolved(),
+            string.format('Name of property %s.%s is not resolved', self.ClassDef.Name.text, self.Name.text))
 
     -- Set ctlv
     self.ctlv = self:GetCTLV()
@@ -781,34 +782,10 @@ function ReferencePropertyDef:_checkRegenerateRelView()
     local refDef = self.D.refDef
 
     if refDef then
-
-        -->>
-        require('debugger')()
-
         -- Generate view for many-2-many relationship
         -- self, tableName, className, propName, col1Name, col2Name
         local thatName
         if refDef.reverseProperty then
-            -- Check if reverse property exists. If no, create it
-            local revClassDef = self.ClassDef.DBContext:getClassDef(refDef.classRef.text, true)
-            if not revClassDef:hasProperty(refDef.reverseProperty.text) then
-                -- Create new ref property
-                local propDef = {
-                    rules = {
-                        type = 'ref',
-                        minOccurrences = 0,
-                        maxOccurrences = Constants.MAX_INTEGER,
-                    },
-                    refDef = {
-                        classRef = self.ClassDef.Name.text,
-                        reverseProperty = self.Name.text,
-                    }
-                }
-                revClassDef:AddNewProperty(refDef.reverseProperty.text, propDef)
-                local revPropDef = revClassDef:hasProperty(refDef.reverseProperty.text)
-                revPropDef.Name:resolve(revClassDef)
-            end
-
             thatName = refDef.reverseProperty.text
         elseif refDef.classRef then
             thatName = refDef.classRef.text
@@ -826,10 +803,21 @@ function ReferencePropertyDef:_checkRegenerateRelView()
     end
 end
 
-function ReferencePropertyDef:applyDef()
-    self.ClassDef.DBContext.ActionQueue:enqueue(function()
-        PropertyDef.applyDef(self)
+--- Override
+---@return number @comment ID of saved property
+function ReferencePropertyDef:saveToDB()
+    local result = PropertyDef.saveToDB(self)
 
+    self.ClassDef.DBContext.ActionQueue:enqueue(function()
+        self:_checkRegenerateRelView()
+    end)
+    return result
+end
+
+function ReferencePropertyDef:applyDef()
+    PropertyDef.applyDef(self)
+
+    self.ClassDef.DBContext.ActionQueue:enqueue(function()
         ---@type PropertyRefDef
         local refDef = self.D.refDef
         if refDef then
@@ -838,7 +826,33 @@ function ReferencePropertyDef:applyDef()
             end
 
             if refDef.reverseProperty then
-                local revClassDef = self.ClassDef.DBContext:getClassDef(refDef.classRef.text)
+                -- Check if reverse property exists. If no, create it
+                local revClassDef = self.ClassDef.DBContext:getClassDef(refDef.classRef.text, true)
+                if not revClassDef:hasProperty(refDef.reverseProperty.text) then
+                    -- Create new ref property
+                    local propDef = {
+                        rules = {
+                            type = 'ref',
+                            minOccurrences = 0,
+                            maxOccurrences = Constants.MAX_INTEGER,
+                        },
+                        refDef = {
+                            classRef = self.ClassDef.Name.text,
+                            reverseProperty = self.Name.text,
+                        }
+                    }
+                    revClassDef:AddNewProperty(refDef.reverseProperty.text, propDef)
+                    local revPropDef = revClassDef:hasProperty(refDef.reverseProperty.text)
+                    revPropDef.Name:resolve(revClassDef)
+
+                    self.ClassDef.DBContext.ActionQueue:insert(1, function()
+                        revClassDef:assignColMappingForProperty(revPropDef)
+                        revPropDef:applyDef()
+                        local propID = revPropDef:saveToDB(nil, refDef.reverseProperty.text)
+                        self.ClassDef.DBContext.ClassProps[propID] = revPropDef
+                    end)
+                end
+
                 refDef.reverseProperty:resolve(revClassDef)
             end
 
@@ -853,7 +867,6 @@ function ReferencePropertyDef:applyDef()
                     end
                 end
             end
-            self:_checkRegenerateRelView()
         end
     end)
 end

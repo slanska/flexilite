@@ -379,7 +379,11 @@ function ClassDef:_init(params)
         self.ColMapActive = params.data.ColMapActive
         self.vtypes = params.data.vtypes
 
-        assert(type(params.data.Data) == 'string', string.format('%s: params.data.Data must be valid JSON', params.data.Name))
+        -->>
+        require('debugger')(not (params.data.Name == 'Employees'))
+
+        assert(type(params.data.Data) == 'string', string.format('%s: params.data.Data must be valid JSON. Got %s',
+                params.data.Name, type(params.data.Data)))
         self.D = json.decode(params.data.Data)
         data = self.D
 

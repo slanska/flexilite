@@ -52,10 +52,6 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
         error(s)
     end
 
-    -- Reference properties are deferred and processed in 2 phases, to allow
-    -- all necessary classes to be created first
-    local refProps = {}
-
     ---@param clsObject ClassDef
     ---@param p PropertyDef
     ---@param name string
@@ -97,6 +93,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
             local clsObject = self.ClassDef { newClassName = className, data = classDef, DBContext = self }
 
             insertNewClass(self, clsObject)
+            self:addClassToList(clsObject)
 
             -- TODO Set ctloMask
             clsObject.D.ctloMask = 0
@@ -105,11 +102,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
             -- Apply definition
             for name, p in pairs(clsObject.Properties) do
-                --if p:isReference() then
-                --    table.insert(refProps, { clsObject, p, name })
-                --else
                 applyProp(clsObject, p, name)
-                --end
             end
 
             -- Check if class is fully resolved, i.e. does not have references to non-existing classes
@@ -119,30 +112,16 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
                     clsObject.D.Unresolved = true
                 end
             end
-
-            self:addClassToList(clsObject)
         end
     end
-
-    -- Apply changes for ref props
-    --for _, refPropInfo in ipairs(refProps) do
-    --    applyProp(unpack(refPropInfo))
-    --end
-    --
-    ---- Pos-apply changes for ref props
-    --for _, refPropInfo in ipairs(refProps) do
-    --    ---@type ReferencePropertyDef
-    --    local refProp = refPropInfo[2]
-    --    refProp:postApplyDef()
-    --end
-
-    self.ActionQueue:run()
 
     for className in pairs(schemaDef) do
         local clsObject = self:getClassDef(className)
         ClassDef.ApplyIndexing(nil, clsObject)
         clsObject:saveToDB()
     end
+
+    self.ActionQueue:run()
 end
 
 ---@param self DBContext
@@ -156,7 +135,6 @@ local function createSingleClass(self, className, classDef, createVirtualTable)
     local savedActQue = self:setActionQueue()
 
     local result, errMsg = pcall(createMultiClasses, self, schemaDef, createVirtualTable)
-    --createMultiClasses(self, schemaDef, createVirtualTable)
     self:setActionQueue(savedActQue)
 
     if not result then
@@ -203,7 +181,6 @@ local function CreateSchema(self, schemaJson, createVirtualTable)
     local savedActQue = self:setActionQueue()
 
     local result, errMsg = pcall(createMultiClasses, self, classSchema, createVirtualTable)
-    --createMultiClasses(self, classSchema, createVirtualTable)
     self:setActionQueue(savedActQue)
 
     if not result then
