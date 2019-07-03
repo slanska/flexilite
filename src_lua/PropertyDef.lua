@@ -900,7 +900,7 @@ end
 
 --- @overload
 function EnumPropertyDef:hasUnresolvedReferences()
-    local result = PropertyDef.hasUnresolvedReferences(self)
+    local result = ReferencePropertyDef.hasUnresolvedReferences(self)
     if not result then
         return result
     end
@@ -924,7 +924,7 @@ end
 
 function EnumPropertyDef:applyDef()
     -- Note: calling PropertyDef, not ReferencePropertyDef
-    PropertyDef.applyDef(self)
+    ReferencePropertyDef.applyDef(self)
 
     -- Resolve names
     if self.D.enumDef then
@@ -943,7 +943,7 @@ function EnumPropertyDef:applyDef()
 end
 
 function EnumPropertyDef:internalToJSON()
-    local result = PropertyDef.internalToJSON(self)
+    local result = ReferencePropertyDef.internalToJSON(self)
 
     result.refDef = tablex.deepcopy(self.enumDef)
 
@@ -951,7 +951,7 @@ function EnumPropertyDef:internalToJSON()
 end
 
 function EnumPropertyDef:initMetadataRefs()
-    PropertyDef.initMetadataRefs(self)
+    ReferencePropertyDef.initMetadataRefs(self)
 
     if self.D.enumDef then
         self.ClassDef.DBContext:InitMetadataRef(self.D.enumDef, 'classRef', ClassNameRef)
@@ -960,7 +960,7 @@ function EnumPropertyDef:initMetadataRefs()
             local newItems = {}
             for i, v in pairs(self.D.enumDef.items) do
                 if v and v.text then
-                    newItems[1] = NameRef(v.text, v.id)
+                    newItems[i] = NameRef(v.text, v.id)
                 end
             end
             self.D.enumDef.items = newItems
@@ -1330,7 +1330,7 @@ PropertyDef.Classes = {
 local EnumDefSchemaDef = tablex.deepcopy(NameRef.SchemaDef)
 EnumDefSchemaDef.items = schema.Optional(schema.Collection(schema.Record {
     id = schema.OneOf(schema.String, schema.Integer),
-    text = name_ref.IdentifierSchema,
+    text = schema.String,
     icon = schema.Optional(schema.String),
     imageUrl = schema.Optional(schema.String),
 }))
