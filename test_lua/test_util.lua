@@ -11,9 +11,6 @@ Flexilite library will bundle all dependencies via luajit bytecode and module
 name registration
 ]]
 
---local mobdebug = require('mobdebug')
---mobdebug.start()
-
 sqlite3 = require 'lsqlite3complete'
 local class = require 'pl.class'
 local stringx = require 'pl.stringx'

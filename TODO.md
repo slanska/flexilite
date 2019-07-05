@@ -234,6 +234,6 @@ Territories: TerritoryID
 -[ ] boxed object: access to referenced properties
 -[ ] query: fix unit tests
 -[x] refactor deferred actions
--[ ] 'Territories' appears twice in view EmployeeTerritories
+-[x] 'Territories' appears twice in view EmployeeTerritories
 
 

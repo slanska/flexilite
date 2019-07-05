@@ -97,7 +97,6 @@ local expr_cases = {
 local function generate_indexed_items(case)
     print('#Expression: '..case.expr)
     local filterDef = FilterDef(ProductClassDef, case.expr, case.params)
-    --pretty.dump(filterDef.indexedItems)
 end
 
 local function process_expr_cases()

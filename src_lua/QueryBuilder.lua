@@ -319,7 +319,7 @@ function FilterDef:find_indexed_prop(propID, startIndex, ignoreProcessed)
 end
 
 -- Checks if there is multi-key index defined for this
----@param sql List
+---@param sql any[] @comment pl.List
 ---@return string | nil
 function FilterDef:check_multi_key_index(sql)
     local indexes = self.ClassDef.indexes
@@ -351,7 +351,7 @@ function FilterDef:check_multi_key_index(sql)
     return nil
 end
 
----@param sql List
+---@param sql any[] @comment pl.List
 function FilterDef:process_range_index(sql)
     local indexes = self.ClassDef.indexes
     if indexes ~= nil and #indexes.rangeIndexing > 0 then
@@ -395,7 +395,7 @@ function FilterDef:process_range_index(sql)
     end
 end
 
----@param sql List
+---@param sql any[] @comment pl.List
 function FilterDef:process_full_text_index(sql)
     local indexes = self.ClassDef.indexes
     if indexes ~= nil and #indexes.fullTextIndexing > 0 then
@@ -423,7 +423,7 @@ end
 
 -- Generates SQL for searching on individual properties
 -- Takes into account: indexed, unique indexed, non indexed, mapped and non mapped properties
----@param sql List
+---@param sql string[] @comment pl.List
 function FilterDef:process_single_properties(sql)
     -- TODO local indexes = self.ClassDef.indexes
 
@@ -508,7 +508,7 @@ function FilterDef:process_single_properties(sql)
     end
 end
 
----@param sql List
+---@param sql string[] @comment List
 function FilterDef:process_multi_key_index(sql)
     ---@type string
     local mkey_filter = self:check_multi_key_index(sql)
@@ -525,7 +525,7 @@ function FilterDef:build_index_query()
     -- Skip external wrapper and 'Return' tag - they will be always there
     self:process_token(self.ast[1][1])
 
-    ---@type List @comment used as a string builder
+    ---@type any[] @comment pl.List used as a string builder
     local result = List()
     result:append(string.format('select * from [.objects] where ClassID = %d',
             self.ClassDef.ClassID))

@@ -206,7 +206,7 @@ busted --lua=PATH_TO_LUJIT_EXE ./index.lua
 
 For example:
 ```shell 
-/torch/luajit/bin/busted --lua=/torch/luajit/bin/luajit  ./create_class.lua 
+/torch/luajit/bin/busted  --lua=/torch/luajit/bin/luajit  ./create_class.lua 
 ```
 
 (**Note that busted needs to run using LuaJit interpreter. POC Lua will fail**)

@@ -80,9 +80,6 @@ local function generateView(self, tableName, className, propName, col1Name, col2
         toPropDef = toClassDef:getProperty(fromPropDef.D.refDef.reverseProperty.text)
     end
 
-    -->>
-    require('debugger')()
-
     if toPropDef and toPropDef.ID < fromPropDef.ID then
         toPropDef, fromPropDef = fromPropDef, toPropDef
         toClassDef, fromClassDef = fromClassDef, toClassDef
@@ -156,10 +153,9 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     end
 
     local function appendDeleteStatement()
-        sql:append(string.format('delete from [.ref-values] where '))
-        sql:append(string.format(' [%s] = ', col1Name))
+        sql:append(string.format('delete from [.ref-values] where  ObjectID = '))
         appendUDIDtoTrigger(sql, fromClassDef, fromUDID, col1Name, 'old')
-        sql:append(string.format(' and [%s] = ', col2Name))
+        sql:append(' and [Value] = ')
         appendUDIDtoTrigger(sql, toClassDef, toUDID, col2Name, 'old')
         sql:append(string.format(' and ctlv & %d <> 0;', Constants.CTLV_FLAGS.ALL_REFS_MASK))
     end

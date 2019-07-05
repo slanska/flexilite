@@ -203,6 +203,7 @@ function DBValue:afterSaveToDB(DBProperty, propIndex)
 end
 
 -- Singleton constant Null DBValue. All operations with Null value result in null
+---@class NullDBValue
 local NullDBValue
 
 local function NullFunc()

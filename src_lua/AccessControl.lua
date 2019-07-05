@@ -102,7 +102,7 @@ function AccessControl:ensureUserPermission(userInfo, accessRules, op)
 end
 
 -- Get aggregated permissions for the given accessRules
----@param accessRules IAccessRules
+---@param accessRules AccessRules
 function AccessControl:getPermissions(accessRules)
 
 end

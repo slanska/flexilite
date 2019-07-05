@@ -629,7 +629,7 @@ function DBContext:flexi_Schema(className, propertyName)
 end
 
 -- Handler for select flexi('help', ...)
---- @param action string
+---@param action string
 -- (optional) to provide help for specific action
 function DBContext:flexi_Help(action)
     local result = { 'Usage:' }

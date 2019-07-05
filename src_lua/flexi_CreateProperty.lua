@@ -8,7 +8,7 @@ local AlterClass = require('flexi_AlterClass').AlterClass
 
 ---@param classDef ClassDef
 ---@param propName string
----@param propDef IPropertyDef
+---@param propDef PropertyDef
 ---@return PropertyDef
 local function createProperty(classDef, propName, propDef)
     local newClassDef = {
@@ -24,7 +24,7 @@ end
 ---@param self DBContext
 ---@param className string
 ---@param propName string
----@param propDef IPropertyDef
+---@param propDef PropertyDef
 local function flexi_CreateProperty(self, className, propName, propDef)
     local classDef = self:getClassDef(className)
     return createProperty(classDef, propName, propDef)

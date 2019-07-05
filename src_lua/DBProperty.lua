@@ -169,7 +169,7 @@ function DBProperty:ExportValues()
     end
 
     local result = {}
-    for i, dbv in ipairs(self.values) do
+    for _, dbv in ipairs(self.values) do
         table.insert(result, self.PropDef:ExportDBValue(self.DBOV.DBObject, dbv))
     end
     return result

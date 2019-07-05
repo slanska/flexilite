@@ -22,6 +22,7 @@ local test_cases = {
     { query = [[ProductName == 'Camembert Pierrot']], expected_cnt = 1 },
     { query = [[1 == 1]], expected_cnt = 77 },
 }
+
 describe('Property Ops/', function()
 
     ---@type ClassDef

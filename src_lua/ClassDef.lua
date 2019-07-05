@@ -51,20 +51,6 @@ local IndexDefinitions = class()
 IndexDefinitions.ftsCols = { 'X1', 'X2', 'X3', 'X4', 'X5' }
 IndexDefinitions.rngCols = { 'A0', 'A1', 'B0', 'B1', 'C0', 'C1', 'D0', 'D1', 'E0', 'E1' }
 
----Returns true if column type is a numeric one (INTEGER, FLOAT, DATETIME etc.)
----@param col_type string @comment
----@return boolean
-local function isColNumeric(col_type)
-    if col_type == 'integer' or col_type == 'int' or col_type == 'number'
-            or col_type == 'float' or col_type == 'decimal' or col_type == 'money'
-            or col_type == 'date' or col_type == 'datetime' or col_type == 'time'
-            or col_type == 'timespan' or col_type == 'duration' then
-        return true
-    end
-
-    return false
-end
-
 -- Initializes empty index definition
 function IndexDefinitions:_init()
     -- Full text index. Array 1..5 to property ID (1 = X1, 2 = X2 ...)
@@ -645,7 +631,7 @@ function ClassDef:normalizeIndexDefinitions()
     local result = IndexDefinitions()
 
     if self.D.indexes then
-        for indexName, indexDef in pairs(self.D.indexes) do
+        for _, indexDef in pairs(self.D.indexes) do
             local indexType = string.lower(indexDef.type or 'index')
             local props = indexDef.properties
             if type(props) == 'string' then
@@ -696,7 +682,7 @@ function ClassDef:normalizeIndexDefinitions()
                     end
                 end
             elseif indexType == 'fulltext' then
-                for i, propRef in ipairs(props) do
+                for _, propRef in ipairs(props) do
                     local propDef = self:getProperty(propRef.text)
                     local ok, msg = result:AddFullTextIndexedProperty(propDef)
                     if not ok then

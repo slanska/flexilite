@@ -10,8 +10,8 @@
 -- objects to belong to different classes
 -- Updates all references
 -- After merging, objects found by sourceFilter get deleted
--- This function is typically used to get rid of accidental duplicates (when, e.g. country, city or person names are mispelled and thus
--- are defied in multiple records)
+-- This function is typically used to get rid of accidental duplicates (when, e.g. country, city or person names are misspelled and thus
+-- are defined in multiple records)
 ---@param self DBContext
 ---@param targetFilter string @comment Valid Lua expression which should return one object only
 ---@param sourceFilter string @comment Valid Lua expression which may return more than one object
