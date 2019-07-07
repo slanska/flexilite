@@ -79,6 +79,25 @@ function ActionQueue:run()
     end
 end
 
+---@class ClassCollection : DictCI
+
+local ClassCollection = class(DictCI)
+
+function ClassCollection:_init()
+    self:super()
+end
+
+---@param self ClassCollection
+---@param classDef ClassDef
+local function ClassCollection_add(self, classDef)
+    assert(classDef)
+    assert(type(classDef.ClassID) == 'number')
+    assert(classDef.Name and type(classDef.Name.text) == 'string')
+
+    self[classDef.ClassID] = classDef
+    self[classDef.Name.text] = classDef
+end
+
 -------------------------------------------------------------------------------
 -- DBContext
 -------------------------------------------------------------------------------
@@ -87,11 +106,11 @@ end
 ---@field createVirtualTable boolean
 
 ---@class DBContext
----@field db userdata @comment sqlite3
+---@field db userdata @comment sqlite3 - sqlite database handler
 ---@field Statements table <string, userdata> @comment <string, sqlite3_stmt>
 ---@field MemDB table
 ---@field UserInfo UserInfo
----@field Classes table <string, ClassDef>
+---@field Classes ClassCollection
 ---@field Functions table @comment TODO use Function class
 ---@field ClassProps table<number, PropertyDef>
 ---@field Objects table <number, DBObject>
@@ -105,6 +124,7 @@ end
 ---@field config DBContextConfig
 ---@field flexirel FlexiRelVTable
 ---@field debugMode boolean
+---@field NAMClasses ClassCollection @comment new-and-modified classes before committing schema changes
 local DBContext = class()
 
 -- Forward declarations
@@ -124,7 +144,7 @@ function DBContext:_init(db)
     self.UserInfo = UserInfo()
 
     -- Collection of classes. Each class is referenced twice - by ID and Name
-    self.Classes = DictCI()
+    self.Classes = ClassCollection()
 
     -- Global list of registered functions. Each function is referenced twice - by ID and name
     self.Functions = {}
@@ -543,39 +563,27 @@ function DBContext:loadRows(sql, params)
     return stmt:nrows()
 end
 
--- Utility method. Adds instance of ClassDef to DBContext.Classes collection
---- @param classDef ClassDef
---- @return nil
-function DBContext:addClassToList(classDef)
-    assert(classDef)
-    assert(type(classDef.ClassID) == 'number')
-    self.Classes[classDef.ClassID] = classDef
-    self.Classes[classDef.Name.text] = classDef
-end
-
--- Loads class definition (as defined in [.classes] and [flexi_prop] tables)
--- First checks if class def has been already loaded, and if so, simply returns it
--- Otherwise, will load class definition from database and add it to the context class def collection
--- If class is not found, will throw error
---- @param classIdOrName number @comment number or string
+-- Returns class definition using Classes only (not checking NAMClasses). Used, for example, for loading read-only version of objects
+---@param classIdOrName number @comment number or string
 ---@param mustExist boolean
---- @see ClassDef
---- @return ClassDef @comment or nil, if not found
-function DBContext:getClassDef(classIdOrName, mustExist)
-    local result = self.Classes[classIdOrName]
+---@see ClassDef
+---@return ClassDef | nil
+function DBContext:getClassDefRO(classIdOrName, mustExist)
+    ---@type ClassDef
+    local result
 
-    -- Check if class already loaded
+    -- First, check already loaded classes
+    result = self.Classes[classIdOrName]
     if result then
         if type(classIdOrName) == 'string' then
             assert(result.Name.text == classIdOrName, 'result.Name.text == classIdOrName')
         else
             assert(result.ClassID == classIdOrName, string.format('%s == %s', result.ClassID, classIdOrName))
         end
-        return result
+        return result, false
     end
 
-    -- If loaded, ensure if it wasn't updated
-
+    -- Second, lookup in the database
     local sql = [[select c.* from (select *, (select Value from [.sym_names] where ID = NameID limit 1) as Name from [.classes]) as c]]
     if type(classIdOrName) == 'string' then
         sql = sql .. [[ where c.Name = :1 limit 1; ]]
@@ -583,17 +591,46 @@ function DBContext:getClassDef(classIdOrName, mustExist)
         sql = sql .. [[ where c.ClassID = :1 limit 1;]]
     end
     local classRow = self:loadOneRow(sql, { ['1'] = classIdOrName })
+
     if not classRow then
         if mustExist then
             error(string.format('Class %s not found', classIdOrName))
         end
-        return nil
+        return nil, false
     end
 
     result = ClassDef { data = classRow, DBContext = self }
-    self:addClassToList(result)
+    self.Classes:add(result)
 
-    return result
+    return result, false
+end
+
+-- Loads class definition (as defined in [.classes] and [flexi_prop] tables)
+-- If class is not found and mustExist is true, will throw error
+---@param classIdOrName number @comment number or string
+---@param mustExist boolean
+---@see ClassDef
+---@return ClassDef | nil, boolean @comment nil, if not found; true if class was found in NAMClasses
+function DBContext:getClassDef(classIdOrName, mustExist)
+    ---@type ClassDef
+    local result
+    -- Check if class is in the list of new-and-modified classes
+    if self.NAMClasses ~= nil then
+        result = self.NAMClasses[classIdOrName]
+        if result then
+            return result, true
+        end
+    end
+
+    result = self:getClassDefRO(classIdOrName, false)
+    if result ~= nil then
+        return result, false
+    end
+
+    if mustExist then
+        error(string.format('Class %s not found', classIdOrName))
+    end
+    return nil, false
 end
 
 -- Returns schema definition for entire database, single class, or single property
@@ -613,6 +650,9 @@ function DBContext:flexi_Schema(className, propertyName)
         for row in stmt:rows() do
             -- Temp load - do not add to collection
             local cls = self:getClassDef(row.id)
+
+            -- TODO
+            cls.toJSON()
         end
 
     elseif not propertyName then
@@ -740,7 +780,7 @@ function DBContext:initMemoizeFunctions()
 end
 
 function DBContext:flushSchemaCache()
-    self.Classes = {}
+    self.Classes = ClassCollection()
     self.ClassProps = {}
     self.Functions = {}
     self:flushDataCache()
@@ -890,6 +930,34 @@ function DBContext:setActionQueue(actQue)
     local result = self.ActionQueue
     self.ActionQueue = actQue
     return result
+end
+
+---@param classDef ClassDef
+function DBContext:setNAMClass(classDef)
+    if self.NAMClasses == nil then
+        self.NAMClasses = ClassCollection()
+    end
+    ClassCollection_add(self.NAMClasses, classDef)
+end
+
+-- Moves all new-and-modified classes to the main class dictionary. Clears NAMClasses at the end
+function DBContext:applyNAMClasses()
+    self.Classes.allowReassign = true
+
+    local success, errorMsg = pcall(function()
+        if self.NAMClasses ~= nil then
+            for _, c in pairs(self.NAMClasses) do
+                self.Classes:add(c)
+            end
+
+            self.NAMClasses = nil
+        end
+    end)
+
+    self.Classes.allowReassign = false
+    if not success then
+        error(errorMsg)
+    end
 end
 
 local flexi_CreateClass = require 'flexi_CreateClass'

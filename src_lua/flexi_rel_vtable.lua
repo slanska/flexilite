@@ -184,7 +184,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
         appendWhenCondition('or', col1Name .. '_2')
     end
     if toUDID then
-        appendWhenCondition('or', col1Name .. '_2')
+        appendWhenCondition('or', col2Name .. '_2')
     end
 
     sql:append('begin')

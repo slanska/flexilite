@@ -189,6 +189,13 @@ function ReadOnlyDBOV:loadProps(propIDs)
     end
 end
 
+-- Gets class definition based on class ID. For writable DBOV, it will use NAMClasses
+---@param classID number
+---@return ClassDef
+function ReadOnlyDBOV:getClassDef(classID)
+    return self.DBObject.DBContext:getClassDefRO(classID, true)
+end
+
 ---@param obj table @comment [.objects] row
 function ReadOnlyDBOV:initFromObjectRow(obj)
     -- Theoretically, object ID may not match class def passed in constructor
@@ -658,6 +665,22 @@ function WritableDBOV:getChangedDataPayload()
         result[string.lower(propName)] = dbp:GetValues()
     end
     return result
+end
+
+-- Gets class definition based on class ID. For writable DBOV, it will use NAMClasses
+---@param classID number
+---@return ClassDef
+function WritableDBOV:getClassDef(classID)
+    ---@type ClassDef
+    local result
+    local nam = self.DBObject.NAMClasses
+    if nam ~= nil then
+        result = nam[classID]
+        if result ~= nil then
+            return result
+        end
+    end
+    return ReadOnlyDBOV.getClassDef(self, classID)
 end
 
 -------------------------------------------------------------------------------

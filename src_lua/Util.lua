@@ -96,7 +96,12 @@ local function stringifyJulianToDateTime(num)
     return stringifyDateTimeInfo(dt)
 end
 
+-- Case-insensitive dictionary. Used for classes and class properties.
+-- Allows one assignment on every key. Secondary assignment will throw dup error
+-- Supports string and integer keys only. Subsequent assignments of the same value will throw error
 ---@class DictCI
+---@field allowReassign boolean @comment if true then re-assignment for the same key is allowed. if false, error will be thrown
+
 local DictCI = class()
 
 ---@param values table | nil
@@ -109,6 +114,10 @@ function DictCI:_init(values)
 end
 
 function DictCI:__index(key)
+
+    -->>
+    print(string.format('DictCI:__index: ' .. key))
+
     if type(key) == 'string' then
         return rawget(self, string.lower(key))
     end
@@ -117,10 +126,16 @@ function DictCI:__index(key)
 end
 
 function DictCI:__newindex(key, value)
-    if type(key) == 'string' then
-        return rawset(self, string.lower(key), value)
-    end
 
+    -->>
+    print(string.format('DictCI:__newindex: ' .. key))
+
+    if type(key) == 'string' then
+        key = string.lower(key)
+    end
+    if not self.allowReassign and rawget(self, key) ~= nil then
+        error(string.format("Duplicate name [%s]"))
+    end
     return rawset(self, key, value)
 end
 

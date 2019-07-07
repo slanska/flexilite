@@ -150,6 +150,7 @@ end
 ---for new property (not stored in DB) {ClassDef: ClassDef, newPropertyName:string, jsonData: table}
 ---for existing property (when loading from DB): {ClassDef: ClassDef, dbrow: table, jsonData: table}
 function PropertyDef:_init(params)
+
     assert(params.ClassDef)
     assert(params.jsonData and params.jsonData.rules and params.jsonData.rules.type)
 
@@ -438,12 +439,28 @@ function PropertyDef:ColMapIndex()
     return self.ColMap ~= nil and string.lower(self.ColMap):byte() - string.byte('a') or nil
 end
 
+-- Called before properties for new or modified classes are saved in the database.
+-- For example, may checks if all dependency classes exist. May create a new one.
+-- Noop by default
+function PropertyDef:beforeApplyDef()
+
+end
+
+-- Called after properties for new or modified classes are saved in the database.
+-- At this point, all new classes and all new properties got their persistent IDs
+-- For example, may create auxiliary objects like views etc.
+-- Noop by default
+function PropertyDef:afterApplyDef()
+    -- Do nothing
+end
+
 --[[
 ===============================================================================
 AnyPropertyDef
 ===============================================================================
 ]]
 
+---@class AnyPropertyDef: PropertyDef
 local AnyPropertyDef = class(PropertyDef)
 
 function AnyPropertyDef:_init(params)
@@ -459,7 +476,7 @@ NumberPropertyDef
 ]]
 
 -- Base property type for all range-able types
---- @class NumberPropertyDef
+--- @class NumberPropertyDef: PropertyDef
 local NumberPropertyDef = class(PropertyDef)
 
 function NumberPropertyDef:_init(params)
@@ -517,7 +534,7 @@ end
 MoneyPropertyDef
 ===============================================================================
 ]]
---- @class MoneyPropertyDef
+--- @class MoneyPropertyDef: NumberPropertyDef
 local MoneyPropertyDef = class(NumberPropertyDef)
 
 -- Ctor is required
@@ -554,7 +571,7 @@ IntegerPropertyDef
 ===============================================================================
 ]]
 
---- @class IntegerPropertyDef
+--- @class IntegerPropertyDef: NumberPropertyDef
 local IntegerPropertyDef = class(NumberPropertyDef)
 
 function IntegerPropertyDef:_init(params)
@@ -595,7 +612,7 @@ TextPropertyDef
 ===============================================================================
 ]]
 
---- @class TextPropertyDef
+--- @class TextPropertyDef: PropertyDef
 local TextPropertyDef = class(PropertyDef)
 
 function TextPropertyDef:_init(params)
@@ -644,7 +661,7 @@ SymNamePropertyDef
 ===============================================================================
 ]]
 
---- @class SymNamePropertyDef
+--- @class SymNamePropertyDef: TextPropertyDef
 local SymNamePropertyDef = class(TextPropertyDef)
 
 function SymNamePropertyDef:_init(params)
@@ -730,17 +747,16 @@ function ReferencePropertyDef:initMetadataRefs()
 
     if self.D and self.D.refDef then
         self.ClassDef.DBContext:InitMetadataRef(self.D.refDef, 'classRef', ClassNameRef)
-    end
+        self.ClassDef.DBContext:InitMetadataRef(self.D.refDef, 'reverseProperty', PropNameRef)
 
-    self.ClassDef.DBContext:InitMetadataRef(self.D.refDef, 'reverseProperty', PropNameRef)
+        if self.D.refDef.dynamic then
+            self.ClassDef.DBContext:InitMetadataRef(self.D.refDef.dynamic, 'selectorProp', PropNameRef)
 
-    if self.D and self.D.refDef and self.D.refDef.dynamic then
-        self.ClassDef.DBContext:InitMetadataRef(self.D.refDef.dynamic, 'selectorProp', PropNameRef)
-
-        if self.D.refDef.dynamic.rules then
-            for _, v in pairs(self.D.refDef.dynamic.rules) do
-                if v then
-                    self.ClassDef.DBContext:InitMetadataRef(v, 'classRef', ClassNameRef)
+            if self.D.refDef.dynamic.rules then
+                for _, v in pairs(self.D.refDef.dynamic.rules) do
+                    if v then
+                        self.ClassDef.DBContext:InitMetadataRef(v, 'classRef', ClassNameRef)
+                    end
                 end
             end
         end
@@ -882,6 +898,11 @@ function ReferencePropertyDef:CreateDBProperty(object)
     return result
 end
 
+function ReferencePropertyDef:afterApplyDef()
+    PropertyDef.afterApplyDef(self)
+
+end
+
 --[[
 ===============================================================================
 EnumPropertyDef
@@ -891,7 +912,7 @@ ExportDBValue
 ===============================================================================
 ]]
 
---- @class EnumPropertyDef
+--- @class EnumPropertyDef: ReferencePropertyDef
 local EnumPropertyDef = class(ReferencePropertyDef)
 
 function EnumPropertyDef:_init(params)
@@ -1019,7 +1040,15 @@ function EnumPropertyDef:ExportDBValue(dbo, dbv)
 end
 
 function EnumPropertyDef:SetValue()
+    -- TODO
+end
 
+-- Checks if all dependency classes exist. May create a new one. Noop by default
+function EnumPropertyDef:beforeApplyDef()
+    PropertyDef.beforeApplyDef(self)
+    if self.D.refDef and self.D.refDef.classRef then
+        self.ClassDef.DBContext.EnumManager:ensureEnumClassExists(self.D.refDef.classRef.text)
+    end
 end
 
 --[[
@@ -1027,7 +1056,7 @@ end
 BoolPropertyDef
 ===============================================================================
 ]]
---- @class BoolPropertyDef
+--- @class BoolPropertyDef: PropertyDef
 local BoolPropertyDef = class(PropertyDef)
 
 function BoolPropertyDef:_init(params)
@@ -1053,7 +1082,7 @@ BlobPropertyDef
 ===============================================================================
 ]]
 
---- @class BlobPropertyDef
+--- @class BlobPropertyDef: PropertyDef
 local BlobPropertyDef = class(PropertyDef)
 
 function BlobPropertyDef:_init(params)
@@ -1114,7 +1143,7 @@ UuidPropertyDef
 ===============================================================================
 ]]
 
---- @class UuidPropertyDef
+--- @class UuidPropertyDef: BlobPropertyDef
 local UuidPropertyDef = class(BlobPropertyDef)
 
 function UuidPropertyDef:_init(params)
@@ -1131,7 +1160,7 @@ DateTimePropertyDef
 ===============================================================================
 ]]
 
---- @class DateTimePropertyDef
+--- @class DateTimePropertyDef: NumberPropertyDef
 local DateTimePropertyDef = class(NumberPropertyDef)
 
 function DateTimePropertyDef:_init(params)
@@ -1238,7 +1267,7 @@ TimeSpanPropertyDef
 ===============================================================================
 ]]
 
---- @class TimeSpanPropertyDef
+--- @class TimeSpanPropertyDef: DateTimePropertyDef
 local TimeSpanPropertyDef = class(DateTimePropertyDef)
 
 function TimeSpanPropertyDef:_init(params)
@@ -1255,7 +1284,7 @@ ComputedPropertyDef
 ===============================================================================
 ]]
 
---- @class ComputedPropertyDef
+--- @class ComputedPropertyDef: PropertyDef
 local ComputedPropertyDef = class(PropertyDef)
 
 function ComputedPropertyDef:_init(params)

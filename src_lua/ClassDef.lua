@@ -366,7 +366,7 @@ function ClassDef:_init(params)
         self.vtypes = params.data.vtypes
 
         -->>
-        require('debugger')(not (params.data.Name == 'Employees'))
+        --require('debugger')(not (params.data.Name == 'Employees'))
 
         assert(type(params.data.Data) == 'string', string.format('%s: params.data.Data must be valid JSON. Got %s',
                 params.data.Name, type(params.data.Data)))

@@ -15,28 +15,27 @@ class_def_JSON - optional. If not set, class with ad-hoc properties and no prede
 properties will be created
 ]]
 
--- TODO deferred actions
-
 local json = cjson or require 'cjson'
 local schema = require 'schema'
 local tablex = require 'pl.tablex'
 local ClassDef = require 'ClassDef'
+local List = require 'pl.List'
 
 local alt_cls = require('flexi_AlterClass')
 local AlterClass, MergeClassDefinitions = alt_cls.AlterClass, alt_cls.MergeClassDefinitions
 
 -- Inserts row into .classes table, to get class ID
 ---@param self DBContext
----@param clsObject ClassDef
-local function insertNewClass(self, clsObject)
+---@param classDef ClassDef
+local function insertNewClass(self, classDef)
     -- Save new class record to get ID
-    clsObject.Name:resolve(clsObject)
+    classDef.Name:resolve(classDef)
     self:execStatement("insert into [.classes] (NameID) values (:ClassNameID);",
             {
-                ClassNameID = clsObject.Name.id,
+                ClassNameID = classDef.Name.id,
             })
-    clsObject.D.ClassID = self.db:last_insert_rowid()
-    clsObject.ClassID = clsObject.D.ClassID
+    classDef.D.ClassID = self.db:last_insert_rowid()
+    classDef.ClassID = classDef.D.ClassID
 
     -- TODO self:ResolveDeferredRefs(clsObject.Name.text, clsObject.ClassID)
 end
@@ -46,20 +45,71 @@ end
 ---@param schemaDef table
 ---@param createVirtualTable boolean
 local function createMultiClasses(self, schemaDef, createVirtualTable)
+
+    -- Check schema for class definitions
     local err = schema.CheckSchema(schemaDef, self.ClassDef.MultiClassSchema)
     if err then
         local s = schema.FormatOutput(err)
         error(s)
     end
 
-    ---@param clsObject ClassDef
-    ---@param p PropertyDef
-    ---@param name string
-    local function applyProp(clsObject, p, name)
-        clsObject:assignColMappingForProperty(p)
-        p:applyDef()
-        local propID = p:saveToDB(nil, name)
-        self.ClassProps[propID] = p
+    --[[
+    Classes' processing is done in few steps (or phases)
+    1) Classes are added to NAMClasses, so that they become available for lookup by class name
+    2) Properties are iterated and beforeApplyDef method gets fired, if applicable
+    3) Class records are saved in .classes table so that classes get their persistent IDs
+    4) Properties are saved in database (applyDef). They get persistent IDs. At this point
+    5) Classes get their indexes applied and class definitions are saved (JSON portion only)
+    6) apply new-and-modified classes
+    ]]
+
+    -- Utility function to iterate over all classes and their properties
+    ---@param callback function @comment (className: string, ClassDef, propName: string, PropDef)
+    local function forEachClassProp(callback)
+        if self.NAMClasses ~= nil then
+            for className, classDef in pairs(self.NAMClasses) do
+                if classDef.Properties ~= nil then
+                    for propName, propDef in pairs(classDef.Properties) do
+                        callback(className, classDef, propName, propDef)
+                    end
+                end
+            end
+        end
+    end
+
+    ---@param className string
+    ---@param classDef ClassDef
+    ---@param propName string
+    ---@param propDef PropertyDef
+    local function virtualTableOrNAM(className, classDef, propName, propDef)
+
+    end
+
+    ---@param className string
+    ---@param classDef ClassDef
+    ---@param propName string
+    ---@param propDef PropertyDef
+    local function beforeApplyPropDef(className, classDef, propName, propDef)
+        propDef:beforeApplyDef()
+    end
+
+    ---@param className string
+    ---@param classDef ClassDef
+    ---@param propName string
+    ---@param propDef PropertyDef
+    local function afterApplyPropDef(className, classDef, propName, propDef)
+        propDef:afterApplyDef()
+    end
+
+    ---@param className string
+    ---@param classDef ClassDef
+    ---@param propName string
+    ---@param propDef PropertyDef
+    local function applyProp(className, classDef, propName, propDef)
+        classDef:assignColMappingForProperty(propDef)
+        propDef:applyDef()
+        local propID = propDef:saveToDB(nil, propName)
+        self.ClassProps[propID] = propDef
     end
 
     for className, classDef in pairs(schemaDef) do
@@ -75,10 +125,8 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
         if createVirtualTable == 0 then
             createVirtualTable = false
-        end
-
-        if createVirtualTable == nil then
-            createVirtualTable = self.config.createVirtualTable
+        elseif createVirtualTable == nil then
+            createVirtualTable = self.config.createVirtualTable or false
         end
 
         if createVirtualTable then
@@ -92,34 +140,31 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
         else
             local clsObject = self.ClassDef { newClassName = className, data = classDef, DBContext = self }
 
-            insertNewClass(self, clsObject)
-            self:addClassToList(clsObject)
-
             -- TODO Set ctloMask
             clsObject.D.ctloMask = 0
-
             clsObject.D.VirtualTable = false
-
-            -- Apply definition
-            for name, p in pairs(clsObject.Properties) do
-                applyProp(clsObject, p, name)
-            end
-
             -- Check if class is fully resolved, i.e. does not have references to non-existing classes
             clsObject.D.Unresolved = false
-            for _, p in pairs(clsObject.Properties) do
-                if p:hasUnresolvedReferences() then
-                    clsObject.D.Unresolved = true
-                end
-            end
+
+            insertNewClass(self, clsObject)
+
+            --??
+            require('debugger')()
+
+            self:setNAMClass(clsObject)
         end
+
+        forEachClassProp(beforeApplyPropDef)
+        forEachClassProp(applyProp)
+        forEachClassProp(afterApplyPropDef)
     end
 
-    for className in pairs(schemaDef) do
-        local clsObject = self:getClassDef(className)
+    for _, clsObject in pairs(self.NAMClasses) do
         ClassDef.ApplyIndexing(nil, clsObject)
         clsObject:saveToDB()
     end
+
+    self:applyNAMClasses()
 
     self.ActionQueue:run()
 end
@@ -132,10 +177,11 @@ end
 local function createSingleClass(self, className, classDef, createVirtualTable)
     local schemaDef = { [className] = classDef }
 
-    local savedActQue = self:setActionQueue()
-
+    local savedActQue = self.ActionQueue == nil and self:setActionQueue() or self.ActionQueue
     local result, errMsg = pcall(createMultiClasses, self, schemaDef, createVirtualTable)
-    self:setActionQueue(savedActQue)
+    if savedActQue ~= nil then
+        self:setActionQueue(savedActQue)
+    end
 
     if not result then
         error(errMsg)
@@ -178,10 +224,11 @@ They are processed in few steps, to provide referential integrity:
 local function CreateSchema(self, schemaJson, createVirtualTable)
     local classSchema = json.decode(schemaJson)
 
-    local savedActQue = self:setActionQueue()
-
+    local savedActQue = self.ActionQueue == nil and self:setActionQueue() or self.ActionQueue
     local result, errMsg = pcall(createMultiClasses, self, classSchema, createVirtualTable)
-    self:setActionQueue(savedActQue)
+    if savedActQue ~= nil then
+        self:setActionQueue(savedActQue)
+    end
 
     if not result then
         error(errMsg)

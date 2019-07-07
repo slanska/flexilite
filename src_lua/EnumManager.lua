@@ -109,25 +109,13 @@ function EnumManager:ApplyEnumPropertyDef(propDef)
             else
                 refClsName = string.format('%s_%s', propDef.ClassDef.Name.text, propDef.Name.text)
             end
-            local refCls = self.DBContext:getClassDef(propDef.D.enumDef.classRef.text)
-            if not refCls then
-                refCls = self:CreateEnumClass(refClsName)
-            end
 
             if propDef.D.enumDef.items then
                 self:UpsertEnumItems(refCls, propDef.D.enumDef.items)
             end
         elseif propDef.D.refDef then
             -- Process as foreign key
-
-            -- Check if this is self-reference (like Employee.ReportsTo -> Employee)
-            ---@type ClassDef
-            local refCls
-            if string.lower(propDef.D.refDef.classRef.text) == string.lower(propDef.ClassDef.Name.text) then
-                refCls = propDef.ClassDef
-            else
-                refCls = self.DBContext:getClassDef(propDef.D.refDef.classRef.text)
-            end
+            local refCls = self.ClassDef.DBContext.EnumManager:ensureEnumClassExists(propDef.D.refDef.classRef.text)
 
             if refCls then
                 -- TODO
@@ -144,11 +132,17 @@ end
 -- Creates class for enum type, if needed.
 ---@param className string
 ---@param items table @comment (optional) array of EnumItem
-function EnumManager:CreateEnumClass(className, items)
+---@return ClassDef
+function EnumManager:ensureEnumClassExists(className, items)
+    local result = self.DBContext:getClassDef(className)
+    if result then
+        return result
+    end
+
     -- Determine id type
     local idType = 'integer'
     if items and #items > 0 then
-        for i, v in ipairs(items) do
+        for _, v in ipairs(items) do
             if type(v.id) ~= 'number' then
                 idType = type(v.id)
                 break
@@ -182,12 +176,14 @@ function EnumManager:CreateEnumClass(className, items)
     }
 
     -- Check if class already exists
-    local cls = ClassCreate(self.DBContext, className, json.encode(def), false)
+    result = ClassCreate(self.DBContext, className, json.encode(def), false)
 
     -- Upsert items to enum class
     if items and #items > 0 then
         self:UpsertEnumItems(cls, items)
     end
+
+    return result
 end
 
 ---@param className string
