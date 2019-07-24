@@ -40,3 +40,6 @@
 [submodule "lib/debugger-lua"]
 	path = lib/debugger-lua
 	url = https://github.com/slembcke/debugger.lua.git
+[submodule "lib/md5.lua"]
+	path = lib/md5.lua
+	url = https://github.com/kikito/md5.lua.git

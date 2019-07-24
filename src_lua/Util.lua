@@ -100,7 +100,6 @@ end
 -- Allows one assignment on every key. Secondary assignment will throw dup error
 -- Supports string and integer keys only. Subsequent assignments of the same value will throw error
 ---@class DictCI
----@field allowReassign boolean @comment if true then re-assignment for the same key is allowed. if false, error will be thrown
 
 local DictCI = class()
 
@@ -126,15 +125,8 @@ function DictCI:__index(key)
 end
 
 function DictCI:__newindex(key, value)
-
-    -->>
-    print(string.format('DictCI:__newindex: ' .. key))
-
     if type(key) == 'string' then
         key = string.lower(key)
-    end
-    if not self.allowReassign and rawget(self, key) ~= nil then
-        error(string.format("Duplicate name [%s]"))
     end
     return rawset(self, key, value)
 end
@@ -143,10 +135,8 @@ end
 ---@param n string @comment class or property name
 ---@return string
 local function normalizeSqlName(n)
-    -- []
     local _, _, result = string.find(n, '^%s*%[(%w+)%]%s*$')
 
-    -- ``
     if result == nil then
         _, _, result = string.find(n, '^%s*%`(%w+)%`%s*$')
     end

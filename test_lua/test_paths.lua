@@ -19,6 +19,7 @@ local paths = {
 '../lib/lua-metalua/treequery/?.lua',
 '../lib/lua-sandbox/?.lua',
 '../lib/debugger-lua/?.lua',
+'../lib/md5.lua/?.lua',
 '../?.lua',
 }
 

@@ -17,6 +17,24 @@ local os = require 'os'
 local path = require 'pl.path'
 local lapp = require 'pl.lapp'
 local stringx = require 'pl.stringx'
+local pretty = require 'pl.pretty'
+
+-- set lua paths
+local paths = {
+    '../lib/debugger-lua/?.lua',
+    '../lib/md5.lua/?.lua',
+    './lib/md5.lua/?.lua',
+    '../lib/lua-ansicolors/?.lua',
+    './lib/lua-ansicolors/?.lua',
+    '../?.lua',
+}
+
+for _, pp in ipairs(paths) do
+    package.path = path.abspath(path.relpath(pp)) .. ';' .. package.path
+end
+
+local md5 = require 'md5'
+local ansicolors = require 'ansicolors'
 
 local cli_args = lapp [[
 Compile lua-to-static-library
@@ -27,7 +45,7 @@ Compile lua-to-static-library
 
 ---@param cmd string
 local function os_execute(cmd)
-    local result, msg, code = os.execute(cmd)
+    local result, _, code = os.execute(cmd)
     if result == nil then
         error(string.format('Error executing command [%s]: code %s', cmd, code))
     end
@@ -50,6 +68,34 @@ if not path.exists(out_path) then
     end
 end
 
+local cfg = {}
+
+-- Load previous stats (if exists)
+local cfgFilePath = path.join(out_path, '.lua2lib')
+local cfgFile = io.open(cfgFilePath, 'r')
+if cfgFile ~= nil then
+    local cfgStr = cfgFile:read("*all")
+    cfg = pretty.read(cfgStr)
+    cfgFile:close()
+end
+
+---@param filePath string
+---@return string @comment calculated MD5 checksum of contents of file by filePath
+local function calcMD5(filePath)
+    local f = io.open(filePath, 'r')
+    if f ~= nil then
+        local content = f:read('*all')
+        local result = md5.sumhexa(content)
+        f:close()
+        return result
+    end
+
+    return nil
+end
+
+local md5changed = false
+
+-- Process file list
 for module_name, file_name in pairs(files) do
     -- Compile .lua file
     local nn = ''
@@ -65,59 +111,85 @@ for module_name, file_name in pairs(files) do
     -- Current directory is expected to be flexilite
     local file_path = path.abspath(path.relpath(file_name))
     local _, ext = path.splitext(file_path)
-    if ext ~= '.lua' then
-        -- Non Lua files are treated as string resources (e.g. SQL files)
-        -- Read file content
-        local in_file = io.open(file_path, 'r')
-        local res_str = in_file:read("*all")
-        in_file:close()
 
-        -- Encode it as string
-        local code = string.format('return %s', stringx.quote_string(res_str))
+    local newMd5 = calcMD5(file_path)
+    local processingNeeded = false
 
-        -- Save as temp file
-        local file_path = os.tmpname()
-        local tmp_file = io.open(file_path, 'w')
+    -- Analyze if file has changed since last processing
+    local prevMd5 = cfg[module_name]
+    if prevMd5 == nil or prevMd5 ~= newMd5 then
+        processingNeeded = true
+        md5changed = true
+    end
 
-        tmp_file:write(code)
-        tmp_file:close()
+    cfg[module_name] = newMd5
 
-        -- Compile to .o
-        local o_file = path.abspath(path.join(out_path, path.relpath(
-                string.gsub(string.gsub(file_name, '/', '.'),
-                        '%.%.%.', '') .. '.o')))
+    if processingNeeded then
+        if ext ~= '.lua' then
+            -- Non Lua files are treated as string resources (e.g. SQL files)
+            -- Read file content
+            local in_file = io.open(file_path, 'r')
+            local res_str = in_file:read("*all")
+            in_file:close()
 
-        cmd = string.format('luajit -b%s "%s" "%s"',
-                nn, file_path, o_file)
+            -- Encode it as string
+            local code = string.format('return %s', stringx.quote_string(res_str))
 
-        print(string.format('%s: compiling %s', libName, file_name))
+            -- Save as temp file
+            local file_path = os.tmpname()
+            local tmp_file = io.open(file_path, 'w')
 
-        os_execute(cmd)
+            tmp_file:write(code)
+            tmp_file:close()
 
-        --Delete temp file
-        os.remove(file_path)
+            -- Compile to .o
+            local o_file = path.abspath(path.join(out_path, path.relpath(
+                    string.gsub(string.gsub(file_name, '/', '.'),
+                            '%.%.%.', '') .. '.o')))
+
+            cmd = string.format('luajit -b%s "%s" "%s"',
+                    nn, file_path, o_file)
+
+            print(ansicolors(string.format('%%{magenta}%s: compiling %s%%{reset}', libName, file_name)))
+
+            os_execute(cmd)
+
+            --Delete temp file
+            os.remove(file_path)
+        else
+            -- Compile to .o
+            local o_file = path.abspath(path.join(out_path, path.relpath(
+                    string.gsub(string.gsub(file_name, '/', '.'),
+                            '%.%.%.', '') .. '.o')))
+            cmd = string.format('luajit -bg%s  "%s" "%s"',
+                    nn, file_path, o_file)
+
+            print(ansicolors(string.format('%%{yellow}%s: compiling %s%%{reset}', libName, file_name)))
+
+            os_execute(cmd)
+        end
     else
-        -- Compile to .o
-        local o_file = path.abspath(path.join(out_path, path.relpath(
-                string.gsub(string.gsub(file_name, '/', '.'),
-                        '%.%.%.', '') .. '.o')))
-        cmd = string.format('luajit -bg%s  "%s" "%s"',
-                nn, file_path, o_file)
+        print(ansicolors(string.format('%%{cyan}Skipping unchanged %s%%{reset}', module_name)))
+    end
+end
 
-        print(string.format('%s: compiling %s', libName, file_name))
-
-        os_execute(cmd)
+-- Save updated config
+if md5changed then
+    cfgFile = io.open(cfgFilePath, 'w+')
+    if cfgFile ~= nil then
+        local cfgStr = pretty.write(cfg)
+        cfg = cfgFile:write(cfgStr)
+        cfgFile:close()
     end
 end
 
 -- Bundle library into single archive
-local Lib_ar_path
 if jit.os == 'Windows' then
     -- Use Visual Studio LIB tool to build static ibrary
     local cmd = string.format('lib  -nologo -out:%s %s/*.o', path.join(out_path, cli_args.name), out_path)
     os_execute(cmd)
 else
-    -- *NIX - use AR for buiding static library
+    -- *NIX - use AR for building static library
     local cmd = string.format('ar rcus %s %s/*.o', path.join(out_path, cli_args.name), out_path)
     os_execute(cmd)
 end

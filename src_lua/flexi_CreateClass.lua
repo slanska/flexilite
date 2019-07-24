@@ -148,8 +148,8 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
             insertNewClass(self, clsObject)
 
-            --??
-            require('debugger')()
+            -- ??
+            --require('debugger')()
 
             self:setNAMClass(clsObject)
         end

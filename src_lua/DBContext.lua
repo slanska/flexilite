@@ -721,6 +721,7 @@ function DBContext:flexi_CurrentUser(userInfo, roles, culture)
     return 'Current user info updated'
 end
 
+--- Locks property mapping for the given class so that no alterations can be made for mapped properties
 function DBContext:flexi_LockClass(className)
 end
 
@@ -942,7 +943,6 @@ end
 
 -- Moves all new-and-modified classes to the main class dictionary. Clears NAMClasses at the end
 function DBContext:applyNAMClasses()
-    self.Classes.allowReassign = true
 
     local success, errorMsg = pcall(function()
         if self.NAMClasses ~= nil then
@@ -954,7 +954,6 @@ function DBContext:applyNAMClasses()
         end
     end)
 
-    self.Classes.allowReassign = false
     if not success then
         error(errorMsg)
     end

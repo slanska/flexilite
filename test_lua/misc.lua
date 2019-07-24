@@ -76,6 +76,17 @@ describe('misc tests', function()
         end)
     end)
 
+    describe('DictCI', function()
+
+        local DictCI = require('Util').DictCI
+
+        it('should ignore case', function()
+            local d = DictCI()
+            local pp1 = {}
+            d.products = pp1
+            local pp2 = d.Products
+            assert(pp1 == pp2)
+        end)
+    end)
+
 end)
-
-
