@@ -367,6 +367,7 @@ function ClassDef:_init(params)
 
         -->>
         --require('debugger')(not (params.data.Name == 'Employees'))
+        require('debugger')(type(params.data.Data) == 'string')
 
         assert(type(params.data.Data) == 'string', string.format('%s: params.data.Data must be valid JSON. Got %s',
                 params.data.Name, type(params.data.Data)))
@@ -946,7 +947,7 @@ ClassDef.Schema = schema.Record {
         'range' indexes must be defined in pairs (even number of properties, i.e. 2, 4, 6, 8 or 10)
         keys in this tables (aka 'index name') are ignored
         ]]
-    indexes = schema.Optional(schema.Record{
+    indexes = schema.Optional(schema.Record {
         rangeIndexing = schema.Optional(schema.Collection(NameRef.Schema)),
         fullTextIndexing = schema.Optional(schema.Collection(NameRef.Schema)),
         multiKeyIndexing = schema.Optional(schema.Collection(NameRef.Schema)),

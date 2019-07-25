@@ -41,6 +41,7 @@ Compile lua-to-static-library
 <filelist> (string)  Path to file list .lua module
     -n, --name (string default 'luaModules.a')  Name of target library
     -o, --output (string default 'obj_lua')  Output path
+    -f, --force Force rebuild
 ]]
 
 ---@param cmd string
@@ -95,6 +96,8 @@ end
 
 local md5changed = false
 
+print('@@@@@ force ', cli_args.force)
+
 -- Process file list
 for module_name, file_name in pairs(files) do
     -- Compile .lua file
@@ -117,7 +120,7 @@ for module_name, file_name in pairs(files) do
 
     -- Analyze if file has changed since last processing
     local prevMd5 = cfg[module_name]
-    if prevMd5 == nil or prevMd5 ~= newMd5 then
+    if cli_args.force or prevMd5 == nil or prevMd5 ~= newMd5 then
         processingNeeded = true
         md5changed = true
     end
