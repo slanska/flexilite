@@ -634,10 +634,8 @@ function DBContext:getClassDef(classIdOrName, mustExist)
 end
 
 -- Returns schema definition for entire database, single class, or single property
---- @param className string
--- (optional)
---- @param propertyName string
--- (optional)
+---@param className string | nil
+---@param propertyName string | nil
 function DBContext:flexi_Schema(className, propertyName)
     local result
     if not className then
@@ -669,8 +667,7 @@ function DBContext:flexi_Schema(className, propertyName)
 end
 
 -- Handler for select flexi('help', ...)
----@param action string
--- (optional) to provide help for specific action
+---@param action string | nil @comment to provide help for specific action
 function DBContext:flexi_Help(action)
     local result = { 'Usage:' }
 
@@ -694,8 +691,7 @@ function DBContext:flexi_Help(action)
 end
 
 -- Handles select flexi('current user', ...)
---- @param userInfo table
--- string (userID) or table (UserInfo)
+--- @param userInfo UserInfo | string
 function DBContext:flexi_CurrentUser(userInfo, roles, culture)
     if not userInfo and not roles and not culture then
         return json.encode(self.UserInfo)

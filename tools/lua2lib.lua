@@ -18,12 +18,13 @@ local path = require 'pl.path'
 local lapp = require 'pl.lapp'
 local stringx = require 'pl.stringx'
 local pretty = require 'pl.pretty'
+local pl_file = require 'pl.file'
 
 -- set lua paths
 local paths = {
     '../lib/debugger-lua/?.lua',
-    '../lib/md5.lua/?.lua',
-    './lib/md5.lua/?.lua',
+    --'../lib/md5.lua/?.lua',
+    --'./lib/md5.lua/?.lua',
     '../lib/lua-ansicolors/?.lua',
     './lib/lua-ansicolors/?.lua',
     '../?.lua',
@@ -33,7 +34,7 @@ for _, pp in ipairs(paths) do
     package.path = path.abspath(path.relpath(pp)) .. ';' .. package.path
 end
 
-local md5 = require 'md5'
+--local md5 = require 'md5'
 local ansicolors = require 'ansicolors'
 
 local cli_args = lapp [[
@@ -82,21 +83,24 @@ end
 
 ---@param filePath string
 ---@return string @comment calculated MD5 checksum of contents of file by filePath
-local function calcMD5(filePath)
-    local f = io.open(filePath, 'r')
-    if f ~= nil then
-        local content = f:read('*all')
-        local result = md5.sumhexa(content)
-        f:close()
-        return result
-    end
+--local function calcMD5(filePath)
+--    local f = io.open(filePath, 'r')
+--    if f ~= nil then
+--        local content = f:read('*all')
+--        local result = md5.sumhexa(content)
+--        f:close()
+--        return result
+--    end
+--
+--    return nil
+--end
 
-    return nil
+local function lastModified(filePath)
+    local result = pl_file.modified_time(filePath)
+    return result
 end
 
-local md5changed = false
-
-print('@@@@@ force ', cli_args.force)
+local there_are_changes = false
 
 -- Process file list
 for module_name, file_name in pairs(files) do
@@ -115,17 +119,18 @@ for module_name, file_name in pairs(files) do
     local file_path = path.abspath(path.relpath(file_name))
     local _, ext = path.splitext(file_path)
 
-    local newMd5 = calcMD5(file_path)
+    --local newMd5 = calcMD5(file_path)
+    local last_modified = lastModified(file_path)
     local processingNeeded = false
 
     -- Analyze if file has changed since last processing
-    local prevMd5 = cfg[module_name]
-    if cli_args.force or prevMd5 == nil or prevMd5 ~= newMd5 then
+    local prev_modified = cfg[module_name]
+    if cli_args.force or prev_modified == nil or prev_modified ~= last_modified then
         processingNeeded = true
-        md5changed = true
+        there_are_changes = true
     end
 
-    cfg[module_name] = newMd5
+    cfg[module_name] = last_modified
 
     if processingNeeded then
         if ext ~= '.lua' then
@@ -177,7 +182,7 @@ for module_name, file_name in pairs(files) do
 end
 
 -- Save updated config
-if md5changed then
+if there_are_changes then
     cfgFile = io.open(cfgFilePath, 'w+')
     if cfgFile ~= nil then
         local cfgStr = pretty.write(cfg)
@@ -196,4 +201,3 @@ else
     local cmd = string.format('ar rcus %s %s/*.o', path.join(out_path, cli_args.name), out_path)
     os_execute(cmd)
 end
-

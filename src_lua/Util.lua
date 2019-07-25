@@ -105,6 +105,7 @@ local DictCI = class()
 
 ---@param values table | nil
 function DictCI:_init(values)
+    rawset(self, 'items', {})
     if values then
         for k, v in pairs(values) do
             self[k] = v
@@ -113,22 +114,20 @@ function DictCI:_init(values)
 end
 
 function DictCI:__index(key)
-
-    -->>
     print(string.format('DictCI:__index: ' .. key))
 
     if type(key) == 'string' then
-        return rawget(self, string.lower(key))
+        key = string.lower(key)
     end
 
-    return rawget(self, key)
+    return rawget(self.items, key)
 end
 
 function DictCI:__newindex(key, value)
     if type(key) == 'string' then
         key = string.lower(key)
     end
-    return rawset(self, key, value)
+    return rawset(self.items, key, value)
 end
 
 --- Normalizes SQL table or column name by removing spaces, [] and ``

@@ -160,6 +160,9 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     end
 
     for _, clsObject in pairs(self.NAMClasses) do
+        -->>
+        require('debugger')()
+
         ClassDef.ApplyIndexing(nil, clsObject)
         clsObject:saveToDB()
     end

@@ -365,10 +365,6 @@ function ClassDef:_init(params)
         self.ColMapActive = params.data.ColMapActive
         self.vtypes = params.data.vtypes
 
-        -->>
-        --require('debugger')(not (params.data.Name == 'Employees'))
-        require('debugger')(type(params.data.Data) == 'string')
-
         assert(type(params.data.Data) == 'string', string.format('%s: params.data.Data must be valid JSON. Got %s',
                 params.data.Name, type(params.data.Data)))
         self.D = json.decode(params.data.Data)
@@ -733,6 +729,7 @@ function ClassDef.ApplyIndexing(oldClassDef, newClassDef)
     assert(newClassDef and (oldClassDef == nil or oldClassDef ~= newClassDef))
 
     local oldIdxDef = oldClassDef and oldClassDef:normalizeIndexDefinitions() or IndexDefinitions()
+
     local newIdxDef = newClassDef:normalizeIndexDefinitions()
 
     local emptyDummy = {}
