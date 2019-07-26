@@ -20,11 +20,11 @@ local stringx = require 'pl.stringx'
 local pretty = require 'pl.pretty'
 local pl_file = require 'pl.file'
 
+local startTime = os.clock()
+
 -- set lua paths
 local paths = {
     '../lib/debugger-lua/?.lua',
-    --'../lib/md5.lua/?.lua',
-    --'./lib/md5.lua/?.lua',
     '../lib/lua-ansicolors/?.lua',
     './lib/lua-ansicolors/?.lua',
     '../?.lua',
@@ -34,7 +34,6 @@ for _, pp in ipairs(paths) do
     package.path = path.abspath(path.relpath(pp)) .. ';' .. package.path
 end
 
---local md5 = require 'md5'
 local ansicolors = require 'ansicolors'
 
 local cli_args = lapp [[
@@ -55,7 +54,6 @@ end
 
 local file_list = path.abspath(path.relpath(cli_args.filelist))
 
---local files = require(cli_args.filelist)
 local files = loadfile(file_list)()
 
 local libName = path.splitext(path.basename(cli_args.name))
@@ -81,20 +79,6 @@ if cfgFile ~= nil then
     cfgFile:close()
 end
 
----@param filePath string
----@return string @comment calculated MD5 checksum of contents of file by filePath
---local function calcMD5(filePath)
---    local f = io.open(filePath, 'r')
---    if f ~= nil then
---        local content = f:read('*all')
---        local result = md5.sumhexa(content)
---        f:close()
---        return result
---    end
---
---    return nil
---end
-
 local function lastModified(filePath)
     local result = pl_file.modified_time(filePath)
     return result
@@ -102,8 +86,14 @@ end
 
 local there_are_changes = false
 
+local files_processed = 0
+local files_skipped = 0
+
 -- Process file list
 for module_name, file_name in pairs(files) do
+
+    files_processed = files_processed + 1
+
     -- Compile .lua file
     local nn = ''
     if type(file_name) ~= 'number'
@@ -121,18 +111,18 @@ for module_name, file_name in pairs(files) do
 
     --local newMd5 = calcMD5(file_path)
     local last_modified = lastModified(file_path)
-    local processingNeeded = false
+    local process_this_file = false
 
     -- Analyze if file has changed since last processing
     local prev_modified = cfg[module_name]
     if cli_args.force or prev_modified == nil or prev_modified ~= last_modified then
-        processingNeeded = true
+        process_this_file = true
         there_are_changes = true
     end
 
     cfg[module_name] = last_modified
 
-    if processingNeeded then
+    if process_this_file then
         if ext ~= '.lua' then
             -- Non Lua files are treated as string resources (e.g. SQL files)
             -- Read file content
@@ -177,7 +167,7 @@ for module_name, file_name in pairs(files) do
             os_execute(cmd)
         end
     else
-        print(ansicolors(string.format('%%{cyan}Skipping unchanged %s%%{reset}', module_name)))
+        files_skipped = files_skipped + 1
     end
 end
 
@@ -189,15 +179,26 @@ if there_are_changes then
         cfg = cfgFile:write(cfgStr)
         cfgFile:close()
     end
+
+    -- Bundle library into single archive
+    if jit.os == 'Windows' then
+        -- Use Visual Studio LIB tool to build static ibrary
+        local cmd = string.format('lib  -nologo -out:%s %s/*.o', path.join(out_path, cli_args.name), out_path)
+        os_execute(cmd)
+    else
+        -- *NIX (e.g. Linux and macOS) - use AR for building static library
+        local cmd = string.format('ar rcus %s %s/*.o', path.join(out_path, cli_args.name), out_path)
+        os_execute(cmd)
+    end
+else
+    print(ansicolors(string.format('%%{yellow}%s: no changes detected%%{reset}', libName)))
 end
 
--- Bundle library into single archive
-if jit.os == 'Windows' then
-    -- Use Visual Studio LIB tool to build static ibrary
-    local cmd = string.format('lib  -nologo -out:%s %s/*.o', path.join(out_path, cli_args.name), out_path)
-    os_execute(cmd)
-else
-    -- *NIX - use AR for building static library
-    local cmd = string.format('ar rcus %s %s/*.o', path.join(out_path, cli_args.name), out_path)
-    os_execute(cmd)
+local elapsed = os.clock() - startTime
+local time_uom = 'sec(s)'
+if elapsed < 1 then
+    elapsed = elapsed * 1000
+    time_uom = 'msec(s)'
 end
+print(ansicolors(string.format('%%{magenta}%s: completed in %.1f %s. %d file(s) processed, %d file(s) skipped.%%{reset}',
+        libName, elapsed, time_uom, files_processed, files_skipped)))

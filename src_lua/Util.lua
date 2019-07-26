@@ -130,6 +130,10 @@ function DictCI:__newindex(key, value)
     return rawset(self.items, key, value)
 end
 
+function DictCI:__pairs()
+    return pairs(self.items)
+end
+
 --- Normalizes SQL table or column name by removing spaces, [] and ``
 ---@param n string @comment class or property name
 ---@return string
