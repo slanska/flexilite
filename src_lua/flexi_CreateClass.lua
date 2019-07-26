@@ -112,6 +112,8 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
         self.ClassProps[propID] = propDef
     end
 
+    local newClasses = {}
+
     for className, classDef in pairs(schemaDef) do
         local classID = self:getClassIdByName(className, false)
         if classID ~= 0 then
@@ -152,6 +154,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
             --require('debugger')()
 
             self:setNAMClass(clsObject)
+            table.insert(newClasses, clsObject)
         end
 
         forEachClassProp(beforeApplyPropDef)
@@ -159,10 +162,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
         forEachClassProp(afterApplyPropDef)
     end
 
-    for _, clsObject in pairs(self.NAMClasses) do
-        -->>
-        require('debugger')()
-
+    for _, clsObject in ipairs(newClasses) do
         ClassDef.ApplyIndexing(nil, clsObject)
         clsObject:saveToDB()
     end
