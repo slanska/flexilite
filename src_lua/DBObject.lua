@@ -981,9 +981,12 @@ function DBObject:saveToDB()
     local ctx = {}
 
     -- TODO safe call
-    local ok, err = xpcall(
+    local _, err = xpcall(
             function()
                 -- before trigger
+                -->>
+                require('debugger')()
+
                 self:fireBeforeTrigger()
 
                 if op == Constants.OPERATION.CREATE then

@@ -97,42 +97,86 @@ local function stringifyJulianToDateTime(num)
 end
 
 -- Case-insensitive dictionary. Used for classes and class properties.
--- Allows one assignment on every key. Secondary assignment will throw dup error
--- Supports string and integer keys only. Subsequent assignments of the same value will throw error
+-- Supports string and integer keys only.
 ---@class DictCI
 
-local DictCI = class()
-
 ---@param values table | nil
-function DictCI:_init(values)
-    rawset(self, 'items', {})
+local function DictCI(values)
+    local items = {}
+
+    local result = setmetatable({}, {
+        __index = function(tbl, key)
+            if type(key) == 'string' then
+                key = string.lower(key)
+            end
+
+            return rawget(items, key)
+        end,
+
+        __newindex = function(tbl, key, value)
+            if type(key) == 'string' then
+                key = string.lower(key)
+            end
+            return rawset(items, key, value)
+        end,
+
+        __pairs = function(tbl)
+            return pairs(items)
+        end,
+
+        __ipairs = function(tbl)
+            return ipairs(items)
+        end,
+
+        --__metatable = nil,
+    })
+
     if values then
         for k, v in pairs(values) do
-            self[k] = v
+            result[k] = v
         end
     end
+
+    return result
 end
 
-function DictCI:__index(key)
-    print(string.format('DictCI:__index: ' .. key))
-
-    if type(key) == 'string' then
-        key = string.lower(key)
-    end
-
-    return rawget(self.items, key)
-end
-
-function DictCI:__newindex(key, value)
-    if type(key) == 'string' then
-        key = string.lower(key)
-    end
-    return rawset(self.items, key, value)
-end
-
-function DictCI:__pairs()
-    return pairs(self.items)
-end
+--local DictCI = class()
+--
+-----@param values table | nil
+--function DictCI:_init(values)
+--
+--    local items = {}
+--
+--    self.__pairs = function()
+--        return pairs(items)
+--    end
+--
+--    self.__ipairs = function()
+--        return ipairs(items)
+--    end
+--
+--    self.__index = function(key)
+--        if type(key) == 'string' then
+--            key = string.lower(key)
+--        end
+--
+--        return rawget(items, key)
+--    end
+--
+--    -- Set __newindex at last step
+--    self.__newindex = function(key, value)
+--        if type(key) == 'string' then
+--            key = string.lower(key)
+--        end
+--        return rawset(items, key, value)
+--    end
+--
+--    if values then
+--        for k, v in pairs(values) do
+--            self[k] = v
+--        end
+--    end
+--end
 
 --- Normalizes SQL table or column name by removing spaces, [] and ``
 ---@param n string @comment class or property name
@@ -152,7 +196,7 @@ local function normalizeSqlName(n)
     return result
 end
 
-return {
+local export = {
     -- Bit operations on 52-bit values
     -- (52 bit integer are natively supported by Lua's number)
     bit52 = {
@@ -171,3 +215,5 @@ return {
     DictCI = DictCI,
     normalizeSqlName = normalizeSqlName,
 }
+
+return export

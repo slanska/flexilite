@@ -26,3 +26,5 @@ local paths = {
 for _, pp in ipairs(paths) do
     package.path = path.abspath(path.relpath(pp)) .. ';' .. package.path
 end
+
+require('debugger').auto_where = 2

@@ -89,7 +89,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     ---@param classDef ClassDef
     ---@param propName string
     ---@param propDef PropertyDef
-    local function beforeApplyPropDef(className, classDef, propName, propDef)
+    local function beforeApplyPropDef(_, _, _, propDef)
         propDef:beforeApplyDef()
     end
 
@@ -97,7 +97,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     ---@param classDef ClassDef
     ---@param propName string
     ---@param propDef PropertyDef
-    local function afterApplyPropDef(className, classDef, propName, propDef)
+    local function afterApplyPropDef(_, _, _, propDef)
         propDef:afterApplyDef()
     end
 
@@ -105,7 +105,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     ---@param classDef ClassDef
     ---@param propName string
     ---@param propDef PropertyDef
-    local function applyProp(className, classDef, propName, propDef)
+    local function applyProp(_, classDef, propName, propDef)
         classDef:assignColMappingForProperty(propDef)
         propDef:applyDef()
         local propID = propDef:saveToDB(nil, propName)

@@ -365,6 +365,9 @@ function ClassDef:_init(params)
         self.ColMapActive = params.data.ColMapActive
         self.vtypes = params.data.vtypes
 
+        -->>
+        require('debugger')(type(params.data.Data) == 'string')
+
         assert(type(params.data.Data) == 'string', string.format('%s: params.data.Data must be valid JSON. Got %s',
                 params.data.Name, type(params.data.Data)))
         self.D = json.decode(params.data.Data)
@@ -853,24 +856,25 @@ function ClassDef:getObjectSchema(op)
     local objSchema = {}
 
     -- own properties
-    for propName, propDef in pairs(self.Properties) do
+    for _, propDef in pairs(self.Properties) do
         local propSchema = propDef:GetValueSchema(op)
         if op == 'U' then
-            objSchema[string.lower(propName)] = schema.Optional(propSchema)
+            objSchema[string.lower(propDef.Name.text)] = schema.Optional(propSchema)
         else
-            objSchema[string.lower(propName)] = propSchema
+            objSchema[string.lower(propDef.Name.text)] = propSchema
         end
     end
 
     -- mixin properties which do not duplicate own properties
     -- they can be accessed as own properties
-    for propName, propDefs in pairs(self.MixinProperties) do
-        if not objSchema[propName] and #propDefs == 1 then
+    for _, propDefs in pairs(self.MixinProperties) do
+        if not objSchema[name] and #propDefs == 1 then
             local propSchema = propDefs[1]:GetValueSchema(op)
+            local name = propDefs[1].Name.text
             if op == 'U' then
-                objSchema[propName] = schema.Optional(propSchema)
+                objSchema[name] = schema.Optional(propSchema)
             else
-                objSchema[propName] = propSchema
+                objSchema[name] = propSchema
             end
         end
     end

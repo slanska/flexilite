@@ -27,6 +27,12 @@
 #define NORTHWIND_DB3_SCHEMA_JSON "../../test/json/Northwind.db3.schema.json"
 #endif
 
+#if defined( _WIN32 ) || defined( __WIN32__ ) || defined( _WIN64 )
+#define CHINOOK_DB3_SCHEMA_JSON "..\\..\\test\\json\\Chinook.db.schema.json"
+#else
+#define CHINOOK_DB3_SCHEMA_JSON "../../test/json/Chinook.db.schema.json"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

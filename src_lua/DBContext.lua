@@ -79,15 +79,7 @@ function ActionQueue:run()
     end
 end
 
----@class ClassCollection : DictCI
-
-local ClassCollection = class(DictCI)
-
-function ClassCollection:_init()
-    self:super()
-end
-
----@param self ClassCollection
+---@param self DictCI
 ---@param classDef ClassDef
 local function ClassCollection_add(self, classDef)
     assert(classDef)
@@ -135,7 +127,6 @@ local flexiMeta
 --- @param db userdata @comment sqlite3
 --- @return DBContext
 function DBContext:_init(db)
-
     self.db = assert(db, 'Expected sqlite3 database but nil was passed')
 
     -- Cache of prepared statements, key is statement SQL
@@ -144,7 +135,7 @@ function DBContext:_init(db)
     self.UserInfo = UserInfo()
 
     -- Collection of classes. Each class is referenced twice - by ID and Name
-    self.Classes = ClassCollection()
+    self.Classes = DictCI()
 
     -- Global list of registered functions. Each function is referenced twice - by ID and name
     self.Functions = {}
@@ -600,7 +591,7 @@ function DBContext:getClassDefRO(classIdOrName, mustExist)
     end
 
     result = ClassDef { data = classRow, DBContext = self }
-    self.Classes:add(result)
+    ClassCollection_add(self.Classes, result)
 
     return result, false
 end
@@ -777,7 +768,7 @@ function DBContext:initMemoizeFunctions()
 end
 
 function DBContext:flushSchemaCache()
-    self.Classes = ClassCollection()
+    self.Classes = DictCI()
     self.ClassProps = {}
     self.Functions = {}
     self:flushDataCache()
@@ -932,7 +923,7 @@ end
 ---@param classDef ClassDef
 function DBContext:setNAMClass(classDef)
     if self.NAMClasses == nil then
-        self.NAMClasses = ClassCollection()
+        self.NAMClasses = DictCI()
     end
     ClassCollection_add(self.NAMClasses, classDef)
 end
@@ -943,7 +934,7 @@ function DBContext:applyNAMClasses()
     local success, errorMsg = pcall(function()
         if self.NAMClasses ~= nil then
             for _, c in pairs(self.NAMClasses) do
-                self.Classes:add(c)
+                ClassCollection_add(self.Classes, c)
             end
 
             self.NAMClasses = nil
