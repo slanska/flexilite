@@ -394,7 +394,12 @@ end
 ---@param propValue any
 ---@return nil
 function WritableDBOV:setPropValue(propName, propIndex, propValue)
+
     local prop = self:getProp(propName, self.DBObject.state, false)
+
+    -->> TODO
+    require('debugger')(not (string.lower(propName) == 'customerid'))
+
     prop:SetValue(propIndex, propValue)
 end
 
@@ -661,9 +666,11 @@ end
 ---@return table
 function WritableDBOV:getChangedDataPayload()
     local result = {}
+
     for propName, dbp in pairs(self.props) do
         result[string.lower(propName)] = dbp:GetValues()
     end
+
     return result
 end
 
@@ -984,9 +991,6 @@ function DBObject:saveToDB()
     local _, err = xpcall(
             function()
                 -- before trigger
-                -->>
-                require('debugger')()
-
                 self:fireBeforeTrigger()
 
                 if op == Constants.OPERATION.CREATE then
@@ -997,6 +1001,7 @@ function DBObject:saveToDB()
                     self:ValidateData()
                     self.curVer:saveUpdate(ctx)
                 elseif op == Constants.OPERATION.DELETE then
+                    -- TODO
                     --self:Delete()
                 else
                     -- no-op
@@ -1038,6 +1043,7 @@ function DBObject:setMissingDefaultData()
     if self.state == Constants.OPERATION.CREATE then
         for propName, propDef in pairs(self.curVer.ClassDef.Properties) do
             local prop = self.curVer.props[propName]
+
             if prop == nil or prop.values == nil or #prop.values == 0 then
                 local dd = propDef.D.defaultValue
                 if dd ~= nil then
@@ -1055,7 +1061,6 @@ end
 
 function DBObject:ValidateData()
     local data = self.curVer:getChangedDataPayload()
-
     local op = self.state
     if op == Constants.OPERATION.CREATE or op == Constants.OPERATION.UPDATE then
         local objSchema = self.curVer.ClassDef:getObjectSchema(op)

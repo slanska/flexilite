@@ -856,13 +856,12 @@ function ClassDef:getObjectSchema(op)
     local objSchema = {}
 
     -- own properties
-    for _, propDef in pairs(self.Properties) do
+    for propName, propDef in pairs(self.Properties) do
         local propSchema = propDef:GetValueSchema(op)
         if op == 'U' then
-            objSchema[string.lower(propDef.Name.text)] = schema.Optional(propSchema)
-        else
-            objSchema[string.lower(propDef.Name.text)] = propSchema
+            propSchema = schema.Optional(propSchema)
         end
+        objSchema[propName] = propSchema
     end
 
     -- mixin properties which do not duplicate own properties
@@ -870,12 +869,11 @@ function ClassDef:getObjectSchema(op)
     for _, propDefs in pairs(self.MixinProperties) do
         if not objSchema[name] and #propDefs == 1 then
             local propSchema = propDefs[1]:GetValueSchema(op)
-            local name = propDefs[1].Name.text
+            local name = string.lower(propDefs[1].Name.text)
             if op == 'U' then
-                objSchema[name] = schema.Optional(propSchema)
-            else
-                objSchema[name] = propSchema
+                propSchema = schema.Optional(propSchema)
             end
+            objSchema[name] = propSchema
         end
     end
 

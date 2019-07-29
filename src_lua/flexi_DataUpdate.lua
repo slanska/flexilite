@@ -46,7 +46,6 @@ end
 ---@param newRowID number
 ---@param data table @comment object payload from JSON
 function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
-
     local classDef = self.DBContext:getClassDef(className)
     local obj
 
