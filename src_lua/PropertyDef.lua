@@ -1026,11 +1026,12 @@ This ensures that all inter-references are resolved properly
 ]]
 ---@param dbv DBValue
 ---@param v string | number | boolean
-function EnumPropertyDef:ImportDBValue(dbv, v)
-    return nil, function()
-        -- re-apply value
-    end
-end
+-- TODO
+--function EnumPropertyDef:ImportDBValue(dbv, v)
+--    return nil, function()
+--        -- re-apply value
+--    end
+--end
 
 -- Retrieves $uid value from referenced object
 ---@param dbo DBObject

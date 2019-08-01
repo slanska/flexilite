@@ -47,6 +47,8 @@ end
 ---@param data table @comment object payload from JSON
 function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
     local classDef = self.DBContext:getClassDef(className)
+
+    ---@type DBObject
     local obj
 
     local op = not oldRowID and Constants.OPERATION.CREATE or (newRowID and Constants.OPERATION.UPDATE

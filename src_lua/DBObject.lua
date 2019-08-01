@@ -394,12 +394,7 @@ end
 ---@param propValue any
 ---@return nil
 function WritableDBOV:setPropValue(propName, propIndex, propValue)
-
     local prop = self:getProp(propName, self.DBObject.state, false)
-
-    -->> TODO
-    require('debugger')(not (string.lower(propName) == 'customerid'))
-
     prop:SetValue(propIndex, propValue)
 end
 
@@ -460,7 +455,7 @@ function WritableDBOV:saveCreate(ctx)
     self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
     self.ClassDef.DBContext.Objects[self.ID] = self.DBObject
 
-    for propName, prop in pairs(self.props) do
+    for _, prop in pairs(self.props) do
         prop:SaveToDB(ctx)
     end
 
@@ -1144,7 +1139,7 @@ function DBObject:saveMultiKeyIndexes(op)
         self.ClassDef.DBContext:execStatement(sql, params)
     end
 
-    local ok, errMsg = xpcall(save,
+    local _, errMsg = xpcall(save,
             function(error)
                 local errorMsg = tostring(error)
 
