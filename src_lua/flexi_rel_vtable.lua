@@ -204,9 +204,6 @@ local function generateView(self, tableName, className, propName, col1Name, col2
 
     sql:append('end;')
 
-    -->>
-    print('@@@@ generateView: ', sql:join('\n'))
-
     self:ExecAdhocSql(sql:join('\n')
     )
 end

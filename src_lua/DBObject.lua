@@ -796,7 +796,8 @@ local DBObject = class()
 ---@param state string @comment optional, 'C', 'R', 'U', 'D'
 function DBObject:_init(params, state)
     self.state = state or Constants.OPERATION.READ
-    self.DBContext = assert(params.DBContext or params.ClassDef.DBContext)
+
+    self.DBContext = assert(params.DBContext or (params.ClassDef and params.ClassDef.DBContext))
 
     if self.state == Constants.OPERATION.CREATE then
         self.origVer = CreatedVoidDBObject

@@ -5,19 +5,38 @@
 ---
 
 local util = require('test_util')
+local path = require 'pl.path'
+local os = require 'os'
 
 describe('Loading entire database from JSON and verifies accuracy of imported data', function()
 
     setup(function()
-        local dbChinook = util.openFlexiDatabase('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/data/Chinook-flexi.db3')
+        local dbChinookPath = path.abspath(path.relpath('../data/Chinook-flexi.db3'))
+        os.remove(dbChinookPath)
+
+        local dbChinook = util.openFlexiDatabase(dbChinookPath)
+        print('Chinook: opened')
+
         --local dbChinook = util.openFlexiDatabaseInMem()
-        --util.createChinookSchema(dbChinook)
+        util.createChinookSchema(dbChinook)
+        print('Chinook: schema created')
+
         util.importChinookData(dbChinook)
+        print('Chinook: data imported')
+
+        local dbNorthwindPath = path.abspath(path.relpath('../data/Northwind-flexi.db3'))
+        os.remove(dbNorthwindPath)
 
         --local dbNorthwind = util.openFlexiDatabaseInMem()
-        local dbNorthwind = util.openFlexiDatabase('/Users/ruslanskorynin/Documents/Github/slanska/flexilite/data/Northwind-flexi.db3')
-        --util.createNorthwindSchema(dbNorthwind)
+        local dbNorthwind = util.openFlexiDatabase(dbNorthwindPath)
+        print('Northwind: opened')
+
+        util.createNorthwindSchema(dbNorthwind)
+        print('Northwind: schema created')
+
         util.importNorthwindData(dbNorthwind)
+        print('Northwind: data imported')
+
     end)
 
     it('verify Northwind', function()

@@ -24,9 +24,11 @@ unpack = table.unpack
 
 local __dirname = path.abspath('..')
 
+local module = {}
+
 --- Read file
 ---@param file string
-local function readAll(file)
+function module.readAll(file)
     local f = io.open(file, "rb")
     local content = f:read("*all")
     f:close()
@@ -37,10 +39,10 @@ end
 require 'index'
 
 -- load sql scripts into Flexi variables
-Flexi.DBSchemaSQL = readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
-Flexi.InitDefaultData = readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
+Flexi.DBSchemaSQL = module.readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
+Flexi.InitDefaultData = module.readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
 
----@param db sqlite3
+---@param db userdata @comment sqlite3
 ---@return DBContext
 local function initFlexiDatabase(db)
     local result = Flexi:newDBContext(db)
@@ -50,7 +52,7 @@ end
 
 -- Creates and initializes Flexilite database in memory
 ---@return DBContext
-local function openFlexiDatabaseInMem()
+function module.openFlexiDatabaseInMem()
     local db, errMsg = sqlite3.open_memory()
     if not db then
         error(errMsg)
@@ -61,7 +63,7 @@ end
 -- Creates and initializes Flexilite database using given file name
 ---@param fileName string
 ---@return DBContext
-local function openFlexiDatabase(fileName)
+function module.openFlexiDatabase(fileName)
     local db, errMsg = sqlite3.open(fileName)
     if not db then
         error(errMsg)
@@ -74,7 +76,7 @@ end
 local function importData(DBContext, fileName)
     -- Insert data
     local started = os.clock()
-    local dataDump = readAll(path.join(__dirname, fileName))
+    local dataDump = module.readAll(path.join(__dirname, fileName))
     local sql = "select flexi('import data', '" .. stringx.replace(dataDump, "'", "''") .. "');"
     DBContext:ExecAdhocSql(sql)
     -- TODO temp
@@ -82,7 +84,7 @@ local function importData(DBContext, fileName)
 end
 
 ---@param DBContext DBContext
-local function importNorthwindData(DBContext)
+function module.importNorthwindData(DBContext)
     importData(DBContext, 'test/json/Northwind.db3.data.json')
 end
 
@@ -90,41 +92,41 @@ end
 ---@param fileName string
 local function createSchema(DBContext, fileName)
     local fullPath = path.join(__dirname, 'test', 'json', fileName)
-    local content = readAll(fullPath)
+    local content = module.readAll(fullPath)
     local sql = "select flexi('create schema', '" .. content .. "');"
     DBContext:ExecAdhocSql(sql)
     print('createSchema: ' .. fileName .. ' done')
 end
 
 ---@param DBContext DBContext
-local function createNorthwindSchema(DBContext)
+function module.createNorthwindSchema(DBContext)
     createSchema(DBContext, 'Northwind.db3.schema.json')
 end
 
 -- load sql scripts into Flexi variables
 -- TODO use relative paths
-Flexi.DBSchemaSQL = readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
-Flexi.InitDefaultData = readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
+Flexi.DBSchemaSQL = module.readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
+Flexi.InitDefaultData = module.readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
 
-local function createChinookSchema(DBContext)
+function module.createChinookSchema(DBContext)
     createSchema(DBContext, 'Chinook.db.schema.json')
 end
 
-local function importChinookData(DBContext)
+function module.importChinookData(DBContext)
     importData(DBContext, 'test/json/Chinook.db.data.json')
 end
 
 ---@class TestContext
 ---@field DBContexts table<string, DBContext[]> @comment Pool of DBContext for Northwind database
-local TestContext = class()
+module.TestContext = class()
 
-function TestContext:_init()
+function module.TestContext:_init()
     self.DBContexts = {}
 end
 
 ---@param name string
 ---@return DBContext
-function TestContext:getDBContext(name)
+function module.TestContext:getDBContext(name)
     local list = self.DBContexts[name]
     if list == nil then
         list = {}
@@ -137,13 +139,13 @@ function TestContext:getDBContext(name)
         result = list[1]
         table.remove(list, 1)
     else
-        result = openFlexiDatabaseInMem()
+        result = module.openFlexiDatabaseInMem()
         if name == 'Northwind' then
-            createNorthwindSchema(result)
-            importNorthwindData(result)
+            module.createNorthwindSchema(result)
+            module.importNorthwindData(result)
         elseif name == 'Chinook' then
-            createChinookSchema(result)
-            importChinookData(result)
+            module.createChinookSchema(result)
+            module.importChinookData(result)
         else
             error(string.format('Invalid DBContext name %s', name))
         end
@@ -155,14 +157,14 @@ end
 
 -- Returns DBContext for Northwind database in memory
 -- Begins transaction
-function TestContext:GetNorthwind()
+function module.TestContext:GetNorthwind()
     return self:getDBContext('Northwind')
 end
 
 ---@param name string
 ---@param DBContext DBContext
 ---@param commit boolean
-function TestContext:Release(name, DBContext, commit)
+function module.TestContext:Release(name, DBContext, commit)
     assert(DBContext ~= nil)
     if commit then
         DBContext:ExecAdhocSql('commit')
@@ -174,17 +176,13 @@ end
 
 -- Returns DBContext for Chinook database in memory
 -- Begins transaction
-function TestContext:GetChinook()
+function module.TestContext:GetChinook()
     return self:getDBContext('Chinook')
 end
 
-return {
-    readAll = readAll,
-    openFlexiDatabaseInMem = openFlexiDatabaseInMem,
-    openFlexiDatabase = openFlexiDatabase,
-    importNorthwindData = importNorthwindData,
-    createNorthwindSchema = createNorthwindSchema,
-    createChinookSchema = createChinookSchema,
-    importChinookData = importChinookData,
-    TestContext = TestContext,
-}
+---@param dbFilePath string
+function module.deleteDatabase(dbFilePath)
+    os.remove()
+end
+
+return module
