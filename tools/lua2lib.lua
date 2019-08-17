@@ -195,10 +195,5 @@ else
 end
 
 local elapsed = os.clock() - startTime
-local time_uom = 'sec(s)'
-if elapsed < 1 then
-    elapsed = elapsed * 1000
-    time_uom = 'msec(s)'
-end
-print(ansicolors(string.format('%%{magenta}%s: completed in %.1f %s. %d file(s) processed, %d file(s) skipped.%%{reset}',
-        libName, elapsed, time_uom, files_processed, files_skipped)))
+print(ansicolors(string.format('%%{magenta}%s: completed in %s sec(s). %d file(s) processed, %d file(s) skipped.%%{reset}',
+        libName, elapsed, files_processed, files_skipped)))

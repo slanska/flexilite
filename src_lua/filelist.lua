@@ -28,7 +28,7 @@ return {
     ['flexi_DataBestIndex'] = 'src_lua/flexi_DataBestIndex.lua',
     ['flexi_MergeProperty'] = 'src_lua/flexi_MergeProperty.lua',
     ['flexi_StructuralSplit'] = 'src_lua/flexi_StructuralSplit.lua',
-    ['EnumManager'] = 'src_lua/EnumManager.lua',
+    ['RefDataManager'] = 'src_lua/RefDataManager.lua',
     ['QueryBuilder'] = 'src_lua/QueryBuilder.lua',
     ['flexi_Configure'] = 'src_lua/flexi_Configure.lua',
     ['flexi_DataFilter'] = 'src_lua/flexi_DataFilter.lua',

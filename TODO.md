@@ -224,16 +224,24 @@ Territories: TerritoryID
 **2019-06-30**
 
 -[x] move ffi declarations for virtual table to flexi vt
+-[x] remove flexi_rel tests and C code
+-[x] refactor deferred actions
+-[x] 'Territories' appears twice in view EmployeeTerritories
+
+**2019-08-11**
+
+-[ ] Import reference value
+-[ ] Add event emitter library
+-[ ] Export data
 -[ ] import data: if no class found, try existing updatable view
 -[ ] fix ctlv and property index 
--[x] remove flexi_rel tests and C code
--[ ] test imported data for specific rows/values (busted tests)
 -[ ] import data - check classes, if not found, check existing tables (including virtual)
 -[ ] export data (the same format as import)
+-[ ] test imported data for specific rows/values (busted tests)
 -[ ] enum properties
 -[ ] boxed object: access to referenced properties
 -[ ] query: fix unit tests
--[x] refactor deferred actions
--[x] 'Territories' appears twice in view EmployeeTerritories
+
+
 
 

@@ -4,13 +4,13 @@
 ---
 
 --[[
-Filter in Flexilite is defined in Lua expressions.
-Data querying may be defined in 3 ways:
-1) Lua string expression
+
+Data querying in Flexilite may be performed in 3 ways:
+1) Lua string expression (e.g. 'OrderState == 1 or CustomerID ~= 42') in the context of given class
 2) table, which resembles MongoDB filter structure. This table gets converted to Lua string and processed as #1
 3) standard SQL, via virtual tables
 
-Flexilite tries to apply available indexes, if possible, to reduce of number of rows
+Flexilite tries to apply available indexes, if possible, to reduce number of rows
 to be processed.
 At the end, all found rows are scanned and expression is applied in the context of current row
 
@@ -18,7 +18,7 @@ Index(es) are applied only when the following conditions are met:
 
 - filter is only 'and' expression at the top level (Prop1 == 123 and Prop2 == 'abc').
 'or', 'not' will fall back to full scan (e.g. Prop1 == 123 or Prop2 == 'abc')
-- any branches with 'or', 'not' will lead to exclusion of entire branch from using index
+- any branches with 'or', 'not' will exclude entire branch from using index
 
 Running query is done in the following steps:
 
@@ -30,16 +30,16 @@ Running query is done in the following steps:
 
 Flexilite does not try to determine single best index. Instead, it builds sub-query which refers to
 all applicable indexes and relies on SQLite to determine the actual best index.
-Example (assuming P1 is indexed, and also included into range index, P2 has full text index):
-P1 > 10 and MATCH(P2, 'Limpopo') => (select ObjectID from [.ref-values] where PropertyID = P1 and Value > 10
-and <indexed>) q1 join (select ObjectID from .full_text_data where P2(X) matches 'Limpopo' and ClassID=<class_id>) q2
+Example (assuming P1 is indexed, and also included into range index, and P2 has full text index):
+P1 > 10 and MATCH(P2, 'Limpopo') will be converted to the following SQL:
+ (select ObjectID from [.ref-values] where PropertyID = P1 and Value > 10
+and <index_flags>) q1 join (select ObjectID from .full_text_data where P2(X) matches 'Limpopo' and ClassID=<class_id>) q2
 on q1.ObjectID = q2.ObjectID
-
 
 In order to expression to qualify for index search the following criteria must be met:
 - only sub-expressions like 'op constant' or match(propName, constant) (for full text search)
 will be considered for indexing.
-- expression may have only 'and'. 'or', 'not' will degrade to full scan
+- expression may have only 'and'. 'or', 'not' will degrade to full scan (as explained above)
 
 For multi-key indexes Flexilite will attempt to apply as much properties as possible.
 For example, for multi-key index on A, B, C, D:
@@ -63,19 +63,19 @@ Examples:
 JSON:
 {"propName": value}
 Lua
-{'propName' = value}
+{propName = value}
 
 2) propName < value
 JSON:
-{"propName": {"$lt": value}}
+{"propName": ["<", value]}
 Lua:
-{'propName' = {['$lt'] = value}}
+{'propName' = {'<', value}}
 
 3) prop1 >= val1 AND prop2 in (1, 2, 3)
 JSON:
-[{"prop1": {"$ge": val1}}, {"prop2": {"$in": [1, 2, 3]}}]
+[{"prop1": {">=": val1}}, {"prop2": {"$in": [1, 2, 3]}}]
 Lua:
-{{prop1 = {['$ge' = val1]}}, {prop2 = {['$in'] = {1, 2, 3}}}}
+{{prop1 = {['>=' = val1]}}, {prop2 = {['$in'] = {1, 2, 3}}}}
 
 4) prop1 is null OR prop2 <> prop3
 JSON:
@@ -87,8 +87,8 @@ Lua:
 ]]
 
 --[[
-'and' expression - index is used only both expressions fit into index definition
-I.e. both idents are included into index
+'and' expression - index is used only if both expressions fit into index definition
+I.e. both properties are included into index
 
 A0 > 1 and A1 < 10 and B0 > 2 and B1 < 20 and C0 == 30 -> range index will be used
 ]]
@@ -112,7 +112,7 @@ local Sandbox = require 'sandbox'
 ---@class FilterDef
 ---@field ClassDef ClassDef
 ---@field Expression string
----@field ast table
+---@field ast table @comment AST - result of Lua code parsing
 ---@field indexedItems QueryBuilderIndexItem[] @comment property IDs may be duplicated
 ---@field params table
 ---@field matchCallCount number @comment Number of MATCH function calls
@@ -430,33 +430,24 @@ function FilterDef:process_single_properties(sql)
     -- List of already processed props
     local processedProps = {}
 
-    for i, v in ipairs(self.indexedItems) do
+    for _, v in ipairs(self.indexedItems) do
         local propDef = self.ClassDef.DBContext.ClassProps[v.propID]
         if propDef then
             local appendAnd = false
             local propSql = processedProps[v.propID]
-            local propIndexed = self.ClassDef.indexes.propIndexing[propDef.ID]
+            local propIdxMask = propDef:getIndexMask()
             if propSql == nil then
                 propSql = List()
                 if propDef.ColMap == nil then
                     -- reg.values
                     propSql:append(string.format(' and ObjectID in (select ObjectID from [.ref-values] where PropertyID = %d ',
                             propDef.ID))
-                    if propIndexed ~= nil then
-                        propSql:append(' and ctlv & %d <> 0',
-                                propIndexed == true and Constants.CTLV_FLAGS.UNIQUE or Constants.CTLV_FLAGS.INDEX)
+                    if propIdxMask ~= 0 then
+                        propSql:append(' and (ctlv & %d) = %d', propIdxMask, propIdxMask)
                     end
                     appendAnd = true
                 else
-                    -- ColMap Index
-                    local colIdx = propDef:ColMapIndex()
-                    local idxMask = propIndexed == true
-                            -- Unique index
-                            and bit52.bnot(bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.UNIQUE_SHIFT))
-                            -- Non unique index
-                            or bit52.bnot(bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.INDEX_SHIFT))
-
-                    propSql:append(string.format(' and (ctlo & %d <> 0', idxMask))
+                    propSql:append(string.format(' and (ctlo & %d) = %d', propIdxMask, propIdxMask))
                     appendAnd = true
                 end
                 processedProps[v.propID] = propSql
@@ -502,7 +493,7 @@ function FilterDef:process_single_properties(sql)
         end
     end
 
-    for propId, pp in pairs(processedProps) do
+    for _, pp in pairs(processedProps) do
         local ss = pp:join(' ') .. ')'
         sql:append(ss)
     end
@@ -559,6 +550,9 @@ function QueryBuilder:apply_filter()
 end
 
 ---@param DBContext DBContext
+---@param ClassDef ClassDef
+---@param expr string
+---@param params table
 function QueryBuilder:_init(DBContext, ClassDef, expr, params)
     expr = string.format('function () return %s end', expr)
     self.DBContext = DBContext

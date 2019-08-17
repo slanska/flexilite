@@ -68,6 +68,7 @@ local parseDateTimeToJulian = require('Util').parseDateTimeToJulian
 local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
 local base64 = require 'base64'
 local generateRelView = require('flexi_rel_vtable').generateView
+local bit52 = require('Util').bit52
 
 --[[
 ===============================================================================
@@ -88,18 +89,9 @@ PropertyDef
 ---@class PropertyEnumDef
 ---@field items table @comment EnumItemDef[]
 
----@class PropertyRefDefDynamicRule
----@field regex string
----@field classRef ClassNameRef
-
----@class PropertyRefDefDynamic
----@field selectorProp PropNameRef
----@field rules PropertyRefDefDynamicRule[]
-
 ---@class PropertyRefDef
 ---@field classRef ClassNameRef
 ---@field reverseProperty PropNameRef
----@field dynamic PropertyRefDefDynamic
 ---@field autoFetchLimit number
 ---@field autoFetchDepth number
 ---@field mixin boolean
@@ -283,6 +275,34 @@ end
 --- @return string
 function PropertyDef:getNativeType()
     return ''
+end
+
+--[[
+Returns mask for search in partial SQLite index
+Depending on col mapping mode returns it for ctlv or ctlo.
+Used for building SQL queries which perform search on Flexilite indexes
+]]
+---@return number
+function PropertyDef:getIndexMask()
+    local idxType = string.lower(self.D.index or '')
+    if self.ClassDef.ColMapActive and self.ColMap then
+        local colIdx = self:ColMapIndex()
+        if idxType == 'index' then
+            return bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.INDEX_SHIFT)
+        elseif idxType == 'unique' then
+            return bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.UNIQUE_SHIFT)
+        else
+            return 0
+        end
+    else
+        if idxType == 'index' then
+            return Constants.CTLV_FLAGS.INDEX
+        elseif idxType == 'unique' then
+            return Constants.CTLV_FLAGS.UNIQUE
+        else
+            return 0
+        end
+    end
 end
 
 -- Builds bit flag value for [.ref-value].ctlv field
@@ -748,18 +768,6 @@ function ReferencePropertyDef:initMetadataRefs()
     if self.D and self.D.refDef then
         self.ClassDef.DBContext:InitMetadataRef(self.D.refDef, 'classRef', ClassNameRef)
         self.ClassDef.DBContext:InitMetadataRef(self.D.refDef, 'reverseProperty', PropNameRef)
-
-        if self.D.refDef.dynamic then
-            self.ClassDef.DBContext:InitMetadataRef(self.D.refDef.dynamic, 'selectorProp', PropNameRef)
-
-            if self.D.refDef.dynamic.rules then
-                for _, v in pairs(self.D.refDef.dynamic.rules) do
-                    if v then
-                        self.ClassDef.DBContext:InitMetadataRef(v, 'classRef', ClassNameRef)
-                    end
-                end
-            end
-        end
     end
 end
 
@@ -772,22 +780,6 @@ function ReferencePropertyDef:hasUnresolvedReferences()
 
     if self.D.refDef.classRef and not self.D.refDef.classRef:isResolved() then
         return false
-    end
-
-    -- Check dynamic rules
-    if self.D.refDef and self.D.refDef.dynamic then
-        if self.D.refDef.dynamic.selectorProp
-                and not self.D.refDef.dynamic.selectorProp:isResolved() then
-            return false
-        end
-
-        if self.D.refDef.dynamic.rules then
-            for _, v in pairs(self.D.refDef.dynamic.rules) do
-                if v.classRef and not v.classRef:isResolved() then
-                    return false
-                end
-            end
-        end
     end
 
     return true
@@ -871,18 +863,6 @@ function ReferencePropertyDef:applyDef()
 
                 refDef.reverseProperty:resolve(revClassDef)
             end
-
-            if refDef.dynamic then
-                if refDef.dynamic.selectorProp then
-                    refDef.dynamic.selectorProp:resolve(self.ClassDef)
-                end
-
-                if refDef.dynamic.rules then
-                    for _, v in pairs(refDef.dynamic.rules) do
-                        v.classRef:resolve(self.ClassDef)
-                    end
-                end
-            end
         end
     end)
 end
@@ -903,6 +883,13 @@ function ReferencePropertyDef:afterApplyDef()
 
 end
 
+---@param dbv DBValue
+---@param v any
+function ReferencePropertyDef:ImportDBValue(dbv, v)
+    self.ClassDef.DBContext.RefDataManager:importReferenceValue(self, dbv, v)
+end
+
+
 --[[
 ===============================================================================
 EnumPropertyDef
@@ -921,6 +908,9 @@ end
 
 --- @overload
 function EnumPropertyDef:hasUnresolvedReferences()
+    -->>
+    require('debugger')()
+
     local result = ReferencePropertyDef.hasUnresolvedReferences(self)
     if not result then
         return result
@@ -944,6 +934,9 @@ function EnumPropertyDef:hasUnresolvedReferences()
 end
 
 function EnumPropertyDef:applyDef()
+    -->>
+    --require('debugger')()
+
     -- Note: calling PropertyDef, not ReferencePropertyDef
     ReferencePropertyDef.applyDef(self)
 
@@ -960,10 +953,13 @@ function EnumPropertyDef:applyDef()
         end
     end
 
-    self.ClassDef.DBContext.EnumManager:ApplyEnumPropertyDef(self)
+    self.ClassDef.DBContext.RefDataManager:ApplyEnumPropertyDef(self)
 end
 
 function EnumPropertyDef:internalToJSON()
+    -->>
+    --require('debugger')()
+
     local result = ReferencePropertyDef.internalToJSON(self)
 
     result.refDef = tablex.deepcopy(self.enumDef)
@@ -972,6 +968,9 @@ function EnumPropertyDef:internalToJSON()
 end
 
 function EnumPropertyDef:initMetadataRefs()
+    -->>
+    --require('debugger')()
+
     ReferencePropertyDef.initMetadataRefs(self)
 
     if self.D.enumDef then
@@ -1005,6 +1004,8 @@ end
 
 ---@return boolean, function
 function EnumPropertyDef:BeforeDBValueSave(dbv)
+    -->>
+    require('debugger')()
 
     ---@return boolean
     local function validateEnumRef()
@@ -1026,29 +1027,30 @@ This ensures that all inter-references are resolved properly
 ]]
 ---@param dbv DBValue
 ---@param v string | number | boolean
--- TODO
---function EnumPropertyDef:ImportDBValue(dbv, v)
---    return nil, function()
---        -- re-apply value
---    end
---end
+function EnumPropertyDef:ImportDBValue(dbv, v)
+    self.ClassDef.DBContext.RefDataManager:importEnumValue(self, dbv, v)
+end
 
 -- Retrieves $uid value from referenced object
 ---@param dbo DBObject
 ---@param dbv DBValue
 function EnumPropertyDef:ExportDBValue(dbo, dbv)
-
-end
-
-function EnumPropertyDef:SetValue()
     -- TODO
 end
 
+--function EnumPropertyDef:SetValue()
+--    -- TODO
+--end
+--
 -- Checks if all dependency classes exist. May create a new one. Noop by default
 function EnumPropertyDef:beforeApplyDef()
+    -->>
+    --require('debugger')()
+
     PropertyDef.beforeApplyDef(self)
-    if self.D.refDef and self.D.refDef.classRef then
-        self.ClassDef.DBContext.EnumManager:ensureEnumClassExists(self.D.refDef.classRef.text)
+
+    if self.D.enumDef then
+        self.ClassDef.DBContext.RefDataManager:ApplyEnumPropertyDef(self)
     end
 end
 
@@ -1373,13 +1375,6 @@ local EnumRefDefSchemaDef = {
 
 local RefDefSchemaDef = {
     classRef = schema.OneOf(schema.Nil, name_ref.IdentifierSchema, schema.Collection(name_ref.IdentifierSchema)),
-    dynamic = schema.Optional(schema.Record {
-        selectorProp = name_ref.IdentifierSchema,
-        rules = schema.Collection(schema.Record {
-            regex = schema.String,
-            classRef = name_ref.IdentifierSchema
-        })
-    }),
 
     --[[
     Property name ID (in `classRef` class) used as reversed reference property for this one. Optional. If set,

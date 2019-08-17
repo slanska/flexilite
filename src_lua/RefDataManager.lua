@@ -46,19 +46,20 @@ local ClassCreate = require('flexi_CreateClass').CreateClass
 local json = cjson or require 'cjson'
 local NameRef = require 'NameRef'
 local class = require 'pl.class'
+local PropertyDef = require 'PropertyDef'
 
 -- Implements enum storage
----@class EnumManager
+---@class RefDataManager
 ---@field DBContext DBContext
-local EnumManager = class()
+local RefDataManager = class()
 
 ---@param DBContext DBContext
-function EnumManager:_init(DBContext)
+function RefDataManager:_init(DBContext)
     ---@type DBContext
     self.DBContext = DBContext
 end
 
----@param self EnumManager
+---@param self RefDataManager
 local function upsertEnumItem(self, propDef, item)
     ---@type ClassDef
     local classDef = self.DBContext:getClassDef(propDef.D.enumDef.id)
@@ -83,7 +84,7 @@ end
 -- Upserts enum item
 ---@param propDef EnumPropertyDef
 ---@param item table @comment with fields: id, text, icon, imageUrl
-function EnumManager:upsertEnumItem(propDef, item)
+function RefDataManager:upsertEnumItem(propDef, item)
     -- Check if item can be added/updated now or must be deferred
     if propDef.D.enumDef.id then
         upsertEnumItem(self, propDef, item)
@@ -96,11 +97,13 @@ end
 Ensures that corresponding
 ]]
 ---@param propDef EnumPropertyDef
-function EnumManager:ApplyEnumPropertyDef(propDef)
+function RefDataManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
 
     self.DBContext.ActionQueue:enqueue(function()
-        -- TODO
+        -->> TODO
+        --require('debugger')()
+
         if propDef.D.enumDef then
             -- Process as pure enum
             local refClsName
@@ -115,7 +118,7 @@ function EnumManager:ApplyEnumPropertyDef(propDef)
             end
         elseif propDef.D.refDef then
             -- Process as foreign key
-            local refCls = self.ClassDef.DBContext.EnumManager:ensureEnumClassExists(propDef.D.refDef.classRef.text)
+            local refCls = self:ensureEnumClassExists(propDef.D.refDef.classRef.text)
 
             if refCls then
                 -- TODO
@@ -124,16 +127,18 @@ function EnumManager:ApplyEnumPropertyDef(propDef)
                 --self.DBContext:AddDeferredRef(propDef.D.refDef.classRef.text, propDef.D.refDef.classRef, 'id')
             end
         else
-            error('Neither enumDef nor refDef set')
+            error(string.format('%s.%s: either enumDef or refDef must be set',
+                    propDef.ClassDef.Name.text, propDef.Name.text))
         end
     end)
+
 end
 
 -- Creates class for enum type, if needed.
 ---@param className string
 ---@param items table @comment (optional) array of EnumItem
 ---@return ClassDef
-function EnumManager:ensureEnumClassExists(className, items)
+function RefDataManager:ensureEnumClassExists(className, items)
     local result = self.DBContext:getClassDef(className)
     if result then
         return result
@@ -187,7 +192,7 @@ function EnumManager:ensureEnumClassExists(className, items)
 end
 
 ---@param className string
-function EnumManager:IsClassEnum(className)
+function RefDataManager:IsClassEnum(className)
     local cls = self.DBContext:LoadClassDefinition(className)
     if not cls then
         return false, 'Class [' .. className .. '] does not exist'
@@ -198,7 +203,7 @@ function EnumManager:IsClassEnum(className)
     return result
 end
 
-function EnumManager:UpsertEnumItems(cls, items)
+function RefDataManager:UpsertEnumItems(cls, items)
     if not items then
         return
     end
@@ -216,4 +221,52 @@ function EnumManager:UpsertEnumItems(cls, items)
     end
 end
 
-return EnumManager
+-- Imports reference value (in user defined ID format)
+---@param propDef ReferencePropertyDef
+---@param dbv DBValue
+---@param v any
+function RefDataManager:importReferenceValue(propDef, dbv, v)
+
+    if v == nil then
+        PropertyDef.ImportDBValue(propDef, dbv, nil)
+        return
+    end
+
+    local className = propDef.D.refDef.classRef.text
+    local refClassDef = self.DBContext:getClassDef(className, true)
+
+    -- Local function to be called either directly or deferred until referenced object is available
+    ---@param mustExist boolean
+    ---@return DBObject
+    local function doImportRefValue(mustExist)
+        local obj = refClassDef:getObjectByUdid(v, mustExist)
+        if obj then
+            PropertyDef.ImportDBValue(propDef, dbv, obj.origVer.ID)
+            return true
+        end
+        return false
+    end
+
+    if not doImportRefValue(false) then
+        self.DBContext.ActionQueue:enqueue(function()
+            doImportRefValue(true)
+        end)
+    end
+end
+
+-- Imports reference value (in user defined ID format)
+---@param propDef ReferencePropertyDef
+---@param dbv DBValue
+---@param v any
+function RefDataManager:importEnumValue(propDef, dbv, v)
+    if propDef.D.refDef then
+        self:importReferenceValue(propDef, dbv, v)
+        return
+    end
+
+    -- TODO
+    PropertyDef.ImportDBValue(propDef, dbv, v)
+    --PropertyDef.ImportDBValue(propDef, dbv, obj.origVer.ID)
+end
+
+return RefDataManager

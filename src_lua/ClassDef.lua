@@ -6,7 +6,8 @@
 --[[
 Flexilite class (AKA "table") definition
 Has reference to DBContext
-Corresponds to [.classes] database table + D - decoded [data] field, with initialized PropertyRef's and NameRef's
+Corresponds to [.classes] database table plus 'D' property - decoded [data] field,
+with initialized PropertyRef's and NameRef's
 
 Find property
 Validates class structure
@@ -899,6 +900,60 @@ end
 ---@return PropertyDef | nil @comment User Defined ID property, if applicable
 function ClassDef:getUdidProp()
     return self:getSpecialProperty('uid')
+end
+
+---@param propDef PropertyDef
+---@param v any
+---@param fetchLimit number | nil
+---@return DBObject[]
+function ClassDef:lookupObjectsByProperty(propDef, v, fetchLimit)
+    assert(propDef)
+    local indexMask = propDef:getIndexMask()
+    if self.ColMapActive and propDef.ColMap then
+        -- Query .objects
+        local sql = string.format('select ObjectID from [.objects] where %s = :colMap and (ctlo && :ctloMask) = :ctloMask',
+                propDef.ColMap)
+        local row = self.DBContext:loadOneRow(sql, { colMap = propDef.ColMap, ctloMask = indexMask })
+        if not row then
+            return {}
+        end
+
+        local objectId = row[propDef.ColMap]
+        local obj = self.DBContext:getObject(objectId)
+        return { obj }
+    else
+        -- Query .ref-values
+        local sql = 'select ObjectID from [.ref-values] where ClassID = :classID and PropertyID = :propID and (ctlv && :ctlvMask) = :ctlvMask'
+        if fetchLimit then
+            sql = sql .. ' limit ' .. tostring(fetchLimit) .. ';'
+        else
+            sql = sql .. ';'
+        end
+        local rows = self.DBContext:loadRows(sql, { classID = self.ClassID, ctlvMask = indexMask })
+        local result = {}
+        for _, rr in ipairs(rows) do
+            local obj = self.DBContext:getObject(rr.ObjectID)
+            table_insert(result, obj)
+        end
+        return result
+    end
+end
+
+---@param udidValue string | number
+---@param mustExist boolean | nil
+---@return DBObject
+function ClassDef:getObjectByUdid(udidValue, mustExist)
+    local udidPropDef = self:getUdidProp()
+    if udidPropDef == nil then
+        error(string.format('UDID property is not defined for class [%s]', self.Name.text))
+    end
+
+    local foundObjects = self:loadPropertyFromDB(udidPropDef, udidValue, 1)
+    if #foundObjects == 0 and mustExist then
+        error(string.format('Object with UDID %s not found in class [%s]', tostring(udidValue), self.Name.text))
+    end
+
+    return foundObjects[1]
 end
 
 -- define schema for class JSON definition

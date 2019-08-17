@@ -30,7 +30,7 @@ local PropertyDef = require('PropertyDef')
 local UserInfo = require('UserInfo')
 local AccessControl = require 'AccessControl'
 local DBObject = require 'DBObject'
-local EnumManager = require 'EnumManager'
+local RefDataManager = require 'RefDataManager'
 local Constants = require 'Constants'
 local DictCI = require('Util').DictCI
 local sqlite3 = sqlite3 or require 'sqlite3'
@@ -110,7 +110,7 @@ end
 ---@field ClassDef ClassDef @comment constructor
 ---@field PropertyDef PropertyDef @comment constructor
 ---@field AccessControl AccessControl
----@field EnumManager EnumManager
+---@field RefDataManager RefDataManager
 ---@field SchemaChanged boolean
 ---@field ActionQueue ActionQueue
 ---@field config DBContextConfig
@@ -152,7 +152,7 @@ function DBContext:_init(db)
 
     -- Singletons
     self.AccessControl = AccessControl(self)
-    self.EnumManager = EnumManager(self)
+    self.RefDataManager = RefDataManager(self)
 
     self.SchemaChanged = false
 
