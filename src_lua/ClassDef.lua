@@ -911,9 +911,9 @@ function ClassDef:lookupObjectsByProperty(propDef, v, fetchLimit)
     local indexMask = propDef:getIndexMask()
     if self.ColMapActive and propDef.ColMap then
         -- Query .objects
-        local sql = string.format('select ObjectID from [.objects] where %s = :colMap and (ctlo && :ctloMask) = :ctloMask',
-                propDef.ColMap)
-        local row = self.DBContext:loadOneRow(sql, { colMap = propDef.ColMap, ctloMask = indexMask })
+        local sql = ('select ObjectID from [.objects] where ClassID = :classID and %s = :colMap and (ctlo & :ctloMask) = :ctloMask')
+                :format(propDef.ColMap)
+        local row = self.DBContext:loadOneRow(sql, { classID = propDef.ClassDef.ID, colMap = propDef.ColMap, ctloMask = indexMask })
         if not row then
             return {}
         end
@@ -923,15 +923,18 @@ function ClassDef:lookupObjectsByProperty(propDef, v, fetchLimit)
         return { obj }
     else
         -- Query .ref-values
-        local sql = 'select ObjectID from [.ref-values] where ClassID = :classID and PropertyID = :propID and (ctlv && :ctlvMask) = :ctlvMask'
+        local sql = 'select ObjectID from [.ref-values] where PropertyID = :propID and (ctlv & :ctlvMask) = :ctlvMask'
         if fetchLimit then
             sql = sql .. ' limit ' .. tostring(fetchLimit) .. ';'
         else
             sql = sql .. ';'
         end
-        local rows = self.DBContext:loadRows(sql, { classID = self.ClassID, ctlvMask = indexMask })
+
+        -->>
+        require('debugger')()
+
         local result = {}
-        for _, rr in ipairs(rows) do
+        for _, rr in self.DBContext:loadRows(sql, { propID = propDef.ID, ctlvMask = indexMask }) do
             local obj = self.DBContext:getObject(rr.ObjectID)
             table_insert(result, obj)
         end
@@ -948,7 +951,7 @@ function ClassDef:getObjectByUdid(udidValue, mustExist)
         error(string.format('UDID property is not defined for class [%s]', self.Name.text))
     end
 
-    local foundObjects = self:loadPropertyFromDB(udidPropDef, udidValue, 1)
+    local foundObjects = self:lookupObjectsByProperty(udidPropDef, udidValue, 1)
     if #foundObjects == 0 and mustExist then
         error(string.format('Object with UDID %s not found in class [%s]', tostring(udidValue), self.Name.text))
     end

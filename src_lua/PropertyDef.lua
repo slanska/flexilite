@@ -1358,6 +1358,8 @@ PropertyDef.Classes = {
     AnyPropertyDef = AnyPropertyDef,
 }
 
+local ClassRefSchema = schema.OneOf(schema.Nil, name_ref.IdentifierSchema, schema.Collection(name_ref.IdentifierSchema))
+
 -- Schema validation rules for property JSON definition
 local EnumDefSchemaDef = tablex.deepcopy(NameRef.SchemaDef)
 EnumDefSchemaDef.items = schema.Optional(schema.Collection(schema.Record {
@@ -1369,12 +1371,12 @@ EnumDefSchemaDef.items = schema.Optional(schema.Collection(schema.Record {
 EnumDefSchemaDef.refProperty = schema.Optional(name_ref.IdentifierSchema)
 
 local EnumRefDefSchemaDef = {
-    classRef = schema.OneOf(schema.Nil, name_ref.IdentifierSchema, schema.Collection(name_ref.IdentifierSchema)),
+    classRef = tablex.deepcopy(ClassRefSchema),
     mixin = schema.Optional(schema.Boolean),
 }
 
 local RefDefSchemaDef = {
-    classRef = schema.OneOf(schema.Nil, name_ref.IdentifierSchema, schema.Collection(name_ref.IdentifierSchema)),
+    classRef = tablex.deepcopy(ClassRefSchema),
 
     --[[
     Property name ID (in `classRef` class) used as reversed reference property for this one. Optional. If set,

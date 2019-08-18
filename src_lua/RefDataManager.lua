@@ -101,9 +101,6 @@ function RefDataManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
 
     self.DBContext.ActionQueue:enqueue(function()
-        -->> TODO
-        --require('debugger')()
-
         if propDef.D.enumDef then
             -- Process as pure enum
             local refClsName
@@ -113,9 +110,10 @@ function RefDataManager:ApplyEnumPropertyDef(propDef)
                 refClsName = string.format('%s_%s', propDef.ClassDef.Name.text, propDef.Name.text)
             end
 
-            if propDef.D.enumDef.items then
-                self:UpsertEnumItems(refCls, propDef.D.enumDef.items)
-            end
+            -- TODO
+            --if propDef.D.enumDef.items then
+            --    self:UpsertEnumItems(refCls, propDef.D.enumDef.items)
+            --end
         elseif propDef.D.refDef then
             -- Process as foreign key
             local refCls = self:ensureEnumClassExists(propDef.D.refDef.classRef.text)
@@ -222,17 +220,13 @@ function RefDataManager:UpsertEnumItems(cls, items)
 end
 
 -- Imports reference value (in user defined ID format)
+---@param self RefDataManager
 ---@param propDef ReferencePropertyDef
+---@param classRef ClassNameRef
 ---@param dbv DBValue
 ---@param v any
-function RefDataManager:importReferenceValue(propDef, dbv, v)
-
-    if v == nil then
-        PropertyDef.ImportDBValue(propDef, dbv, nil)
-        return
-    end
-
-    local className = propDef.D.refDef.classRef.text
+local function doImportReferenceValue(self, propDef, classRef, dbv, v)
+    local className = classRef.text
     local refClassDef = self.DBContext:getClassDef(className, true)
 
     -- Local function to be called either directly or deferred until referenced object is available
@@ -258,13 +252,41 @@ end
 ---@param propDef ReferencePropertyDef
 ---@param dbv DBValue
 ---@param v any
-function RefDataManager:importEnumValue(propDef, dbv, v)
-    if propDef.D.refDef then
-        self:importReferenceValue(propDef, dbv, v)
+function RefDataManager:importReferenceValue(propDef, dbv, v)
+    if v == nil then
+        PropertyDef.ImportDBValue(propDef, dbv, nil)
         return
     end
 
-    -- TODO
+    local processed = false
+    -- First, try refDef
+    local classRef = propDef.D.refDef and propDef.D.refDef.classRef or nil
+    if classRef then
+        doImportReferenceValue(self, propDef, classRef, dbv, v)
+        processed = true
+    else
+        -- Then, try enumDef
+        classRef = propDef.D.enumDef and propDef.D.enumDef.classRef or nil
+        if classRef then
+            doImportReferenceValue(self, propDef, classRef, dbv, v)
+            processed = true
+        end
+    end
+
+    return processed
+end
+
+-- Imports reference value (in user defined ID format)
+---@param propDef ReferencePropertyDef
+---@param dbv DBValue
+---@param v any
+function RefDataManager:importEnumValue(propDef, dbv, v)
+
+    if self:importReferenceValue(propDef, dbv, v) then
+        return
+    end
+
+    -- TODO apply enum items
     PropertyDef.ImportDBValue(propDef, dbv, v)
     --PropertyDef.ImportDBValue(propDef, dbv, obj.origVer.ID)
 end
