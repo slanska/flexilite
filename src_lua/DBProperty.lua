@@ -16,7 +16,10 @@ local class = require 'pl.class'
 local DBValue = require 'DBValue'
 local tablex = require 'pl.tablex'
 local Constants = require 'Constants'
+local Constants = require 'Constants'
 local JSON = cjson or require 'cjson'
+
+local table_insert = table.insert
 
 ---@class PropertySaveContext
 ---@field PropDef PropertyDef
@@ -120,7 +123,7 @@ function DBProperty:GetValue(idx)
     for row in self.DBOV.ClassDef.DBContext:loadRows(sql, { ObjectID = self.DBOV.ID,
                                                             PropertyID = self.PropDef.ID, PropIndex = idx }) do
         -- TODO what if index 1 is set in .ref-values and in .objects[A..P]? Override? Ignore?
-        table.insert(self.values, row.PropIndex, DBValue(row))
+        table_insert(self.values, row.PropIndex, DBValue(row))
     end
 
     if not self.values[idx] then
@@ -143,7 +146,7 @@ function DBProperty:GetValues()
             ---@type DBValue
             dbv in pairs(self.values) do
                 -- TODO Handle references
-                table.insert(result, ii, dbv.Value)
+                table_insert(result, ii, dbv.Value)
             end
         end
         return result
@@ -170,7 +173,7 @@ function DBProperty:ExportValues()
 
     local result = {}
     for _, dbv in ipairs(self.values) do
-        table.insert(result, self.PropDef:ExportDBValue(self.DBOV.DBObject, dbv))
+        table_insert(result, self.PropDef:ExportDBValue(self.DBOV.DBObject, dbv))
     end
     return result
 end

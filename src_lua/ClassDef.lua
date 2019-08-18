@@ -26,6 +26,7 @@ local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 local AccessControl = require 'AccessControl'
 local DictCI = require('Util').DictCI
+local List = require 'pl.List'
 
 local table_insert = table.insert
 local table_remove = table.remove
@@ -748,7 +749,7 @@ function ClassDef.ApplyIndexing(oldClassDef, newClassDef)
     local changedPropIdx = tablex.merge(propIdxDeleted, propIdxDiff)
 
     -- Update ctlv and ctlo flags
-    for propName, propDef in pairs(newClassDef.Properties) do
+    for _, propDef in pairs(newClassDef.Properties) do
         if propIdxDeleted[propDef.ID] then
             propDef.index = nil
         end
@@ -923,18 +924,26 @@ function ClassDef:lookupObjectsByProperty(propDef, v, fetchLimit)
         return { obj }
     else
         -- Query .ref-values
-        local sql = 'select ObjectID from [.ref-values] where PropertyID = :propID and (ctlv & :ctlvMask) = :ctlvMask'
-        if fetchLimit then
-            sql = sql .. ' limit ' .. tostring(fetchLimit) .. ';'
-        else
-            sql = sql .. ';'
+        local sql = List()
+        sql:append 'select ObjectID from [.ref-values] where PropertyID = :propID'
+        if indexMask == 8 then
+            -- Unique index
+            sql:append ' and (ctlv & 8) '
+        elseif indexMask ~= 0 then
+            -- Non-Unique index or reference
+            sql:append ' and (ctlv & 0xF0)'
         end
+        if fetchLimit then
+            sql:append ' limit '
+            sql:append(tostring(fetchLimit))
+        end
+        sql:append ';'
 
         -->>
-        require('debugger')()
+        --require('debugger')()
 
         local result = {}
-        for _, rr in self.DBContext:loadRows(sql, { propID = propDef.ID, ctlvMask = indexMask }) do
+        for rr in self.DBContext:loadRows(sql:join(''), { propID = propDef.ID }) do
             local obj = self.DBContext:getObject(rr.ObjectID)
             table_insert(result, obj)
         end

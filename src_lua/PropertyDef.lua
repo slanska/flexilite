@@ -277,6 +277,17 @@ function PropertyDef:getNativeType()
     return ''
 end
 
+function PropertyDef:getCtlvIndexMask()
+    local idxType = string.lower(self.D.index or '')
+    if idxType == 'index' then
+        return Constants.CTLV_FLAGS.INDEX
+    elseif idxType == 'unique' then
+        return Constants.CTLV_FLAGS.UNIQUE
+    else
+        return 0
+    end
+end
+
 --[[
 Returns mask for search in partial SQLite index
 Depending on col mapping mode returns it for ctlv or ctlo.
@@ -284,8 +295,8 @@ Used for building SQL queries which perform search on Flexilite indexes
 ]]
 ---@return number
 function PropertyDef:getIndexMask()
-    local idxType = string.lower(self.D.index or '')
     if self.ClassDef.ColMapActive and self.ColMap then
+        local idxType = string.lower(self.D.index or '')
         local colIdx = self:ColMapIndex()
         if idxType == 'index' then
             return bit52.lshift(1, colIdx + Constants.CTLO_FLAGS.INDEX_SHIFT)
@@ -294,29 +305,16 @@ function PropertyDef:getIndexMask()
         else
             return 0
         end
-    else
-        if idxType == 'index' then
-            return Constants.CTLV_FLAGS.INDEX
-        elseif idxType == 'unique' then
-            return Constants.CTLV_FLAGS.UNIQUE
-        else
-            return 0
-        end
     end
+
+    return self:getCtlvIndexMask()
 end
 
 -- Builds bit flag value for [.ref-value].ctlv field
 ---@return number
 function PropertyDef:GetCTLV()
-    local result = self:GetVType()
-    local idxType = string.lower(self.D.index or '')
-    if idxType == 'index' then
-        result = bit.bor(result, Constants.CTLV_FLAGS.INDEX)
-    elseif idxType == 'unique' then
-        result = bit.bor(result, Constants.CTLV_FLAGS.UNIQUE)
-    else
-        result = bit.band(result, bit.bnot(bit.bor(Constants.CTLV_FLAGS.INDEX, Constants.CTLV_FLAGS.UNIQUE)))
-    end
+    local indexMask = self:getCtlvIndexMask()
+    local result = bit.bor(self:GetVType(), indexMask)
 
     if self.D.noTrackChanges then
         result = bit.bor(result, Constants.CTLV_FLAGS.NO_TRACK_CHANGES)

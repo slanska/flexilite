@@ -6,13 +6,11 @@
 --[[
 Single value holder. Maps to row in [.ref-values] table (or A-P columns in .objects table).
 
-DBValue has no knowledge on column mapping and operates solely as all data is stored in .ref-values only.
+DBValue has no knowledge on column mapping and operates solely as all data would be stored in .ref-values only.
 This is DBObject/*DBOV responsibility to handle column mapping.
-Always operates as it would be .ref-value item. DBObject internally handles mapping to A..P columns
-in .objects table
+DBObject internally handles mapping to A..P columns in .objects table
 
-Access to object property value to be used in user's custom
-functions and triggers.
+Access to object property value to be used in user's custom functions and triggers.
 Provides Boxed() value which implements all table metamethods to mimic functionality
 of real property,
 so that Order.ShipDate or Order.OrderLines[1] will look as real object
@@ -42,9 +40,11 @@ local Constants = require 'Constants'
 ---@field MetaData table | string
 
 ---@class DBValue
----@field Value any @comment Raw cell value (as it is stored in [.ref-values])
+---@field Value any @comment If import finished - raw cell value (as it is stored in [.ref-values]).
+---Or, if import is pending, then user value pending to be converted
 ---@field ctlv number
 ---@field MetaData table|nil
+---@field importPending boolean | nil
 local DBValue = class()
 
 ---@class DBValueBoxed
@@ -189,7 +189,6 @@ end
 ---@param DBProperty DBProperty
 ---@param propIndex number
 function DBValue:beforeSaveToDB(DBProperty, propIndex)
-
     -- Check if there is column mapping
     if DBProperty.PropDef.ColMap then
         DBProperty.DBObject:setMappedPropertyValue(DBProperty.PropDef, self.Value)

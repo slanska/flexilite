@@ -270,6 +270,8 @@ function RefDataManager:importReferenceValue(propDef, dbv, v)
         if classRef then
             doImportReferenceValue(self, propDef, classRef, dbv, v)
             processed = true
+            dbv.importPending = true
+            PropertyDef.ImportDBValue(propDef, dbv, v)
         end
     end
 
