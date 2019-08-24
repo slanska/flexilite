@@ -74,26 +74,6 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
     --end
 end
 
---[[
-Implementation of flexi_data virtual table xUpdate API: insert, update, delete
-]]
-
---[[
- Inserts/updates/deletes data. Supports classic and classless mode, which are distinguished by className
- If className is not null, this is classic (basic) mode. Otherwise, this is classless (extended) mode.
- In classic mode, if dataJSON is single object, oldRowID and newRowID are treated like in xUpdate
- function in SQLite virtual table API (see notes below). If dataJSON is array, it is insert operation,
- and both oldRowID and newRowID  must be null
- In classless mode, className is null and newRowID must be null too.
- oldRowID (but not newRowID) can be still passed, so that class will be determined from object ID.
- if all className, oldRowID and newRowID are null, this is a pure extended mode.
- In this mode, if both queryJSON and dataJSON are not null, this is update. dataJSON must be single object
- If queryJSON is null, dataJSON may not be null, and this is insert mode. dataJSON can be single object, array or object hash with class names
- If queryJSON is not null and dataJSON is null, this is delete, based on queryJSON.
- If both dataJSON and queryJSON are null, error is thrown.
-
- When called from virtual table xUpdate, it will be variant of basic mode (single object only, className, oldRowID and newRowID)
- ]]
 ---@param self DBContext
 ---@param className string
 --- (optional) if not specified, must be defined in JSON payload
@@ -103,7 +83,7 @@ Implementation of flexi_data virtual table xUpdate API: insert, update, delete
 --- if null and oldRowID not null, it is delete.
 --- if not null and oldRowID is not null, this is update. If different - it is ID change
 --- if not null and oldRowID is null, this is insert
----@param dataJSON string
+---@param data table
 --- data payload. Can be single object or array of objects. If className is not set,
 ---payload should be object, with className as keys
 ---Examples: 1) single object, className is not null - {"Field1": "String", "Field2": 123...}
@@ -111,18 +91,7 @@ Implementation of flexi_data virtual table xUpdate API: insert, update, delete
 ---2) class is null - {"Class1": [{"Field1": "String", "Field2": 123...}, {"Field1": "String2", "Field2": 123...}]...}
 ---@param queryJSON string
 --- filter to apply - optional, for update and delete
-local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, queryJSON)
-    local data = json.decode(dataJSON)
-
-    if type(data) ~= 'table' then
-        error('Invalid data type')
-    end
-
-    local isArray = #data > 0
-    if queryJSON and (oldRowID or newRowID) then
-        error('Incompatible arguments: queryJSON cannot be used with oldRowID and newRowID')
-    end
-
+local function _dataUpdate(self, className, oldRowID, newRowID, data, queryJSON)
     local saveHelper = SaveObjectHelper(self)
 
     if className then
@@ -173,7 +142,68 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
         end
     end
 
-    -- TODO saveHelper:resolveReferences()
+    -- resolve pending references
+    self.ActionQueue:run()
+end
+
+--[[
+Implementation of flexi_data virtual table xUpdate API: insert, update, delete
+]]
+
+--[[
+ Inserts/updates/deletes data. Supports classic and classless mode, which are distinguished by className
+ If className is not null, this is classic (basic) mode. Otherwise, this is classless (extended) mode.
+ In classic mode, if dataJSON is single object, oldRowID and newRowID are treated like in xUpdate
+ function in SQLite virtual table API (see notes below). If dataJSON is array, it is insert operation,
+ and both oldRowID and newRowID  must be null
+ In classless mode, className is null and newRowID must be null too.
+ oldRowID (but not newRowID) can be still passed, so that class will be determined from object ID.
+ if all className, oldRowID and newRowID are null, this is a pure extended mode.
+ In this mode, if both queryJSON and dataJSON are not null, this is update. dataJSON must be single object
+ If queryJSON is null, dataJSON may not be null, and this is insert mode. dataJSON can be single object, array or object hash with class names
+ If queryJSON is not null and dataJSON is null, this is delete, based on queryJSON.
+ If both dataJSON and queryJSON are null, error is thrown.
+
+ When called from virtual table xUpdate, it will be variant of basic mode (single object only, className, oldRowID and newRowID)
+ ]]
+---@param self DBContext
+---@param className string
+--- (optional) if not specified, must be defined in JSON payload
+---@param oldRowID number
+--- if null, it is insert operation
+---@param newRowID number
+--- if null and oldRowID not null, it is delete.
+--- if not null and oldRowID is not null, this is update. If different - it is ID change
+--- if not null and oldRowID is null, this is insert
+---@param dataJSON string
+--- data payload. Can be single object or array of objects. If className is not set,
+---payload should be object, with className as keys
+---Examples: 1) single object, className is not null - {"Field1": "String", "Field2": 123...}
+---2) array of objects, class is not null - [{"Field1": "String", "Field2": 123...}, {"Field1": "String2", "Field2": 123...}]
+---2) class is null - {"Class1": [{"Field1": "String", "Field2": 123...}, {"Field1": "String2", "Field2": 123...}]...}
+---@param queryJSON string
+--- filter to apply - optional, for update and delete
+local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, queryJSON)
+    local data = json.decode(dataJSON)
+
+    if type(data) ~= 'table' then
+        error('Invalid data type')
+    end
+
+    local isArray = #data > 0
+    if queryJSON and (oldRowID or newRowID) then
+        error('Incompatible arguments: queryJSON cannot be used with oldRowID and newRowID')
+    end
+
+    local savedActQue = self.ActionQueue == nil and self:setActionQueue() or self.ActionQueue
+    local result, errMsg = pcall(_dataUpdate, self, className, oldRowID, newRowID, data, queryJSON)
+    if savedActQue ~= nil then
+        self:setActionQueue(savedActQue)
+    end
+
+    if not result then
+        error(errMsg)
+    end
 end
 
 -- flexi('import data', 'data-as-json')

@@ -225,27 +225,18 @@ end
 ---@param classRef ClassNameRef
 ---@param dbv DBValue
 ---@param v any
-local function doImportReferenceValue(self, propDef, classRef, dbv, v)
+local function _importReferenceValue(self, propDef, classRef, dbv, v)
     local className = classRef.text
     local refClassDef = self.DBContext:getClassDef(className, true)
 
-    -- Local function to be called either directly or deferred until referenced object is available
-    ---@param mustExist boolean
-    ---@return DBObject
-    local function doImportRefValue(mustExist)
-        local obj = refClassDef:getObjectByUdid(v, mustExist)
+    self.DBContext.ActionQueue:enqueue(function()
+        local obj = refClassDef:getObjectByUdid(v, true)
         if obj then
-            PropertyDef.ImportDBValue(propDef, dbv, obj.origVer.ID)
+            -- TODO insert/replace .ref-values entry
             return true
         end
         return false
-    end
-
-    if not doImportRefValue(false) then
-        self.DBContext.ActionQueue:enqueue(function()
-            doImportRefValue(true)
-        end)
-    end
+    end)
 end
 
 -- Imports reference value (in user defined ID format)
@@ -255,22 +246,24 @@ end
 function RefDataManager:importReferenceValue(propDef, dbv, v)
     if v == nil then
         PropertyDef.ImportDBValue(propDef, dbv, nil)
-        return
+        return true
     end
+
+    --Pre-set user value
+    PropertyDef.ImportDBValue(propDef, dbv, v)
 
     local processed = false
     -- First, try refDef
     local classRef = propDef.D.refDef and propDef.D.refDef.classRef or nil
     if classRef then
-        doImportReferenceValue(self, propDef, classRef, dbv, v)
+        _importReferenceValue(self, propDef, classRef, dbv, v)
         processed = true
     else
         -- Then, try enumDef
         classRef = propDef.D.enumDef and propDef.D.enumDef.classRef or nil
         if classRef then
-            doImportReferenceValue(self, propDef, classRef, dbv, v)
+            _importReferenceValue(self, propDef, classRef, dbv, v)
             processed = true
-            dbv.importPending = true
             PropertyDef.ImportDBValue(propDef, dbv, v)
         end
     end
@@ -283,14 +276,11 @@ end
 ---@param dbv DBValue
 ---@param v any
 function RefDataManager:importEnumValue(propDef, dbv, v)
-
     if self:importReferenceValue(propDef, dbv, v) then
         return
     end
 
     -- TODO apply enum items
-    PropertyDef.ImportDBValue(propDef, dbv, v)
-    --PropertyDef.ImportDBValue(propDef, dbv, obj.origVer.ID)
 end
 
 return RefDataManager

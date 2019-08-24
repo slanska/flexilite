@@ -40,11 +40,9 @@ local Constants = require 'Constants'
 ---@field MetaData table | string
 
 ---@class DBValue
----@field Value any @comment If import finished - raw cell value (as it is stored in [.ref-values]).
----Or, if import is pending, then user value pending to be converted
+---@field Value any
 ---@field ctlv number
 ---@field MetaData table|nil
----@field importPending boolean | nil
 local DBValue = class()
 
 ---@class DBValueBoxed

@@ -33,7 +33,6 @@ Flow for create class/property:
 * isValidDef - check if referenced properties exist etc
 * applyDef - sets ctlv, ctlvPlan, create names, enum classes, reversed props
 * saveToDB - inserts/updates .name_props table etc.
-* hasUnresolvedReferences - checks if all referenced classes exist. Used for marking class unresolved
 
 Flow for alter class/property:
 * set new property metatable based on type
@@ -44,12 +43,10 @@ Flow for alter class/property:
 * applyDef (if alteration is OK)
 * saveToDB
 * ClassDef.rebuildIndexes - if new ctlv ~= old ctlv
-* hasUnresolvedReferences
 
 For resolve class:
 * load from db, set new property metatable based on type
 * initMetadataRefs - set metatable to metadata refs
-* hasUnresolvedReferences
 * if all refs are resolved, class is marked as resolved
 
 ]]
@@ -173,10 +170,6 @@ function PropertyDef:_init(params)
 
         self.ClassDef.DBContext.ClassProps[self.ID] = self
     end
-end
-
-function PropertyDef:hasUnresolvedReferences()
-    return false
 end
 
 function PropertyDef:initMetadataRefs()
@@ -501,25 +494,6 @@ function NumberPropertyDef:_init(params)
     self:super(params)
 end
 
--- TODO needed?
---- Checks if number property is well defined
---- @overload
---function NumberPropertyDef:isValidDef()
---    local ok, errorMsg = PropertyDef.isValidDef(self)
---    if not ok then
---        return ok, errorMsg
---    end
---
---    -- Check minValue and maxValue
---    local maxV = tonumber(self.D.rules.maxValue or Constants.MAX_NUMBER)
---    local minV = tonumber(self.D.rules.minValue or Constants.MIN_NUMBER)
---    if minV > maxV then
---        return false, 'Invalid minValue or maxValue settings'
---    end
---
---    return true
---end
-
 function NumberPropertyDef:getNativeType()
     return 'float'
 end
@@ -596,23 +570,6 @@ function IntegerPropertyDef:_init(params)
     self:super(params)
 end
 
---- @overload
---function IntegerPropertyDef:isValidDef()
---    local ok, errorMsg = NumberPropertyDef.isValidDef(self)
---    if not ok then
---        return ok, errorMsg
---    end
---
---    -- Check minValue and maxValue
---    local maxV = math.min(tonumber(self.D.rules.maxValue or Constants.MAX_INTEGER), Constants.MAX_INTEGER)
---    local minV = math.max(tonumber(self.D.rules.minValue or Constants.MIN_INTEGER), Constants.MIN_INTEGER)
---    if minV > maxV then
---        return false, 'Invalid minValue or maxValue settings'
---    end
---
---    return true
---end
-
 function IntegerPropertyDef:getNativeType()
     return 'integer'
 end
@@ -636,23 +593,6 @@ local TextPropertyDef = class(PropertyDef)
 function TextPropertyDef:_init(params)
     self:super(params)
 end
-
---- @overload
---function TextPropertyDef:isValidDef()
---    local ok, errorMsg = PropertyDef.isValidDef(self)
---    if not ok then
---        return ok, errorMsg
---    end
---
---    local maxL = tonumber(self.D.rules.maxLength or 0)
---    if maxL < 0 then
---        return false, 'Invalid maxLength. Must be non negative number'
---    end
---
---    -- TODO check regex
---
---    return true
---end
 
 function TextPropertyDef:getNativeType()
     return 'text'
@@ -769,20 +709,6 @@ function ReferencePropertyDef:initMetadataRefs()
     end
 end
 
---- @overload
-function ReferencePropertyDef:hasUnresolvedReferences()
-    local result = PropertyDef.hasUnresolvedReferences(self)
-    if not result then
-        return result
-    end
-
-    if self.D.refDef.classRef and not self.D.refDef.classRef:isResolved() then
-        return false
-    end
-
-    return true
-end
-
 function ReferencePropertyDef:_checkRegenerateRelView()
     ---@type PropertyRefDef
     local refDef = self.D.refDef
@@ -887,7 +813,6 @@ function ReferencePropertyDef:ImportDBValue(dbv, v)
     self.ClassDef.DBContext.RefDataManager:importReferenceValue(self, dbv, v)
 end
 
-
 --[[
 ===============================================================================
 EnumPropertyDef
@@ -902,33 +827,6 @@ local EnumPropertyDef = class(ReferencePropertyDef)
 
 function EnumPropertyDef:_init(params)
     self:super(params)
-end
-
---- @overload
-function EnumPropertyDef:hasUnresolvedReferences()
-    -->>
-    require('debugger')()
-
-    local result = ReferencePropertyDef.hasUnresolvedReferences(self)
-    if not result then
-        return result
-    end
-
-    if self.D.enumDef then
-        if not self.D.enumDef:isResolved() then
-            return false
-        end
-
-        if self.D.enumDef.items then
-            for _, v in pairs(self.D.enumDef.items) do
-                if v.text and not v.text:isResolved() then
-                    return false
-                end
-            end
-        end
-    end
-
-    return true
 end
 
 function EnumPropertyDef:applyDef()
