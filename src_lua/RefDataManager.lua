@@ -243,10 +243,12 @@ end
 ---@param propDef ReferencePropertyDef
 ---@param dbv DBValue
 ---@param v any
+---@return boolean, function @comment true, function if import was handled, false, nil, if not handled
 function RefDataManager:importReferenceValue(propDef, dbv, v)
+
     if v == nil then
         PropertyDef.ImportDBValue(propDef, dbv, nil)
-        return true
+        return true, nil
     end
 
     --Pre-set user value
@@ -255,32 +257,46 @@ function RefDataManager:importReferenceValue(propDef, dbv, v)
     local processed = false
     -- First, try refDef
     local classRef = propDef.D.refDef and propDef.D.refDef.classRef or nil
+
+    local function deferredImport()
+        _importReferenceValue(self, propDef, classRef, dbv, v)
+    end
+
     if classRef then
         _importReferenceValue(self, propDef, classRef, dbv, v)
-        processed = true
+        return true, deferredImport
     else
         -- Then, try enumDef
         classRef = propDef.D.enumDef and propDef.D.enumDef.classRef or nil
         if classRef then
             _importReferenceValue(self, propDef, classRef, dbv, v)
-            processed = true
             PropertyDef.ImportDBValue(propDef, dbv, v)
+            return true, deferredImport
         end
     end
 
-    return processed
+    return false, nil
 end
 
 -- Imports reference value (in user defined ID format)
 ---@param propDef ReferencePropertyDef
 ---@param dbv DBValue
 ---@param v any
+---@return function
 function RefDataManager:importEnumValue(propDef, dbv, v)
-    if self:importReferenceValue(propDef, dbv, v) then
-        return
+    local processed, deferredAction = self:importReferenceValue(propDef, dbv, v)
+    if processed then
+        return deferredAction
+    end
+
+    local function deferredImport()
+        -- TODO change to _importEnumValue (not yet implemented)
+        _importReferenceValue(self, propDef, classRef, dbv, v)
     end
 
     -- TODO apply enum items
+    PropertyDef.ImportDBValue(propDef, dbv, v)
+    return true, deferredImport
 end
 
 return RefDataManager

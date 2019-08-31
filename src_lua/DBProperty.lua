@@ -16,7 +16,6 @@ local class = require 'pl.class'
 local DBValue = require 'DBValue'
 local tablex = require 'pl.tablex'
 local Constants = require 'Constants'
-local Constants = require 'Constants'
 local JSON = cjson or require 'cjson'
 
 local table_insert = table.insert
@@ -212,6 +211,10 @@ end
 ---@param idx number @comment > 1 (1-based index) or 0 or < 0 or nil -> append mode
 ---@param val any
 function ChangedDBProperty:SetValue(idx, val)
+    -- Short reference for better performance
+    ---@type DBContext
+    local DBContext = self.PropDef.ClassDef.DBContext
+
     local maxOccurr = self.PropDef.D.rules.maxOccurrences or Constants.MAX_INTEGER
     if idx > maxOccurr then
         error(string.format('%s.%s: maxOccurrences rule violation (%d > %d)',
@@ -227,10 +230,10 @@ function ChangedDBProperty:SetValue(idx, val)
         self.appendIndex = idx
     end
 
+    ---@type DBValue
     local result = self.values[idx]
     if not result then
-
-        self.PropDef.ClassDef.DBContext.AccessControl:ensureCurrentUserAccessForProperty(
+        DBContext.AccessControl:ensureCurrentUserAccessForProperty(
                 self.PropDef.ID, self.DBOV.DBObject.state)
         local prop = self:getOriginalProperty()
         if prop then
@@ -242,9 +245,9 @@ function ChangedDBProperty:SetValue(idx, val)
     end
 
     if result then
-        self.PropDef:ImportDBValue(result, val)
+        result.deferredSaveAction = self.PropDef:ImportDBValue(result, val)
     else
-        self.PropDef.ClassDef.DBContext.AccessControl:ensureCurrentUserAccessForProperty(
+        DBContext.AccessControl:ensureCurrentUserAccessForProperty(
                 self.PropDef.ID, idx == 1 and Constants.OPERATION.UPDATE or Constants.OPERATION.CREATE)
         -- is not set - create new one
         result = DBValue { Value = val }
@@ -274,7 +277,7 @@ end
 -- Updates ctlv value of DBValue, in according to PropDef definition and current Value
 ---@param dbv DBValue
 function ChangedDBProperty:updateCTLV(dbv)
-
+    -- TODO
 end
 
 -- Sorts property values by index
@@ -294,6 +297,8 @@ end
 -- Saves values to the database
 ---@param ctx PropertySaveContext
 function ChangedDBProperty:SaveToDB(ctx)
+    -- Local copy for better performance
+    ---@type DBContext
     local DBContext = self.DBOV.ClassDef.DBContext
 
     if not self.values then
@@ -319,14 +324,16 @@ function ChangedDBProperty:SaveToDB(ctx)
         valWrapper = string.format('cast(:Value as %s)', nativeType)
     end
 
-    for idx, dbv in pairs(self.values) do
+    ---@param idx number
+    ---@param dbv DBValue
+    local function saveDBValue(idx, dbv)
         ctx.PropIdx = idx
         if idx == 1 then
             -- Check if there is column mapping
             -- TODO
         end
 
-        if self.DBOV.DBObject.state == Constants.OPERATION.CREATE then
+        if op == Constants.OPERATION.CREATE then
             if dbv.Value ~= nil then
                 --  insert
                 local params = {
@@ -382,21 +389,30 @@ function ChangedDBProperty:SaveToDB(ctx)
 
                     if idx < 0 then
                         -- Append new value
-                        DBContext:execStatement(string.format([[insert or replace into [.ref-values]
+                        DBContext:execStatement(([[insert or replace into [.ref-values]
                     (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
                     (:ObjectID, :PropertyID,
                     coalesce((select max(PropIndex) from [.ref-values] where ObjectID = :ObjectID and PropertyID = :PropertyID limit 1), 0) + 1,
-                    %s, :ctlv, :MetaData);]], valWrapper)
-                        , params)
+                    %s, :ctlv, :MetaData);]]):format(valWrapper), params)
                     else
                         -- Add or update value with known index
-                        DBContext:execStatement(string.format([[insert or replace into [.ref-values]
+                        DBContext:execStatement(([[insert or replace into [.ref-values]
                     (ObjectID, PropertyID, PropIndex, [Value], ctlv, MetaData) values
-                    (:ObjectID, :PropertyID, :PropIndex, %s, :ctlv, :MetaData);]], valWrapper)
-                        , params)
+                    (:ObjectID, :PropertyID, :PropIndex, %s, :ctlv, :MetaData);]]):format(valWrapper), params)
                     end
                 end
             end
+        end
+    end
+
+    for idx, dbv in pairs(self.values) do
+        if dbv.deferredSaveAction ~= nil then
+            DBContext.ActionQueue:enqueue(function()
+                dbv.deferredSaveAction()
+                saveDBValue(idx, dbv)
+            end)
+        else
+            saveDBValue(idx, dbv)
         end
     end
 end

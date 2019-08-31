@@ -108,6 +108,14 @@ PropertyDef
 ---@field jsonData PropertyDefData
 ---@field dbrow table @comment [flexi_prop] structure
 
+---@class PropertyDefCapabilities
+---@field vtype string
+---@field canBeUsedAsUDID boolean
+---@field columnMappingSupported boolean
+---@field supportsRangeIndexing boolean
+---@field nativeType string
+---@field supportedIndexTypes number
+
 ---@class PropertyDef
 ---@field ID number
 ---@field ClassDef ClassDef
@@ -407,6 +415,8 @@ end
 -- Sets dbv.Value from source data v, with possible conversion and/or validation
 ---@param dbv DBValue
 ---@param v any
+---@return nil | function @comment If function is returned, it will be treated as pending action to be
+---called at the second step of updates. Returning nil meand that dbv.Value was set successfully
 function PropertyDef:ImportDBValue(dbv, v)
     dbv.Value = v
 end
@@ -465,6 +475,21 @@ function PropertyDef:afterApplyDef()
     -- Do nothing
 end
 
+---@type PropertyDefCapabilities
+local _propertyDefCapabilities = {
+    nativeType = '',
+    supportedIndexTypes = Constants.INDEX_TYPES.NON,
+    canBeUsedAsUDID = true,
+    columnMappingSupported = true,
+    vtype = Constants.vtype.default,
+    supportsRangeIndexing = false,
+}
+
+---@return PropertyDefCapabilities
+function PropertyDef:getCapabilities()
+    return _propertyDefCapabilities
+end
+
 --[[
 ===============================================================================
 AnyPropertyDef
@@ -492,6 +517,16 @@ local NumberPropertyDef = class(PropertyDef)
 
 function NumberPropertyDef:_init(params)
     self:super(params)
+end
+
+---@type PropertyDefCapabilities
+local _numberPropertyDefCapabilities = tablex.deepcopy(_propertyDefCapabilities)
+_numberPropertyDefCapabilities.nativeType = 'float'
+_numberPropertyDefCapabilities.supportsRangeIndexing = true
+_numberPropertyDefCapabilities.supportedIndexTypes = Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.RNG + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ
+
+function NumberPropertyDef:getCapabilities()
+    return _numberPropertyDefCapabilities
 end
 
 function NumberPropertyDef:getNativeType()
@@ -534,6 +569,14 @@ function MoneyPropertyDef:_init(params)
     self:super(params)
 end
 
+local _moneyPropertyDefCapabilities = tablex.deepcopy(_numberPropertyDefCapabilities)
+_moneyPropertyDefCapabilities.vtype = Constants.vtype.money
+_moneyPropertyDefCapabilities.nativeType = 'integer'
+
+function MoneyPropertyDef:getCapabilities()
+    return _moneyPropertyDefCapabilities
+end
+
 function MoneyPropertyDef:GetVType()
     return Constants.vtype.money
 end
@@ -570,6 +613,13 @@ function IntegerPropertyDef:_init(params)
     self:super(params)
 end
 
+local _integerPropertyDefCapabilities = tablex.deepcopy(_numberPropertyDefCapabilities)
+_integerPropertyDefCapabilities.nativeType = 'integer'
+
+function IntegerPropertyDef:getCapabilities()
+    return _integerPropertyDefCapabilities
+end
+
 function IntegerPropertyDef:getNativeType()
     return 'integer'
 end
@@ -593,6 +643,11 @@ local TextPropertyDef = class(PropertyDef)
 function TextPropertyDef:_init(params)
     self:super(params)
 end
+
+local _textPropertyDefCapabilities = tablex.deepcopy(_propertyDefCapabilities)
+_textPropertyDefCapabilities.nativeType = 'text'
+_textPropertyDefCapabilities.columnMappingSupported = true -- TODO
+_textPropertyDefCapabilities.supportedIndexTypes = Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.FTS + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ
 
 function TextPropertyDef:getNativeType()
     return 'text'
@@ -810,7 +865,7 @@ end
 ---@param dbv DBValue
 ---@param v any
 function ReferencePropertyDef:ImportDBValue(dbv, v)
-    self.ClassDef.DBContext.RefDataManager:importReferenceValue(self, dbv, v)
+    return self.ClassDef.DBContext.RefDataManager:importReferenceValue(self, dbv, v)
 end
 
 --[[
@@ -924,7 +979,7 @@ This ensures that all inter-references are resolved properly
 ---@param dbv DBValue
 ---@param v string | number | boolean
 function EnumPropertyDef:ImportDBValue(dbv, v)
-    self.ClassDef.DBContext.RefDataManager:importEnumValue(self, dbv, v)
+    return self.ClassDef.DBContext.RefDataManager:importEnumValue(self, dbv, v)
 end
 
 -- Retrieves $uid value from referenced object
@@ -1051,6 +1106,11 @@ end
 
 function UuidPropertyDef:GetSupportedIndexTypes()
     return Constants.INDEX_TYPES.MUL + Constants.INDEX_TYPES.STD + Constants.INDEX_TYPES.UNQ
+end
+
+-- true if property value can be used as user defined ID (UID)
+function UuidPropertyDef:CanBeUsedAsUID()
+    return true
 end
 
 --[[

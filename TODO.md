@@ -230,7 +230,7 @@ Territories: TerritoryID
 
 **2019-08-11**
 
--[ ] Import reference value
+-[x] Import reference value
 -[ ] Add event emitter library
 -[ ] Export data
 -[ ] import data: if no class found, try existing updatable view
@@ -241,6 +241,21 @@ Territories: TerritoryID
 -[ ] enum properties
 -[ ] boxed object: access to referenced properties
 -[ ] query: fix unit tests
+
+**2019-08-24**
+
+-[ ] Generate JSON from db - use { "$udid": 1 } for reference values
+-[ ] Generate JSON from db - use $udid value for enum values
+-[ ] Value for reference - integer. Set to 0 on import, to be fulfilled at the end 
+-[ ] Value for enum - default value for corresponding $udid type (string or number). Set to 0 or '' on import, to be fulfilled at the end
+-[ ] ImportDBValue- return function for reference/enum to be called at the end to resolve reference
+-[ ] refactor methods of PropertyDef to getCapabilities:
+    GetVType -> vtype
+    CanBeUsedAsUID (-> canBeUsedAsUDID)
+    ColumnMappingSupported (-> columnMappingSupported)
+    supportsRangeIndexing 
+    getNativeType -> nativeType
+    GetSupportedIndexTypes -> supportedIndexTypes
 
 
 

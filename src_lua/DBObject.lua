@@ -425,9 +425,6 @@ end
 function WritableDBOV:saveCreate(ctx)
     -- set ctlo & vtypes
 
-    ---@type PropertySaveContext
-    local ctx = {}
-
     self:setObjectMetaData()
     local params = { ClassID = self.ClassDef.ClassID, ctlo = self.ctlo, vtypes = self.ClassDef.vtypes,
                      MetaData = self.MetaData and JSON.encode(self.MetaData) or nil }
@@ -514,7 +511,7 @@ function WritableDBOV:saveUpdate(ctx)
          vtypes=:vtypes, A=:A, B=:B, C=:C, D=:D, E=:E, F=:F, G=:G, H=:H, J=:J, K=:K, L=:L,
          M=:M, N=:N, O=:O, P=:P, MetaData=:MetaData where ObjectID = :ID]], params)
 
-    for propName, prop in pairs(self.props) do
+    for _, prop in pairs(self.props) do
         prop:SaveToDB(ctx)
     end
 

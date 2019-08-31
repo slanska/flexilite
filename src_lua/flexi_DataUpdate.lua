@@ -93,7 +93,7 @@ end
 --- filter to apply - optional, for update and delete
 local function _dataUpdate(self, className, oldRowID, newRowID, data, queryJSON)
     local saveHelper = SaveObjectHelper(self)
-
+    local isArray = #data > 0
     if className then
         -- Basic (classic) mode
         if isArray then
@@ -110,7 +110,6 @@ local function _dataUpdate(self, className, oldRowID, newRowID, data, queryJSON)
         end
     else
         -- Extended (classless) mode
-
         if newRowID then
             error('Invalid arguments: newRowID must be null if className is not passed')
         end
@@ -190,7 +189,6 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
         error('Invalid data type')
     end
 
-    local isArray = #data > 0
     if queryJSON and (oldRowID or newRowID) then
         error('Incompatible arguments: queryJSON cannot be used with oldRowID and newRowID')
     end

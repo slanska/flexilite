@@ -253,6 +253,7 @@ function FilterDef:is_valid_value(propDef, astToken)
 
     if vv then
         local dbv = DBValue { }
+        -- TODO use different method as ImportDBValue will not work for reference properties in this context
         propDef:ImportDBValue(dbv, vv)
         local result = dbv.Value
         if type(result) == 'string' then

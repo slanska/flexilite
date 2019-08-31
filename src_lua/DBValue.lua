@@ -42,7 +42,8 @@ local Constants = require 'Constants'
 ---@class DBValue
 ---@field Value any
 ---@field ctlv number
----@field MetaData table|nil
+---@field MetaData table | nil
+---@field deferredSaveAction function | nil
 local DBValue = class()
 
 ---@class DBValueBoxed
