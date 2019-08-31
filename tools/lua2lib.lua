@@ -194,6 +194,5 @@ else
     print(ansicolors(string.format('%%{yellow}%s: no changes detected%%{reset}', libName)))
 end
 
-local elapsed = os.clock() - startTime
 print(ansicolors(string.format('%%{magenta}%s: completed in %s sec(s). %d file(s) processed, %d file(s) skipped.%%{reset}',
-        libName, elapsed, files_processed, files_skipped)))
+        libName, os.clock() - startTime, files_processed, files_skipped)))

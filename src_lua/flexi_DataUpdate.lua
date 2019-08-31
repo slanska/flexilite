@@ -195,6 +195,7 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
 
     local savedActQue = self.ActionQueue == nil and self:setActionQueue() or self.ActionQueue
     local result, errMsg = pcall(_dataUpdate, self, className, oldRowID, newRowID, data, queryJSON)
+
     if savedActQue ~= nil then
         self:setActionQueue(savedActQue)
     end
