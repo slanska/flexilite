@@ -57,7 +57,8 @@ return {
     -- lib
     ['prettycjson'] = 'lib/lua-prettycjson/lib/resty/prettycjson.lua',
     ['schema'] = 'lib/lua-schema/schema.lua',
-    ['date'] = 'lib/lua-date/date.lua',
+    ['date'] = 'lib/lua-date/src/date.lua',
+    --['date'] = 'lib/lua-date/date.lua',
     ['debugger'] = 'lib/debugger-lua/debugger.lua',
 
     -- penlight
