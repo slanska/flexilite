@@ -367,9 +367,6 @@ function ClassDef:_init(params)
         self.ColMapActive = params.data.ColMapActive
         self.vtypes = params.data.vtypes
 
-        -->>
-        require('debugger')(type(params.data.Data) == 'string')
-
         assert(type(params.data.Data) == 'string', string.format('%s: params.data.Data must be valid JSON. Got %s',
                 params.data.Name, type(params.data.Data)))
         self.D = json.decode(params.data.Data)
@@ -494,9 +491,6 @@ function ClassDef:getProperty(propName)
 
     local prop = self:hasProperty(propName)
     if not prop then
-        -->>
-        require('debugger')(not (propName == 'Employees'))
-
         error(string.format("Property `%s` not found or ambiguous in class `%s`", propName, self.Name.text))
     end
     return prop

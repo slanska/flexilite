@@ -437,23 +437,6 @@ function PropertyDef:BindValueParameter(stmt, param_no, dbv)
     stmt:bind(param_no, dbv.Value)
 end
 
---[[ Called before .ref-value row is inserted/updated
-Returns tuple of 2 values: boolean and function
-If boolean is true, .ref-values row gets inserted/updated immediately.
-Otherwise, update operation is skipped at this time
-If function part is not nil, it gets added to deferredActions list to be called when all objects in batch are inserted/updated
-
-Possible combinations:
-true, nil - normal scalar value, gets inserted/updated immediately
-true, function - value gets inserted/updated, and also deferred action gets registered
-false, nil - no-op
-false, function - typically, reference. No .ref-values row is inserted/updated and deferred action is registered
-]]
----@return boolean, function
-function PropertyDef:BeforeDBValueSave(dbv)
-    return true, nil
-end
-
 -- Returns index of column mapped
 ---@return number | nil
 function PropertyDef:ColMapIndex()
@@ -885,9 +868,6 @@ function EnumPropertyDef:_init(params)
 end
 
 function EnumPropertyDef:applyDef()
-    -->>
-    --require('debugger')()
-
     -- Note: calling PropertyDef, not ReferencePropertyDef
     ReferencePropertyDef.applyDef(self)
 
@@ -908,9 +888,6 @@ function EnumPropertyDef:applyDef()
 end
 
 function EnumPropertyDef:internalToJSON()
-    -->>
-    --require('debugger')()
-
     local result = ReferencePropertyDef.internalToJSON(self)
 
     result.refDef = tablex.deepcopy(self.enumDef)
@@ -919,9 +896,6 @@ function EnumPropertyDef:internalToJSON()
 end
 
 function EnumPropertyDef:initMetadataRefs()
-    -->>
-    --require('debugger')()
-
     ReferencePropertyDef.initMetadataRefs(self)
 
     if self.D.enumDef then
@@ -953,25 +927,6 @@ function EnumPropertyDef:GetSupportedIndexTypes()
             + Constants.INDEX_TYPES.FTS_SEARCH
 end
 
----@return boolean, function
-function EnumPropertyDef:BeforeDBValueSave(dbv)
-    -->>
-    require('debugger')()
-
-    ---@return boolean
-    local function validateEnumRef()
-        -- TODO
-
-    end
-
-    local resolved = validateEnumRef()
-    if resolved then
-        return true, nil
-    end
-
-    return true, validateEnumRef
-end
-
 --[[ Applies enum value to the property
 Postpones operation till all scalar data for all objects in the transaction are done.
 This ensures that all inter-references are resolved properly
@@ -995,9 +950,6 @@ end
 --
 -- Checks if all dependency classes exist. May create a new one. Noop by default
 function EnumPropertyDef:beforeApplyDef()
-    -->>
-    --require('debugger')()
-
     PropertyDef.beforeApplyDef(self)
 
     if self.D.enumDef then

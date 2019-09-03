@@ -13,10 +13,6 @@ local jdates = {}
 
 --it('dateToJulian', function()
 for _ = 1, 1000000, 1 do
-
-    -->>
-    --require('debugger')()
-
     local y = math.random(0, 2020)
     local m = math.random(1, 12)
     local d = math.random(1, 28)

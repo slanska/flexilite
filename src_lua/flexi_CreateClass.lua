@@ -149,10 +149,6 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
             clsObject.D.Unresolved = false
 
             insertNewClass(self, clsObject)
-
-            -- ??
-            --require('debugger')()
-
             self:setNAMClass(clsObject)
             table.insert(newClasses, clsObject)
         end
