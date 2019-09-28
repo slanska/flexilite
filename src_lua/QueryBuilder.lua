@@ -545,11 +545,6 @@ end
 ---@field DBContext DBContext
 local QueryBuilder = class()
 
--- Filter callback
-function QueryBuilder:apply_filter()
-
-end
-
 ---@param DBContext DBContext
 ---@param ClassDef ClassDef
 ---@param expr string
@@ -557,6 +552,11 @@ end
 function QueryBuilder:_init(DBContext, ClassDef, expr, params)
     expr = string.format('function () return %s end', expr)
     self.DBContext = DBContext
+end
+
+-- Filter callback
+function QueryBuilder:apply_filter()
+
 end
 
 -- Returns list of object IDs, according to reference propDef and filter

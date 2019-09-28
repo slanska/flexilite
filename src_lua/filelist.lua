@@ -49,6 +49,7 @@ return {
     ['ColMapping'] = 'src_lua/ColMapping.lua',
     ['flexi_rel_vtable'] = 'src_lua/flexi_rel_vtable.lua',
     ['flexi_data_vtable'] = 'src_lua/flexi_data_vtable.lua',
+    ['SqliteTable'] = 'src_lua/SqliteTable.lua',
 
     -- sql
     ['sql.dbschema'] = 'sql/dbschema.sql',

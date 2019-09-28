@@ -17,6 +17,8 @@ local json = cjson or require('cjson')
 local class = require 'pl.class'
 local QueryBuilder = require('QueryBuilder').QueryBuilder
 local Constants = require 'Constants'
+local DictCI = require('Util').DictCI
+local SqliteTable = require 'SqliteTable'
 
 --[[
 Internal helper class to save objects to DB
@@ -26,6 +28,7 @@ Internal helper class to save objects to DB
 ---@field QueryBuilder QueryBuilder
 ---@field unresolvedReferences table @comment TODO
 ---@field checkedClasses table @comment TODO
+---@field sqliteTables table<string, SqliteTable>
 
 local SaveObjectHelper = class()
 
@@ -46,7 +49,25 @@ end
 ---@param newRowID number
 ---@param data table @comment object payload from JSON
 function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
-    local classDef = self.DBContext:getClassDef(className, true)
+    local classDef = self.DBContext:getClassDef(className, false)
+
+    if not classDef then
+        -- Flexilite class not found, but this maybe potentially native SQLite table/view
+        if not self.sqliteTables then
+            self.sqliteTables = DictCI()
+        end
+        local sqlTbl = self.sqliteTables[className]
+        if not sqlTbl then
+            sqlTbl = SqliteTable(self.DBContext, className)
+            self.sqliteTables[className:lower()] = sqlTbl
+        end
+
+        if not oldRowID then
+            -- Insert new record
+        else
+        end
+
+    end
 
     ---@type DBObject
     local obj
