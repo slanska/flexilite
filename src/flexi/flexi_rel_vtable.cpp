@@ -166,7 +166,7 @@ static int _create_connect(sqlite3 *db, void *pAux,
     lua_pushstring(vtab->pCtx->L, argv[4]);
 
     // 7 arguments, 2 results, no error handler
-    if (lua_pcall(vtab->pCtx->L, 7, 2, NULL))
+    if (lua_pcall(vtab->pCtx->L, 7, 2, (int) NULL))
     {
         *pzErr = sqlite3_mprintf("Flexilite DBContext(db): %s\n", lua_tostring(vtab->pCtx->L, -1));
         result = SQLITE_ERROR;
@@ -322,20 +322,20 @@ static int _update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv, sqlite_i
     // propID
     lua_pushinteger(vtab->pCtx->L, vtab->_propID);
     // newRowID
-//    lua_pushstring(vtab->pCtx->L, argv[2]);
+    //    lua_pushstring(vtab->pCtx->L, argv[2]);
     // oldRowID
-//    lua_pushstring(vtab->pCtx->L, argv[0]);
+    //    lua_pushstring(vtab->pCtx->L, argv[0]);
     // fromID
-//    lua_pushstring(vtab->pCtx->L, argv[6]);
+    //    lua_pushstring(vtab->pCtx->L, argv[6]);
     // toID
-//    lua_pushstring(vtab->pCtx->L, argv[3]);
+    //    lua_pushstring(vtab->pCtx->L, argv[3]);
     // fromUDID
-//    lua_pushstring(vtab->pCtx->L, argv[4]);
+    //    lua_pushstring(vtab->pCtx->L, argv[4]);
     // toUDID
-//    lua_pushstring(vtab->pCtx->L, argv[4]);
+    //    lua_pushstring(vtab->pCtx->L, argv[4]);
 
     // 7 arguments, 2 results, no error handler
-    if (lua_pcall(vtab->pCtx->L, 8, 0, NULL))
+    if (lua_pcall(vtab->pCtx->L, 8, 0, (int) NULL))
     {
         vtab->zErrMsg = sqlite3_mprintf("Flexilite DBContext(db): %s\n", lua_tostring(vtab->pCtx->L, -1));
         result = SQLITE_ERROR;

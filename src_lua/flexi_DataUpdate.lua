@@ -210,8 +210,20 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
         error('Invalid data type')
     end
 
+    -- Check if oldRowID and/or newRowID are encoded objects
+
     if queryJSON and (oldRowID or newRowID) then
         error('Incompatible arguments: queryJSON cannot be used with oldRowID and newRowID')
+    end
+
+    -- row ID may be multi-column value (e.g. for many2many ref views). In such cases it will be passed as string with encoded
+    -- JSON array
+    if type(oldRowID) == 'string' then
+        oldRowID = json.decode(oldRowID)
+    end
+
+    if type(newRowID) == 'string' then
+        newRowID = json.decode(newRowID)
     end
 
     local savedActQue = self.ActionQueue == nil and self:setActionQueue() or self.ActionQueue
