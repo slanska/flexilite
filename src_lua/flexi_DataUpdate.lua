@@ -23,7 +23,7 @@ local SqliteTable = require 'SqliteTable'
 --[[
 Internal helper class to save objects to DB
 ]]
----@class SaveObjectParams
+---@class SaveObjectHelper
 ---@field DBContext DBContext
 ---@field QueryBuilder QueryBuilder
 ---@field unresolvedReferences table @comment TODO
@@ -56,6 +56,7 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
         if not self.sqliteTables then
             self.sqliteTables = DictCI()
         end
+        ---@type SqliteTable
         local sqlTbl = self.sqliteTables[className]
         if not sqlTbl then
             sqlTbl = SqliteTable(self.DBContext, className)
@@ -64,7 +65,15 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
 
         if not oldRowID then
             -- Insert new record
+            sqlTbl:insert(data)
         else
+            local where
+            if newRowID then
+                -- TODO set where
+                sqlTbl:update(data, where)
+            else
+                sqlTbl:delete(where)
+            end
         end
 
     end
@@ -122,7 +131,7 @@ local function _dataUpdate(self, className, oldRowID, newRowID, data, queryJSON)
                 error('Incompatible arguments: oldRowID and newRowID must be null for array mode')
             end
 
-            for i, row in ipairs(data) do
+            for _, row in ipairs(data) do
                 saveHelper:saveObject(className, row, nil, nil)
             end
         else
@@ -149,7 +158,7 @@ local function _dataUpdate(self, className, oldRowID, newRowID, data, queryJSON)
         else
             for clsName, dd in pairs(data) do
                 if #dd > 0 then
-                    for i, row in ipairs(dd) do
+                    for _, row in ipairs(dd) do
                         saveHelper:saveObject(clsName, nil, nil, row)
                     end
                 else
@@ -189,9 +198,9 @@ Implementation of flexi_data virtual table xUpdate API: insert, update, delete
 ---@param self DBContext
 ---@param className string
 --- (optional) if not specified, must be defined in JSON payload
----@param oldRowID number
+---@param oldRowID number | string
 --- if null, it is insert operation
----@param newRowID number
+---@param newRowID number | string
 --- if null and oldRowID not null, it is delete.
 --- if not null and oldRowID is not null, this is update. If different - it is ID change
 --- if not null and oldRowID is null, this is insert
@@ -216,14 +225,27 @@ local function flexi_DataUpdate(self, className, oldRowID, newRowID, dataJSON, q
         error('Incompatible arguments: queryJSON cannot be used with oldRowID and newRowID')
     end
 
-    -- row ID may be multi-column value (e.g. for many2many ref views). In such cases it will be passed as string with encoded
-    -- JSON array
+    --[[
+    Data update function was initially developed to be compatible with SQLite virtual table xUpdate API, which
+    operates with integers only for row ID.
+    In order to accomplish other use cases flexi_DataUpdate also supports multi key primary keys.
+    This is implemented using the following logic:
+    - if not nil, types of both newRowID and oldRowID must be the same - either number os string (nils are treated as omitted ID)
+    - if type is number, it is treated as row ID (the same as original xUpdate API)
+    - if type is string, it is parsed as JSON payload. Result of parsing can be one of those: number (again, treated as
+    row ID); table - treated as key-value dictionary where key is property name, and value - ID value; array - values
+    are treated differently for updatable view and normal table. For table, ordinal positions of values are layed out with primary key
+    definition as supplied by SQLite pragma table_info. For updatable view (which is mostly many-to-many relation) these numbers are
+    used based on column ordinal position (also, as per result of SQLite pragma table_info)
+    ]]
     if type(oldRowID) == 'string' then
         oldRowID = json.decode(oldRowID)
+        assert(type(newRowID) == 'string' or type(newRowID) == 'nil', 'flexi_DataUpdate: both newRowID and oldRowID must be the same type')
     end
 
     if type(newRowID) == 'string' then
         newRowID = json.decode(newRowID)
+        assert(type(oldRowID) == 'string' or type(oldRowID) == 'nil', 'flexi_DataUpdate: both newRowID and oldRowID must be the same type')
     end
 
     local savedActQue = self.ActionQueue == nil and self:setActionQueue() or self.ActionQueue

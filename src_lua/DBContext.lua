@@ -35,6 +35,7 @@ local Constants = require 'Constants'
 local DictCI = require('Util').DictCI
 local sqlite3 = sqlite3 or require 'sqlite3'
 local List = require 'pl.List'
+local Events = require 'EventEmitter'
 
 -- to fix bug of missing values when running Flexilite in flexi_test app
 sqlite3.OK = 0
@@ -102,7 +103,7 @@ end
 ---@field Statements table <string, userdata> @comment <string, sqlite3_stmt>
 ---@field MemDB table
 ---@field UserInfo UserInfo
----@field Classes ClassCollection
+---@field Classes DictCI
 ---@field Functions table @comment TODO use Function class
 ---@field ClassProps table<number, PropertyDef>
 ---@field Objects table <number, DBObject>
@@ -116,8 +117,13 @@ end
 ---@field config DBContextConfig
 ---@field flexirel FlexiRelVTable
 ---@field debugMode boolean
----@field NAMClasses ClassCollection @comment new-and-modified classes before committing schema changes
+---@field NAMClasses DictCI @comment new-and-modified classes before committing schema changes
+---@field events Events
 local DBContext = class()
+
+DBContext.EVENT_NAMES = {
+    FLUSH_SCHEMA_DATA = 'FLUSH_SCHEMA_DATA',
+}
 
 -- Forward declarations
 local flexiFuncs
@@ -194,6 +200,8 @@ function DBContext:_init(db)
     self.flexirel = flexiRel
 
     self.debugMode = false
+
+    self.events = Events:new()
 end
 
 -- Adds a deferred reference to the list to be resolved later
@@ -775,6 +783,7 @@ function DBContext:flushSchemaCache()
     self:initMemoizeFunctions()
     self:flushCurrentUserCheckPermissions()
     self:finalizeStatements()
+    self.events:emit(DBContext.EVENT_NAMES.FLUSH_SCHEMA_DATA, self)
 end
 
 function DBContext:flushDataCache()

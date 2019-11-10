@@ -234,7 +234,7 @@ function SQLiteSchemaParser:processMany2ManyRelations()
     ]]
     local result = 0
 
-    for i, tblInfo in ipairs(self.tableInfo) do
+    for _, tblInfo in ipairs(self.tableInfo) do
         -- 1) table must have only 2 or 3 columns (A & B)
         if tblInfo.columnCount == 2 or tblInfo.columnCount == 3 then
             ---@type table<number, ISQLiteColumnInfo>
@@ -256,8 +256,8 @@ function SQLiteSchemaParser:processMany2ManyRelations()
 
             -- 2 remaining columns must be: a) foreign keys, b) form unique or primary index
             local fk_count = 0
-            for c_idx, col in ipairs(cols) do
-                for fk_idx, fk in ipairs(tblInfo.outFKeys) do
+            for _, col in ipairs(cols) do
+                for _, fk in ipairs(tblInfo.outFKeys) do
                     if fk.from == col.name and fk.table ~= tblInfo.table then
                         fk_count = fk_count + 1
                         col.to_table = fk.table
@@ -372,7 +372,7 @@ end
 ---@param tblInfo ITableInfo
 ---@param classDef ClassDefData
 function SQLiteSchemaParser:initializeProperties(tblInfo, classDef)
-    for idx, col in ipairs(tblInfo.columns) do
+    for _, col in ipairs(tblInfo.columns) do
         ---@type PropertyDefData
         local prop = self:sqliteColToFlexiProp(col)
 
@@ -531,7 +531,7 @@ function SQLiteSchemaParser:applyIndexDefs(tblInfo, sqliteTblDef, classDef)
     local indexed_cols = {}
 
     -- Second, process sorted indexes
-    for nn, vv in pairs(tblInfo.indexes) do
+    for _, vv in pairs(tblInfo.indexes) do
         ---@type ISQLiteIndexInfo
         local idx_def = vv
         -- Check if index is supported by Flexilite
@@ -933,7 +933,7 @@ function SQLiteSchemaParser:processSpecialProps(tblInfo, classDef)
 
     -- If no special properties were defined, clean up the attribute. No need to carry on this luggage
     local empty = true
-    for _, v in pairs(classDef.specialProperties) do
+    for _, _ in pairs(classDef.specialProperties) do
         empty = false
         break
     end
@@ -1027,7 +1027,7 @@ function SQLiteSchemaParser:processReferences(tblInfo)
          'from' columns for outFKeys are converted to computed properties: they accept input value,
          treat it as uid property of master class and don't get stored.
     ]]
-    for i, fk in ipairs(tblInfo.outFKeys) do
+    for _, fk in ipairs(tblInfo.outFKeys) do
         -- N : 1
         if not fk.processed then
             local cc = classDef.properties[fk.from]
