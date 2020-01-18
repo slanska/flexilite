@@ -183,7 +183,7 @@ ChangedDBProperty
 Used by WritableDBOV (DBObject.curVer)
 ]]
 -------------------------------------------------------------------------------
----@class ChangedDBProperty
+---@class ChangedDBProperty @parent DBProperty
 ---@field DBOV WritableDBOV
 ---@field PropDef PropertyDef
 ---@field values table<number, DBValue>

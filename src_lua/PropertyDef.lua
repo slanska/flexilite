@@ -479,7 +479,7 @@ AnyPropertyDef
 ===============================================================================
 ]]
 
----@class AnyPropertyDef: PropertyDef
+---@class AnyPropertyDef @parent PropertyDef
 local AnyPropertyDef = class(PropertyDef)
 
 function AnyPropertyDef:_init(params)
@@ -495,7 +495,7 @@ NumberPropertyDef
 ]]
 
 -- Base property type for all range-able types
---- @class NumberPropertyDef: PropertyDef
+--- @class NumberPropertyDef @parent PropertyDef
 local NumberPropertyDef = class(PropertyDef)
 
 function NumberPropertyDef:_init(params)
@@ -544,7 +544,7 @@ end
 MoneyPropertyDef
 ===============================================================================
 ]]
---- @class MoneyPropertyDef: NumberPropertyDef
+--- @class MoneyPropertyDef @parent NumberPropertyDef
 local MoneyPropertyDef = class(NumberPropertyDef)
 
 -- Ctor is required
@@ -589,7 +589,7 @@ IntegerPropertyDef
 ===============================================================================
 ]]
 
---- @class IntegerPropertyDef: NumberPropertyDef
+--- @class IntegerPropertyDef @parent NumberPropertyDef
 local IntegerPropertyDef = class(NumberPropertyDef)
 
 function IntegerPropertyDef:_init(params)
@@ -620,7 +620,7 @@ TextPropertyDef
 ===============================================================================
 ]]
 
---- @class TextPropertyDef: PropertyDef
+--- @class TextPropertyDef @parent PropertyDef
 local TextPropertyDef = class(PropertyDef)
 
 function TextPropertyDef:_init(params)
@@ -657,7 +657,7 @@ SymNamePropertyDef
 ===============================================================================
 ]]
 
---- @class SymNamePropertyDef: TextPropertyDef
+--- @class SymNamePropertyDef @parent TextPropertyDef
 local SymNamePropertyDef = class(TextPropertyDef)
 
 function SymNamePropertyDef:_init(params)
@@ -689,7 +689,7 @@ ReferencePropertyDef: base class for all referencing properties: enum, nested et
 ===============================================================================
 ]]
 
---- @class ReferencePropertyDef: PropertyDef
+--- @class ReferencePropertyDef @parent PropertyDef
 local ReferencePropertyDef = class(PropertyDef)
 
 -- Returns internal JSON representation of property
@@ -860,7 +860,7 @@ ExportDBValue
 ===============================================================================
 ]]
 
---- @class EnumPropertyDef: ReferencePropertyDef
+--- @class EnumPropertyDef @parent ReferencePropertyDef
 local EnumPropertyDef = class(ReferencePropertyDef)
 
 function EnumPropertyDef:_init(params)
@@ -962,7 +962,7 @@ end
 BoolPropertyDef
 ===============================================================================
 ]]
---- @class BoolPropertyDef: PropertyDef
+--- @class BoolPropertyDef @parent PropertyDef
 local BoolPropertyDef = class(PropertyDef)
 
 function BoolPropertyDef:_init(params)
@@ -988,7 +988,7 @@ BlobPropertyDef
 ===============================================================================
 ]]
 
---- @class BlobPropertyDef: PropertyDef
+--- @class BlobPropertyDef @parent PropertyDef
 local BlobPropertyDef = class(PropertyDef)
 
 function BlobPropertyDef:_init(params)
@@ -1049,7 +1049,7 @@ UuidPropertyDef
 ===============================================================================
 ]]
 
---- @class UuidPropertyDef: BlobPropertyDef
+--- @class UuidPropertyDef @parent BlobPropertyDef
 local UuidPropertyDef = class(BlobPropertyDef)
 
 function UuidPropertyDef:_init(params)
@@ -1071,7 +1071,7 @@ DateTimePropertyDef
 ===============================================================================
 ]]
 
---- @class DateTimePropertyDef: NumberPropertyDef
+--- @class DateTimePropertyDef @parent NumberPropertyDef
 local DateTimePropertyDef = class(NumberPropertyDef)
 
 function DateTimePropertyDef:_init(params)
@@ -1178,7 +1178,7 @@ TimeSpanPropertyDef
 ===============================================================================
 ]]
 
---- @class TimeSpanPropertyDef: DateTimePropertyDef
+--- @class TimeSpanPropertyDef @parent DateTimePropertyDef
 local TimeSpanPropertyDef = class(DateTimePropertyDef)
 
 function TimeSpanPropertyDef:_init(params)
@@ -1195,7 +1195,7 @@ ComputedPropertyDef
 ===============================================================================
 ]]
 
---- @class ComputedPropertyDef: PropertyDef
+--- @class ComputedPropertyDef @parent PropertyDef
 local ComputedPropertyDef = class(PropertyDef)
 
 function ComputedPropertyDef:_init(params)

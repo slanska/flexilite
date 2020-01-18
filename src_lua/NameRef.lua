@@ -50,7 +50,7 @@ NameRef
 ===============================================================================
 ]]
 
----@class NameRef : MetadataRef
+---@class NameRef @parent MetadataRef
 ---@field text string
 ---@field id number | nil
 local NameRef = class(MetadataRef)
@@ -85,7 +85,7 @@ ClassNameRef
 ===============================================================================
 ]]
 
----@class ClassNameRef : MetadataRef
+---@class ClassNameRef @parent MetadataRef
 local ClassNameRef = class(MetadataRef)
 
 function ClassNameRef:_init(text, id)
@@ -118,7 +118,7 @@ PropNameRef
 ===============================================================================
 ]]
 
----@class PropNameRef : MetadataRef
+---@class PropNameRef @parent MetadataRef
 local PropNameRef = class(MetadataRef)
 
 --- Ensures that class owner has given property (by name/id)

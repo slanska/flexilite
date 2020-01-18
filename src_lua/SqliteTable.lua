@@ -16,7 +16,7 @@ pragma table_info.
 
 For insert/update/delete operations class generates SQL, which is used to cache sqlite statements.
 To avoid conflicts in names between value and where parameters the following naming convention is used:
-Value parameters are named :v1, :v2 etc, where parameters are named: :k1, :k2 etc.
+Value parameters are named :v1, :v2 etc, and `where` parameters are named: :k1, :k2 etc.
 ]]
 
 local class = require 'pl.class'
@@ -35,17 +35,18 @@ local SqliteTable = class()
 
 ---@class _SqliteTableMetadata
 ---@field col_by_names table<string, number> @comment map by lowercase column names and ordinal column index (as returned by pragma table_info)
----@field col_by_idx table<number, number> @comment map by primary key sequential number to ordinal column index
+---@field pkey_col_by_idx table<number, number> @comment map by primary key sequential number to ordinal column index
 
----@type (DBContext, string): _SqliteTableMetadata
+---@alias GetTableMetaDataHandler fun(DBContext: DBContext, tableName: string) : _SqliteTableMetadata
+---@type GetTableMetaDataHandler
 local _get_table_meta_data
 
 ---@param DBContext DBContext
 ---@param tableName string
----@param expectedPKeyCount number @comment expected number of columns in primary key. Used for updatable views
 ---where is no real primary key defined
 ---@return _SqliteTableMetadata
 local function _getTableMetadataHandler(DBContext, tableName)
+
     ---@type _SqliteTableMetadata
     local result = {
         col_by_names = {},
@@ -59,7 +60,7 @@ local function _getTableMetadataHandler(DBContext, tableName)
         ]]
         result.col_by_names[row.name:lower()] = row.cid
         if row.pk > 0 then
-            result.col_by_idx[row.pk] = row.cid
+            result.pkey_col_by_idx[row.pk] = row.cid
         end
     end
 
@@ -86,30 +87,43 @@ function SqliteTable:_init(DBContext, tableName)
     self.DBContext.events:on(DBContext.EVENT_NAMES.FLUSH_SCHEMA_DATA, onFlushSchemaData)
 end
 
----Converts where clause to dictionary, with keys as column names, and values as column values
+--[[ Converts where clause to dictionary, with keys as column names, and values as column values
+`where` may come in 3 variants:
+1) string - then is not processed and handled `as is`
+2) array of values:
+    2.1) if table has primary key definition, array item index is treated as ordinal position of primary key segment
+    2.2) otherwise (table does not have primary key definition, and most likely it is an updatable view),
+    array item index is treated as column ordinal position
+3) dictionary of string keys:
+]]
 ---@param metadata _SqliteTableMetadata
----@param where string | table<string, any>
+---@param where string | table<string, any> | any[]
 function SqliteTable:_normalizeWhere(metadata, where)
     local result = {}
     for k, v in pairs(where) do
-        local idx
+        local idx = nil -- ??
         if type(k) == 'number' then
-            -- use ordinal position = normally, this is updatable view
-            idx = metadata.col_by_idx[k]
+            -- use column ordinal position = normally, this is the case for updatable view
+            idx = metadata.pkey_col_by_idx[k]
             for col_name, col_idx in pairs(metadata.col_by_names) do
                 if col_idx == k then
-                    result[col_name] = v
+                    local paramName = ('K%d'):format(k)
+                    result[paramName] = v
                     goto NEXT
                 end
             end
         elseif type(k) == 'string' then
+            -- key is a column name - typically,
             local fieldName = k:lower()
             idx = metadata.col_by_names[fieldName]
             result[fieldName] = v
+        else
+            -- TODO error() ?
         end
 
         :: NEXT ::
     end
+
     return result
 end
 
@@ -128,6 +142,7 @@ local function _append_where(sql, where)
     end
 end
 
+-- Returns generated SQL text and normalized parameters for `insert` statement
 ---@param data table
 ---@return string, table
 function SqliteTable:_generate_insert_sql_and_params(data)
@@ -141,7 +156,7 @@ function SqliteTable:_generate_insert_sql_and_params(data)
     for fieldName, fieldValue in pairs(data) do
         local cid = metadata.col_by_names[fieldName:lower()]
         if cid == nil then
-            error(('Generate insert SQL. Column %s not found'):format(fieldName))
+            error(('Generate insert SQL. Column %s.%s not found'):format(self.tableName, fieldName))
         end
 
         if not first then
@@ -170,7 +185,7 @@ end
 
 ---@param self DBContext
 ---@param data table
----@param where table @comment array of primary keys
+---@param where table @comment array or dictionary of primary keys
 ---@return string, table
 function SqliteTable:_generate_update_sql_and_params(data, where)
     assert(where, 'where must be not null')
@@ -184,7 +199,7 @@ function SqliteTable:_generate_update_sql_and_params(data, where)
     for fieldName, fieldValue in pairs(data) do
         local cid = metadata.col_by_names[fieldName:lower()]
         if cid == nil then
-            error(('Generate update SQL. Column %s not found'):format(fieldName))
+            error(('Generate update SQL. Column %s.%s not found'):format(self.tableName, fieldName))
         end
 
         if not first then

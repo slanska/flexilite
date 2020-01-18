@@ -306,7 +306,7 @@ Uses ChangedDBProperty class (instead of DBProperty for ReadOnlyDBOV)
 -------------------------------------------------------------------------------
 ]]
 
----@class WritableDBOV : ReadOnlyDBOV
+---@class WritableDBOV @parent ReadOnlyDBOV
 local WritableDBOV = class(ReadOnlyDBOV)
 
 ---@param DBObject DBObject
