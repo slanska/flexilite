@@ -17,9 +17,12 @@ Tests to implement:
 - data compare between original Northwind and Chinook databases and imported into Flexilite
 ]]
 
+local dbg = require 'debugger'
+--dbg()
+
 local sqlite = require 'lsqlite3complete'
 sqlite3 = sqlite
-local util = require 'util'
+local util = require 'test_util'
 local TestContext = util.TestContext()
 TestContext:GetNorthwind()
 

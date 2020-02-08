@@ -1,7 +1,7 @@
 --[[
  Created by slanska on 2019-07-01.
 ]]
-require 'test_paths'
+require 'test_util'
 local jd = require('JulianDate')
 
 -->>

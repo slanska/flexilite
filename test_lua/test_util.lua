@@ -17,14 +17,50 @@ local stringx = require 'pl.stringx'
 local path = require 'pl.path'
 
 -- set lua paths
-require 'test_paths'
+--require 'test_paths'
+
+local path = require 'pl.path'
+
+-- set lua paths
+local paths = {
+    '../lib/lua-prettycjson/lib/resty/?.lua',
+    '../src_lua/?.lua',
+    '../lib/lua-sandbox/?.lua',
+    '../lib/lua-schema/?.lua',
+    '../lib/lua-date/src/?.lua',
+    '../lib/lua-metalua/?.lua',
+    '../lib/lua-metalua/compiler/?.lua',
+    '../lib/lua-metalua/compiler/bytecode/?.lua',
+    '../lib/lua-metalua/compiler/parser/?.lua',
+    '../lib/lua-metalua/extension/?.lua',
+    '../lib/lua-metalua/treequery/?.lua',
+    '../lib/lua-sandbox/?.lua',
+    '../lib/debugger-lua/?.lua',
+    '../lib/md5.lua/?.lua',
+    '../?.lua',
+}
+
+for _, pp in ipairs(paths) do
+    package.path = path.abspath(path.relpath(pp)) .. ';' .. package.path
+end
+
+local dbg = require('debugger')
+dbg.auto_where = 2
+
+local DBContext = require 'DBContext'
+
+--local dbg = require 'debugger'
 
 -- For Lua 5.2 compatibility
 unpack = table.unpack
 
 local __dirname = path.abspath('..')
 
-local module = {}
+--dbg()
+
+local module = {
+    dbg = dbg
+}
 
 --- Read file
 ---@param file string
@@ -36,8 +72,9 @@ function module.readAll(file)
 end
 
 -- Flexi object
-require 'index'
+--require 'all_tests'
 
+Flexi = {}
 -- load sql scripts into Flexi variables
 Flexi.DBSchemaSQL = module.readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
 Flexi.InitDefaultData = module.readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
@@ -45,7 +82,8 @@ Flexi.InitDefaultData = module.readAll(path.join(__dirname, 'sql', 'init_default
 ---@param db userdata @comment sqlite3
 ---@return DBContext
 local function initFlexiDatabase(db)
-    local result = Flexi:newDBContext(db)
+    local result = DBContext(db)
+    --local result = Flexi:newDBContext(db)
     db:exec "select flexi('configure')"
     return result
 end

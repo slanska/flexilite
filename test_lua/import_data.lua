@@ -4,9 +4,9 @@
 --- DateTime: 2018-01-21 12:37 PM
 ---
 
-local util = require('test_util')
-local path = require 'pl.path'
 local os = require 'os'
+local util = require 'test_util'
+local path = require 'pl.path'
 
 describe('Loading entire database from JSON and verifies accuracy of imported data', function()
 

@@ -3,7 +3,8 @@
 --- DateTime: 2017-11-07 2:25 PM
 ---
 
-require 'test_paths'
+require 'test_util'
+
 local Util = require('Util')
 
 --[[ Miscellaneous tests for utility classes ]]
