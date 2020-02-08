@@ -46,4 +46,21 @@ describe('Loading entire database from JSON and verifies accuracy of imported da
     it('verify Chinook', function()
 
     end)
+
+    it('SqliteTable:_appendWhere: updatable view', function()
+    end)
+
+    it('SqliteTable:_appendWhere: table with one column primary key', function()
+    end)
+
+    it('SqliteTable:_appendWhere: table with multi primary key', function()
+    end)
+
+    it('SqliteTable:_appendWhere: table with single column primary key', function()
+    end)
+
+    it('SqliteTable:_appendWhere: string where', function()
+    end)
+
+
 end)

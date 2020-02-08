@@ -20,9 +20,9 @@ Value parameters are named :v1, :v2 etc, and `where` parameters are named: :k1, 
 ]]
 
 local class = require 'pl.class'
+
 local List = require 'pl.List'
 local util = require 'pl.utils'
---local DictCI = require('Util').DictCI
 local tablex = require 'pl.tablex'
 
 --[[
@@ -34,6 +34,7 @@ local tablex = require 'pl.tablex'
 local SqliteTable = class()
 
 ---@class _SqliteTableMetadata
+---@field col_by_idx table<number, string> @comment map by ordinal column index (as returned by pragma table_info) to column name
 ---@field col_by_names table<string, number> @comment map by lowercase column names and ordinal column index (as returned by pragma table_info)
 ---@field pkey_col_by_idx table<number, number> @comment map by primary key sequential number to ordinal column index
 
@@ -51,6 +52,7 @@ local function _getTableMetadataHandler(DBContext, tableName)
     local result = {
         col_by_names = {},
         col_by_idx = {},
+        pkey_col_by_idx = {}
     }
     -- pragma table_info
     local sql = ('pragma table_info [%s];'):format(tableName)
@@ -58,7 +60,9 @@ local function _getTableMetadataHandler(DBContext, tableName)
         --[[
         cid (0 based), name, type, notnull, dflt_value, pk (1 based)
         ]]
-        result.col_by_names[row.name:lower()] = row.cid
+        local cname = row.name:lower()
+        result.col_by_names[cname] = row.cid
+        result.col_by_idx[row.cid] = cname
         if row.pk > 0 then
             result.pkey_col_by_idx[row.pk] = row.cid
         end
@@ -79,7 +83,7 @@ local function onFlushSchemaData()
 end
 
 ---@param DBContext DBContext
----@param tableName string
+-----@param tableName string
 function SqliteTable:_init(DBContext, tableName)
     self.DBContext = DBContext
     self.tableName = tableName
@@ -96,49 +100,49 @@ end
     array item index is treated as column ordinal position
 3) dictionary of string keys:
 ]]
+---@param sql table @comment List
 ---@param metadata _SqliteTableMetadata
 ---@param where string | table<string, any> | any[]
-function SqliteTable:_normalizeWhere(metadata, where)
-    local result = {}
-    for k, v in pairs(where) do
-        local idx = nil -- ??
-        if type(k) == 'number' then
-            -- use column ordinal position = normally, this is the case for updatable view
-            idx = metadata.pkey_col_by_idx[k]
-            for col_name, col_idx in pairs(metadata.col_by_names) do
-                if col_idx == k then
-                    local paramName = ('K%d'):format(k)
-                    result[paramName] = v
-                    goto NEXT
-                end
-            end
-        elseif type(k) == 'string' then
-            -- key is a column name - typically,
-            local fieldName = k:lower()
-            idx = metadata.col_by_names[fieldName]
-            result[fieldName] = v
-        else
-            -- TODO error() ?
-        end
+---@param params table
+---@return table
+function SqliteTable:_appendWhere(sql, metadata, where, params)
 
-        :: NEXT ::
+    if type(where) == 'string' then
+        return where, params
     end
 
-    return result
-end
-
----@param sql table @comment List
----@param where table
-local function _append_where(sql, where)
     sql:append ' where '
+
     local first = true
-    for name, _ in pairs(where) do
-        if first then
-            first = false
+    for k, v in pairs(where) do
+        local colName, paramName
+        if type(k) == 'number' then
+            -- use column ordinal position = normally, this is the case for updatable view
+            local pkey_idx = metadata.pkey_col_by_idx[k]
+            if pkey_idx ~= nil then
+                -- there is a primary key, it is a regular table
+                paramName = ('K%d'):format(pkey_idx)
+                colName = metadata.col_by_idx[pkey_idx]
+            else
+                -- this is most likely an updatable view
+                paramName = ('K%d'):format(k)
+                colName = metadata.col_by_idx[k]
+            end
+        elseif type(k) == 'string' then
+            -- key is a column
+            colName = k:lower()
+            local idx = metadata.col_by_names[colName]
+            paramName = ('K%d'):format(idx)
         else
-            sql:append ' and '
+            error(('Invalid type of where parameter %s in %s'):format(k, self.tableName))
         end
-        sql:append(('[%s] = :%s'):format(name, name))
+
+        params[paramName] = v
+        if first then
+            sql:append ' and '
+            first = false
+        end
+        sql:append(('[%s] == '):format(colName))
     end
 end
 
@@ -211,12 +215,11 @@ function SqliteTable:_generate_update_sql_and_params(data, where)
         params[paramName] = fieldValue
     end
 
-    local pkeys = self:_normalizeWhere(metadata, where)
-    _append_where(sql, pkeys)
+    self:_appendWhere(sql, metadata, where, params)
 
     sql:append ';'
 
-    return sql, pkeys
+    return sql, params
 end
 
 ---@param data table
@@ -235,12 +238,12 @@ function SqliteTable:_generate_delete_sql_and_params(where)
     local metadata = _get_table_meta_data(self.DBContext, self.tableName)
 
     local sql = List()
+    local params = {}
     sql:append(('delete from [%s] '):format(self.tableName))
-    local data = self:_normalizeWhere(metadata, where)
-    _append_where(sql, data)
+    self:_appendWhere(sql, metadata, where, params)
 
     sql:append ';'
-    return sql, data
+    return sql, params
 end
 
 ---@param where table  @comment array of primary keys
