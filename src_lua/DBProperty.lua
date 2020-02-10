@@ -408,9 +408,6 @@ function ChangedDBProperty:SaveToDB(ctx)
     for idx, dbv in pairs(self.values) do
         if dbv.deferredSaveAction ~= nil then
             DBContext.ActionQueue:enqueue(function()
-                -->>
-                require('debugger')()
-
                 dbv.deferredSaveAction()
                 saveDBValue(idx, dbv)
             end)

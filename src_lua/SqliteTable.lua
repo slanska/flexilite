@@ -20,7 +20,6 @@ Value parameters are named :v1, :v2 etc, and `where` parameters are named: :k1, 
 ]]
 
 local class = require 'pl.class'
-
 local List = require 'pl.List'
 local util = require 'pl.utils'
 local tablex = require 'pl.tablex'
@@ -42,37 +41,40 @@ local SqliteTable = class()
 ---@type GetTableMetaDataHandler
 local _get_table_meta_data
 
----@param DBContext DBContext
----@param tableName string
----where is no real primary key defined
----@return _SqliteTableMetadata
-local function _getTableMetadataHandler(DBContext, tableName)
-
-    ---@type _SqliteTableMetadata
-    local result = {
-        col_by_names = {},
-        col_by_idx = {},
-        pkey_col_by_idx = {}
-    }
-    -- pragma table_info
-    local sql = ('pragma table_info [%s];'):format(tableName)
-    for row in DBContext:loadRows(sql) do
-        --[[
-        cid (0 based), name, type, notnull, dflt_value, pk (1 based)
-        ]]
-        local cname = row.name:lower()
-        result.col_by_names[cname] = row.cid
-        result.col_by_idx[row.cid] = cname
-        if row.pk > 0 then
-            result.pkey_col_by_idx[row.pk] = row.cid
-        end
-    end
-
-    return result
-end
-
 local function _initMemoizeFuncs()
-    _get_table_meta_data = util.memoize(_getTableMetadataHandler)
+    _get_table_meta_data = util.memoize(
+    ---@param DBContext DBContext
+
+            function(DBContext)
+                ---@param tableName string
+                ---@return _SqliteTableMetadata
+                return util.memoize(function(tableName)
+
+                    ---@type _SqliteTableMetadata
+                    local result = {
+                        col_by_names = {},
+                        col_by_idx = {},
+                        pkey_col_by_idx = {}
+                    }
+                    -- pragma table_info
+                    local sql = ('pragma table_info ([%s]);'):format(tableName)
+                    for row in DBContext:loadRows(sql, {}) do
+                        --[[
+                        cid (0 based), name, type, notnull, dflt_value, pk (1 based)
+                        ]]
+
+                        local cname = row.name:lower()
+                        local cid = row.cid + 1
+                        result.col_by_names[cname] = cid
+                        result.col_by_idx[cid] = cname
+                        if row.pk > 0 then
+                            result.pkey_col_by_idx[row.pk] = cid
+                        end
+                    end
+
+                    return result
+                end)
+            end)
 end
 
 _initMemoizeFuncs()
@@ -85,6 +87,9 @@ end
 ---@param DBContext DBContext
 -----@param tableName string
 function SqliteTable:_init(DBContext, tableName)
+    assert(tableName and tableName ~= '')
+    assert(DBContext)
+
     self.DBContext = DBContext
     self.tableName = tableName
 
@@ -155,10 +160,20 @@ function SqliteTable:_generate_insert_sql_and_params(data)
     local first = true
     local valuesClause = List()
     ---@type _SqliteTableMetadata
-    local metadata = _get_table_meta_data(self.DBContext, self.tableName, 0)
+    local metadata = _get_table_meta_data(self.DBContext)(self.tableName)
+
     sql:append(('insert into [%s] () values ('):format(self.tableName))
     for fieldName, fieldValue in pairs(data) do
-        local cid = metadata.col_by_names[fieldName:lower()]
+
+        -->>
+        require('debugger')()
+
+        local cname = fieldName:lower()
+        if type(cname) ~= 'string' then
+            error(('Generate insert SQL. Column %s.%s not found'):format(self.tableName, fieldName))
+        end
+
+        local cid = metadata.col_by_names[cname]
         if cid == nil then
             error(('Generate insert SQL. Column %s.%s not found'):format(self.tableName, fieldName))
         end
@@ -171,7 +186,7 @@ function SqliteTable:_generate_insert_sql_and_params(data)
         end
         sql:append(('[%s]'):format(fieldName))
         local paramName = ('V%d'):format(cid)
-        valuesClause:append(':' + paramName)
+        valuesClause:append(':' .. paramName)
         params[paramName] = fieldValue
     end
 
@@ -194,7 +209,7 @@ end
 function SqliteTable:_generate_update_sql_and_params(data, where)
     assert(where, 'where must be not null')
     ---@type _SqliteTableMetadata
-    local metadata = _get_table_meta_data(self.DBContext, self.tableName, 0)
+    local metadata = _get_table_meta_data(self.DBContext)(self.tableName)
 
     local sql = List()
     local params = {}
@@ -235,7 +250,7 @@ end
 function SqliteTable:_generate_delete_sql_and_params(where)
     assert(where, 'where must be not null')
 
-    local metadata = _get_table_meta_data(self.DBContext, self.tableName)
+    local metadata = _get_table_meta_data(self.DBContext)(self.tableName)
 
     local sql = List()
     local params = {}

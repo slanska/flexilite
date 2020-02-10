@@ -17,11 +17,6 @@ local stringx = require 'pl.stringx'
 local path = require 'pl.path'
 
 -- set lua paths
---require 'test_paths'
-
-local path = require 'pl.path'
-
--- set lua paths
 local paths = {
     '../lib/lua-prettycjson/lib/resty/?.lua',
     '../src_lua/?.lua',
@@ -49,17 +44,12 @@ dbg.auto_where = 2
 
 local DBContext = require 'DBContext'
 
---local dbg = require 'debugger'
-
 -- For Lua 5.2 compatibility
 unpack = table.unpack
 
 local __dirname = path.abspath('..')
 
---dbg()
-
 local module = {
-    dbg = dbg
 }
 
 --- Read file
@@ -83,7 +73,6 @@ Flexi.InitDefaultData = module.readAll(path.join(__dirname, 'sql', 'init_default
 ---@return DBContext
 local function initFlexiDatabase(db)
     local result = DBContext(db)
-    --local result = Flexi:newDBContext(db)
     db:exec "select flexi('configure')"
     return result
 end
@@ -141,11 +130,6 @@ function module.createNorthwindSchema(DBContext)
     createSchema(DBContext, 'Northwind.db3.schema.json')
 end
 
--- load sql scripts into Flexi variables
--- TODO use relative paths
-Flexi.DBSchemaSQL = module.readAll(path.join(__dirname, 'sql', 'dbschema.sql'))
-Flexi.InitDefaultData = module.readAll(path.join(__dirname, 'sql', 'init_default_data.sql'))
-
 function module.createChinookSchema(DBContext)
     createSchema(DBContext, 'Chinook.db.schema.json')
 end
@@ -189,7 +173,6 @@ function module.TestContext:getDBContext(name)
         end
     end
 
-    -- TODO result:ExecAdhocSql('begin')
     return result
 end
 

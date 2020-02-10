@@ -6,7 +6,7 @@
 
 --[[ Busted tests for property value access and operations]]
 
-local test_util = require 'util'
+local test_util = require 'test_util'
 local DBQuery = require('QueryBuilder').DBQuery
 
 -- In memory database

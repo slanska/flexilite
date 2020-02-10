@@ -7,17 +7,20 @@
 local os = require 'os'
 local util = require 'test_util'
 local path = require 'pl.path'
+local SqliteTable = require 'SqliteTable'
 
 describe('Loading entire database from JSON and verifies accuracy of imported data', function()
+
+    local dbChinook, dbNorthwind
 
     setup(function()
         local dbChinookPath = path.abspath(path.relpath('../data/Chinook-flexi.db3'))
         os.remove(dbChinookPath)
 
-        local dbChinook = util.openFlexiDatabase(dbChinookPath)
-        print('Chinook: opened')
+        --dbChinook = util.openFlexiDatabase(dbChinookPath)
+        dbChinook = util.openFlexiDatabaseInMem()
 
-        --local dbChinook = util.openFlexiDatabaseInMem()
+        print('Chinook: opened')
         util.createChinookSchema(dbChinook)
         print('Chinook: schema created')
 
@@ -27,8 +30,8 @@ describe('Loading entire database from JSON and verifies accuracy of imported da
         local dbNorthwindPath = path.abspath(path.relpath('../data/Northwind-flexi.db3'))
         os.remove(dbNorthwindPath)
 
-        --local dbNorthwind = util.openFlexiDatabaseInMem()
-        local dbNorthwind = util.openFlexiDatabase(dbNorthwindPath)
+        dbNorthwind = util.openFlexiDatabaseInMem()
+        --dbNorthwind = util.openFlexiDatabase(dbNorthwindPath)
         print('Northwind: opened')
 
         util.createNorthwindSchema(dbNorthwind)
@@ -36,6 +39,8 @@ describe('Loading entire database from JSON and verifies accuracy of imported da
 
         util.importNorthwindData(dbNorthwind)
         print('Northwind: data imported')
+
+        -- Create views to test sql generation
 
     end)
 
@@ -48,6 +53,15 @@ describe('Loading entire database from JSON and verifies accuracy of imported da
     end)
 
     it('SqliteTable:_appendWhere: updatable view', function()
+        local ss = SqliteTable(dbNorthwind, '.classes')
+        local sql, params = ss:_generate_insert_sql_and_params({
+            ClassID = 1, NameID = 2
+        })
+
+        -->
+        require('debugger')()
+
+        -- assert sql and params
     end)
 
     it('SqliteTable:_appendWhere: table with one column primary key', function()

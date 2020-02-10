@@ -17,11 +17,7 @@ Tests to implement:
 - data compare between original Northwind and Chinook databases and imported into Flexilite
 ]]
 
-local dbg = require 'debugger'
---dbg()
-
-local sqlite = require 'lsqlite3complete'
-sqlite3 = sqlite
+sqlite3 = require 'lsqlite3complete'
 local util = require 'test_util'
 local TestContext = util.TestContext()
 TestContext:GetNorthwind()
@@ -34,7 +30,7 @@ describe('/', function()
     _G.pending = pending
     _G.assert = assert
 
-    require('bit52')
+    require 'bit52'
     require 'bad_class_schema'
     require 'alter_prop'
     require 'classSchema'
