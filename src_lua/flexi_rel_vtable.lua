@@ -49,6 +49,7 @@ end
 ---@param col2Name string
 --- may throw error
 local function generateView(self, tableName, className, propName, col1Name, col2Name)
+
     -- Normalize class and prop names
     className = normalizeSqlName(className)
     propName = normalizeSqlName(propName)
@@ -204,8 +205,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
 
     sql:append('end;')
 
-    self:ExecAdhocSql(sql:join('\n')
-    )
+    self:ExecAdhocSql(sql:join('\n'))
 end
 
 return {

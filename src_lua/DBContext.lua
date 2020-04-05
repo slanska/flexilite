@@ -45,7 +45,7 @@ sqlite3.DONE = 101
 local flexiRel = require 'flexi_rel_vtable'
 local dbg = nil -- future reference to 'debugger.lua'
 
----@class ActionQueue
+---@class ActionQueue : List
 ---@field DBContext DBContext
 local ActionQueue = class(List)
 
@@ -57,6 +57,9 @@ end
 
 ---@param act function
 function ActionQueue:enqueue(act)
+    -->
+    require('debugger')()
+
     self:append(act)
 end
 
@@ -312,12 +315,6 @@ function DBContext:checkSqlite(opResult)
 
         error(errMsg)
     end
-end
-
---- Adds action to DeferredActions
----@param action function
-function DBContext:queueAction(action)
-    self.ActionQueue:enqueue(action)
 end
 
 -- Callback to sqlite 'flexi' function
@@ -881,9 +878,6 @@ function DBContext:InitMetadataRef(container, fieldName, refClass)
     container[fieldName] = v
     return v
 end
-
---local g_error = error
---local g_assert = assert
 
 --[[
 Activates/deactivates debugger mode, so that errors and asserts

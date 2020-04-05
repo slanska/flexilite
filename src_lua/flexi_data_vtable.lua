@@ -212,7 +212,6 @@ local function create_connect(DBContext, dbName, tableName, className, propName,
         error(string.format('[%s].[%s] must be a pure reference property', className, propName))
     end
 
-    -->>
     generateView(DBContext, tableName, className, propName, col1Name, col2Name)
 
     -- TODO get "to" class and property

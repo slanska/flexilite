@@ -933,9 +933,6 @@ function ClassDef:lookupObjectsByProperty(propDef, v, fetchLimit)
         end
         sql:append ';'
 
-        -->>
-        --require('debugger')()
-
         local result = {}
         for rr in self.DBContext:loadRows(sql:join(''), { propID = propDef.ID }) do
             local obj = self.DBContext:getObject(rr.ObjectID)

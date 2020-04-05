@@ -100,7 +100,13 @@ Ensures that corresponding
 function RefDataManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
 
+    -->>
+    require('debugger')()
+
     self.DBContext.ActionQueue:enqueue(function()
+        -->>
+        require('debugger')()
+
         if propDef.D.enumDef then
             -- Process as pure enum
             local refClsName
@@ -229,7 +235,13 @@ local function _importReferenceValue(self, propDef, classRef, dbv, v)
     local className = classRef.text
     local refClassDef = self.DBContext:getClassDef(className, true)
 
+    -->>
+    require('debugger')()
+
     self.DBContext.ActionQueue:enqueue(function()
+        -->>
+        require('debugger')()
+
         local obj = refClassDef:getObjectByUdid(v, true)
         if obj then
             -- TODO insert/replace .ref-values entry

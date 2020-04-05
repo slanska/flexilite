@@ -56,6 +56,7 @@ local function _initMemoizeFuncs()
                         col_by_idx = {},
                         pkey_col_by_idx = {}
                     }
+
                     -- pragma table_info
                     local sql = ('pragma table_info ([%s]);'):format(tableName)
                     for row in DBContext:loadRows(sql, {}) do
@@ -116,8 +117,6 @@ function SqliteTable:_appendWhere(sql, metadata, where, params)
         return where, params
     end
 
-    sql:append ' where '
-
     local first = true
     for k, v in pairs(where) do
         local colName, paramName
@@ -142,12 +141,14 @@ function SqliteTable:_appendWhere(sql, metadata, where, params)
             error(('Invalid type of where parameter %s in %s'):format(k, self.tableName))
         end
 
-        params[paramName] = v
         if first then
-            sql:append ' and '
+            sql:append ' where '
             first = false
+        else
+            sql:append ' and '
         end
-        sql:append(('[%s] == '):format(colName))
+        sql:append(('[%s] = %s'):format(colName, paramName))
+        params[paramName] = v
     end
 end
 
@@ -162,12 +163,8 @@ function SqliteTable:_generate_insert_sql_and_params(data)
     ---@type _SqliteTableMetadata
     local metadata = _get_table_meta_data(self.DBContext)(self.tableName)
 
-    sql:append(('insert into [%s] () values ('):format(self.tableName))
+    sql:append(('insert into [%s] ('):format(self.tableName))
     for fieldName, fieldValue in pairs(data) do
-
-        -->>
-        require('debugger')()
-
         local cname = fieldName:lower()
         if type(cname) ~= 'string' then
             error(('Generate insert SQL. Column %s.%s not found'):format(self.tableName, fieldName))
@@ -191,9 +188,10 @@ function SqliteTable:_generate_insert_sql_and_params(data)
     end
 
     sql:append ') values ('
-    sql:append(valuesClause)
+    sql:append(valuesClause:join())
     sql:append ');'
-    return sql, params
+    local sqlString = sql:join()
+    return sqlString, params
 end
 
 ---@param data table
@@ -221,10 +219,12 @@ function SqliteTable:_generate_update_sql_and_params(data, where)
             error(('Generate update SQL. Column %s.%s not found'):format(self.tableName, fieldName))
         end
 
-        if not first then
-            sql:append ', '
+        if first then
             first = false
+        else
+            sql:append ', '
         end
+
         local paramName = ('V%d'):format(cid)
         sql:append(('[%s] = :%s'):format(fieldName, paramName))
         params[paramName] = fieldValue
@@ -233,8 +233,9 @@ function SqliteTable:_generate_update_sql_and_params(data, where)
     self:_appendWhere(sql, metadata, where, params)
 
     sql:append ';'
+    local sqlString = sql:join()
 
-    return sql, params
+    return sqlString, params
 end
 
 ---@param data table
@@ -258,7 +259,8 @@ function SqliteTable:_generate_delete_sql_and_params(where)
     self:_appendWhere(sql, metadata, where, params)
 
     sql:append ';'
-    return sql, params
+    local sqlString = sql:join()
+    return sqlString, params
 end
 
 ---@param where table  @comment array of primary keys
@@ -269,6 +271,7 @@ end
 
 ---@return boolean
 function SqliteTable:tableExists()
+    -- TODO complete
     local sql = [[select * from sqlite_master where type in ('table', 'view')
     and name not like '.%' and name not like 'sqlite3_%' and name not like 'flexi_%']]
     self.DBContext:execStatement(sql)

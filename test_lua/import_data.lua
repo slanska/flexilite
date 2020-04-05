@@ -4,6 +4,8 @@
 --- DateTime: 2018-01-21 12:37 PM
 ---
 
+-- to run:  /torch/luajit/bin/busted --lua=/torch/luajit/bin/luajit ./import_data.lua
+
 local os = require 'os'
 local util = require 'test_util'
 local path = require 'pl.path'
@@ -17,8 +19,8 @@ describe('Loading entire database from JSON and verifies accuracy of imported da
         local dbChinookPath = path.abspath(path.relpath('../data/Chinook-flexi.db3'))
         os.remove(dbChinookPath)
 
-        --dbChinook = util.openFlexiDatabase(dbChinookPath)
-        dbChinook = util.openFlexiDatabaseInMem()
+        dbChinook = util.openFlexiDatabase(dbChinookPath)
+        --dbChinook = util.openFlexiDatabaseInMem()
 
         print('Chinook: opened')
         util.createChinookSchema(dbChinook)
@@ -28,10 +30,11 @@ describe('Loading entire database from JSON and verifies accuracy of imported da
         print('Chinook: data imported')
 
         local dbNorthwindPath = path.abspath(path.relpath('../data/Northwind-flexi.db3'))
+
         os.remove(dbNorthwindPath)
 
-        dbNorthwind = util.openFlexiDatabaseInMem()
-        --dbNorthwind = util.openFlexiDatabase(dbNorthwindPath)
+        --dbNorthwind = util.openFlexiDatabaseInMem()
+        dbNorthwind = util.openFlexiDatabase(dbNorthwindPath)
         print('Northwind: opened')
 
         util.createNorthwindSchema(dbNorthwind)
@@ -53,13 +56,12 @@ describe('Loading entire database from JSON and verifies accuracy of imported da
     end)
 
     it('SqliteTable:_appendWhere: updatable view', function()
-        local ss = SqliteTable(dbNorthwind, '.classes')
+        local ss = SqliteTable(dbNorthwind, 'EmployeesTerritories')
         local sql, params = ss:_generate_insert_sql_and_params({
-            ClassID = 1, NameID = 2
+            EmployeeID = 1, TerritoryID = 2
         })
 
-        -->
-        require('debugger')()
+        print ('##### SqliteTable:_appendWhere: updatable view', sql, params)
 
         -- assert sql and params
     end)

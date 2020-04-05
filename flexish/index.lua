@@ -90,12 +90,6 @@ local function generateSchema(cli_args)
 
         local SQLScriptFile = path.join(dirName, fileName .. '.sql')
 
-        -- TODO remove
-        -->>
-        --print(string.format('SQLScriptFile: %s, dirName: %s, fileName: %s, fileExt: %s',
-        --        SQLScriptFile, dirName, fileName, fileExt))
-        ---<<
-
         --f = io.open(SQLScriptFile, 'w')
         --local sqlText = table.concat(sqliteParser.SQLScript, '\n')
         --f:write(sqlText)

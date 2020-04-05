@@ -4,11 +4,6 @@
 require 'test_util'
 local jd = require('JulianDate')
 
--->>
---require('debugger').auto_where = 2
-
---describe('JulianDate', function()
-
 local jdates = {}
 
 --it('dateToJulian', function()
