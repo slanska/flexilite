@@ -66,6 +66,8 @@ local stringifyDateTimeInfo = require('Util').stringifyDateTimeInfo
 local base64 = require 'base64'
 local generateRelView = require('flexi_rel_vtable').generateView
 local bit52 = require('Util').bit52
+local tonumber = _G.tonumber
+local string = _G.string
 
 --[[
 ===============================================================================
@@ -84,7 +86,7 @@ PropertyDef
 ---@field minValue number
 
 ---@class PropertyEnumDef
----@field items table @comment EnumItemDef[]
+---@field items table~ @comment EnumItemDef[]
 
 ---@class PropertyRefDef
 ---@field classRef ClassNameRef
@@ -218,8 +220,7 @@ function PropertyDef:canAlterDefinition(newDef)
     return result
 end
 
---- @param propId number
---- @param propName string
+---@return number @comment property ID
 function PropertyDef:saveToDB()
     assert(self.ClassDef and self.ClassDef.DBContext)
 
@@ -252,6 +253,11 @@ function PropertyDef:saveToDB()
                     ctlvPlan = self.ctlvPlan,
                     ColMap = self.ColMap
                 })
+
+        -->>
+        if self.Name.text == 'Playlist' then
+            require('debugger')()
+        end
 
         self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
 
@@ -572,7 +578,7 @@ end
 ---@param v any
 function MoneyPropertyDef:ImportDBValue(dbv, v)
     local vv = tonumber(v) * 10000
-    local s = string.format('%.1f', vv)
+    local s = ('%.1f'):format(vv)
     if s:byte(#s) ~= 48 then
         -- Last character must be '0' (ASCII 48)
         error(string.format('%s.%s: %s is not valid value for money',
@@ -747,7 +753,12 @@ function ReferencePropertyDef:initMetadataRefs()
     end
 end
 
+-- Private method to verify that relation view is created
 function ReferencePropertyDef:_checkRegenerateRelView()
+
+    -->>
+    require('debugger')()
+
     ---@type PropertyRefDef
     local refDef = self.D.refDef
 
@@ -778,9 +789,9 @@ end
 function ReferencePropertyDef:saveToDB()
     local result = PropertyDef.saveToDB(self)
 
-    self.ClassDef.DBContext.ActionQueue:enqueue(function()
+    self.ClassDef.DBContext.ActionQueue:enqueue(function(self, dbContext)
         self:_checkRegenerateRelView()
-    end)
+    end, self)
     return result
 end
 
@@ -815,12 +826,17 @@ function ReferencePropertyDef:applyDef()
                     local revPropDef = revClassDef:hasProperty(refDef.reverseProperty.text)
                     revPropDef.Name:resolve(revClassDef)
 
-                    self.ClassDef.DBContext.ActionQueue:insert(1, function()
-                        revClassDef:assignColMappingForProperty(revPropDef)
-                        revPropDef:applyDef()
-                        local propID = revPropDef:saveToDB(nil, refDef.reverseProperty.text)
-                        self.ClassDef.DBContext.ClassProps[propID] = revPropDef
-                    end)
+                    self.ClassDef.DBContext.ActionQueue:enqueue(function(params, dbContext)
+                        params.revClassDef:assignColMappingForProperty(params.revPropDef)
+                        params.revPropDef:applyDef()
+                        local propID = params.revPropDef:saveToDB(nil, params.refDef.reverseProperty.text)
+                        dbContext.ClassProps[propID] = params.revPropDef
+                    end, {
+                        revClassDef = revClassDef,
+                        revPropDef = revPropDef,
+                        refDef = refDef,
+                        self = self
+                    })
                 end
 
                 refDef.reverseProperty:resolve(revClassDef)

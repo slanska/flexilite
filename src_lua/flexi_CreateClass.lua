@@ -20,6 +20,8 @@ local schema = require 'schema'
 local tablex = require 'pl.tablex'
 local ClassDef = require 'ClassDef'
 local List = require 'pl.List'
+local table_insert = table.insert
+local string = _G.string
 
 local alt_cls = require('flexi_AlterClass')
 local AlterClass, MergeClassDefinitions = alt_cls.AlterClass, alt_cls.MergeClassDefinitions
@@ -65,10 +67,11 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
     -- Utility function to iterate over all classes and their properties
     ---@param callback function @comment (className: string, ClassDef, propName: string, PropDef)
-    local function forEachClassProp(callback)
+    local function forEachNAMClassProp(callback)
         if self.NAMClasses ~= nil then
+
             for className, classDef in pairs(self.NAMClasses) do
-                if classDef.Properties ~= nil then
+                if type(className) == 'string' and classDef.Properties ~= nil then
                     for propName, propDef in pairs(classDef.Properties) do
                         callback(className, classDef, propName, propDef)
                     end
@@ -150,12 +153,12 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
             insertNewClass(self, clsObject)
             self:setNAMClass(clsObject)
-            table.insert(newClasses, clsObject)
+            table_insert(newClasses, clsObject)
         end
 
-        forEachClassProp(beforeApplyPropDef)
-        forEachClassProp(applyProp)
-        forEachClassProp(afterApplyPropDef)
+        forEachNAMClassProp(beforeApplyPropDef)
+        forEachNAMClassProp(applyProp)
+        forEachNAMClassProp(afterApplyPropDef)
     end
 
     for _, clsObject in ipairs(newClasses) do
@@ -164,6 +167,9 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     end
 
     self:applyNAMClasses()
+
+    -->>
+    require('debugger')()
 
     self.ActionQueue:run()
 end

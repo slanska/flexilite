@@ -36,6 +36,8 @@ local DictCI = require('Util').DictCI
 local sqlite3 = sqlite3 or require 'sqlite3'
 local List = require 'pl.List'
 local Events = require 'EventEmitter'
+local string = _G.string
+local table = _G.table
 
 -- to fix bug of missing values when running Flexilite in flexi_test app
 sqlite3.OK = 0
@@ -55,12 +57,18 @@ function ActionQueue:_init(DBContext)
     self.DBContext = DBContext
 end
 
----@param act function
-function ActionQueue:enqueue(act)
-    -->
-    require('debugger')()
+---@class ActionQueueItem
+---@field action fun(self: DBContext, params: any): any
+---@field params any
 
-    self:append(act)
+---@param act function
+function ActionQueue:enqueue(act, params)
+    -->
+    --require('debugger')()
+
+    ---@type ActionQueueItem
+    local item = { action = act, params = params}
+    self:append(item)
 end
 
 ---@return function
@@ -76,9 +84,15 @@ end
 
 function ActionQueue:run()
     while #self > 0 do
-        local act = self:dequeue()
-        if act then
-            act()
+        local item = self:dequeue()
+
+        if type(item) ~= 'table' then
+            -->>
+            require('debugger')()
+        end
+
+        if item and item.action then
+            item.action(item.params, self.DBContext)
         end
     end
 end
@@ -936,8 +950,10 @@ function DBContext:applyNAMClasses()
 
     local success, errorMsg = pcall(function()
         if self.NAMClasses ~= nil then
-            for _, c in pairs(self.NAMClasses) do
-                ClassCollection_add(self.Classes, c)
+            for className, c in pairs(self.NAMClasses) do
+                if type(className) == 'string' then
+                    ClassCollection_add(self.Classes, c)
+                end
             end
 
             self.NAMClasses = nil

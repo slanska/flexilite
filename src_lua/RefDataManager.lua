@@ -101,19 +101,16 @@ function RefDataManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
 
     -->>
-    require('debugger')()
+    print(('RefDataManager:ApplyEnumPropertyDef: %s.%s'):format(propDef.ClassDef.Name.text, propDef.Name.text))
 
-    self.DBContext.ActionQueue:enqueue(function()
-        -->>
-        require('debugger')()
-
+    self.DBContext.ActionQueue:enqueue(function(propDef)
         if propDef.D.enumDef then
             -- Process as pure enum
             local refClsName
             if propDef.D.enumDef.classRef then
                 refClsName = propDef.D.enumDef.classRef.text
             else
-                refClsName = string.format('%s_%s', propDef.ClassDef.Name.text, propDef.Name.text)
+                refClsName = ('%s_%s'):format(propDef.ClassDef.Name.text, propDef.Name.text)
             end
 
             -- TODO
@@ -131,10 +128,11 @@ function RefDataManager:ApplyEnumPropertyDef(propDef)
                 --self.DBContext:AddDeferredRef(propDef.D.refDef.classRef.text, propDef.D.refDef.classRef, 'id')
             end
         else
-            error(string.format('%s.%s: either enumDef or refDef must be set',
-                    propDef.ClassDef.Name.text, propDef.Name.text))
+            error(('%s.%s: either enumDef or refDef must be set'):format(propDef.ClassDef.Name.text, propDef.Name.text))
         end
-    end)
+    end,
+
+            propDef)
 
 end
 
@@ -236,19 +234,17 @@ local function _importReferenceValue(self, propDef, classRef, dbv, v)
     local refClassDef = self.DBContext:getClassDef(className, true)
 
     -->>
-    require('debugger')()
+    print(('_importReferenceValue: %s'):format(className))
 
-    self.DBContext.ActionQueue:enqueue(function()
-        -->>
-        require('debugger')()
-
+    self.DBContext.ActionQueue:enqueue(function(v)
         local obj = refClassDef:getObjectByUdid(v, true)
         if obj then
             -- TODO insert/replace .ref-values entry
             return true
         end
         return false
-    end)
+    end,
+    v)
 end
 
 -- Imports reference value (in user defined ID format)
