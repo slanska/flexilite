@@ -85,7 +85,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     ---@param propName string
     ---@param propDef PropertyDef
     local function virtualTableOrNAM(className, classDef, propName, propDef)
-
+        -- TODO
     end
 
     ---@param className string
@@ -111,6 +111,13 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     local function applyProp(_, classDef, propName, propDef)
         classDef:assignColMappingForProperty(propDef)
         propDef:applyDef()
+    end
+
+    ---@param className string
+    ---@param classDef ClassDef
+    ---@param propName string
+    ---@param propDef PropertyDef
+    local function saveProp(_, _, propName, propDef)
         local propID = propDef:saveToDB(nil, propName)
         self.ClassProps[propID] = propDef
     end
@@ -125,7 +132,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
         -- validate name
         if not self:isNameValid(className) then
-            error('Invalid class name' .. className)
+            error('Invalid class name ' .. className)
         end
 
         if createVirtualTable == 0 then
@@ -141,7 +148,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
             local sqlStr = string.format("create virtual table [%s] using flexi_data ('%q');", className, classDef)
             self.db:exec(sqlStr)
             -- TODO Supply class ID
-            return string.format('Virtual flexi_data table [%s] created', className)
+            --return string.format('Virtual flexi_data table [%s] created', className)
         else
             local clsObject = self.ClassDef { newClassName = className, data = classDef, DBContext = self }
 
@@ -158,6 +165,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
         forEachNAMClassProp(beforeApplyPropDef)
         forEachNAMClassProp(applyProp)
+        forEachNAMClassProp(saveProp)
         forEachNAMClassProp(afterApplyPropDef)
     end
 
@@ -167,9 +175,6 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     end
 
     self:applyNAMClasses()
-
-    -->>
-    require('debugger')()
 
     self.ActionQueue:run()
 end

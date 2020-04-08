@@ -86,7 +86,7 @@ PropertyDef
 ---@field minValue number
 
 ---@class PropertyEnumDef
----@field items table~ @comment EnumItemDef[]
+---@field items table @comment EnumItemDef[]
 
 ---@class PropertyRefDef
 ---@field classRef ClassNameRef
@@ -453,7 +453,7 @@ end
 -- For example, may checks if all dependency classes exist. May create a new one.
 -- Noop by default
 function PropertyDef:beforeApplyDef()
-
+    -- Noop
 end
 
 -- Called after properties for new or modified classes are saved in the database.
@@ -795,10 +795,11 @@ function ReferencePropertyDef:saveToDB()
     return result
 end
 
+-- TODO beforeApplyDef?
 function ReferencePropertyDef:applyDef()
     PropertyDef.applyDef(self)
 
-    self.ClassDef.DBContext.ActionQueue:enqueue(function()
+    self.ClassDef.DBContext.ActionQueue:enqueue(function(self)
         ---@type PropertyRefDef
         local refDef = self.D.refDef
         if refDef then
@@ -842,7 +843,10 @@ function ReferencePropertyDef:applyDef()
                 refDef.reverseProperty:resolve(revClassDef)
             end
         end
-    end)
+    end,
+
+    self
+    )
 end
 
 function ReferencePropertyDef:isReference()
@@ -858,7 +862,7 @@ end
 
 function ReferencePropertyDef:afterApplyDef()
     PropertyDef.afterApplyDef(self)
-
+    -- TODO needed?
 end
 
 ---@param dbv DBValue
