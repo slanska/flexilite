@@ -221,37 +221,6 @@ function DBContext:_init(db)
     self.events = Events:new()
 end
 
--- Adds a deferred reference to the list to be resolved later
----@param key string|number @comment class_name, class_name.property_name, object_id
----@param container table
----@param propName string @comment attribute name in container to update with new ID
---function DBContext:AddDeferredRef(key, container, propName)
---    local v = self.DeferredRefs[key]
---    if not v then
---        self.DeferredRefs[key] = {}
---    end
---    table.insert(self.DeferredRefs[key], container)
---    table.insert(self.DeferredRefs[key], propName)
---end
-
--- TODO
--- Resolved pending deferred references
----@param key string|number @comment same as key in AddDeferredRef
----@param newID number
---function DBContext:ResolveDeferredRefs(key, newID)
---    local v = self.DeferredRefs[key]
---    if not v then
---        return
---    end
---
---    for i = 1, #v, 2 do
---        local container = v[i]
---        local propName = v[i + 1]
---        container[propName] = newID
---    end
---    self.DeferredRefs[key] = nil
---end
-
 --[[ Loads existing object by ID. propIds define subset of values to load (passing subset of properties used
 for better performance). Note that once loaded with subset of values, object will be manipulated as is, and non-loaded
 properties will be loaded on demand. Also, when object gets edited, its entire content is loaded.

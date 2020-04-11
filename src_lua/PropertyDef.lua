@@ -136,9 +136,10 @@ local PropertyDef = class()
 ---for new property (not stored in DB) {ClassDef: ClassDef, newPropertyName:string, jsonData: table}
 ---for existing property (when loading from DB): {ClassDef: ClassDef, dbrow: table, jsonData: table}
 function PropertyDef.CreateInstance(params)
-    local propCtor = PropertyDef.PropertyTypes[string.lower(params.jsonData.rules.type)]
+    local typeLowered = string.lower(params.jsonData.rules.type)
+    local propCtor = PropertyDef.PropertyTypes[typeLowered]
     if not propCtor then
-        error('Unknown property type ' .. params.jsonData.rules.type)
+        error(('Unknown type %s of property [%s]'):format(typeLowered, params.newPropertyName))
     end
 
     return propCtor(params)
@@ -171,6 +172,10 @@ function PropertyDef:_init(params)
         -- Copy property attributes
         ---@type number
         self.ID = params.dbrow.PropertyID
+
+        -->>
+        print(('Property %s.%s got ID %d'):format(self.ClassDef.Name.text, self.Name.text, self.ID))
+
         self.ctlv = params.dbrow.ctlv or 0
         self.ctlvPlan = params.dbrow.ctlvPlan or 0
         self.Deleted = params.dbrow.Deleted or false
@@ -254,19 +259,10 @@ function PropertyDef:saveToDB()
                     ColMap = self.ColMap
                 })
 
-        -->>
-        if self.Name.text == 'Playlist' then
-            require('debugger')()
-        end
-
         self.ID = self.ClassDef.DBContext.db:last_insert_rowid()
 
         -- As property ID is now known, register property in DBContext property collection
         self.ClassDef.DBContext.ClassProps[self.ID] = self
-
-        -- TODO
-        --local key = string.format('%s.%s', self.ClassDef.Name.text, self.Name.text)
-        --self.ClassDef.DBContext:ResolveDeferredRefs(key, self.ID)
     end
 
     return self.ID
@@ -447,21 +443,6 @@ end
 ---@return number | nil
 function PropertyDef:ColMapIndex()
     return self.ColMap ~= nil and string.lower(self.ColMap):byte() - string.byte('a') or nil
-end
-
--- Called before properties for new or modified classes are saved in the database.
--- For example, may checks if all dependency classes exist. May create a new one.
--- Noop by default
-function PropertyDef:beforeApplyDef()
-    -- Noop
-end
-
--- Called after properties for new or modified classes are saved in the database.
--- At this point, all new classes and all new properties got their persistent IDs
--- For example, may create auxiliary objects like views etc.
--- Noop by default
-function PropertyDef:afterApplyDef()
-    -- Do nothing
 end
 
 ---@type PropertyDefCapabilities
@@ -757,7 +738,7 @@ end
 function ReferencePropertyDef:_checkRegenerateRelView()
 
     -->>
-    require('debugger')()
+    --require('debugger')()
 
     ---@type PropertyRefDef
     local refDef = self.D.refDef
@@ -809,6 +790,7 @@ function ReferencePropertyDef:applyDef()
 
             if refDef.reverseProperty then
                 -- Check if reverse property exists. If no, create it
+                ---@type ClassDef
                 local revClassDef = self.ClassDef.DBContext:getClassDef(refDef.classRef.text, true)
                 if not revClassDef:hasProperty(refDef.reverseProperty.text) then
                     -- Create new ref property
@@ -860,11 +842,6 @@ function ReferencePropertyDef:CreateDBProperty(object)
     return result
 end
 
-function ReferencePropertyDef:afterApplyDef()
-    PropertyDef.afterApplyDef(self)
-    -- TODO needed?
-end
-
 ---@param dbv DBValue
 ---@param v any
 function ReferencePropertyDef:ImportDBValue(dbv, v)
@@ -880,7 +857,7 @@ ExportDBValue
 ===============================================================================
 ]]
 
---- @class EnumPropertyDef @parent ReferencePropertyDef
+--- @class EnumPropertyDef : ReferencePropertyDef
 local EnumPropertyDef = class(ReferencePropertyDef)
 
 function EnumPropertyDef:_init(params)
@@ -889,7 +866,7 @@ end
 
 function EnumPropertyDef:applyDef()
     -- Note: calling PropertyDef, not ReferencePropertyDef
-    ReferencePropertyDef.applyDef(self)
+    PropertyDef.applyDef(self)
 
     -- Resolve names
     if self.D.enumDef then
@@ -969,13 +946,15 @@ end
 --end
 --
 -- Checks if all dependency classes exist. May create a new one. Noop by default
-function EnumPropertyDef:beforeApplyDef()
-    PropertyDef.beforeApplyDef(self)
 
-    if self.D.enumDef then
-        self.ClassDef.DBContext.RefDataManager:ApplyEnumPropertyDef(self)
-    end
-end
+-- TODO needed?
+--function EnumPropertyDef:beforeApplyDef()
+--    PropertyDef.beforeApplyDef(self)
+--
+--    if self.D.enumDef then
+--        self.ClassDef.DBContext.RefDataManager:ApplyEnumPropertyDef(self)
+--    end
+--end
 
 --[[
 ===============================================================================

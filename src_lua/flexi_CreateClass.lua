@@ -38,8 +38,6 @@ local function insertNewClass(self, classDef)
             })
     classDef.D.ClassID = self.db:last_insert_rowid()
     classDef.ClassID = classDef.D.ClassID
-
-    -- TODO self:ResolveDeferredRefs(clsObject.Name.text, clsObject.ClassID)
 end
 
 --- Creates multiple classes from schema definition
@@ -92,22 +90,6 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     ---@param classDef ClassDef
     ---@param propName string
     ---@param propDef PropertyDef
-    local function beforeApplyPropDef(_, _, _, propDef)
-        propDef:beforeApplyDef()
-    end
-
-    ---@param className string
-    ---@param classDef ClassDef
-    ---@param propName string
-    ---@param propDef PropertyDef
-    local function afterApplyPropDef(_, _, _, propDef)
-        propDef:afterApplyDef()
-    end
-
-    ---@param className string
-    ---@param classDef ClassDef
-    ---@param propName string
-    ---@param propDef PropertyDef
     local function applyProp(_, classDef, propName, propDef)
         classDef:assignColMappingForProperty(propDef)
         propDef:applyDef()
@@ -115,7 +97,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
     ---@param className string
     ---@param classDef ClassDef
-    ---@param propName string
+    ---@param propName stringn
     ---@param propDef PropertyDef
     local function saveProp(_, _, propName, propDef)
         local propID = propDef:saveToDB(nil, propName)
@@ -163,10 +145,8 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
             table_insert(newClasses, clsObject)
         end
 
-        forEachNAMClassProp(beforeApplyPropDef)
         forEachNAMClassProp(applyProp)
         forEachNAMClassProp(saveProp)
-        forEachNAMClassProp(afterApplyPropDef)
     end
 
     for _, clsObject in ipairs(newClasses) do
