@@ -163,6 +163,7 @@ function PropertyDef:_init(params)
         ---@type NameRef
         self.Name = NameRef(params.newPropertyName)
         self:initMetadataRefs()
+        self.ctlvPlan = 0
     else
         assert(params.dbrow)
         assert(params.jsonData)
@@ -173,7 +174,7 @@ function PropertyDef:_init(params)
         ---@type number
         self.ID = params.dbrow.PropertyID
 
-        -->>
+        -->> TODO temp
         print(('Property %s.%s got ID %d'):format(self.ClassDef.Name.text, self.Name.text, self.ID))
 
         self.ctlv = params.dbrow.ctlv or 0
@@ -227,6 +228,10 @@ end
 
 ---@return number @comment property ID
 function PropertyDef:saveToDB()
+    -->>
+    -->>
+    print(('%s.%s:saveToDB'):format(self.ClassDef.Name.text, self.Name.text))
+
     assert(self.ClassDef and self.ClassDef.DBContext)
 
     assert(self.Name and self.Name:isResolved(),
@@ -328,6 +333,12 @@ end
 
 --Applies property definition to the database. Called on property save
 function PropertyDef:applyDef()
+
+    -->>
+    print(('%s.%s:applyDef'):format(self.ClassDef.Name.text, self.Name.text))
+
+    self.ClassDef:assignColMappingForProperty(self)
+
     -- resolve property name
     self.Name:resolve(self.ClassDef)
     self.ctlv = self:GetCTLV()
@@ -737,15 +748,11 @@ end
 -- Private method to verify that relation view is created
 function ReferencePropertyDef:_checkRegenerateRelView()
 
-    -->>
-    --require('debugger')()
-
     ---@type PropertyRefDef
     local refDef = self.D.refDef
 
     if refDef then
         -- Generate view for many-2-many relationship
-        -- self, tableName, className, propName, col1Name, col2Name
         local thatName
         if refDef.reverseProperty then
             thatName = refDef.reverseProperty.text
@@ -770,9 +777,9 @@ end
 function ReferencePropertyDef:saveToDB()
     local result = PropertyDef.saveToDB(self)
 
-    self.ClassDef.DBContext.ActionQueue:enqueue(function(self, dbContext)
-        self:_checkRegenerateRelView()
-    end, self)
+    --self.ClassDef.DBContext.ActionQueue:enqueue(function(self, dbContext)
+    --    self:_checkRegenerateRelView()
+    --end, self)
     return result
 end
 
@@ -780,7 +787,7 @@ end
 function ReferencePropertyDef:applyDef()
     PropertyDef.applyDef(self)
 
-    self.ClassDef.DBContext.ActionQueue:enqueue(function(self)
+    --self.ClassDef.DBContext.ActionQueue:enqueue(function(self)
         ---@type PropertyRefDef
         local refDef = self.D.refDef
         if refDef then
@@ -810,7 +817,6 @@ function ReferencePropertyDef:applyDef()
                     revPropDef.Name:resolve(revClassDef)
 
                     self.ClassDef.DBContext.ActionQueue:enqueue(function(params, dbContext)
-                        params.revClassDef:assignColMappingForProperty(params.revPropDef)
                         params.revPropDef:applyDef()
                         local propID = params.revPropDef:saveToDB(nil, params.refDef.reverseProperty.text)
                         dbContext.ClassProps[propID] = params.revPropDef
@@ -825,10 +831,14 @@ function ReferencePropertyDef:applyDef()
                 refDef.reverseProperty:resolve(revClassDef)
             end
         end
-    end,
+    --end,
 
-    self
-    )
+    --self
+    --)
+
+    self.ClassDef.DBContext.ActionQueue:enqueue(function(self)
+        self:_checkRegenerateRelView()
+    end, self)
 end
 
 function ReferencePropertyDef:isReference()
@@ -868,20 +878,22 @@ function EnumPropertyDef:applyDef()
     -- Note: calling PropertyDef, not ReferencePropertyDef
     PropertyDef.applyDef(self)
 
-    -- Resolve names
-    if self.D.enumDef then
-        if self.D.enumDef.classRef then
-            self.D.enumDef.classRef:resolve(self.ClassDef)
-        end
+    self.ClassDef.DBContext.ActionQueue:enqueue(function(self)
+        -- Resolve names
+        if self.D.enumDef then
+            if self.D.enumDef.classRef then
+                self.D.enumDef.classRef:resolve(self.ClassDef)
+            end
 
-        if self.D.enumDef.items then
-            for _, v in pairs(self.D.enumDef.items) do
-                v:resolve(self.ClassDef)
+            if self.D.enumDef.items then
+                for _, v in pairs(self.D.enumDef.items) do
+                    v:resolve(self.ClassDef)
+                end
             end
         end
-    end
 
-    self.ClassDef.DBContext.RefDataManager:ApplyEnumPropertyDef(self)
+        self.ClassDef.DBContext.RefDataManager:ApplyEnumPropertyDef(self)
+    end, self)
 end
 
 function EnumPropertyDef:internalToJSON()

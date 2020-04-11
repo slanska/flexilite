@@ -102,9 +102,9 @@ function RefDataManager:ApplyEnumPropertyDef(propDef)
 
     -->>
     --require('debugger')()
-
     print(('RefDataManager:ApplyEnumPropertyDef: %s.%s, id %s')
             :format(propDef.ClassDef.Name.text, propDef.Name.text, propDef.ID))
+    --require('debugger')()
 
     self.DBContext.ActionQueue:enqueue(function(propDef)
         if propDef.D.enumDef then

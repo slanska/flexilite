@@ -81,8 +81,12 @@ local function generateView(self, tableName, className, propName, col1Name, col2
         toPropDef = toClassDef:getProperty(fromPropDef.D.refDef.reverseProperty.text)
     end
 
-    assert(not (toPropDef and toPropDef.ID), 'toPropDef is nil or does not have ID')
-    assert(not (fromPropDef and fromPropDef.ID), 'fromPropDef is nil or does not have ID')
+    if toPropDef then
+        assert(not toPropDef.ID, ('toPropDef [%s] does not have ID'):format(toPropDef.Name.text))
+    end
+    if fromPropDef then
+        assert(not fromPropDef.ID, ('fromPropDef [%s] does not have ID'):format(fromPropDef.Name.text))
+    end
 
     if toPropDef and toPropDef.ID < fromPropDef.ID then
         toPropDef, fromPropDef = fromPropDef, toPropDef

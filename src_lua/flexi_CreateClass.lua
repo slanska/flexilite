@@ -90,8 +90,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     ---@param classDef ClassDef
     ---@param propName string
     ---@param propDef PropertyDef
-    local function applyProp(_, classDef, propName, propDef)
-        classDef:assignColMappingForProperty(propDef)
+    local function applyProp(_, classDef, _, propDef)
         propDef:applyDef()
     end
 
@@ -99,9 +98,8 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     ---@param classDef ClassDef
     ---@param propName stringn
     ---@param propDef PropertyDef
-    local function saveProp(_, _, propName, propDef)
-        local propID = propDef:saveToDB(nil, propName)
-        self.ClassProps[propID] = propDef
+    local function saveProp(_, _, _, propDef)
+        propDef:saveToDB()
     end
 
     local newClasses = {}
@@ -145,9 +143,10 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
             table_insert(newClasses, clsObject)
         end
 
-        forEachNAMClassProp(applyProp)
-        forEachNAMClassProp(saveProp)
     end
+
+    forEachNAMClassProp(applyProp)
+    forEachNAMClassProp(saveProp)
 
     for _, clsObject in ipairs(newClasses) do
         ClassDef.ApplyIndexing(nil, clsObject)
