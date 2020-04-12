@@ -103,10 +103,12 @@ end
 local function importData(DBContext, fileName)
     -- Insert data
     local started = os.clock()
+
     local dataDump = module.readAll(path.join(__dirname, fileName))
     local sql = "select flexi('import data', '" .. stringx.replace(dataDump, "'", "''") .. "');"
+
     DBContext:ExecAdhocSql(sql)
-    -- TODO temp
+
     print(string.format('flexi_data - Elapsed %s sec', os.clock() - started))
 end
 
@@ -188,9 +190,9 @@ end
 function module.TestContext:Release(name, DBContext, commit)
     assert(DBContext ~= nil)
     if commit then
-        DBContext:ExecAdhocSql('commit')
+        DBContext:ExecAdhocSql('commit;')
     else
-        DBContext:ExecAdhocSql('rollback')
+        DBContext:ExecAdhocSql('rollback;')
     end
     table.insert(self.DBContexts[name] or {}, DBContext)
 end
