@@ -18,6 +18,10 @@ local date = require 'date'
 local class = require 'pl.class'
 -- Max value for 26 bit integer
 local MAX27 = 0x8000000 -- 134217728
+local string = _G.string
+local rawset = _G.rawset
+local rawget = _G.rawget
+local math = _G.math
 
 ---@param value number
 local function divide(value)

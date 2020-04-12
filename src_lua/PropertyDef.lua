@@ -696,7 +696,8 @@ ReferencePropertyDef: base class for all referencing properties: enum, nested et
 ===============================================================================
 ]]
 
---- @class ReferencePropertyDef @parent PropertyDef
+---@class ReferencePropertyDef : PropertyDef
+---@field _viewGenerationPending boolean
 local ReferencePropertyDef = class(PropertyDef)
 
 -- Returns internal JSON representation of property
@@ -779,6 +780,8 @@ function ReferencePropertyDef:_checkRegenerateRelView()
                     thisName, thisName, thatName)
         end
     end
+
+    self._viewGenerationPending = false
 end
 
 --- Override
@@ -786,9 +789,13 @@ end
 function ReferencePropertyDef:saveToDB()
     local result = PropertyDef.saveToDB(self)
 
-    self.ClassDef.DBContext.ActionQueue:enqueue(function(self)
-        self:_checkRegenerateRelView()
-    end, self)
+    if not self._viewGenerationPending then
+        self._viewGenerationPending = true
+        self.ClassDef.DBContext.ActionQueue:enqueue(function(self)
+            self:_checkRegenerateRelView()
+        end, self)
+    end
+
     return result
 end
 

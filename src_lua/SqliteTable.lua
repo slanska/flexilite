@@ -156,6 +156,10 @@ end
 ---@param data table
 ---@return string, table
 function SqliteTable:_generate_insert_sql_and_params(data)
+
+    -->>
+    --require('debugger')()
+
     local sql = List()
     local params = {}
     local first = true
@@ -165,10 +169,10 @@ function SqliteTable:_generate_insert_sql_and_params(data)
 
     sql:append(('insert into [%s] ('):format(self.tableName))
     for fieldName, fieldValue in pairs(data) do
-        local cname = fieldName:lower()
-        if type(cname) ~= 'string' then
+        if type(fieldName) ~= 'string' then
             error(('Generate insert SQL. Column %s.%s not found'):format(self.tableName, fieldName))
         end
+        local cname = fieldName:lower()
 
         local cid = metadata.col_by_names[cname]
         if cid == nil then

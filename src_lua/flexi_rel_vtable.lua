@@ -212,7 +212,12 @@ local function generateView(self, tableName, className, propName, col1Name, col2
 
     sql:append('end;')
 
-    self:ExecAdhocSql(sql:join('\n'))
+    local sqlText = sql:join('\n')
+    local sqlResult = self.db:exec(sqlText)
+    if sqlResult ~= 0 then
+        local errMsg = string.format("%d: %s", self.db:error_code(), self.db:error_message())
+        error(errMsg)
+    end
 end
 
 return {
