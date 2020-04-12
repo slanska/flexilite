@@ -101,10 +101,7 @@ function RefDataManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
 
     -->>
-    --require('debugger')()
-    print(('RefDataManager:ApplyEnumPropertyDef: %s.%s, id %s')
-            :format(propDef.ClassDef.Name.text, propDef.Name.text, propDef.ID))
-    --require('debugger')()
+    print(('RefDataManager:ApplyEnumPropertyDef: %s, id %s'):format(propDef:debugDesc(), propDef.ID))
 
     self.DBContext.ActionQueue:enqueue(function(propDef)
         if propDef.D.enumDef then
@@ -131,12 +128,11 @@ function RefDataManager:ApplyEnumPropertyDef(propDef)
                 --self.DBContext:AddDeferredRef(propDef.D.refDef.classRef.text, propDef.D.refDef.classRef, 'id')
             end
         else
-            error(('%s.%s: either enumDef or refDef must be set'):format(propDef.ClassDef.Name.text, propDef.Name.text))
+            error(('%s: either enumDef or refDef must be set'):format(propDef:debugDesc()))
         end
     end,
 
             propDef)
-
 end
 
 -- Creates class for enum type, if needed.
@@ -236,9 +232,6 @@ local function _importReferenceValue(self, propDef, classRef, dbv, v)
     local className = classRef.text
     local refClassDef = self.DBContext:getClassDef(className, true)
 
-    -->>
-    print(('_importReferenceValue: %s'):format(className))
-
     self.DBContext.ActionQueue:enqueue(function(v)
         local obj = refClassDef:getObjectByUdid(v, true)
         if obj then
@@ -247,7 +240,7 @@ local function _importReferenceValue(self, propDef, classRef, dbv, v)
         end
         return false
     end,
-    v)
+            v)
 end
 
 -- Imports reference value (in user defined ID format)

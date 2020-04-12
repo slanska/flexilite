@@ -175,7 +175,7 @@ function PropertyDef:_init(params)
         self.ID = params.dbrow.PropertyID
 
         -->> TODO temp
-        print(('Property %s.%s got ID %d'):format(self.ClassDef.Name.text, self.Name.text, self.ID))
+        print(('Property %s got ID %d'):format(self:debugDesc(), self.ID))
 
         self.ctlv = params.dbrow.ctlv or 0
         self.ctlvPlan = params.dbrow.ctlvPlan or 0
@@ -228,14 +228,10 @@ end
 
 ---@return number @comment property ID
 function PropertyDef:saveToDB()
-    -->>
-    -->>
-    print(('%s.%s:saveToDB'):format(self.ClassDef.Name.text, self.Name.text))
-
     assert(self.ClassDef and self.ClassDef.DBContext)
 
     assert(self.Name and self.Name:isResolved(),
-            string.format('Name of property %s.%s is not resolved', self.ClassDef.Name.text, self.Name.text))
+            string.format('Name of property %s is not resolved', self:debugDesc()))
 
     -- Set ctlv
     self.ctlv = self:GetCTLV()
@@ -269,6 +265,9 @@ function PropertyDef:saveToDB()
         -- As property ID is now known, register property in DBContext property collection
         self.ClassDef.DBContext.ClassProps[self.ID] = self
     end
+
+    -->>
+    print(('** %s:saveToDB(id %d)'):format(self:debugDesc(), self.ID))
 
     return self.ID
 end
@@ -332,10 +331,10 @@ function PropertyDef:GetCTLV()
 end
 
 --Applies property definition to the database. Called on property save
-function PropertyDef:applyDef()
+function PropertyDef:beforeSaveToDB()
 
     -->>
-    print(('%s.%s:applyDef'):format(self.ClassDef.Name.text, self.Name.text))
+    print(('-- %s:beforeSaveToDB'):format(self:debugDesc()))
 
     self.ClassDef:assignColMappingForProperty(self)
 
@@ -356,6 +355,7 @@ function PropertyDef:isReference()
     return false
 end
 
+-- Returns SQLite raw value type
 ---@return number
 function PropertyDef:GetVType()
     return Constants.vtype.default
@@ -471,6 +471,15 @@ function PropertyDef:getCapabilities()
     return _propertyDefCapabilities
 end
 
+---@param includeId boolean
+---@return string
+function PropertyDef:debugDesc(includeId)
+    if includeId then
+        return ('%s.%s[%s]'):format(self.ClassDef.Name.text, self.Name.text, self.ID)
+    end
+    return ('%s.%s'):format(self.ClassDef.Name.text, self.Name.text)
+end
+
 --[[
 ===============================================================================
 AnyPropertyDef
@@ -573,8 +582,8 @@ function MoneyPropertyDef:ImportDBValue(dbv, v)
     local s = ('%.1f'):format(vv)
     if s:byte(#s) ~= 48 then
         -- Last character must be '0' (ASCII 48)
-        error(string.format('%s.%s: %s is not valid value for money',
-                self.ClassDef.Name.text, self.Name.text, v))
+        error(string.format('%s: %s is not valid value for money',
+                self:debugDesc(), v))
     end
     dbv.Value = tonumber(s:sub(1, #s - 2))
 end
@@ -760,8 +769,8 @@ function ReferencePropertyDef:_checkRegenerateRelView()
             thatName = refDef.classRef.text
         else
             error(string.format(
-                    '%s.%s: Reversed property or referenced class are required for relational view. Both refDef.classRef and refDef.reverseProperty',
-                    self.ClassDef.Name.text, self.Name.text))
+                    '%s: Reversed property or referenced class are required for relational view. Both refDef.classRef and refDef.reverseProperty',
+                    self:debugDesc()))
         end
 
         if refDef.viewName then
@@ -777,68 +786,59 @@ end
 function ReferencePropertyDef:saveToDB()
     local result = PropertyDef.saveToDB(self)
 
-    --self.ClassDef.DBContext.ActionQueue:enqueue(function(self, dbContext)
-    --    self:_checkRegenerateRelView()
-    --end, self)
+    self.ClassDef.DBContext.ActionQueue:enqueue(function(self)
+        self:_checkRegenerateRelView()
+    end, self)
     return result
 end
 
 -- TODO beforeApplyDef?
-function ReferencePropertyDef:applyDef()
-    PropertyDef.applyDef(self)
+function ReferencePropertyDef:beforeSaveToDB()
+    PropertyDef.beforeSaveToDB(self)
 
-    --self.ClassDef.DBContext.ActionQueue:enqueue(function(self)
-        ---@type PropertyRefDef
-        local refDef = self.D.refDef
-        if refDef then
-            if refDef.classRef then
-                refDef.classRef:resolve(self.ClassDef)
-            end
-
-            if refDef.reverseProperty then
-                -- Check if reverse property exists. If no, create it
-                ---@type ClassDef
-                local revClassDef = self.ClassDef.DBContext:getClassDef(refDef.classRef.text, true)
-                if not revClassDef:hasProperty(refDef.reverseProperty.text) then
-                    -- Create new ref property
-                    local propDef = {
-                        rules = {
-                            type = 'ref',
-                            minOccurrences = 0,
-                            maxOccurrences = Constants.MAX_INTEGER,
-                        },
-                        refDef = {
-                            classRef = self.ClassDef.Name.text,
-                            reverseProperty = self.Name.text,
-                        }
-                    }
-                    revClassDef:AddNewProperty(refDef.reverseProperty.text, propDef)
-                    local revPropDef = revClassDef:hasProperty(refDef.reverseProperty.text)
-                    revPropDef.Name:resolve(revClassDef)
-
-                    self.ClassDef.DBContext.ActionQueue:enqueue(function(params, dbContext)
-                        params.revPropDef:applyDef()
-                        local propID = params.revPropDef:saveToDB(nil, params.refDef.reverseProperty.text)
-                        dbContext.ClassProps[propID] = params.revPropDef
-                    end, {
-                        revClassDef = revClassDef,
-                        revPropDef = revPropDef,
-                        refDef = refDef,
-                        self = self
-                    })
-                end
-
-                refDef.reverseProperty:resolve(revClassDef)
-            end
+    ---@type PropertyRefDef
+    local refDef = self.D.refDef
+    if refDef then
+        if refDef.classRef then
+            refDef.classRef:resolve(self.ClassDef)
         end
-    --end,
 
-    --self
-    --)
+        if refDef.reverseProperty then
+            -- Check if reverse property exists. If no, create it
+            ---@type ClassDef
+            local revClassDef = self.ClassDef.DBContext:getClassDef(refDef.classRef.text, true)
+            if not revClassDef:hasProperty(refDef.reverseProperty.text) then
+                -- Create new ref property
+                local propDef = {
+                    rules = {
+                        type = 'ref',
+                        minOccurrences = 0,
+                        maxOccurrences = Constants.MAX_INTEGER,
+                    },
+                    refDef = {
+                        classRef = self.ClassDef.Name.text,
+                        reverseProperty = self.Name.text,
+                    }
+                }
+                local revPropDef = revClassDef:AddNewProperty(refDef.reverseProperty.text, propDef)
+                revPropDef:beforeSaveToDB()
 
-    self.ClassDef.DBContext.ActionQueue:enqueue(function(self)
-        self:_checkRegenerateRelView()
-    end, self)
+                --self.ClassDef.DBContext.ActionQueue:enqueue(function(params, dbContext)
+                --    params.revPropDef:beforeSaveToDB()
+                --    --local propID = params.revPropDef:saveToDB(nil, params.refDef.reverseProperty.text)
+                --end, {
+                --    revClassDef = revClassDef,
+                --    revPropDef = revPropDef,
+                --    refDef = refDef,
+                --    self = self
+                --})
+            end
+
+            --self.ClassDef.DBContext.ActionQueue:enqueue(function(params)
+                refDef.reverseProperty:resolve(revClassDef)
+            --end, { refDef = refDef, revClassDef = revClassDef})
+        end
+    end
 end
 
 function ReferencePropertyDef:isReference()
@@ -874,9 +874,9 @@ function EnumPropertyDef:_init(params)
     self:super(params)
 end
 
-function EnumPropertyDef:applyDef()
+function EnumPropertyDef:beforeSaveToDB()
     -- Note: calling PropertyDef, not ReferencePropertyDef
-    PropertyDef.applyDef(self)
+    PropertyDef.beforeSaveToDB(self)
 
     self.ClassDef.DBContext.ActionQueue:enqueue(function(self)
         -- Resolve names
@@ -1144,8 +1144,8 @@ function DateTimePropertyDef:toJulian(value)
     end
 end
 
-function DateTimePropertyDef:applyDef()
-    PropertyDef.applyDef(self)
+function DateTimePropertyDef:beforeSaveToDB()
+    PropertyDef.beforeSaveToDB(self)
 
     ---@param cntnr table
     ---@param attrName string

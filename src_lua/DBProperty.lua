@@ -92,8 +92,8 @@ end
 ---@param idx number @comment 1 based index
 ---@param val any
 function DBProperty:SetValue(idx, val)
-    error(string.format('Cannot modify readonly version of %s.%s',
-            self.PropDef.ClassDef.Name.text, self.PropDef.Name.text))
+    error(string.format('Cannot modify readonly version of %s',
+            self.PropDef:debugDesc()))
 end
 
 ---@param idx number @comment 1 based
@@ -202,8 +202,8 @@ function ChangedDBProperty:getOriginalProperty()
     end
     local result = self.DBOV.DBObject.origVer:getProp(self.PropDef.Name.text)
     if not result then
-        error(string.format('DBProperty %s.%s not found',
-                self.DBOV.ClassDef.Name.text, self.PropDef.Name.text))
+        error(string.format('DBProperty %s not found',
+                self.PropDef:debugDesc()))
     end
     return result
 end
@@ -217,8 +217,8 @@ function ChangedDBProperty:SetValue(idx, val)
 
     local maxOccurr = self.PropDef.D.rules.maxOccurrences or Constants.MAX_INTEGER
     if idx > maxOccurr then
-        error(string.format('%s.%s: maxOccurrences rule violation (%d > %d)',
-                self.PropDef.ClassDef.Name.text, self.PropDef.Name.text, idx, maxOccurr))
+        error(string.format('%s: maxOccurrences rule violation (%d > %d)',
+                self.PropDef:debugDesc(), idx, maxOccurr))
     end
 
     if not self.values then
@@ -407,9 +407,6 @@ function ChangedDBProperty:SaveToDB(ctx)
 
     for idx, dbv in pairs(self.values) do
         if dbv.deferredSaveAction ~= nil then
-            -->>
-            print(('saveDBValue XXXX'))
-
             DBContext.ActionQueue:enqueue(function(params)
                 params.dbv.deferredSaveAction()
                 saveDBValue(params.idx, params.dbv)

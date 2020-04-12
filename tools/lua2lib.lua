@@ -10,7 +10,7 @@ and then bundle all files to a static library to be linked with C/C++ project
 ]]
 
 if not jit then
-    error 'This No jit found. Ensure that script is run by LuaJIT, not regular Lua'
+    error 'This script has to be run by LuaJIT, not regular Lua'
 end
 
 local os = require 'os'

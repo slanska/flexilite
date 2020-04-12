@@ -85,12 +85,6 @@ end
 function ActionQueue:run()
     while #self > 0 do
         local item = self:dequeue()
-
-        if type(item) ~= 'table' then
-            -->>
-            require('debugger')()
-        end
-
         if item and item.action then
             item.action(item.params, self.DBContext)
         end

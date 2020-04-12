@@ -82,10 +82,10 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     end
 
     if toPropDef then
-        assert(not toPropDef.ID, ('toPropDef [%s] does not have ID'):format(toPropDef.Name.text))
+        assert(toPropDef.ID, ('%s does not have ID'):format(toPropDef:debugDesc()))
     end
     if fromPropDef then
-        assert(not fromPropDef.ID, ('fromPropDef [%s] does not have ID'):format(fromPropDef.Name.text))
+        assert(fromPropDef.ID, ('%s does not have ID'):format(fromPropDef:debugDesc()))
     end
 
     if toPropDef and toPropDef.ID < fromPropDef.ID then

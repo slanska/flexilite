@@ -90,8 +90,8 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
     ---@param classDef ClassDef
     ---@param propName string
     ---@param propDef PropertyDef
-    local function applyProp(_, classDef, _, propDef)
-        propDef:applyDef()
+    local function beforeSaveProp(_, _, _, propDef)
+        propDef:beforeSaveToDB()
     end
 
     ---@param className string
@@ -145,7 +145,7 @@ local function createMultiClasses(self, schemaDef, createVirtualTable)
 
     end
 
-    forEachNAMClassProp(applyProp)
+    forEachNAMClassProp(beforeSaveProp)
     forEachNAMClassProp(saveProp)
 
     for _, clsObject in ipairs(newClasses) do

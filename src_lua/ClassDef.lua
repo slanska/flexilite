@@ -92,8 +92,8 @@ function IndexDefinitions:AddFullTextIndexedProperty(propDef)
 
     local supportedIndexTypes = propDef:GetSupportedIndexTypes()
     if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.FTS) ~= Constants.INDEX_TYPES.FTS then
-        return false, string.format('Property [%s].[%s] does not support full text indexing',
-                propDef.ClassDef.Name.text, propDef.Name.text)
+        return false, string.format('Property %s does not support full text indexing',
+                propDef:debugDesc())
     end
 
     -- Already set?
@@ -120,8 +120,8 @@ function IndexDefinitions:AddRangeIndexedProperties(propDef0, propDef1)
     for _, propDef in ipairs({ propDef0, propDef1 }) do
         local supportedIndexTypes = propDef:GetSupportedIndexTypes()
         if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.RNG) ~= Constants.INDEX_TYPES.RNG then
-            return false, string.format('Property [%s].[%s] does not support range indexing',
-                    propDef.ClassDef.Name.text, propDef.Name.text)
+            return false, string.format('Property %s does not support range indexing',
+                    propDef:debugDesc())
         end
     end
 
@@ -158,8 +158,8 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
     for _, propDef in ipairs(propDefs) do
         local supportedIndexTypes = propDef:GetSupportedIndexTypes()
         if bit52.band(supportedIndexTypes, Constants.INDEX_TYPES.MUL) ~= Constants.INDEX_TYPES.MUL then
-            return false, string.format('Property [%s].[%s] does not support multi key indexing',
-                    propDef.ClassDef.Name.text, propDef.Name.text)
+            return false, string.format('Property %s does not support multi key indexing',
+                    propDef:debugDesc())
         end
 
         -- Check for accidental duplicates
@@ -168,8 +168,8 @@ function IndexDefinitions:AddMultiKeyIndex(propDefs)
         end, propDefs)
 
         if #all > 1 then
-            return false, string.format('Property [%s].[%s] is repeated more than once in multi key index',
-                    propDef.ClassDef.Name.text, propDef.Name.text)
+            return false, string.format('Property %s is repeated more than once in multi key index',
+                    propDef:debugDesc())
         end
     end
 
@@ -190,8 +190,8 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
     local supportedIndexTypes = propDef:GetSupportedIndexTypes()
     local expectedIndexType = unique and Constants.INDEX_TYPES.UNQ or Constants.INDEX_TYPES.STD
     if bit52.band(supportedIndexTypes, expectedIndexType) ~= expectedIndexType then
-        return false, string.format('Property [%s].[%s] does not support indexing',
-                propDef.ClassDef.Name.text, propDef.Name.text)
+        return false, string.format('Property %s does not support indexing',
+                propDef:debugDesc())
     end
 
     if not unique then
@@ -199,15 +199,15 @@ function IndexDefinitions:AddIndexedProperty(propDef, unique)
         local idx = tablex.find(self.rangeIndexing, propDef.ID)
         if idx then
             table_remove(self.propIndexing, propDef.ID)
-            return true, string.format('Property [%s].[%s] already included in range index',
-                    propDef.ClassDef.Name.text, propDef.Name.text)
+            return true, string.format('Property %s already included in range index',
+                    propDef:debugDesc())
         end
 
         if self.multiKeyIndexing and #self.multiKeyIndexing > 0
                 and self.multiKeyIndexing[1] == propDef.ID then
             table_remove(self.propIndexing, propDef.ID)
-            return true, string.format('Property [%s].[%s] already included in multi key index',
-                    propDef.ClassDef.Name.text, propDef.Name.text)
+            return true, string.format('Property %s already included in multi key index',
+                    propDef:debugDesc())
         end
     end
 
@@ -417,9 +417,15 @@ end
 -- c) altering existing class
 ---@param propName string
 ---@param propJsonData PropertyDefData
+---@return PropertyDef
 function ClassDef:AddNewProperty(propName, propJsonData)
     local prop = PropertyDef.CreateInstance { ClassDef = self, newPropertyName = propName, jsonData = propJsonData }
     self.Properties[propName] = prop
+
+    -->>
+    print(('%s.%s:added'):format(self.Name.text, propName))
+
+    return prop
 end
 
 -- Fills MixinProperties with properties from mixin classes, if applicable
@@ -754,7 +760,7 @@ function ClassDef.ApplyIndexing(oldClassDef, newClassDef)
             -- TODO set ctlo
         end
 
-        propDef:applyDef()
+        propDef:beforeSaveToDB()
         propDef:saveToDB()
     end
 
