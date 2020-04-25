@@ -69,7 +69,7 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
         else
             local where
             if newRowID then
-                -- TODO set where
+                --TODO set where
                 sqlTbl:update(data, where)
             else
                 sqlTbl:delete(where)

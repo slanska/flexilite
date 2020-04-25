@@ -8,7 +8,7 @@ local base64 = require 'base64'
 local JSON = require 'cjson'
 local SQLiteSchemaParser = require 'sqliteSchemaParser'
 local path = require 'pl.path'
-local tablex = require 'pl.tablex'
+local ansicolors = require 'ansicolors'
 
 -- set lua path
 package.path = path.abspath(path.relpath('../lib/lua-prettycjson/lib/resty/?.lua'))
@@ -23,14 +23,15 @@ local prettyJson = require "prettycjson"
 local function outTable(out, db, classDef, tableName)
     -- List of all table rows
     local rows = {}
-    print(string.format('Processing [%s]...', tableName))
+    print(ansicolors(string.format('Dumping data from: %%{white}%s%%{reset}', tableName)))
 
     -- get binary properties
-
     local blobProps = {}
-    for propName, propDef in pairs(classDef.properties) do
-        if propDef.rules.type == 'binary' then
-            blobProps[propName] = propDef
+    if classDef then
+        for propName, propDef in pairs(classDef.properties) do
+            if propDef.rules.type == 'binary' then
+                blobProps[propName] = propDef
+            end
         end
     end
 
@@ -76,9 +77,17 @@ local function dumpDatabase(dbPath, outFileName, tableName, compactJson)
 
         outTable(result, db, classDef, tableName)
     else
-        for tableName, classDef in pairs(schema) do
-            outTable(result, db, classDef, tableName)
+        local stmt = db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
+
+        ---@type ISQLiteTableInfo
+        for item in stmt:nrows() do
+            local classDef = schema[item.name]
+            outTable(result, db, classDef, item.name)
         end
+
+        --for tableName, classDef in pairs(schema) do
+        --    outTable(result, db, classDef, tableName)
+        --end
     end
 
     -- Dump prettified JSON
@@ -88,6 +97,9 @@ local function dumpDatabase(dbPath, outFileName, tableName, compactJson)
     else
         dataJson = prettyJson(result)
     end
+
+    -->
+    print(outFileName)
 
     local f = io.open(outFileName, 'w')
     f:write(dataJson)

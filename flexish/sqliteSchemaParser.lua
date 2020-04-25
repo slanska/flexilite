@@ -6,7 +6,6 @@
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 local ansicolors = require 'ansicolors'
---TODO local List = require 'pl.List'
 local Constants = require 'Constants'
 
 ---@class ISQLiteTableInfo @comment row returned by [select * from sqlite_master;]
@@ -152,7 +151,7 @@ local sqliteTypesToFlexiTypes = {
     ['tinyint'] = { type = 'integer', minValue = 0, maxValue = 255 },
 }
 
----@param sqliteCol any @comment SQLiteColumn
+---@param sqliteCol ISQLiteColumnInfo
 ---@return PropertyDef
 function SQLiteSchemaParser:sqliteColToFlexiProp(sqliteCol)
     local p = { rules = { type = 'any' } }
@@ -1112,7 +1111,7 @@ function SQLiteSchemaParser:ParseSchema(outJSON)
     --self.SQLScript:append(string.format("select flexi('load', '%s');", outJSON))
     --self.SQLScript:append ""
 
-    local stmt, errMsg = self.db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
+    local stmt = self.db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
 
     ---@type ISQLiteTableInfo
     for item in stmt:nrows() do
