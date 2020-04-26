@@ -174,9 +174,6 @@ function PropertyDef:_init(params)
         ---@type number
         self.ID = params.dbrow.PropertyID
 
-        -->> TODO temp
-        print(('Property %s got ID %d'):format(self:debugDesc(), self.ID))
-
         self.ctlv = params.dbrow.ctlv or 0
         self.ctlvPlan = params.dbrow.ctlvPlan or 0
         self.Deleted = params.dbrow.Deleted or false
@@ -266,9 +263,6 @@ function PropertyDef:saveToDB()
         self.ClassDef.DBContext.ClassProps[self.ID] = self
     end
 
-    -->>
-    print(('** %s:saveToDB(id %d)'):format(self:debugDesc(), self.ID))
-
     return self.ID
 end
 
@@ -332,10 +326,6 @@ end
 
 --Applies property definition to the database. Called on property save
 function PropertyDef:beforeSaveToDB()
-
-    -->>
-    print(('-- %s:beforeSaveToDB'):format(self:debugDesc()))
-
     self.ClassDef:assignColMappingForProperty(self)
 
     -- resolve property name
@@ -761,7 +751,7 @@ function ReferencePropertyDef:_checkRegenerateRelView()
     ---@type PropertyRefDef
     local refDef = self.D.refDef
 
-    if refDef then
+    if refDef and refDef.viewName then
         -- Generate view for many-2-many relationship
         local thatName
         if refDef.reverseProperty then
@@ -774,11 +764,9 @@ function ReferencePropertyDef:_checkRegenerateRelView()
                     self:debugDesc()))
         end
 
-        if refDef.viewName then
-            local thisName = self.Name.text
-            generateRelView(self.ClassDef.DBContext, refDef.viewName, self.ClassDef.Name.text,
-                    thisName, thisName, thatName)
-        end
+        local thisName = self.Name.text
+        generateRelView(self.ClassDef.DBContext, refDef.viewName, self.ClassDef.Name.text,
+                thisName, thisName, thatName)
     end
 
     self._viewGenerationPending = false
@@ -842,7 +830,7 @@ function ReferencePropertyDef:beforeSaveToDB()
             end
 
             --self.ClassDef.DBContext.ActionQueue:enqueue(function(params)
-                refDef.reverseProperty:resolve(revClassDef)
+            refDef.reverseProperty:resolve(revClassDef)
             --end, { refDef = refDef, revClassDef = revClassDef})
         end
     end

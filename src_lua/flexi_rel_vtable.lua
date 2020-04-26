@@ -50,6 +50,10 @@ end
 --- may throw error
 local function generateView(self, tableName, className, propName, col1Name, col2Name)
 
+    -->>
+    print(('generateView: tableName=%s, className=%s, propName=%s, col1Name=%s, col2Name=%s')
+            :format(tableName, className, propName, col1Name, col2Name))
+
     -- Normalize class and prop names
     className = normalizeSqlName(className)
     propName = normalizeSqlName(propName)

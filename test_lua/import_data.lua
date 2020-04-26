@@ -57,8 +57,9 @@ describe('Loading entire database from JSON and verifies accuracy of imported da
 
     it('SqliteTable:_appendWhere: updatable view', function()
         local ss = SqliteTable(dbNorthwind, 'EmployeesTerritories')
+        -- {"territories" = 1, "employees_2" = 4, "territories_2" = 3, "employees" = 2}
         local sql, params = ss:_generate_insert_sql_and_params({
-            Employees = 1, Territories = 2
+            Territories = 1, Employees = 2
         })
 
         print ('##### SqliteTable:_appendWhere: updatable view', sql, params)

@@ -100,9 +100,6 @@ Ensures that corresponding
 function RefDataManager:ApplyEnumPropertyDef(propDef)
     assert(propDef:is_a(self.DBContext.PropertyDef.Classes.EnumPropertyDef))
 
-    -->>
-    print(('RefDataManager:ApplyEnumPropertyDef: %s, id %s'):format(propDef:debugDesc(), propDef.ID))
-
     self.DBContext.ActionQueue:enqueue(function(propDef)
         if propDef.D.enumDef then
             -- Process as pure enum

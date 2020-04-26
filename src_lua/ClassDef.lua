@@ -422,9 +422,6 @@ function ClassDef:AddNewProperty(propName, propJsonData)
     local prop = PropertyDef.CreateInstance { ClassDef = self, newPropertyName = propName, jsonData = propJsonData }
     self.Properties[propName] = prop
 
-    -->>
-    print(('%s.%s:added'):format(self.Name.text, propName))
-
     return prop
 end
 

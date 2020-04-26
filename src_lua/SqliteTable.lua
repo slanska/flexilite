@@ -157,9 +157,6 @@ end
 ---@return string, table
 function SqliteTable:_generate_insert_sql_and_params(data)
 
-    -->>
-    --require('debugger')()
-
     local sql = List()
     local params = {}
     local first = true

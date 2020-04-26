@@ -1104,13 +1104,6 @@ function SQLiteSchemaParser:ParseSchema(outJSON)
     self.outSchema = {}
     self.tableInfo = {}
 
-    -- TODO remove
-    --self.SQLScript:append("-- Uncomment following line if running in the context when Flexilite is not yet loaded")
-    --self.SQLScript:append("-- select load_extension('libFlexilite');\n")
-    --self.SQLScript:append("select flexi('configure');\n")
-    --self.SQLScript:append(string.format("select flexi('load', '%s');", outJSON))
-    --self.SQLScript:append ""
-
     local stmt = self.db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
 
     ---@type ISQLiteTableInfo

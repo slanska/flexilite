@@ -70,12 +70,19 @@ local function dumpDatabase(dbPath, outFileName, tableName, compactJson)
     local result = {}
 
     if type(tableName) == 'string' and tableName ~= '' then
-        local classDef = schema[tableName]
-        if not classDef then
+        local tableFound = false
+        local stmt = db:prepare("select * from sqlite_master where type = 'table' and name = %name;")
+        stmt:bind_names({ name = tableName})
+        for item in stmt:nrows() do
+            local classDef = schema[item.name]
+            tableFound = true
+            outTable(result, db, classDef, item.name)
+        end
+        stmt:finalize()
+
+        if not tableFound then
             error(string.format("Table [%s] is not found in database %s", tableName, dbPath))
         end
-
-        outTable(result, db, classDef, tableName)
     else
         local stmt = db:prepare("select * from sqlite_master where type = 'table' and name not like 'sqlite%';")
 
@@ -85,9 +92,7 @@ local function dumpDatabase(dbPath, outFileName, tableName, compactJson)
             outTable(result, db, classDef, item.name)
         end
 
-        --for tableName, classDef in pairs(schema) do
-        --    outTable(result, db, classDef, tableName)
-        --end
+        stmt:finalize()
     end
 
     -- Dump prettified JSON
@@ -97,9 +102,6 @@ local function dumpDatabase(dbPath, outFileName, tableName, compactJson)
     else
         dataJson = prettyJson(result)
     end
-
-    -->
-    print(outFileName)
 
     local f = io.open(outFileName, 'w')
     f:write(dataJson)
