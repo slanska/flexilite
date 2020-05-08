@@ -95,6 +95,8 @@ PropertyDef
 ---@field autoFetchDepth number
 ---@field mixin boolean
 ---@field viewName string @comment optional name of view for many-to-many relationship
+---@field viewColName string @comment optional name of corresponding column in many-to-many view
+---@field reversedPropViewColName string @comment optional name of corresponding column in many-to-many view
 
 ---@class PropertyDefData
 ---@field rules PropertyRules
@@ -748,23 +750,60 @@ end
 -- Private method to verify that relation view is created
 function ReferencePropertyDef:_checkRegenerateRelView()
 
-    ---@type PropertyRefDef
-    local refDef = self.D.refDef
+    ---@param refDef PropertyRefDef
+    ---@return string
+    local function _get_view_col_name(refDef)
+        if refDef.viewColName then
+            return refDef.viewColName
+        end
 
-    if refDef and refDef.viewName then
-        -- Generate view for many-2-many relationship
-        local thatName
+        -- check id prop
+        local idProp = self.ClassDef:getUdidProp()
+        if idProp then
+            return idProp.Name.text
+        end
+
+        -- assume self name - in most cases this would be incorrect though
+        local result = self.Name.text
+        return result
+    end
+
+    ---@param refDef PropertyRefDef
+    ---@return string
+    local function _get_reversed_view_col_name(refDef)
+        if refDef.reversedPropViewColName then
+            return refDef.reversedPropViewColName
+        end
+
+        -- check id column
+        if refDef.classRef then
+            local idProp = refDef.classRef:getUdidProp()
+            if idProp then
+                return idProp.Name.text
+            end
+        end
+
+        -- assume self name - in most cases this would be incorrect though
+        local result
         if refDef.reverseProperty then
-            thatName = refDef.reverseProperty.text
+            result = refDef.reverseProperty.text
         elseif refDef.classRef then
-            thatName = refDef.classRef.text
+            result = refDef.classRef.text
         else
             error(string.format(
                     '%s: Reversed property or referenced class are required for relational view. Both refDef.classRef and refDef.reverseProperty',
                     self:debugDesc()))
         end
+        return result
+    end
 
-        local thisName = self.Name.text
+    ---@type PropertyRefDef
+    local refDef = self.D.refDef
+
+    if refDef and refDef.viewName then
+        -- Generate view for many-2-many relationship
+        local thatName = _get_reversed_view_col_name(refDef)
+        local thisName = _get_view_col_name(refDef)
         generateRelView(self.ClassDef.DBContext, refDef.viewName, self.ClassDef.Name.text,
                 thisName, thisName, thatName)
     end

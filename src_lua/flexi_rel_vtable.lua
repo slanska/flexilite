@@ -51,6 +51,7 @@ end
 local function generateView(self, tableName, className, propName, col1Name, col2Name)
 
     -->>
+    require('debugger')()
     print(('generateView: tableName=%s, className=%s, propName=%s, col1Name=%s, col2Name=%s')
             :format(tableName, className, propName, col1Name, col2Name))
 

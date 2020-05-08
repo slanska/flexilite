@@ -265,6 +265,10 @@ function SQLiteSchemaParser:processMany2ManyRelations()
             end
 
             if fk_count == 2 then
+
+                -->>
+                --require('debugger')()
+
                 -- Both columns (except ID) are foreign keys: this is many-to-many table
 
                 -- Create enum property
@@ -290,6 +294,8 @@ function SQLiteSchemaParser:processMany2ManyRelations()
                         classRef = cols[2].to_table,
                         reverseProperty = revRefPropName,
                         viewName = tblInfo.table,
+                        viewColName = cols[1].name,
+                        reversedPropViewColName = cols[2].name,
                     }
                 }
 

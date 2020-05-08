@@ -369,8 +369,10 @@
 				},
 				"refDef": {
 					"reverseProperty": "Playlist",
+					"classRef": "Track",
 					"viewName": "PlaylistTrack",
-					"classRef": "Track"
+					"reversedPropViewColName": "TrackId",
+					"viewColName": "PlaylistId"
 				}
 			},
 			"Name": {
