@@ -7,6 +7,7 @@
 local normalizeSqlName = require('Util').normalizeSqlName
 local List = require 'pl.List'
 local Constants = require 'Constants'
+local format = string.format
 
 --- Appends subquery for user-defined columns to instead of trigger body
 ---@param sql table @comment pl.List
@@ -16,14 +17,14 @@ local Constants = require 'Constants'
 ---@param op string @comment new, old
 local function appendUDIDtoTrigger(sql, classDef, udidProp, colName, op)
     if udidProp ~= nil then
-        sql:append(string.format('coalesce(%s.[%s], ', op, colName))
+        sql:append(format('coalesce(%s.[%s], ', op, colName))
         if udidProp.ColMap ~= nil then
             local mask = classDef.DBContext.ClassDef.getCtloMaskForColMapIndex(udidProp)
-            sql:append(string.format(
+            sql:append(format(
                     '(select ObjectID from [.objects] where ClassID = %d and %s = %s.[%s_2] and ctlo & %d = %d limit 1)',
                     classDef.ClassID, udidProp.ColMap, op, colName, mask, mask))
         else
-            sql:append(string.format(
+            sql:append(format(
                     '(select ObjectID from [.ref-values] where PropertyID = %d and [Value] = %s.[%s_2] and ctlv & %d <> 0)',
                     udidProp.ID, op, colName, Constants.CTLV_FLAGS.UNIQUE))
         end
@@ -36,7 +37,7 @@ end
 ---@param tableName string
 ---@return string @comment generated SQL
 local function generateDropViewSql(tableName)
-    local result = string.format('drop view if exists [%s];', tableName)
+    local result = format('drop view if exists [%s];', tableName)
     return result
 end
 
@@ -49,11 +50,6 @@ end
 ---@param col2Name string
 --- may throw error
 local function generateView(self, tableName, className, propName, col1Name, col2Name)
-
-    -->>
-    require('debugger')()
-    print(('generateView: tableName=%s, className=%s, propName=%s, col1Name=%s, col2Name=%s')
-            :format(tableName, className, propName, col1Name, col2Name))
 
     -- Normalize class and prop names
     className = normalizeSqlName(className)
@@ -74,7 +70,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
 
     -- ensure that this is reference property
     if not fromPropDef.D.refDef or not fromPropDef:isReference() or fromPropDef.D.refDef.mixin then
-        error(string.format('[%s].[%s] must be a pure reference property', className, propName))
+        error(format('[%s].[%s] must be a pure reference property', className, propName))
     end
 
     -- Check if there is reverse property defined. If so, IDs of both ref properties will be compared to
@@ -106,7 +102,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     -- View
     sql:append(generateDropViewSql(tableName))
     sql:append '' -- new line
-    sql:append(string.format('create view if not exists [%s] as select v.%s as %s, v.%s as %s',
+    sql:append(format('create view if not exists [%s] as select v.%s as %s, v.%s as %s',
             tableName, col1Name, col1Name, col2Name, col2Name))
 
     --- Appends subquery for user-defined columns to view body
@@ -116,10 +112,10 @@ local function generateView(self, tableName, className, propName, col1Name, col2
         if udidProp ~= nil then
             sql:append ','
             if udidProp.ColMap ~= nil then
-                sql:append(string.format('(select o.[%s] from [.objects] o where o.ObjectID = v.[%s] limit 1) as [%s_2]',
+                sql:append(format('(select o.[%s] from [.objects] o where o.ObjectID = v.[%s] limit 1) as [%s_2]',
                         udidProp.ColMap, colName, colName))
             else
-                sql:append(string.format([[(select ObjectID from [.ref-values] where PropertyID = %d
+                sql:append(format([[(select ObjectID from [.ref-values] where PropertyID = %d
                 and ctlv & %d <> 0 and [Value] = v.[%s]) as [%s_2] ]],
                         udidProp.ID, Constants.CTLV_FLAGS.INDEX_AND_REFS_MASK, colName, colName))
             end
@@ -129,14 +125,14 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     appendUDIDtoView(fromUDID, col1Name)
     appendUDIDtoView(toUDID, col2Name)
 
-    assert(fromPropDef.ID, string.format('Property.ID is not yet set (%s)', fromPropDef.Name.text))
+    assert(fromPropDef.ID, format('Property.ID is not yet set (%s)', fromPropDef.Name.text))
 
-    sql:append(string.format('from (select ObjectID as [%s], [Value] as [%s] from [.ref-values] where PropertyID = %d and ctlv & %d <> 0) v;',
+    sql:append(format('from (select ObjectID as [%s], [Value] as [%s] from [.ref-values] where PropertyID = %d and ctlv & %d <> 0) v;',
             col1Name, col2Name, fromPropDef.ID, Constants.CTLV_FLAGS.INDEX_AND_REFS_MASK))
 
     -- Insert trigger
     sql:append '' -- new line
-    sql:append(string.format(
+    sql:append(format(
             [[create trigger [%s_insert]
         instead of insert on [%s] for each row
         begin]],
@@ -149,28 +145,28 @@ local function generateView(self, tableName, className, propName, col1Name, col2
         use a bit complicated subqueries instead):
         insert into .ref-values select col1, col2, (select max(PropIndex) + 1)... from (select coalesce(col1), coalesce(col2))
         ]]
-        sql:append(string.format(
+        sql:append(format(
                 [[insert into [.ref-values] (ObjectID, [Value], PropIndex, PropertyID, ctlv, Metadata)
             select v.[%s], v.[%s], coalesce((select max(PropIndex) from [.ref-values] where ObjectID = v.[%s]
             and [Value] = v.[%s] and ctlv and %d <> 0), 0) + 1, ]],
                 col1Name, col2Name, col1Name, col2Name, Constants.CTLV_FLAGS.ALL_REFS_MASK))
-        sql:append(string.format('%d, %d, null ', fromPropDef.ID, fromPropDef.ctlv))
+        sql:append(format('%d, %d, null ', fromPropDef.ID, fromPropDef.ctlv))
 
         sql:append(' from (select ')
         appendUDIDtoTrigger(sql, fromClassDef, fromUDID, col1Name, 'new')
-        sql:append(string.format(' as [%s], ', col1Name))
+        sql:append(format(' as [%s], ', col1Name))
         appendUDIDtoTrigger(sql, toClassDef, toUDID, col2Name, 'new')
-        sql:append(string.format(' as [%s]', col2Name))
+        sql:append(format(' as [%s]', col2Name))
 
         sql:append(') v;')
     end
 
     local function appendDeleteStatement()
-        sql:append(string.format('delete from [.ref-values] where  ObjectID = '))
+        sql:append(format('delete from [.ref-values] where  ObjectID = '))
         appendUDIDtoTrigger(sql, fromClassDef, fromUDID, col1Name, 'old')
         sql:append(' and [Value] = ')
         appendUDIDtoTrigger(sql, toClassDef, toUDID, col2Name, 'old')
-        sql:append(string.format(' and ctlv & %d <> 0;', Constants.CTLV_FLAGS.ALL_REFS_MASK))
+        sql:append(format(' and ctlv & %d <> 0;', Constants.CTLV_FLAGS.ALL_REFS_MASK))
     end
 
     appendInsertStatement()
@@ -178,7 +174,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     sql:append '' -- new line
 
     -- Update trigger
-    sql:append(string.format(
+    sql:append(format(
             [[create trigger [%s_update]
         instead of update on [%s] for each row]],
             tableName, tableName))
@@ -186,7 +182,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     ---@param prefix string
     ---@param colName string
     local function appendWhenCondition(prefix, colName)
-        sql:append(string.format(
+        sql:append(format(
                 ' %s (new.[%s] is not null and new.[%s] <> old.[%s])',
                 prefix, colName, colName, colName))
     end
@@ -208,7 +204,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
 
     -- Delete trigger
     sql:append '' -- new line
-    sql:append(string.format(
+    sql:append(format(
             [[create trigger [%s_delete]
         instead of delete on [%s] for each row
         begin]],
@@ -220,7 +216,7 @@ local function generateView(self, tableName, className, propName, col1Name, col2
     local sqlText = sql:join('\n')
     local sqlResult = self.db:exec(sqlText)
     if sqlResult ~= 0 then
-        local errMsg = string.format("%d: %s", self.db:error_code(), self.db:error_message())
+        local errMsg = format("%d: %s", self.db:error_code(), self.db:error_message())
         error(errMsg)
     end
 end

@@ -52,56 +52,60 @@ function SaveObjectHelper:saveObject(className, oldRowID, newRowID, data)
     local classDef = self.DBContext:getClassDef(className, false)
 
     if not classDef then
-        -- Flexilite class not found, but this maybe potentially native SQLite table/view
-        if not self.sqliteTables then
-            self.sqliteTables = DictCI()
-        end
-        ---@type SqliteTable
-        local sqlTbl = self.sqliteTables[className]
-        if not sqlTbl then
-            sqlTbl = SqliteTable(self.DBContext, className)
-            self.sqliteTables[className:lower()] = sqlTbl
-        end
+        -- clone parameters to be used in deferred callback
+        local params = {}
+        params.className = className
+        params.oldRowID = oldRowID
+        params.newRowID = newRowID
+        params.data = data
+        -- also add self
+        params.self = self
 
-        if not oldRowID then
-            -- Insert new record
-            sqlTbl:insert(data)
-        else
-            local where
-            if newRowID then
-                --TODO set where
-                sqlTbl:update(data, where)
-            else
-                sqlTbl:delete(where)
+        self.DBContext.ActionQueue:enqueue(function(params)
+            -- Flexilite class not found, but this maybe potentially native SQLite table/view
+            if not params.self.sqliteTables then
+                params.self.sqliteTables = DictCI()
             end
-        end
+            ---@type SqliteTable
+            local sqlTbl = params.self.sqliteTables[params.className]
+            if not sqlTbl then
+                sqlTbl = SqliteTable(params.self.DBContext, params.className)
+                params.self.sqliteTables[params.className:lower()] = sqlTbl
+            end
 
-    end
-
-    ---@type DBObject
-    local obj
-
-    local op = not oldRowID and Constants.OPERATION.CREATE or (newRowID and Constants.OPERATION.UPDATE
-            or Constants.OPERATION.DELETE)
-    if op == Constants.OPERATION.CREATE then
-        obj = self.DBContext:NewObject(classDef, data)
-    elseif op == Constants.OPERATION.UPDATE then
-        obj = self.DBContext:EditObject(oldRowID)
-        if oldRowID ~= newRowID then
-            obj.ID = newRowID
-        end
+            if not params.oldRowID then
+                -- Insert new record
+                sqlTbl:insert(params.data)
+            else
+                local where
+                if params.newRowID then
+                    --TODO set where
+                    sqlTbl:update(params.data, where)
+                else
+                    sqlTbl:delete(where)
+                end
+            end
+        end, params)
     else
-        obj = self.DBContext:EditObject(oldRowID)
-        obj.ID = 0
+        ---@type DBObject
+        local obj
+
+        local op = not oldRowID and Constants.OPERATION.CREATE or (newRowID and Constants.OPERATION.UPDATE
+                or Constants.OPERATION.DELETE)
+        if op == Constants.OPERATION.CREATE then
+            obj = self.DBContext:NewObject(classDef, data)
+        elseif op == Constants.OPERATION.UPDATE then
+            obj = self.DBContext:EditObject(oldRowID)
+            if oldRowID ~= newRowID then
+                obj.ID = newRowID
+            end
+        else
+            obj = self.DBContext:EditObject(oldRowID)
+            obj.ID = 0
+        end
+
+        obj:saveToDB()
     end
-
-    obj:saveToDB()
-
-    -- TODO move to DBObject?
-    --for _, propDef in ipairs(self.DBContext.GetClassReferenceProperties(classDef.ClassID)) do
-    --    -- Treat property value as query to get list of objects
-    --    table.insert(self.unresolvedReferences, { propDef = propDef, object = obj })
-    --end
 end
 
 ---@param self DBContext

@@ -804,8 +804,19 @@ function ReferencePropertyDef:_checkRegenerateRelView()
         -- Generate view for many-2-many relationship
         local thatName = _get_reversed_view_col_name(refDef)
         local thisName = _get_view_col_name(refDef)
-        generateRelView(self.ClassDef.DBContext, refDef.viewName, self.ClassDef.Name.text,
-                thisName, thisName, thatName)
+        generateRelView(
+                -- DBContext
+                self.ClassDef.DBContext,
+                -- tableName
+                refDef.viewName,
+                -- className
+                self.ClassDef.Name.text,
+                -- propName
+                self.Name.text,
+                -- col1Name
+                thisName,
+                -- col2Name
+                thatName)
     end
 
     self._viewGenerationPending = false

@@ -63,9 +63,6 @@ end
 
 ---@param act function
 function ActionQueue:enqueue(act, params)
-    -->
-    --require('debugger')()
-
     ---@type ActionQueueItem
     local item = { action = act, params = params}
     self:append(item)
