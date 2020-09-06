@@ -19,6 +19,7 @@ local QueryBuilder = require('QueryBuilder').QueryBuilder
 local Constants = require 'Constants'
 local DictCI = require('Util').DictCI
 local SqliteTable = require 'SqliteTable'
+local pretty = require('pl.pretty')
 
 --[[
 Internal helper class to save objects to DB

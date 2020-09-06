@@ -15,19 +15,42 @@ msvcbuild static
 
 ### macOS
 
+Flexilite uses fork of LuaJIT from Torch and expects the latest Xcode and its tools
+to be installed to compile LuaJIT. 
+
 ``` shell
 cd <Flexilite_location>
 cd ./lib/torch-luajit-rocks
-mkdir ./build
+mkdir -p ./build
 cd ./build
-cmake .. -DCMAKE_INSTALL_PREFIX=/usr/torch -DWITH_LUAJIT21=ON 
+cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local/etc/torch -DWITH_LUAJIT21=ON 
 make
+```
+
+If you are getting error about math.h or other header files not found, try to run the
+following command before make:
+``` shell
+export CPATH=`xcrun --show-sdk-path`/usr/include
 ```
 
 To install Torch LuaJIT and LuaRocks run this command:
 ```
 sudo make install
-sudo /usr/torch/bin/luarocks install penlight
+cd /usr/local/etc/torch/bin
+sudo luarocks install penlight
+sudo luarocks install busted
+```
+
+If installing Luarocks fails, try to clean up .luarocks folder:
+
+```
+sudo rm -rf ~/.cache/luarocks
+```
+
+Also, make sure that wget is installed:
+
+```
+brew install wget
 ```
 
 Add Torch binaries to PATH :
@@ -39,8 +62,7 @@ sudo nano ~/.profile
 Append the following line to the end of file:
 
 ```shell
-export PATH=$PATH:/usr/torch/bin 
-
+export PATH=$PATH:/usr/local/etc/torch/bin 
 ```
  
 

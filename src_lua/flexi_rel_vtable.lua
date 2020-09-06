@@ -18,7 +18,7 @@ local format = string.format
 local function appendUDIDtoTrigger(sql, classDef, udidProp, colName, op)
     if udidProp ~= nil then
         sql:append(format('coalesce(%s.[%s], ', op, colName))
-        if udidProp.ColMap ~= nil then
+        if udidProp.ColMap ~= nil and classDef.ColMapActive then
             local mask = classDef.DBContext.ClassDef.getCtloMaskForColMapIndex(udidProp)
             sql:append(format(
                     '(select ObjectID from [.objects] where ClassID = %d and %s = %s.[%s_2] and ctlo & %d = %d limit 1)',
