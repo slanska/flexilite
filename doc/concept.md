@@ -52,16 +52,6 @@ for class' properties there is a special data type - NAME.
 While similar to TEXT type, NAME type provides compact storage has 
 out-of-box support for translation, formatting, icon representation and so on.
  
-### Schema
-Defines mapping between class properties and actual JSON payload. Every schema
-is associated with class, and class may have multiple schemas. Every 
-object has SchemaID property, which refers to actual mapping of its
-data. Actual object payload may have arbitrary structure, as long as individual
-properties are accessed through JSON path (dot notation and array index qualifiers).
-Purpose of schema is to provide access to the object's property values
-by mapping to actual payload structure. Every class has default schema (used for
-new objects)
-
 ## Duck Typing
 Classes in "F" are standalone. There is no formal relationship like
 inheritance between classes. Instead, "F" utilizes concept of duck typing:

@@ -393,8 +393,6 @@ static void _run_sql_test(void **state)
     Array_clear(&chkData);
 
     assert_int_equal(result, SQLITE_OK);
-
-    return;
 }
 
 static int _setup_sql_test(void **state)

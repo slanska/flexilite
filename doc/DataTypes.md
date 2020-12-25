@@ -5,18 +5,19 @@ Flexilite supports the following data types:
 * Number
 * Boolean
 * Date (stored as double, Julian value)
-* Time/timespan (stored as double, Julian value)
-* DateTime
+* Time/timespan (fraction part, stored as double, Julian value)
+* DateTime (Date + Time)
 * Blob
 * Symbol
 * Enum
-* Reference
+* Reference (simple, nested and mixin)
 
 ### Text
 
 Basic value type, compatible with all other data types. Stored as UTF-8 string.
 Maximum length is 1 GB. Can be indexed in BTree index and/or in full text index
-There is number of subtypes for basic text type, including email, url, phone etc.
+There is number of subtypes for basic text type, including email, url, phone etc. 
+(basically, the same subtypes that HTML5 supports)
 These subtypes are used not only for validation purposes, but for special actions,
 for example - 'find all email values in the system'
 
@@ -26,7 +27,7 @@ Stored as SQLite integer value. Can be indexed or indexed for range search
 (using RTree index)
 
 ### Number
-Stored as SQLite float value (8 byte). Can be indexed or indexed for range search
+Stored as SQLite float value (8 byte). Can be indexed with BTRee or included into range search
 (using RTree index)
 
 ### Symbol
@@ -54,4 +55,6 @@ Enums are used in cases when property may have only certain values in the predef
 Enums are often get refactored to references, when symbol value get converted to new objects.
 Though internally enum properties are stored as symbol IDs, they can be exposed via enum code.
 Every Enum is defined as special, simplified class, with few pre-determined properties. One of them is always Value, type of symbol.
+
+### Reference
 

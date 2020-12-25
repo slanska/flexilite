@@ -4,7 +4,6 @@
 
 #include "definitions.h"
 
-#include "Array.h"
 
 static void create_class_Employee(void **state)
 {

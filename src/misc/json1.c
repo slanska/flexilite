@@ -142,7 +142,7 @@ static int jsonGrow(JsonString *p, u32 N)
     if (p->bStatic)
     {
         if (p->bErr) return 1;
-        zNew = sqlite3_malloc64(nTotal);
+        zNew = (char*)sqlite3_malloc64(nTotal);
         if (zNew == 0)
         {
             jsonOom(p);
@@ -154,7 +154,7 @@ static int jsonGrow(JsonString *p, u32 N)
     }
     else
     {
-        zNew = sqlite3_realloc64(p->zBuf, nTotal);
+        zNew = (char*)sqlite3_realloc64(p->zBuf, nTotal);
         if (zNew == 0)
         {
             jsonOom(p);
@@ -580,7 +580,7 @@ void jsonReturn(
                 const char *z = pNode->u.zJContent;
                 char *zOut;
                 u32 j;
-                zOut = sqlite3_malloc(n + 1);
+                zOut = (char*)sqlite3_malloc(n + 1);
                 if (zOut == 0)
                 {
                     sqlite3_result_error_nomem(pCtx);
@@ -699,7 +699,7 @@ static JSON_NOINLINE int jsonParseAddNodeExpand(
     assert(pParse->nNode >= pParse->nAlloc);
     if (pParse->oom) return -1;
     nNew = pParse->nAlloc * 2 + 10;
-    pNew = sqlite3_realloc(pParse->aNode, sizeof(JsonNode) * nNew);
+    pNew = (JsonNode*)sqlite3_realloc(pParse->aNode, sizeof(JsonNode) * nNew);
     if (pNew == 0)
     {
         pParse->oom = 1;
@@ -1019,7 +1019,7 @@ int jsonParseFindParents(JsonParse *pParse)
 {
     u32 *aUp;
     assert(pParse->aUp == 0);
-    aUp = pParse->aUp = sqlite3_malloc(sizeof(u32) * pParse->nNode);
+    aUp = pParse->aUp = (u32*)sqlite3_malloc(sizeof(u32) * pParse->nNode);
     if (aUp == 0)
     {
         pParse->oom = 1;
@@ -1939,7 +1939,7 @@ static int jsonEachConnect(
                                       "json HIDDEN,root HIDDEN)");
     if (rc == SQLITE_OK)
     {
-        pNew = *ppVtab = sqlite3_malloc(sizeof(*pNew));
+        pNew = *ppVtab = (sqlite3_vtab*)sqlite3_malloc(sizeof(*pNew));
         if (pNew == 0) return SQLITE_NOMEM;
         memset(pNew, 0, sizeof(*pNew));
     }
@@ -1959,7 +1959,7 @@ static int jsonEachOpenEach(sqlite3_vtab *p, sqlite3_vtab_cursor **ppCursor)
     JsonEachCursor *pCur;
 
     UNUSED_PARAM(p);
-    pCur = sqlite3_malloc(sizeof(*pCur));
+    pCur = (JsonEachCursor*)sqlite3_malloc(sizeof(*pCur));
     if (pCur == 0) return SQLITE_NOMEM;
     memset(pCur, 0, sizeof(*pCur));
     *ppCursor = &pCur->base;
@@ -2248,7 +2248,7 @@ static int jsonEachBestIndex(
     const struct sqlite3_index_constraint *pConstraint;
 
     UNUSED_PARAM(tab);
-    pConstraint = pIdxInfo->aConstraint;
+    pConstraint = (const struct sqlite3_index_constraint *)pIdxInfo->aConstraint;
     for (i = 0; i < pIdxInfo->nConstraint; i++, pConstraint++)
     {
         if (pConstraint->usable == 0) continue;
@@ -2307,7 +2307,7 @@ static int jsonEachFilter(
     z = (const char *) sqlite3_value_text(argv[0]);
     if (z == 0) return SQLITE_OK;
     n = sqlite3_value_bytes(argv[0]);
-    p->zJson = sqlite3_malloc64(n + 1);
+    p->zJson = (char*)sqlite3_malloc64(n + 1);
     if (p->zJson == 0) return SQLITE_NOMEM;
     memcpy(p->zJson, z, (size_t) n + 1);
     if (jsonParse(&p->sParse, 0, p->zJson))
@@ -2337,7 +2337,7 @@ static int jsonEachFilter(
                 zRoot = (const char *) sqlite3_value_text(argv[1]);
                 if (zRoot == 0) return SQLITE_OK;
                 n = sqlite3_value_bytes(argv[1]);
-                p->zRoot = sqlite3_malloc64(n + 1);
+                p->zRoot = (char*)sqlite3_malloc64(n + 1);
                 if (p->zRoot == 0) return SQLITE_NOMEM;
                 memcpy(p->zRoot, zRoot, (size_t) n + 1);
                 if (zRoot[0] != '$')

@@ -5,6 +5,12 @@
 #ifndef FLEXILITE_FLEXI_DATA_H
 #define FLEXILITE_FLEXI_DATA_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+
 /*
  * Sequential numbers of flexi_data's columns
  */
@@ -93,7 +99,7 @@ typedef struct FlexiDataProxyVTab_t
      */
     struct AdHocQryParams_t *pQry;
 
-    enum FLEXI_DATA_LOAD_ROW_MODES eLoadRowMode;
+//    enum FLEXI_DATA_LOAD_ROW_MODES eLoadRowMode;
 } FlexiDataProxyVTab_t;
 
 //typedef struct FlexiDataProxyVTab_t FlexiDataProxyVTab_t;
@@ -102,5 +108,9 @@ typedef struct FlexiDataProxyVTab_t
  * Deletes object from class = zClassName, with id = lObjectID
  */
 int flexi_DataDeleteObject(FlexiDataProxyVTab_t *vtab, const char *zClassName, sqlite3_int64 lObjectID);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_FLEXI_DATA_H

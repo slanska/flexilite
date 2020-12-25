@@ -3,7 +3,7 @@ Niche for Flexilite:
 
 * moderate load - 10 writers and 200 reader, or 2 writers and 1000 readers
 
-* uncertain and volatile data schema, which evolutionates as database grows and requirements change
+* uncertain and volatile data schema, with multi step evolutions, as database grows and requirements change
 
 * mostly read access, with high selectivity of data (many search operation on specific values)
 

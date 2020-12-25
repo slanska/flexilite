@@ -13,7 +13,7 @@
 #else
 
 #include <sqlite3ext.h>
-#include <ntsid.h>
+//#include <ntsid.h>
 
 SQLITE_EXTENSION_INIT3
 

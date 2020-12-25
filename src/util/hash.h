@@ -31,6 +31,10 @@ SQLITE_EXTENSION_INIT3
 #include <memory.h>
 #include "../common/common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Forward declarations of structures. */
 typedef struct Hash Hash;
 typedef struct HashElem HashElem;
@@ -175,5 +179,9 @@ void *HashTable_each(const Hash *self, iterateeFunc iteratee, var param);
 void HashTable_clear(Hash *);
 
 unsigned int HashTable_getStringHash(const char *key);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _SQLITE_HASH_H_ */

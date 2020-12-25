@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 enable_testing()
 
-message(WARNING "Platform: ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}-${PLATFORM}")
+#message(WARNING "Platform: ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}-${PLATFORM}")
 set(PLATFORM "${CMAKE_SYSTEM_NAME}")
 string(TOUPPER "${PLATFORM}" PLATFORM)
 
@@ -11,7 +11,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 project(flexilite_test)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 add_definitions(-DSQLITE_ENABLE_FTS4
         -DSQLITE_ENABLE_RTREE
@@ -32,11 +34,9 @@ set(TEST_FILES
 
         ../lib/cmocka/src/cmocka.c
         ../lib/sqlite/sqlite3.c
-        fts.c
-        main.c
-        fts.c
-        util/db_init.c
-        util/db_init.h
+        main.cpp
+        util/db_util.c
+        util/db_util.h
         definitions.h
         util/file_helper.c
         util/file_helper.h
@@ -46,7 +46,11 @@ set(TEST_FILES
         ../src/util/Array.c
         ../src/util/StringBuilder.c
         ../src/util/Path.c
+        import_data_tests.c
         )
+
+
+#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/luajit-2.1 ${CMAKE_CURRENT_BINARY_DIR}/lib/luajit-2.1)
 
 add_executable(flexilite_test ${TEST_FILES} )
 

@@ -17,6 +17,9 @@ SQLITE_EXTENSION_INIT3
 
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Path.join implementation, inspired by Node.js and ported from JavaScript code
@@ -27,5 +30,9 @@ SQLITE_EXTENSION_INIT3
 void Path_join(char **pzResult, const char *zBase, const char *zAddPath);
 
 void Path_dirname(char **pzResult, const char *zPath);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FLEXILITE_PATH_H

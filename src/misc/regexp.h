@@ -12,6 +12,10 @@
 
 SQLITE_EXTENSION_INIT3
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
 ** The following #defines change the names of some functions implemented in
 ** this file to prevent name collisions with C-library functions of the
@@ -79,5 +83,9 @@ int re_match(ReCompiled *pRe, const unsigned char *zIn, int nIn);
 ** for every call to re_compile() to avoid memory leaks.
 */
 void re_free(ReCompiled *pRe);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //SQLITE_EXTENSIONS_REGEXP_H

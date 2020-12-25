@@ -18,6 +18,10 @@
 #include <stdbool.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * RBNode is intended to be used as the first field of a larger struct,
  * whose additional fields carry whatever payload data the caller needs
@@ -125,5 +129,9 @@ extern void rb_begin_inverted_walk(RBTree *rb, RBTreeInvertedWalk *dw);
 extern RBNode *rb_inverted_walk(RBTreeInvertedWalk *dw);
 
 extern void rb_clear(RBTree *self);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif   /* RBTREE_H */

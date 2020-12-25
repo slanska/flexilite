@@ -9,6 +9,10 @@
 
 #include <sqlite3ext.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* JSON type values
 */
 #define JSON_NULL     0
@@ -36,7 +40,8 @@ typedef sqlite3_uint64 u64;
 ** under construction.  Really, this is a generic string accumulator
 ** that can be and is used to create strings other than JSON.
 */
-struct JsonString {
+struct JsonString
+{
     sqlite3_context *pCtx;
     /* Function context - put error messages here */
     char *zBuf;
@@ -79,7 +84,8 @@ void jsonReset(JsonString *p);
 
 /* A single node of parsed JSON
 */
-struct JsonNode {
+struct JsonNode
+{
     /* One of the JSON_ type values */
     u8 eType;
 
@@ -92,7 +98,8 @@ struct JsonNode {
     /* Bytes of content, or number of sub-nodes */
     u32 n;
 
-    union {
+    union
+    {
         /* Content for INT, REAL, and STRING */
         const char *zJContent;
 
@@ -106,7 +113,8 @@ struct JsonNode {
 
 /* A completely parsed JSON string
 */
-struct JsonParse {
+struct JsonParse
+{
     u32 nNode;
     /* Number of slots of aNode[] used */
     u32 nAlloc;
@@ -206,5 +214,9 @@ JsonNode *jsonLookupStep(
         int *pApnd,             /* Append nodes to complete path if not NULL */
         const char **pzErr      /* Make *pzErr point to any syntax error in zPath */
 );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //SQLITE_EXTENSIONS_JSON1_H
