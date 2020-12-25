@@ -1,7 +1,45 @@
 [submodule "lib/cmocka"]
 	path = lib/cmocka
 	url = git://git.cryptomilk.org/projects/cmocka.git
-
-[submodule "lib/parson_json"]
-	path = lib/parson_json
-	url = https://github.com/kgabis/parson.git
+[submodule "lib/lua-prettycjson"]
+	path = lib/lua-prettycjson
+	url = https://github.com/bungle/lua-resty-prettycjson.git
+[submodule "lib/lua-schema"]
+	path = lib/lua-schema
+	url = https://github.com/sschoener/lua-schema.git
+[submodule "lib/lua-penlight"]
+	path = lib/lua-penlight
+	url = https://github.com/stevedonovan/Penlight.git
+[submodule "lib/lua-sandbox"]
+	path = lib/lua-sandbox
+	url = https://github.com/APItools/sandbox.lua.git
+[submodule "lib/lua-base64"]
+	path = lib/lua-base64
+	url = https://github.com/LuaDist/lbase64.git
+[submodule "lib/lua-date"]
+	path = lib/lua-date
+	url = https://github.com/Tieske/date.git
+[submodule "lib/lua-metalua"]
+	path = lib/lua-metalua
+	url = https://github.com/fab13n/metalua.git
+[submodule "lib/luafilesystem"]
+	path = lib/luafilesystem
+	url = https://github.com/keplerproject/luafilesystem.git
+[submodule "lib/lua-sqlite"]
+	path = lib/lua-sqlite
+	url = https://github.com/slanska/lsqlite3.git
+[submodule "lib/lua-cjson"]
+	path = lib/lua-cjson
+	url = https://github.com/openresty/lua-cjson.git
+[submodule "lib/torch-luajit-rocks"]
+	path = lib/torch-luajit-rocks
+	url = https://github.com/torch/luajit-rocks.git
+[submodule "lib/lua-ansicolors"]
+	path = lib/lua-ansicolors
+	url = https://github.com/kikito/ansicolors.lua.git
+[submodule "lib/debugger-lua"]
+	path = lib/debugger-lua
+	url = https://github.com/slembcke/debugger.lua.git
+[submodule "lib/md5.lua"]
+	path = lib/md5.lua
+	url = https://github.com/kikito/md5.lua.git

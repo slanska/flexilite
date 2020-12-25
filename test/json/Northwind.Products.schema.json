@@ -1,0 +1,121 @@
+{
+  "specialProperties": {
+    "name": {
+      "text": "ProductName"
+    },
+    "uid": {
+      "text": "ProductID"
+    }
+  },
+  "properties": {
+    "UnitsOnOrder": {
+      "defaultValue": 0,
+      "rules": {
+        "maxValue": 32767,
+        "type": "integer",
+        "minValue": -32768
+      }
+    },
+    "QuantityPerUnit": {
+      "index": "range",
+      "rules": {
+        "type": "integer",
+        "maxLength": 20
+      }
+    },
+    "ReorderLevel": {
+      "defaultValue": 0,
+      "index": "range",
+      "rules": {
+        "maxValue": 32767,
+        "type": "integer",
+        "minValue": -32768
+      }
+    },
+    "ProductID": {
+      "index": "unique",
+      "rules": {
+        "type": "integer",
+        "maxOccurrences": 1,
+        "minOccurrences": 1
+      }
+    },
+    "UnitPrice": {
+      "defaultValue": 0,
+      "index": "range",
+      "rules": {
+        "type": "money"
+      }
+    },
+    "DiscontinuedDate": {
+      "index": "range",
+      "rules": {
+        "type": "date"
+      }
+    },
+    "Discontinued": {
+      "defaultValue": "0",
+      "rules": {
+        "type": "boolean",
+        "maxOccurrences": 1,
+        "minOccurrences": 1
+      }
+    },
+    "ProductName": {
+      "index": "index",
+      "rules": {
+        "type": "text",
+        "minOccurrences": 1,
+        "maxOccurrences": 1,
+        "maxLength": 40
+      }
+    },
+    "Description": {
+      "index": "fulltext",
+      "rules": {
+        "type": "text",
+        "minOccurrences": 1,
+        "maxOccurrences": 1,
+        "maxLength": 400
+      }
+    },
+    "UnitsInStock": {
+      "defaultValue": 0,
+      "index": "range",
+      "rules": {
+        "maxValue": 32767,
+        "type": "integer",
+        "minValue": -32768
+      }
+    },
+    "CategoryID": {
+      "rules": {
+        "type": "integer",
+        "minOccurrences": 1,
+        "maxOccurrences": 1
+      }
+    },
+    "ProductCode": {
+      "index": "unique",
+      "rules": {
+        "type": "text",
+        "maxLength": 20,
+        "minOccurrences": 1,
+        "maxOccurrences": 1
+      }
+    }
+  },
+  "indexes": {
+    "byCategoryAndName": {
+      "type": "unique",
+      "properties": [
+        {
+          "text": "CategoryID"
+        },
+        {
+          "text": "ProductName"
+        }
+      ]
+    }
+  }
+}
