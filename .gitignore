@@ -122,4 +122,6 @@ node_modules
 /lib/lua-sqlite/
 /lib/luafilesystem/
 /lib/md5.lua/
-/lib/torch-luajit-rocks/
+/lib/~torch-luajit-rocks/
+/.luajit_msvcbuild 2.bat.icloud
+/.main 2.lua.icloud
